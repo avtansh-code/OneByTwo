@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Create Group</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; margin-top: 24px; }
+        .back-btn { color: var(--text-primary); text-decoration: none; }
+        .save-btn { color: var(--primary); font-weight: 500; text-decoration: none; font-size: 16px; }
+        .cover-upload { width: 100%; height: 120px; background: #E8EAF6; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px; cursor: pointer; }
+        .cover-upload .material-icons-round { font-size: 32px; color: var(--primary); margin-bottom: 8px; }
+        .cover-upload span:last-child { font-size: 14px; color: #757575; }
+        .form-group { margin-bottom: 24px; }
+        .label { font-size: 14px; color: #757575; margin-bottom: 8px; display: block; }
+        .input-field { width: 100%; border: none; border-bottom: 2px solid #E0E0E0; padding: 12px 0; font-size: 16px; outline: none; background: transparent; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        .category-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .cat-icon { width: 48px; height: 48px; background: #F5F5F5; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 4px; font-size: 20px; }
+        .cat-item.active .cat-icon { background: var(--primary); }
+        .cat-item.active .cat-icon span { color: white; }
+        .cat-label { font-size: 11px; color: #757575; text-align: center; }
+        .invite-section { margin-top: 8px; }
+        .invite-row { display: flex; align-items: center; background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+        .invite-row .material-icons-round { color: var(--primary); margin-right: 12px; }
+        .invite-text { font-size: 14px; color: var(--primary); font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="header">
+            <a href="home_screen.html" class="back-btn material-icons-round">close</a>
+            <span style="font-weight: 500; font-size: 18px;">Create Group</span>
+            <a href="group_detail.html" class="save-btn">Create</a>
+        </div>
+
+        <div class="cover-upload">
+            <span class="material-icons-round">add_photo_alternate</span>
+            <span>Add Cover Photo</span>
+        </div>
+
+        <div class="form-group">
+            <span class="label">Group Name</span>
+            <input type="text" class="input-field" placeholder="e.g., Goa Trip 2026" value="">
+        </div>
+
+        <div class="form-group">
+            <span class="label">Category</span>
+            <div class="category-grid">
+                <div class="cat-item active">
+                    <div class="cat-icon"><span style="color: #757575;">✈️</span></div>
+                    <span class="cat-label">Trip</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🏠</div>
+                    <span class="cat-label">Home</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">❤️</div>
+                    <span class="cat-label">Couple</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🎉</div>
+                    <span class="cat-label">Event</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">📁</div>
+                    <span class="cat-label">Other</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="invite-section">
+            <span class="label">Add Members</span>
+            <div class="invite-row">
+                <span class="material-icons-round">person_add</span>
+                <span class="invite-text">Add from contacts</span>
+            </div>
+            <div class="invite-row">
+                <span class="material-icons-round">link</span>
+                <span class="invite-text">Share invite link</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

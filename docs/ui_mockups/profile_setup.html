@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Profile Setup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; padding: 40px 24px; box-sizing: border-box; }
+        h1 { font-size: 24px; color: var(--text-primary); margin: 40px 0 8px 0; }
+        p { font-size: 14px; color: #757575; margin: 0 0 40px 0; }
+        .avatar-upload { width: 100px; height: 100px; border-radius: 50%; background: #E8EAF6; display: flex; align-items: center; justify-content: center; margin: 0 auto 32px; position: relative; cursor: pointer; }
+        .avatar-upload .material-icons-round { font-size: 40px; color: var(--primary); }
+        .camera-badge { position: absolute; bottom: 0; right: 0; width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid var(--background); }
+        .camera-badge .material-icons-round { font-size: 16px; color: white; }
+        .form-group { margin-bottom: 24px; }
+        .label { font-size: 14px; color: #757575; margin-bottom: 8px; display: block; }
+        .input-field { width: 100%; border: none; border-bottom: 2px solid #E0E0E0; padding: 12px 0; font-size: 16px; outline: none; background: transparent; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        .input-field:focus { border-bottom-color: var(--primary); }
+        .btn { width: 100%; height: 56px; background: var(--primary); color: white; border: none; border-radius: 28px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; position: absolute; bottom: 48px; left: 24px; width: calc(100% - 48px); box-shadow: 0 4px 12px rgba(57, 73, 171, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <h1>Set up your profile</h1>
+        <p>Tell us a bit about yourself.</p>
+
+        <div class="avatar-upload">
+            <span class="material-icons-round">person</span>
+            <div class="camera-badge"><span class="material-icons-round">camera_alt</span></div>
+        </div>
+
+        <div class="form-group">
+            <span class="label">Full Name *</span>
+            <input type="text" class="input-field" placeholder="Enter your name" value="Avtansh Gupta">
+        </div>
+
+        <div class="form-group">
+            <span class="label">Phone Number</span>
+            <div style="display:flex;align-items:center;border-bottom:2px solid #E0E0E0;padding:12px 0;">
+                <span style="font-size:16px;color:#757575;margin-right:8px;">🇮🇳 +91</span>
+                <span style="font-size:16px;color:#9e9e9e;">98765 43210</span>
+                <span class="material-icons-round" style="font-size:16px;color:#BDBDBD;margin-left:auto;">lock</span>
+            </div>
+        </div>
+
+        <a href="home_screen.html" class="btn">Continue</a>
+    </div>
+</body>
+</html>

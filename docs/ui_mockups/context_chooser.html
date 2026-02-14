@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Choose Context</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --primary-light: #C5CAE9; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: rgba(0,0,0,0.5); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+        .sheet { background: white; border-radius: 20px 20px 0 0; padding: 20px 16px 40px; max-height: 70%; overflow-y: auto; }
+        .handle { width: 36px; height: 4px; background: #E0E0E0; border-radius: 2px; margin: 0 auto 20px; }
+        .sheet-title { font-size: 20px; font-weight: 500; color: var(--text-primary); margin: 0 0 4px; }
+        .sheet-sub { font-size: 14px; color: #757575; margin: 0 0 20px; }
+        .section-title { font-size: 13px; color: #757575; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+        .option { display: flex; align-items: center; padding: 14px 12px; border-radius: 12px; margin-bottom: 8px; cursor: pointer; border: 2px solid transparent; }
+        .option:hover { background: #F5F5F5; }
+        .option.selected { border-color: var(--primary); background: #E8EAF6; }
+        .option-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 12px; font-size: 20px; }
+        .option-text { flex: 1; }
+        .option-name { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+        .option-detail { font-size: 13px; color: #757575; }
+        .check-icon { color: var(--primary); }
+        .continue-btn { width: 100%; height: 52px; background: var(--primary); color: white; border: none; border-radius: 26px; font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 16px; box-shadow: 0 4px 12px rgba(57, 73, 171, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="sheet">
+            <div class="handle"></div>
+            <div class="sheet-title">Add expense to…</div>
+            <div class="sheet-sub">Choose a group or friend</div>
+
+            <div class="section-title">Recent</div>
+            <div class="option selected">
+                <div class="option-icon" style="background:#E8EAF6;">🏖️</div>
+                <div class="option-text">
+                    <div class="option-name">Goa Trip</div>
+                    <div class="option-detail">5 members · Group</div>
+                </div>
+                <span class="material-icons-round check-icon">check_circle</span>
+            </div>
+
+            <div class="section-title">Groups</div>
+            <div class="option">
+                <div class="option-icon" style="background:#FFF3E0;">🍕</div>
+                <div class="option-text">
+                    <div class="option-name">Office Lunch</div>
+                    <div class="option-detail">4 members · Group</div>
+                </div>
+            </div>
+            <div class="option">
+                <div class="option-icon" style="background:#E8F5E9;">🏠</div>
+                <div class="option-text">
+                    <div class="option-name">Flatmates</div>
+                    <div class="option-detail">3 members · Group</div>
+                </div>
+            </div>
+
+            <div class="section-title">Friends</div>
+            <div class="option">
+                <div class="option-icon" style="background:#FFECB3;">RA</div>
+                <div class="option-text">
+                    <div class="option-name">Rahul Verma</div>
+                    <div class="option-detail">Friend · You owe ₹350</div>
+                </div>
+            </div>
+            <div class="option">
+                <div class="option-icon" style="background:#F8BBD0;">PR</div>
+                <div class="option-text">
+                    <div class="option-name">Priya Sharma</div>
+                    <div class="option-detail">Friend · Settled up</div>
+                </div>
+            </div>
+
+            <a href="add_expense.html"><button class="continue-btn">Continue</button></a>
+        </div>
+    </div>
+</body>
+</html>

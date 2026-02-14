@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Edit Expense</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --error: #E53935; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .app-bar .left { display: flex; align-items: center; }
+        .app-bar a { text-decoration: none; color: var(--text-primary); margin-right: 16px; }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .save-btn { color: var(--primary); font-weight: 500; font-size: 16px; cursor: pointer; }
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .form-group { margin-bottom: 24px; }
+        .label { font-size: 14px; color: #757575; margin-bottom: 8px; display: block; }
+        .input-field { width: 100%; border: none; border-bottom: 2px solid #E0E0E0; padding: 12px 0; font-size: 16px; outline: none; background: transparent; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        .amount-row { display: flex; align-items: baseline; }
+        .currency { font-size: 28px; font-weight: 700; color: var(--primary); margin-right: 4px; }
+        .amount-input { font-size: 28px; font-weight: 700; border: none; outline: none; width: 120px; background: transparent; font-family: 'Roboto', sans-serif; }
+        .context-badge { display: inline-flex; align-items: center; background: #E8EAF6; border-radius: 16px; padding: 6px 12px; font-size: 13px; color: var(--primary); font-weight: 500; }
+        .context-badge .material-icons-round { font-size: 16px; margin-right: 4px; }
+        .split-row { display: flex; align-items: center; background: white; padding: 12px; border-radius: 8px; margin-top: 8px; }
+        .split-row .material-icons-round { color: var(--primary); margin-right: 8px; }
+        .split-info { flex: 1; }
+        .split-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+        .split-detail { font-size: 12px; color: #757575; }
+        .date-row { display: flex; align-items: center; background: white; padding: 12px; border-radius: 8px; }
+        .date-row .material-icons-round { color: #757575; margin-right: 8px; }
+        .date-text { font-size: 15px; color: var(--text-primary); }
+        .receipt-area { display: flex; align-items: center; background: white; padding: 12px; border-radius: 8px; margin-top: 8px; }
+        .receipt-area .material-icons-round { color: #757575; margin-right: 8px; }
+        .receipt-thumb { width: 48px; height: 48px; border-radius: 8px; background: #F5F5F5; display: flex; justify-content: center; align-items: center; margin-left: auto; }
+        .receipt-thumb .material-icons-round { font-size: 20px; color: #BDBDBD; }
+        .delete-btn { display: flex; align-items: center; justify-content: center; color: var(--error); font-size: 15px; font-weight: 500; padding: 16px; cursor: pointer; margin-top: 16px; }
+        .delete-btn .material-icons-round { font-size: 20px; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <div class="left">
+                <a href="expense_detail.html" class="material-icons-round">close</a>
+                <h1>Edit Expense</h1>
+            </div>
+            <span class="save-btn">Save</span>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <span class="label">Context</span>
+                <div class="context-badge">
+                    <span class="material-icons-round">group</span>
+                    Goa Trip 🏖️
+                </div>
+            </div>
+
+            <div class="form-group">
+                <span class="label">Amount</span>
+                <div class="amount-row">
+                    <span class="currency">₹</span>
+                    <input type="text" class="amount-input" value="2,400">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <span class="label">Description</span>
+                <input type="text" class="input-field" value="Dinner at Fisherman's Wharf">
+            </div>
+
+            <div class="form-group">
+                <span class="label">Paid by</span>
+                <input type="text" class="input-field" value="You">
+            </div>
+
+            <div class="form-group">
+                <span class="label">Date</span>
+                <div class="date-row">
+                    <span class="material-icons-round">calendar_today</span>
+                    <span class="date-text">10 Feb 2026</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <span class="label">Split</span>
+                <a href="split_options.html" class="split-row" style="text-decoration:none;color:inherit;">
+                    <span class="material-icons-round">call_split</span>
+                    <div class="split-info">
+                        <div class="split-label">Split equally</div>
+                        <div class="split-detail">₹600.00 / person × 4</div>
+                    </div>
+                    <span class="material-icons-round" style="color:#bdbdbd;margin:0;">chevron_right</span>
+                </a>
+            </div>
+
+            <div class="form-group">
+                <span class="label">Receipt</span>
+                <div class="receipt-area">
+                    <span class="material-icons-round">attach_file</span>
+                    <span style="font-size:14px;color:#757575;">receipt_dinner.jpg</span>
+                    <div class="receipt-thumb"><span class="material-icons-round">image</span></div>
+                </div>
+            </div>
+
+            <div class="delete-btn">
+                <span class="material-icons-round">delete</span>
+                Delete Expense
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Add Friend</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; border-bottom: 1px solid #eee; }
+        .app-bar .material-icons-round { margin-right: 16px; color: var(--text-primary); text-decoration: none; }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .search-bar { margin: 16px; display: flex; align-items: center; background: white; border-radius: 28px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .search-bar .material-icons-round { color: #757575; margin-right: 12px; }
+        .search-bar input { border: none; outline: none; font-size: 16px; flex: 1; background: transparent; font-family: 'Roboto', sans-serif; }
+        .content { flex: 1; overflow-y: auto; padding: 0 16px; }
+        .section-title { font-size: 14px; color: #757575; font-weight: 500; margin: 16px 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .contact-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; background: #E0E0E0; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; margin-right: 16px; }
+        .contact-info { flex: 1; }
+        .contact-name { font-size: 16px; color: var(--text-primary); font-weight: 500; margin-bottom: 2px; }
+        .contact-phone { font-size: 13px; color: #757575; }
+        .add-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .added-label { color: #757575; font-size: 14px; }
+        .or-divider { display: flex; align-items: center; margin: 20px 0; color: #9e9e9e; font-size: 14px; }
+        .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
+        .or-divider span { margin: 0 16px; }
+        .phone-entry { display: flex; align-items: center; background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .phone-entry .country { font-size: 16px; margin-right: 8px; font-weight: 500; }
+        .phone-entry input { border: none; outline: none; font-size: 16px; flex: 1; background: transparent; font-family: 'Roboto', sans-serif; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <a href="home_screen.html" class="material-icons-round" style="text-decoration:none;color:inherit;">arrow_back</a>
+            <h1>Add Friend</h1>
+        </div>
+
+        <div class="search-bar">
+            <span class="material-icons-round">search</span>
+            <input type="text" placeholder="Search by name or phone" value="Priya">
+        </div>
+
+        <div class="content">
+            <div class="section-title">Search Results</div>
+            <div class="contact-item">
+                <div class="avatar" style="background:#F8BBD0;">PR</div>
+                <div class="contact-info">
+                    <div class="contact-name">Priya Sharma</div>
+                    <div class="contact-phone">+91 99876 54321</div>
+                </div>
+                <button class="add-btn">Add</button>
+            </div>
+
+            <div class="or-divider"><span>or enter phone number</span></div>
+
+            <div class="phone-entry">
+                <span class="country">🇮🇳 +91</span>
+                <input type="tel" placeholder="Enter phone number">
+            </div>
+
+            <div class="section-title">From Your Contacts</div>
+            <div class="contact-item">
+                <div class="avatar" style="background:#FFECB3;">RA</div>
+                <div class="contact-info">
+                    <div class="contact-name">Rahul Verma</div>
+                    <div class="contact-phone">+91 98765 43210</div>
+                </div>
+                <span class="added-label">✓ Added</span>
+            </div>
+            <div class="contact-item">
+                <div class="avatar" style="background:#E1F5FE;">AM</div>
+                <div class="contact-info">
+                    <div class="contact-name">Amit Patel</div>
+                    <div class="contact-phone">+91 87654 32109</div>
+                </div>
+                <button class="add-btn">Add</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

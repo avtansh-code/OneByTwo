@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Manage Members</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --error: #E53935; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .app-bar .left { display: flex; align-items: center; }
+        .app-bar a { text-decoration: none; color: var(--text-primary); margin-right: 16px; }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .add-btn { color: var(--primary); font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .section-title { font-size: 13px; color: #757575; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0 12px; }
+        .member-card { display: flex; align-items: center; padding: 14px; background: white; border-radius: 12px; margin-bottom: 8px; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: white; margin-right: 12px; }
+        .member-info { flex: 1; }
+        .member-name { font-size: 16px; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+        .member-phone { font-size: 13px; color: #757575; margin-top: 2px; }
+        .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
+        .badge-admin { background: #E8EAF6; color: var(--primary); }
+        .badge-you { background: #E8F5E9; color: #2E7D32; }
+        .role-menu { color: #757575; cursor: pointer; }
+        .invite-card { display: flex; align-items: center; padding: 14px; background: white; border-radius: 12px; margin-bottom: 8px; border: 1px dashed #E0E0E0; }
+        .invite-icon { width: 44px; height: 44px; border-radius: 50%; background: #F5F5F5; display: flex; justify-content: center; align-items: center; margin-right: 12px; }
+        .invite-icon .material-icons-round { color: #9e9e9e; }
+        .invite-info { flex: 1; }
+        .invite-name { font-size: 15px; color: #757575; }
+        .invite-status { font-size: 12px; color: #BDBDBD; }
+        .resend-btn { font-size: 13px; color: var(--primary); font-weight: 500; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <div class="left">
+                <a href="group_settings.html" class="material-icons-round">arrow_back</a>
+                <h1>Members</h1>
+            </div>
+            <div class="add-btn"><span class="material-icons-round" style="font-size:20px;">person_add</span>Add</div>
+        </div>
+        <div class="content">
+            <div class="section-title">Active Members (5)</div>
+
+            <div class="member-card">
+                <div class="avatar" style="background:#3949AB;">YO</div>
+                <div class="member-info">
+                    <div class="member-name">You <span class="badge badge-admin">Admin</span> <span class="badge badge-you">You</span></div>
+                    <div class="member-phone">+91 98765 43210</div>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <div class="avatar" style="background:#EF6C00;">RA</div>
+                <div class="member-info">
+                    <div class="member-name">Rahul Verma <span class="badge badge-admin">Admin</span></div>
+                    <div class="member-phone">+91 87654 32109</div>
+                </div>
+                <span class="material-icons-round role-menu">more_vert</span>
+            </div>
+
+            <div class="member-card">
+                <div class="avatar" style="background:#E91E63;">PR</div>
+                <div class="member-info">
+                    <div class="member-name">Priya Sharma</div>
+                    <div class="member-phone">+91 99876 54321</div>
+                </div>
+                <span class="material-icons-round role-menu">more_vert</span>
+            </div>
+
+            <div class="member-card">
+                <div class="avatar" style="background:#43A047;">AM</div>
+                <div class="member-info">
+                    <div class="member-name">Amit Patel</div>
+                    <div class="member-phone">+91 76543 21098</div>
+                </div>
+                <span class="material-icons-round role-menu">more_vert</span>
+            </div>
+
+            <div class="member-card">
+                <div class="avatar" style="background:#7B1FA2;">NE</div>
+                <div class="member-info">
+                    <div class="member-name">Neha Gupta</div>
+                    <div class="member-phone">+91 65432 10987</div>
+                </div>
+                <span class="material-icons-round role-menu">more_vert</span>
+            </div>
+
+            <div class="section-title">Pending Invites (1)</div>
+
+            <div class="invite-card">
+                <div class="invite-icon"><span class="material-icons-round">hourglass_empty</span></div>
+                <div class="invite-info">
+                    <div class="invite-name">+91 54321 09876</div>
+                    <div class="invite-status">Invited 2 days ago</div>
+                </div>
+                <span class="resend-btn">Resend</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

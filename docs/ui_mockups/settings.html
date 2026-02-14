@@ -13,13 +13,20 @@
         .header { background: #E8EAF6; padding: 24px; text-align: center; }
         .profile-img { width: 80px; height: 80px; border-radius: 50%; background: #C5CAE9; margin: 0 auto 16px; display: flex; justify-content: center; align-items: center; font-size: 32px; color: var(--primary); }
         .name { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
-        .email { font-size: 14px; color: #757575; }
-        .list { margin-top: 24px; background: white; border-radius: 12px; overflow: hidden; }
+        .phone { font-size: 14px; color: #757575; }
+        .edit-profile { font-size: 13px; color: var(--primary); font-weight: 500; margin-top: 8px; cursor: pointer; }
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .section-label { font-size: 13px; color: #757575; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin: 8px 0 8px 4px; }
+        .list { background: white; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
         .item { padding: 16px; border-bottom: 1px solid #EEEEEE; display: flex; align-items: center; text-decoration: none; color: inherit; }
         .item:last-child { border-bottom: none; }
         .icon { margin-right: 16px; color: #757575; }
         .label { flex: 1; font-size: 16px; }
-        .back-btn { position: absolute; top: 40px; left: 24px; color: var(--text-primary); text-decoration: none; }
+        .item-value { font-size: 14px; color: #9e9e9e; margin-right: 8px; }
+        .back-btn { position: absolute; top: 40px; left: 24px; color: var(--text-primary); text-decoration: none; z-index: 1; }
+        .bottom-nav { display: flex; background: white; border-top: 1px solid #eee; padding: 8px 0 24px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #757575; text-decoration: none; gap: 4px; }
+        .nav-item.active { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -28,33 +35,77 @@
         <div class="header">
             <div class="profile-img">AG</div>
             <div class="name">Avtansh Gupta</div>
-            <div class="email">avtansh@example.com</div>
+            <div class="phone">+91 98765 43210</div>
+            <div class="edit-profile">Edit Profile</div>
         </div>
-        <div class="list">
-            <a href="#" class="item">
-                <span class="material-icons-round icon">account_circle</span>
-                <span class="label">Profile</span>
-                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
-            </a>
-            <a href="#" class="item">
-                <span class="material-icons-round icon">notifications</span>
-                <span class="label">Notifications</span>
-                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
-            </a>
-            <a href="#" class="item">
-                <span class="material-icons-round icon">lock</span>
-                <span class="label">Security</span>
-                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
-            </a>
-            <a href="#" class="item">
-                <span class="material-icons-round icon">help</span>
-                <span class="label">Help & Support</span>
-                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
-            </a>
-            <a href="welcome.html" class="item" style="color: #E53935;">
-                <span class="material-icons-round icon" style="color: #E53935;">logout</span>
-                <span class="label">Log Out</span>
-            </a>
+        <div class="content">
+            <div class="section-label">Account</div>
+            <div class="list">
+                <a href="profile_setup.html" class="item">
+                    <span class="material-icons-round icon">account_circle</span>
+                    <span class="label">Profile</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </a>
+                <a href="notifications.html" class="item">
+                    <span class="material-icons-round icon">notifications</span>
+                    <span class="label">Notifications</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </a>
+                <div class="item">
+                    <span class="material-icons-round icon">lock</span>
+                    <span class="label">Security</span>
+                    <span class="item-value">Biometric On</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+            </div>
+
+            <div class="section-label">App</div>
+            <div class="list">
+                <div class="item">
+                    <span class="material-icons-round icon">palette</span>
+                    <span class="label">Appearance</span>
+                    <span class="item-value">System</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round icon">language</span>
+                    <span class="label">Language</span>
+                    <span class="item-value">English</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round icon">currency_rupee</span>
+                    <span class="label">Currency</span>
+                    <span class="item-value">₹ INR</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+            </div>
+
+            <div class="section-label">Support</div>
+            <div class="list">
+                <div class="item">
+                    <span class="material-icons-round icon">help</span>
+                    <span class="label">Help & Support</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round icon">info</span>
+                    <span class="label">About</span>
+                    <span class="item-value">v1.0.0</span>
+                    <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+                </div>
+                <a href="welcome.html" class="item" style="color: #E53935;">
+                    <span class="material-icons-round icon" style="color: #E53935;">logout</span>
+                    <span class="label">Log Out</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="home_screen.html" class="nav-item"><span class="material-icons-round">home</span>Home</a>
+            <a href="activity_feed.html" class="nav-item"><span class="material-icons-round">receipt_long</span>Activity</a>
+            <a href="analytics.html" class="nav-item"><span class="material-icons-round">bar_chart</span>Analytics</a>
+            <a href="settings.html" class="nav-item active"><span class="material-icons-round">settings</span>Settings</a>
         </div>
     </div>
 </body>

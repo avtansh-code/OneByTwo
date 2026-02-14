@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Group Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --error: #E53935; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; border-bottom: 1px solid #eee; }
+        .app-bar .material-icons-round { margin-right: 16px; text-decoration: none; color: var(--text-primary); }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .section { background: white; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+        .section-title { font-size: 14px; color: #757575; font-weight: 500; padding: 16px 16px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .item { padding: 16px; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; }
+        .item:last-child { border-bottom: none; }
+        .item .material-icons-round { color: #757575; margin-right: 16px; font-size: 22px; }
+        .item-label { flex: 1; font-size: 15px; color: var(--text-primary); }
+        .item-value { font-size: 14px; color: #757575; }
+        .toggle { width: 44px; height: 24px; background: #E0E0E0; border-radius: 12px; position: relative; }
+        .toggle.on { background: #C5CAE9; }
+        .toggle::after { content: ''; width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .toggle.on::after { left: 22px; background: var(--primary); }
+        .danger { color: var(--error) !important; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <a href="group_detail.html" class="material-icons-round" style="text-decoration:none;color:inherit;">arrow_back</a>
+            <h1>Group Settings</h1>
+        </div>
+        <div class="content">
+            <div class="section">
+                <div class="item">
+                    <span class="material-icons-round">edit</span>
+                    <span class="item-label">Group Name</span>
+                    <span class="item-value">Goa Trip 🏖️</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round">category</span>
+                    <span class="item-label">Category</span>
+                    <span class="item-value">Trip</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round">photo_camera</span>
+                    <span class="item-label">Cover Photo</span>
+                    <span class="material-icons-round" style="color:#bdbdbd;margin:0;">chevron_right</span>
+                </div>
+            </div>
+
+            <div class="section-title">Members</div>
+            <div class="section">
+                <a href="member_management.html" class="item" style="text-decoration:none;color:inherit;">
+                    <span class="material-icons-round">group</span>
+                    <span class="item-label">Manage Members (5)</span>
+                    <span class="material-icons-round" style="color:#bdbdbd;margin:0;">chevron_right</span>
+                </a>
+                <div class="item">
+                    <span class="material-icons-round">link</span>
+                    <span class="item-label">Invite Link</span>
+                    <span class="material-icons-round" style="color:#bdbdbd;margin:0;">chevron_right</span>
+                </div>
+            </div>
+
+            <div class="section-title">Preferences</div>
+            <div class="section">
+                <div class="item">
+                    <span class="material-icons-round">tune</span>
+                    <span class="item-label">Default Split</span>
+                    <span class="item-value">Equal</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round">push_pin</span>
+                    <span class="item-label">Pin Group</span>
+                    <div class="toggle on"></div>
+                </div>
+            </div>
+
+            <div class="section-title">Danger Zone</div>
+            <div class="section">
+                <div class="item">
+                    <span class="material-icons-round danger">archive</span>
+                    <span class="item-label danger">Archive Group</span>
+                </div>
+                <div class="item">
+                    <span class="material-icons-round danger">exit_to_app</span>
+                    <span class="item-label danger">Leave Group</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
