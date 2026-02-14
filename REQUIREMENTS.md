@@ -190,7 +190,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | OF-01 | **All core features must work offline** — add/edit/delete expenses, view balances, record settlements, browse history | P0 |
-| OF-02 | Local-first data storage (SQLite/Realm) as primary data source | P0 |
+| OF-02 | Local-first data storage (Hive/sqflite) with Firestore offline persistence as primary data sources | P0 |
 | OF-03 | Background sync when connectivity is restored (queue-based) | P0 |
 | OF-04 | Conflict resolution strategy for concurrent offline edits (last-write-wins with user notification for critical conflicts) | P0 |
 | OF-05 | Visual sync status indicators (synced ✓, pending ↑, conflict ⚠) | P0 |
@@ -214,22 +214,22 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 |----|-------------|----------|
 | SP-01 | End-to-end encryption for data in transit (TLS 1.3) | P0 |
 | SP-02 | Encryption at rest for local database | P0 |
-| SP-03 | JWT-based authentication with refresh tokens | P0 |
+| SP-03 | Firebase Authentication with secure token management | P0 |
 | SP-04 | Biometric/PIN lock for app access | P1 |
 | SP-05 | No third-party analytics/tracking SDKs that share data | P0 |
 | SP-06 | GDPR & CCPA compliant data handling | P0 |
 | SP-07 | Privacy-first: minimal data collection, transparent privacy policy | P0 |
-| SP-08 | Rate limiting and abuse protection on APIs | P0 |
+| SP-08 | Firebase Security Rules for Firestore and Cloud Storage access control | P0 |
+| SP-09 | Rate limiting and abuse protection via Cloud Functions | P0 |
 
 ### 5.4 Scalability & Reliability
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| SR-01 | Backend must support 100K+ concurrent users | P1 |
-| SR-02 | 99.9% API uptime SLA | P1 |
-| SR-03 | Horizontal scaling for backend services | P1 |
-| SR-04 | Database sharding strategy for user data | P2 |
-| SR-05 | CDN for static assets and receipt images | P1 |
+| SR-01 | Firebase auto-scaling to support 100K+ concurrent users | P1 |
+| SR-02 | 99.9% uptime (Firebase SLA) | P1 |
+| SR-03 | Firestore automatic scaling (no manual sharding required) | P1 |
+| SR-04 | Firebase CDN for static assets, receipt images, and web app hosting | P1 |
 
 ### 5.5 Accessibility
 
@@ -272,7 +272,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | Property | Specification |
 |----------|--------------|
-| Design system | Material Design 3 / Human Interface Guidelines (platform-adaptive) |
+| Design system | Material Design 3 (Flutter Material library) — consistent across Android, iOS, and Web |
 | Light mode | Yes (default) |
 | Dark mode | Yes (auto + manual toggle) |
 | Color palette | Calming, trust-evoking (greens, blues, neutrals). Red/orange for amounts owed, green for amounts owed to you |
@@ -286,73 +286,93 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | Platform | Technology | Priority |
 |----------|------------|----------|
-| **Android** | Native (Kotlin) or Cross-platform (Flutter/React Native) | P0 |
-| **iOS** | Native (Swift) or Cross-platform (Flutter/React Native) | P0 |
-| **Web App** | Responsive web app (PWA) | P1 |
+| **Android + iOS** | Flutter (Dart) — single codebase for both platforms | P0 |
+| **Web App** | Flutter Web (PWA) | P1 |
+| **Backend** | Google Firebase (Authentication, Firestore, Cloud Functions, Cloud Storage, Cloud Messaging) | P0 |
 | **Minimum Android** | Android 8.0 (API 26) | P0 |
 | **Minimum iOS** | iOS 15.0 | P0 |
 | **Languages** | English (launch), Hindi, Spanish, French, German, Portuguese (post-launch) | P0/P1 |
+
+### 7.1 Tech Stack Summary
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Flutter (Dart) |
+| **State Management** | Riverpod / Bloc |
+| **Local Database** | Hive / sqflite (offline-first storage) |
+| **Backend** | Google Firebase |
+| **Authentication** | Firebase Authentication (Phone/OTP) |
+| **Database (Cloud)** | Cloud Firestore (NoSQL, real-time sync) |
+| **Server Logic** | Firebase Cloud Functions (Node.js/TypeScript) |
+| **File Storage** | Firebase Cloud Storage |
+| **Push Notifications** | Firebase Cloud Messaging (FCM) |
+| **Analytics** | Firebase Analytics (privacy-compliant, first-party only) |
+| **Crash Reporting** | Firebase Crashlytics |
+| **Remote Config** | Firebase Remote Config (feature flags) |
+| **Hosting** | Firebase Hosting (web app) |
 
 ---
 
 ## 8. Backend & Infrastructure Requirements
 
-### 8.1 Backend Services
+### 8.1 Firebase Services Mapping
 
-| Service | Responsibility |
-|---------|---------------|
-| **Auth Service** | User registration (mobile OTP), login (mobile OTP), session management, phone number verification |
-| **User Service** | Profile management, contacts, preferences |
-| **Group Service** | Group CRUD, membership, roles, permissions, invite links |
-| **Expense Service** | Expense CRUD, split calculation, recurring expense scheduling |
-| **Balance Service** | Real-time balance computation, debt simplification algorithm |
-| **Sync Service** | Offline/online sync engine, conflict resolution, queue management |
-| **Notification Service** | Push notifications (FCM/APNS), in-app notifications, email digests |
-| **Currency Service** | Exchange rate fetching, caching, conversion |
-| **Media Service** | Receipt image upload, storage (S3/GCS), OCR processing |
-| **Analytics Service** | Spending breakdowns, trend computation, export generation |
-| **Search Service** | Full-text search indexing and querying |
+| Firebase Service | Responsibility |
+|-----------------|---------------|
+| **Firebase Auth** | Phone/OTP authentication, session management, user identity |
+| **Cloud Firestore** | Primary cloud database — users, groups, expenses, balances, settlements, activity logs. Real-time listeners for live updates |
+| **Cloud Functions** | Server-side logic — debt simplification, recurring expense scheduling, exchange rate fetching, settlement calculations, notification triggers, data validation & security |
+| **Cloud Storage** | Receipt image uploads and storage |
+| **Cloud Messaging (FCM)** | Push notifications — new expenses, settlements, reminders, nudges |
+| **Firebase Crashlytics** | Crash reporting and stability monitoring |
+| **Firebase Analytics** | First-party usage analytics (no third-party data sharing) |
+| **Firebase Remote Config** | Feature flags, A/B testing, gradual rollouts |
 
 ### 8.2 Data Storage
 
 | Store | Use Case |
 |-------|----------|
-| **PostgreSQL** | Primary relational store for users, groups, expenses, balances |
-| **Redis** | Session cache, rate limiting, real-time balance caching |
-| **S3 / GCS** | Receipt image storage |
-| **Elasticsearch** (optional) | Full-text search across expenses |
+| **Cloud Firestore** | Primary NoSQL cloud database for all app data (users, groups, expenses, balances). Provides real-time sync, offline persistence, and automatic conflict resolution |
+| **Hive / sqflite** | Local on-device database for offline-first storage, draft expenses, and cached data |
+| **Firebase Cloud Storage** | Receipt images, group cover photos, user avatars |
 
-### 8.3 API Design
+### 8.3 API & Communication Design
 
-- RESTful APIs for standard CRUD operations
-- WebSocket for real-time balance updates and group activity feed
-- API versioning (v1, v2...) from day one
-- OpenAPI/Swagger documentation
-- Rate limiting: 100 requests/minute per user (adjustable)
+- **Firestore real-time listeners** for live balance updates and group activity feed (replaces REST polling / WebSocket)
+- **Cloud Functions (HTTPS callable)** for complex server-side operations (debt simplification, bulk operations, data exports)
+- **Cloud Functions (Firestore triggers)** for reactive logic — auto-recalculate balances on expense write, send notifications on settlement
+- **Firebase Security Rules** for fine-grained access control at the document level
+- Rate limiting via Cloud Functions middleware
 
 ### 8.4 Sync Protocol
 
 ```
-┌─────────────┐          ┌──────────────┐
-│  Local DB   │◄────────►│  Sync Engine │
-│ (SQLite)    │          │  (on device) │
-└─────────────┘          └──────┬───────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │  Sync API (Backend)   │
-                    │  - Queue processor    │
-                    │  - Conflict resolver  │
-                    │  - Version tracker    │
-                    └───────────┬───────────┘
-                                │
-                    ┌───────────▼───────────┐
-                    │   PostgreSQL (Cloud)  │
-                    └───────────────────────┘
+┌─────────────────┐          ┌──────────────────────┐
+│  Local Cache     │◄────────►│  Firestore SDK       │
+│ (Hive/sqflite)  │          │  (offline persistence │
+│                  │          │   + sync engine)      │
+└─────────────────┘          └──────────┬────────────┘
+                                        │
+                        ┌───────────────▼───────────────┐
+                        │   Cloud Firestore (Backend)   │
+                        │  - Real-time sync             │
+                        │  - Automatic conflict         │
+                        │    resolution (last-write)    │
+                        │  - Security rules             │
+                        └───────────────┬───────────────┘
+                                        │
+                        ┌───────────────▼───────────────┐
+                        │  Cloud Functions (Triggers)   │
+                        │  - Balance recalculation      │
+                        │  - Notification dispatch      │
+                        │  - Data validation            │
+                        └───────────────────────────────┘
 ```
 
-- Each record has: `version`, `updated_at`, `device_id`, `sync_status`
-- Conflict resolution: Last-write-wins for simple fields; user-prompted merge for critical conflicts (e.g., amount changes)
-- Sync granularity: Per-record (not per-table)
+- **Firestore offline persistence** enabled by default — SDK handles caching, queuing, and sync automatically
+- Conflict resolution: Firestore's last-write-wins for standard fields; Cloud Functions validate critical fields (e.g., amount changes trigger audit log entries)
+- Sync granularity: Per-document (Firestore native)
+- Additional local storage (Hive/sqflite) for app-specific caches, drafts, and computed data not stored in Firestore
 
 ---
 
@@ -460,12 +480,13 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 | Type | Coverage Target | Tools |
 |------|-----------------|-------|
-| Unit tests | 80%+ code coverage | Platform-specific (JUnit/XCTest/Jest) |
-| Integration tests | All API endpoints, sync flow | Postman/Newman, custom test harness |
-| UI/E2E tests | Critical user journeys (add expense, settle, sync) | Appium / Detox / Maestro |
-| Offline tests | All offline scenarios (add, edit, delete, sync) | Custom test harness simulating network states |
-| Performance tests | Load testing for 100K concurrent users | k6 / Locust |
-| Security tests | OWASP Mobile Top 10, API security | SAST/DAST tools |
+| Unit tests | 80%+ code coverage | Flutter test framework (flutter_test) |
+| Widget tests | All core UI components | Flutter widget testing |
+| Integration tests | All Cloud Functions, Firestore rules, sync flow | Firebase Emulator Suite, flutter_test |
+| UI/E2E tests | Critical user journeys (add expense, settle, sync) | Flutter integration_test, Patrol / Maestro |
+| Offline tests | All offline scenarios (add, edit, delete, sync) | Firebase Emulator Suite with network simulation |
+| Performance tests | Load testing for Cloud Functions | Firebase Performance Monitoring, k6 |
+| Security tests | OWASP Mobile Top 10, Firestore security rules | Firebase Security Rules unit tests, SAST tools |
 
 ---
 
@@ -521,13 +542,15 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 ## 15. Open Questions for Architecture Discussion
 
-1. **Cross-platform vs Native?** — Flutter/React Native for faster MVP, or native Kotlin/Swift for best UX? Recommend decision based on team skill and timeline.
-2. **Sync protocol** — CRDT-based vs operational-transform vs simple last-write-wins? Trade-offs between complexity and correctness.
-3. **Backend stack** — Node.js/Go/Rust for API services? Serverless vs containerized?
-4. **Real-time updates** — WebSocket vs Server-Sent Events vs polling for live balance updates?
-5. **Receipt OCR provider** — Google Cloud Vision, AWS Textract, or on-device ML?
-6. **Guest/link-based users** — How to handle data migration when a guest later creates an account?
-7. **Data residency** — Single region vs multi-region deployment for global users?
+1. **Flutter state management** — Riverpod vs Bloc vs Provider? Recommend based on team familiarity and app complexity.
+2. **Local storage strategy** — Hive vs sqflite vs Isar for offline-first caching alongside Firestore? Trade-offs between performance, query capability, and Firestore sync.
+3. **Firestore data modeling** — Optimal document/collection structure for expenses, balances, and groups? Subcollections vs root collections? Denormalization strategy for read performance.
+4. **Cloud Functions runtime** — Node.js (TypeScript) vs Python vs Go for Cloud Functions?
+5. **Receipt OCR** — Google Cloud Vision API (via Cloud Functions) vs Firebase ML Kit (on-device)?
+6. **Guest/link-based users** — How to handle Firestore data migration when a guest later creates a Firebase Auth account?
+7. **Firestore region** — Single region vs multi-region Firestore deployment for global users? Cost implications.
+8. **Offline conflict edge cases** — How to handle conflicts beyond Firestore's last-write-wins (e.g., two users editing same expense offline)?
+9. **Firestore cost optimization** — Read/write cost management strategies (caching, batching, pagination) to stay within budget at scale.
 
 ---
 
