@@ -380,8 +380,8 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | Tier | Price | Features |
 |------|-------|----------|
-| **Free** | $0 | All core features: unlimited expenses, groups, members, splits, balances, basic analytics, offline mode, ad-free |
-| **OneByTwo Pro** | ~$2.99/month or $24.99/year | Receipt OCR scanning, advanced analytics (detailed charts, trends, comparisons), custom categories & tags, priority support, data export (CSV/PDF), custom themes & app icons |
+| **Free** | ₹0 | All core features: unlimited expenses, groups, members, splits, balances, basic analytics, offline mode, ad-free |
+| **OneByTwo Pro** | ~₹249/month or ₹1,999/year | Receipt OCR scanning, advanced analytics (detailed charts, trends, comparisons), custom categories & tags, priority support, data export (CSV/PDF), custom themes & app icons |
 
 ### Revenue Alternatives (No Ads Ever)
 - Voluntary tips / "Buy us a coffee" in-app
