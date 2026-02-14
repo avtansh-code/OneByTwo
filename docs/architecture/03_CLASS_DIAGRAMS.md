@@ -27,6 +27,21 @@ lib/
 │   │   └── string_extensions.dart
 │   ├── network/
 │   │   └── connectivity_service.dart
+│   ├── logging/                       # Centralized logging system
+│   │   ├── app_logger.dart            # Singleton logger, multi-output dispatch
+│   │   ├── log_entry.dart             # Structured log entry model
+│   │   ├── log_level.dart             # Log level enum (verbose..fatal)
+│   │   ├── log_output.dart            # LogOutput interface
+│   │   ├── outputs/
+│   │   │   ├── console_output.dart    # Debug console (colored, dev only)
+│   │   │   ├── file_output.dart       # JSON lines to disk with rotation
+│   │   │   ├── crashlytics_output.dart # Forward warning+ to Crashlytics
+│   │   │   └── ring_buffer_output.dart # In-memory buffer for debug viewer
+│   │   ├── log_file_rotator.dart      # Size-based rotation (5MB × 3 files)
+│   │   ├── pii_sanitizer.dart         # Strip phone/email/tokens from messages
+│   │   └── debug_viewer/              # In-app log viewer (dev/staging only)
+│   │       ├── debug_log_screen.dart
+│   │       └── debug_log_entry_widget.dart
 │   ├── router/
 │   │   ├── app_router.dart
 │   │   └── route_names.dart

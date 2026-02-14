@@ -43,8 +43,8 @@ Existing expense-splitting apps frustrate users with ads, paywalled features, da
 
 ## Platforms
 
-- 📱 Android (8.0+)
-- 📱 iOS (15.0+)
+- 📱 Android (15+)
+- 📱 iOS (17.0+)
 - 🌐 Web (Flutter Web PWA)
 
 ## Project Structure
@@ -58,7 +58,9 @@ OneByTwo/
 
 ## Documentation
 
-See [REQUIREMENTS.md](REQUIREMENTS.md) for the complete product requirements document covering functional specs, architecture, data model, and launch plan.
+- [Requirements](docs/REQUIREMENTS.md) — Full product requirements document
+- [Architecture](docs/architecture/) — System architecture, database schema, class diagrams, algorithms, and more
+- [Copilot Setup](docs/COPILOT_SETUP.md) — AI agent configuration for development
 
 ## License
 

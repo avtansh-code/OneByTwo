@@ -189,12 +189,99 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 - UI displays contextual error messages with retry actions
 - Crashlytics captures unhandled exceptions automatically
 
-### 4.2 Logging
+### 4.2 Logging & Debugging
 
-- Use `logger` package with structured log levels (verbose, debug, info, warning, error)
-- Log all sync operations, API calls, and state transitions in debug mode
-- Production: only warning + error level → Crashlytics
-- Never log PII (phone numbers, emails) even in debug
+Logging is a **first-class architectural concern**. The app uses a centralized, multi-output logging system that writes to the debug console AND persistent local log files with automatic rotation.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    LOGGING ARCHITECTURE                          │
+│                                                                  │
+│  Application Code (all layers)                                  │
+│       │                                                          │
+│       ▼                                                          │
+│  ┌──────────────────────┐                                       │
+│  │   AppLogger          │  Singleton, initialized at bootstrap   │
+│  │   (core/logging/)    │                                       │
+│  └──────────┬───────────┘                                       │
+│             │                                                    │
+│     ┌───────┼──────────┬──────────────────┐                     │
+│     ▼       ▼          ▼                  ▼                     │
+│  ┌──────┐ ┌────────┐ ┌─────────────┐ ┌────────────┐           │
+│  │Debug │ │ File   │ │ Crashlytics │ │ In-Memory  │           │
+│  │Print │ │ Writer │ │ Reporter    │ │ Ring Buffer│           │
+│  │Output│ │        │ │ (prod only) │ │ (UI viewer)│           │
+│  └──────┘ └───┬────┘ └─────────────┘ └────────────┘           │
+│               │                                                  │
+│               ▼                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │  Log File Rotation                                    │       │
+│  │  • Max file size: 5 MB per file                      │       │
+│  │  • Max files: 3 (current + 2 rotated)                │       │
+│  │  • Max total: 15 MB on disk                          │       │
+│  │  • Location: app documents dir / logs/               │       │
+│  │  • Format: JSON lines (structured, parseable)        │       │
+│  │  • Naming: app.log, app.1.log, app.2.log             │       │
+│  │  • Rotation trigger: on write when size > 5 MB       │       │
+│  │  • Old logs auto-deleted on rotation                 │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Log Levels
+
+| Level     | When to Use                                              | Destinations                 | Example                                             |
+| --------- | -------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
+| `verbose` | Ultra-detailed tracing (SQL queries, provider rebuilds)  | Console only (dev)           | `SQL: SELECT * FROM expenses WHERE group_id = 'g1'` |
+| `debug`   | Developer-useful context (state changes, cache hits)     | Console + File               | `SyncEngine: processing queue item expense:e123`    |
+| `info`    | Key business events (user actions, milestones)           | Console + File               | `Expense created: id=e123 group=g1 amount=5000`     |
+| `warning` | Recoverable issues (retry, fallback, degraded)           | Console + File + Crashlytics | `SyncQueue: retry 3/5 for expense:e123`             |
+| `error`   | Failures requiring attention (unhandled, data loss risk) | Console + File + Crashlytics | `BalanceRecalc failed: group=g1 error=timeout`      |
+| `fatal`   | Unrecoverable crash (app cannot continue)                | Console + File + Crashlytics | `Database corruption detected: onebytwo.db`         |
+
+#### Level Configuration by Environment
+
+| Environment    | Min Console Level | Min File Level | Crashlytics   |
+| -------------- | ----------------- | -------------- | ------------- |
+| **Dev**        | `verbose`         | `debug`        | Off           |
+| **Staging**    | `debug`           | `debug`        | On (warning+) |
+| **Production** | None (disabled)   | `info`         | On (warning+) |
+
+#### Structured Log Format (File Output)
+
+```json
+{
+  "ts": "2026-02-14T15:30:00.123Z",
+  "level": "info",
+  "tag": "SyncEngine",
+  "message": "Queue item processed successfully",
+  "data": {
+    "entityType": "expense",
+    "entityId": "e123",
+    "operation": "create",
+    "durationMs": 245
+  }
+}
+```
+
+#### PII Protection
+
+- **NEVER log:** Phone numbers, email addresses, OTP codes, auth tokens, user names
+- **Safe to log:** Entity IDs, group IDs, amounts, categories, timestamps, error codes
+- **PII Sanitizer:** All log messages pass through a sanitizer that redacts patterns matching phone numbers (`\d{10}`), emails (`*@*.*`), and tokens (`eyJ*`)
+
+#### What Gets Logged (by Layer)
+
+| Layer                        | Events Logged                                                                                                                                                                           |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Data / Sync**              | Sync queue operations (enqueue, process, retry, fail, conflict), Firestore listener lifecycle (start, data, error, dispose), sqflite query timing (if > 100ms), receipt upload progress |
+| **Data / Repository**        | Repository method calls with entity IDs, offline-first flow (local save, sync enqueue), errors with context                                                                             |
+| **Domain / Use Cases**       | Business operation start/end with duration, validation failures, split calculation inputs/outputs                                                                                       |
+| **Presentation / Providers** | State transitions (loading → data → error), user actions (navigate, tap, submit)                                                                                                        |
+| **Core / Network**           | Connectivity changes (online/offline), Cloud Function calls with latency                                                                                                                |
+| **Core / Auth**              | Login/logout events (no credentials), token refresh, session expiry                                                                                                                     |
+| **Core / Bootstrap**         | Init step durations, total cold start time, migration execution                                                                                                                         |
 
 ### 4.3 Dependency Injection
 
@@ -258,22 +345,23 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 
 ## 6. Technology Stack Summary
 
-| Component | Technology | Version/Notes |
-|-----------|-----------|---------------|
-| **Language** | Dart | Latest stable |
-| **Framework** | Flutter | Latest stable |
-| **State Management** | Riverpod | v2+ with code generation |
-| **Navigation** | GoRouter | Declarative, deep-link support |
-| **Local DB** | sqflite | SQL-based, offline-first primary store |
-| **Settings Store** | shared_preferences | Key-value for app config |
-| **Cloud DB** | Cloud Firestore | asia-south1, real-time sync |
-| **Auth** | Firebase Auth | Phone/OTP only |
-| **Cloud Functions** | TypeScript / Node.js | v2 (2nd gen) |
-| **File Storage** | Cloud Storage for Firebase | Receipts, avatars, covers |
-| **Push Notifications** | FCM | Via Cloud Functions triggers |
-| **Analytics** | Firebase Analytics | First-party only |
-| **Crash Reporting** | Firebase Crashlytics | All environments |
-| **Feature Flags** | Firebase Remote Config | Gradual rollouts |
-| **CI/CD** | GitHub Actions | Lint, test, build, deploy |
-| **Min iOS** | 17.0 | — |
-| **Min Android** | 15 (API 35) | — |
+| Component              | Technology                 | Version/Notes                                                   |
+| ---------------------- | -------------------------- | --------------------------------------------------------------- |
+| **Language**           | Dart                       | Latest stable                                                   |
+| **Framework**          | Flutter                    | Latest stable                                                   |
+| **State Management**   | Riverpod                   | v2+ with code generation                                        |
+| **Navigation**         | GoRouter                   | Declarative, deep-link support                                  |
+| **Local DB**           | sqflite                    | SQL-based, offline-first primary store                          |
+| **Settings Store**     | shared_preferences         | Key-value for app config                                        |
+| **Cloud DB**           | Cloud Firestore            | asia-south1, real-time sync                                     |
+| **Auth**               | Firebase Auth              | Phone/OTP only                                                  |
+| **Cloud Functions**    | TypeScript / Node.js       | v2 (2nd gen)                                                    |
+| **File Storage**       | Cloud Storage for Firebase | Receipts, avatars, covers                                       |
+| **Push Notifications** | FCM                        | Via Cloud Functions triggers                                    |
+| **Analytics**          | Firebase Analytics         | First-party only                                                |
+| **Crash Reporting**    | Firebase Crashlytics       | All environments                                                |
+| **Logging**            | Custom AppLogger           | Multi-output: console + file + Crashlytics, size-based rotation |
+| **Feature Flags**      | Firebase Remote Config     | Gradual rollouts                                                |
+| **CI/CD**              | GitHub Actions             | Lint, test, build, deploy                                       |
+| **Min iOS**            | 17.0                       | —                                                               |
+| **Min Android**        | 15 (API 35)                | —                                                               |
