@@ -130,8 +130,10 @@ app.*.symbols
 .idea/
 *.iml
 
-# Generated files
-*.g.dart
-*.freezed.dart
-*.gr.dart
+# Generated files (committed to repo — build_runner must regenerate after model changes)
+# *.g.dart
+# *.freezed.dart
+# *.gr.dart
 *.gen.darttodos.db
+
+.DS_Store
