@@ -1,0 +1,7 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.onebytwo.oneByTwo
+DISPLAY_NAME = One By Two
+FLAVOR = prod
+REVERSED_CLIENT_ID = com.googleusercontent.apps.856041574157-8lnm7phvq7df8dt097495fghvh7jsa35

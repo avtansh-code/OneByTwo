@@ -1,0 +1,114 @@
+name: Deploy Prod
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Cloud Functions & Rules (Prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Cloud Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build Cloud Functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Deploy to Firebase Prod
+        uses: w9jds/firebase-action@v13.22.1
+        with:
+          args: deploy --only functions,firestore:rules,storage:rules --project onebytwo-prod
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}
+
+  build-android:
+    name: Build Android (Prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.6'
+          channel: 'stable'
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Provide Firebase config
+        run: |
+          mkdir -p android/app/src/prod
+          echo '${{ secrets.GOOGLE_SERVICES_JSON_PROD }}' | base64 -d > android/app/src/prod/google-services.json
+
+      - name: Build AAB
+        run: flutter build appbundle --flavor prod --release
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: build/app/outputs/bundle/prodRelease/*.aab
+
+  build-ios:
+    name: Build iOS (Prod)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.6'
+          channel: 'stable'
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Provide Firebase config
+        run: |
+          mkdir -p ios/config/prod
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_PROD }}' | base64 -d > ios/config/prod/GoogleService-Info.plist
+
+      - name: Build IPA
+        run: flutter build ipa --flavor prod --no-codesign
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: build/ios/ipa/*.ipa

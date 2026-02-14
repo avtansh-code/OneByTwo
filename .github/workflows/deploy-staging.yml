@@ -1,0 +1,108 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Cloud Functions & Rules (Staging)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Cloud Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build Cloud Functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Deploy to Firebase Staging
+        uses: w9jds/firebase-action@v13.22.1
+        with:
+          args: deploy --only functions,firestore:rules,storage:rules --project onebytwo-staging
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
+
+  build-android:
+    name: Build Android (Staging)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.6'
+          channel: 'stable'
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Provide Firebase config
+        run: |
+          mkdir -p android/app/src/staging
+          echo '${{ secrets.GOOGLE_SERVICES_JSON_STAGING }}' | base64 -d > android/app/src/staging/google-services.json
+
+      - name: Build APK
+        run: flutter build apk --release --flavor staging
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-apk
+          path: build/app/outputs/flutter-apk/*staging*.apk
+
+  build-ios:
+    name: Build iOS (Staging)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.6'
+          channel: 'stable'
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Provide Firebase config
+        run: |
+          mkdir -p ios/config/staging
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_STAGING }}' | base64 -d > ios/config/staging/GoogleService-Info.plist
+
+      - name: Build iOS
+        run: flutter build ios --no-codesign --flavor staging
