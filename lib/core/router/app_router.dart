@@ -4,7 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../presentation/features/auth/screens/otp_verification_screen.dart';
 import '../../presentation/features/auth/screens/phone_input_screen.dart';
+import '../../presentation/features/auth/screens/splash_screen.dart';
 import '../../presentation/features/auth/screens/welcome_screen.dart';
+import '../../presentation/features/home/screens/activity_screen.dart';
+import '../../presentation/features/home/screens/home_screen.dart';
+import '../../presentation/features/home/widgets/main_shell.dart';
+import '../../presentation/features/profile/screens/profile_screen.dart';
+import '../../presentation/features/profile/screens/settings_screen.dart';
 import '../../presentation/providers/auth_providers.dart';
 
 part 'app_router.g.dart';
@@ -17,30 +23,55 @@ GoRouter appRouter(AppRouterRef ref) {
 
   return GoRouter(
     debugLogDiagnostics: true,
-    initialLocation: '/',
+    initialLocation: '/home',
     redirect: (context, state) {
-      // Check if we're on an auth screen
-      final isOnAuthScreen = state.matchedLocation == '/welcome' ||
-          state.matchedLocation == '/phone-input' ||
-          state.matchedLocation == '/otp-verification';
+      final location = state.uri.path;
+      
+      // Public routes that don't need auth
+      final isOnAuthScreen = location == '/welcome' ||
+          location == '/phone-input' ||
+          location == '/otp-verification';
+      
+      // Protected routes that require auth
+      final isOnProtectedRoute = location.startsWith('/home') ||
+          location.startsWith('/activity') ||
+          location.startsWith('/profile') ||
+          location.startsWith('/settings');
 
-      // Get auth status - handle loading state
+      // Handle loading state - show splash
+      if (authState.isLoading) {
+        return '/splash';
+      }
+
+      // Get auth status
       final isAuthenticated = authState.asData?.value != null;
 
-      // If user is not authenticated and not on auth screen, redirect to welcome
-      if (!isAuthenticated && !isOnAuthScreen) {
+      // If not authenticated and trying to access protected route
+      if (!isAuthenticated && isOnProtectedRoute) {
         return '/welcome';
       }
 
-      // If user is authenticated and on auth screen, redirect to home
+      // If authenticated and on auth screen, redirect to home
       if (isAuthenticated && isOnAuthScreen) {
-        return '/';
+        return '/home';
+      }
+
+      // If on splash and auth state is loaded, redirect appropriately
+      if (location == '/splash' && !authState.isLoading) {
+        return isAuthenticated ? '/home' : '/welcome';
       }
 
       // No redirect needed
       return null;
     },
     routes: [
+      // Splash screen
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      
       // Auth routes
       GoRoute(
         path: '/welcome',
@@ -67,60 +98,37 @@ GoRouter appRouter(AppRouterRef ref) {
         },
       ),
       
-      // Main app routes
+      // Main app routes with bottom navigation
+      ShellRoute(
+        builder: (context, state, child) => MainShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/home',
+            name: 'home',
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/activity',
+            name: 'activity',
+            builder: (context, state) => const ActivityScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+        ],
+      ),
+      
+      // Settings route (not in bottom nav shell)
       GoRoute(
-        path: '/',
-        name: 'home',
-        builder: (context, state) => const _PlaceholderScreen(title: 'Home'),
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
     errorBuilder: (context, state) => _ErrorScreen(error: state.error),
   );
-}
-
-/// Placeholder screen for initial setup
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-  
-  final String title;
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'OneByTwo',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Split expenses. Not friendships.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Architecture scaffolding complete ✓',
-              style: TextStyle(color: Colors.green),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Error screen for routing errors

@@ -105,6 +105,14 @@ class DatabaseException extends AppException {
         originalError: error,
         stackTrace: stack,
       );
+  
+  factory DatabaseException.operationFailed(Object error, StackTrace stack) =>
+      DatabaseException(
+        code: 'DB_OPERATION_FAILED',
+        message: 'Database operation failed.',
+        originalError: error,
+        stackTrace: stack,
+      );
 }
 
 /// Firestore-related exceptions
