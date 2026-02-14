@@ -1,16 +1,16 @@
-name: Deploy Staging
+name: Deploy Prod
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
 
 concurrency:
-  group: deploy-staging-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy Cloud Functions & Rules (Staging)
+    name: Deploy Cloud Functions & Rules (Prod)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,15 +29,15 @@ jobs:
         working-directory: functions
         run: npm run build
 
-      - name: Deploy to Firebase Staging
+      - name: Deploy to Firebase Prod
         uses: w9jds/firebase-action@v13.22.1
         with:
-          args: deploy --only functions,firestore:rules,storage:rules --project onebytwo-staging
+          args: deploy --only functions,firestore:rules,storage:rules --project onebytwo-prod
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}
 
   build-android:
-    name: Build Android (Staging)
+    name: Build Android (Prod)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,19 +64,19 @@ jobs:
         run: flutter pub get
 
       - name: Provide Firebase config
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON_STAGING }}' | base64 -d > android/app/src/staging/google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON_PROD }}' | base64 -d > android/app/src/prod/google-services.json
 
-      - name: Build APK
-        run: flutter build apk --release --flavor staging
+      - name: Build AAB
+        run: flutter build appbundle --flavor prod --release
 
-      - name: Upload APK
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: staging-apk
-          path: build/app/outputs/flutter-apk/*staging*.apk
+          name: release-aab
+          path: build/app/outputs/bundle/prodRelease/*.aab
 
   build-ios:
-    name: Build iOS (Staging)
+    name: Build iOS (Prod)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +98,13 @@ jobs:
         run: flutter pub get
 
       - name: Provide Firebase config
-        run: echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_STAGING }}' | base64 -d > ios/Runner/GoogleService-Info.plist
+        run: echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_PROD }}' | base64 -d > ios/Runner/GoogleService-Info.plist
 
-      - name: Build iOS
-        run: flutter build ios --no-codesign --flavor staging
+      - name: Build IPA
+        run: flutter build ipa --flavor prod --no-codesign
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: build/ios/ipa/*.ipa
