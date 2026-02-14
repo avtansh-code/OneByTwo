@@ -103,7 +103,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| EX-01 | Add expense with: description, amount (INR), date, payer, participants | P0 |
+| EX-01 | Add expense with: description, amount (₹), date, payer, participants | P0 |
 | EX-02 | Split types: Equal, Exact amounts, Percentage, Shares (fractions) | P0 |
 | EX-03 | Itemized bill split — list individual items and assign to specific people | P0 |
 | EX-04 | Multiple payers for a single expense | P1 |
@@ -133,7 +133,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | BS-06 | Integration with UPI payment apps (Google Pay, PhonePe, Paytm) — deep link to pay | P2 |
 | BS-07 | Export settlement summary (PDF/image) for sharing | P1 |
 
-### ~~4.5 Multi-Currency~~ *(Removed — app targets India only, all amounts in INR)*
+### ~~4.5 Multi-Currency~~ *(Removed — app targets India only, all amounts in ₹)*
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -142,7 +142,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | ~~MC-03~~ | ~~Lock exchange rate at time of expense entry~~ | Removed |
 | ~~MC-04~~ | ~~Manual exchange rate override~~ | Removed |
 | ~~MC-05~~ | ~~Show all balances in user's home currency with conversion~~ | Removed |
-| MC-01 | All amounts in Indian Rupees (₹ INR) only | P0 |
+| MC-01 | All amounts in Indian Rupees (₹) only | P0 |
 
 ### 4.6 Notifications
 
@@ -412,7 +412,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
                 │ id           │
                 │ group_id     │
                 │ description  │
-                │ amount (INR) │
+                │ amount (₹)   │
                 │ date         │
                 │ category     │
                 │ created_by   │
@@ -439,7 +439,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
   │ group_id     │     │ group_id     │
   │ from_user    │     │ user_id      │
   │ to_user      │     │ action       │
-  │ amount (INR) │     │ entity_type  │
+  │ amount (₹)   │     │ entity_type  │
   │ date         │     │ details      │
   │ version      │     │ timestamp    │
   │ sync_status  │     └──────────────┘
@@ -463,7 +463,7 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 **Constraint:** The simplified settlement must be mathematically equivalent to the original debts (total money transferred may differ, but net result per person is identical).
 
-### ~~11.2 Multi-Currency Conversion~~ *(Removed — INR only)*
+### ~~11.2 Multi-Currency Conversion~~ *(Removed — ₹ only)*
 
 ~~- Store expenses in original currency~~
 ~~- Convert to group currency or user's home currency for display~~
