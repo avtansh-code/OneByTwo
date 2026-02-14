@@ -60,10 +60,14 @@ class SendOtp extends _$SendOtp {
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.sendOtp(phoneNumber);
 
-    state = switch (result) {
-      Success(:final data) => AsyncData(data),
-      Failure(:final exception) => AsyncError(exception, StackTrace.current),
-    };
+    try {
+      state = switch (result) {
+        Success(:final data) => AsyncData(data),
+        Failure(:final exception) => AsyncError(exception, StackTrace.current),
+      };
+    } catch (_) {
+      // Ignore if state was already set (e.g. provider disposed)
+    }
   }
 }
 
@@ -84,10 +88,14 @@ class VerifyOtp extends _$VerifyOtp {
       otp: otp,
     );
 
-    state = switch (result) {
-      Success(:final data) => AsyncData(data),
-      Failure(:final exception) => AsyncError(exception, StackTrace.current),
-    };
+    try {
+      state = switch (result) {
+        Success(:final data) => AsyncData(data),
+        Failure(:final exception) => AsyncError(exception, StackTrace.current),
+      };
+    } catch (_) {
+      // Ignore if state was already set (e.g. provider disposed)
+    }
   }
 }
 
@@ -102,10 +110,14 @@ class SignOut extends _$SignOut {
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.signOut();
 
-    state = switch (result) {
-      Success() => const AsyncData(null),
-      Failure(:final exception) => AsyncError(exception, StackTrace.current),
-    };
+    try {
+      state = switch (result) {
+        Success() => const AsyncData(null),
+        Failure(:final exception) => AsyncError(exception, StackTrace.current),
+      };
+    } catch (_) {
+      // Ignore if state was already set (e.g. provider disposed)
+    }
   }
 }
 
@@ -120,9 +132,13 @@ class DeleteAccount extends _$DeleteAccount {
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.deleteAccount();
 
-    state = switch (result) {
-      Success() => const AsyncData(null),
-      Failure(:final exception) => AsyncError(exception, StackTrace.current),
-    };
+    try {
+      state = switch (result) {
+        Success() => const AsyncData(null),
+        Failure(:final exception) => AsyncError(exception, StackTrace.current),
+      };
+    } catch (_) {
+      // Ignore if state was already set (e.g. provider disposed)
+    }
   }
 }

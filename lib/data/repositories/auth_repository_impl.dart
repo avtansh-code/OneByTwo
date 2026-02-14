@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -44,40 +46,35 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       _logger.i('[$_tag] Sending OTP', error: {'phone': '${phoneNumber.substring(0, 6)}****'});
 
-      String? verificationId;
+      final completer = Completer<Result<String>>();
+
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (firebase_auth.PhoneAuthCredential credential) async {
-          // Auto-retrieval on Android - not used for manual OTP flow
           _logger.d('[$_tag] Auto-verification completed');
         },
         verificationFailed: (firebase_auth.FirebaseAuthException e) {
           _logger.e('[$_tag] Verification failed', error: e, stackTrace: e.stackTrace);
+          if (!completer.isCompleted) {
+            completer.complete(Failure<String>(_mapFirebaseAuthException(e)));
+          }
         },
         codeSent: (String verId, int? resendToken) {
-          verificationId = verId;
           _logger.i('[$_tag] OTP sent successfully');
+          if (!completer.isCompleted) {
+            completer.complete(Success(verId));
+          }
         },
         codeAutoRetrievalTimeout: (String verId) {
-          verificationId ??= verId;
           _logger.d('[$_tag] Auto-retrieval timeout');
+          if (!completer.isCompleted) {
+            completer.complete(Success(verId));
+          }
         },
         timeout: const Duration(seconds: 60),
       );
 
-      // Wait for codeSent callback
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-
-      if (verificationId == null) {
-        return const Failure(
-          AuthException(
-            code: 'AUTH_OTP_SEND_FAILED',
-            message: 'Failed to send OTP. Please try again.',
-          ),
-        );
-      }
-
-      return Success(verificationId!);
+      return completer.future;
     } on firebase_auth.FirebaseAuthException catch (e, stack) {
       _logger.e('[$_tag] FirebaseAuth error', error: e, stackTrace: stack);
       return Failure(_mapFirebaseAuthException(e));

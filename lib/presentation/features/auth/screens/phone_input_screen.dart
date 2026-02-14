@@ -51,11 +51,11 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
     final phoneNumber = '+91${_phoneController.text.trim()}';
     await ref.read(sendOtpProvider.notifier).send(phoneNumber);
 
-    final state = ref.read(sendOtpProvider);
-
     if (!mounted) {
       return;
     }
+
+    final state = ref.read(sendOtpProvider);
 
     state.when(
       data: (verificationId) {
