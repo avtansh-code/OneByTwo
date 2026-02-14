@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# TODO: Add release steps including:
+# - Build production AAB (flutter build appbundle --flavor prod)
+# - Build production IPA (flutter build ipa --flavor prod)
+# - Deploy to Play Store / App Store via Fastlane
+# - Deploy Cloud Functions and rules to production Firebase project
+# Requires Firebase setup (S1-02) and Fastlane configuration.
+jobs:
+  placeholder:
+    name: Release (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: echo "Release workflow — pending Firebase and Fastlane setup"

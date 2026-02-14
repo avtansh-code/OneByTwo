@@ -1,0 +1,22 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+# TODO: Add Firebase deployment steps after S1-02 (Firebase project setup).
+# This workflow will deploy Cloud Functions, Firestore rules, and Storage rules
+# to the staging Firebase project using service account credentials stored in
+# GitHub Secrets (${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}).
+jobs:
+  placeholder:
+    name: Deploy Staging (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: echo "Staging deployment workflow — pending Firebase setup (S1-02)"
