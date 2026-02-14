@@ -2,7 +2,7 @@
 
 **Split expenses. Not friendships.**
 
-OneByTwo is a clean, simple, and **ad-free** expense sharing app built with **Flutter** and **Google Firebase**. It works seamlessly online and offline, making it easy to split bills with friends, roommates, travel groups, and couples.
+OneByTwo is a clean, simple, and **ad-free** expense sharing app built with **Flutter** and **Google Firebase**. Designed for the **Indian audience**, it works seamlessly online and offline, making it easy to split bills with friends, roommates, travel groups, and couples — all in ₹ INR.
 
 ## Why OneByTwo?
 
@@ -19,7 +19,7 @@ Existing expense-splitting apps frustrate users with ads, paywalled features, da
 - **Group expense tracking** — Create groups for trips, homes, events, or friends
 - **Flexible splitting** — Equal, percentage, exact amounts, shares, or item-by-item
 - **Debt simplification** — Minimizes the number of payments needed to settle up
-- **Multi-currency** — 150+ currencies with auto-updated exchange rates
+- **UPI integration** — Deep link to Google Pay, PhonePe, Paytm for quick settlements
 - **Recurring expenses** — Automate rent, utilities, subscriptions
 - **Receipt attachments** — Attach photos to any expense
 - **Spending insights** — Category breakdowns and monthly trends

@@ -50,7 +50,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | Persona | Description | Primary Need |
 |---------|-------------|--------------|
 | **Roommates** | 2–6 people sharing a living space | Track recurring bills (rent, utilities, groceries), settle monthly |
-| **Travel Groups** | 3–15 friends on a trip | Multi-currency expenses, quick entry, offline use, settle at trip end |
+| **Travel Groups** | 3–15 friends on a trip | Quick entry, offline use, settle at trip end |
 | **Couples** | Partners sharing daily expenses | Simple 50/50 or custom splits, running balance |
 | **Event Organizers** | Planning weddings, parties, etc. | Collect contributions, track costs, share summary |
 | **Casual Friends** | Occasional dinners, outings | One-off splits, no ongoing group needed |
@@ -79,7 +79,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | UM-01 | User registration via mobile number with OTP verification. Phone number must be unique per account | P0 |
 | UM-02 | Mandatory fields for account creation: name and email | P0 |
 | UM-03 | User login via mobile OTP (primary and only auth method) | P0 |
-| UM-04 | User profile (name, email, phone number, avatar, default currency, preferred language) | P0 |
+| UM-04 | User profile (name, email, phone number, avatar, preferred language) | P0 |
 | UM-05 | Guest participation via invite link (no account required) | P0 |
 | UM-06 | Account deletion with full data removal (GDPR compliance) | P0 |
 | UM-07 | Contact book integration to find friends on the app | P1 |
@@ -95,8 +95,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | GR-04 | Group roles: Owner, Admin, Member | P1 |
 | GR-05 | Configurable permissions (who can add/edit/delete expenses) | P1 |
 | GR-06 | Archive groups (mark as settled/inactive) | P0 |
-| GR-07 | Group-level default currency | P0 |
-| GR-08 | Group-level default split type (equal, custom) | P1 |
+| GR-07 | Group-level default split type (equal, custom) | P1 |
 | GR-09 | Group activity feed with chronological history | P0 |
 | GR-10 | Pin/favorite frequently used groups | P1 |
 
@@ -104,7 +103,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| EX-01 | Add expense with: description, amount, currency, date, payer, participants | P0 |
+| EX-01 | Add expense with: description, amount (INR), date, payer, participants | P0 |
 | EX-02 | Split types: Equal, Exact amounts, Percentage, Shares (fractions) | P0 |
 | EX-03 | Itemized bill split — list individual items and assign to specific people | P0 |
 | EX-04 | Multiple payers for a single expense | P1 |
@@ -131,19 +130,19 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | BS-03 | Record manual settlement/payment between two members | P0 |
 | BS-04 | "Settle All" — generate optimized settlement plan for entire group | P0 |
 | BS-05 | Settlement reminders (push notification + in-app) | P1 |
-| BS-06 | Multi-currency balance display (show in each user's preferred currency) | P1 |
-| BS-07 | Integration with payment apps (UPI, PayPal, Venmo) — deep link to pay | P2 |
-| BS-08 | Export settlement summary (PDF/image) for sharing | P1 |
+| BS-06 | Integration with UPI payment apps (Google Pay, PhonePe, Paytm) — deep link to pay | P2 |
+| BS-07 | Export settlement summary (PDF/image) for sharing | P1 |
 
-### 4.5 Multi-Currency
+### ~~4.5 Multi-Currency~~ *(Removed — app targets India only, all amounts in INR)*
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| MC-01 | Support 150+ world currencies | P0 |
-| MC-02 | Auto-fetch exchange rates (daily updated) | P0 |
-| MC-03 | Lock exchange rate at time of expense entry | P0 |
-| MC-04 | Manual exchange rate override | P1 |
-| MC-05 | Show all balances in user's home currency with conversion | P0 |
+| ~~MC-01~~ | ~~Support 150+ world currencies~~ | Removed |
+| ~~MC-02~~ | ~~Auto-fetch exchange rates (daily updated)~~ | Removed |
+| ~~MC-03~~ | ~~Lock exchange rate at time of expense entry~~ | Removed |
+| ~~MC-04~~ | ~~Manual exchange rate override~~ | Removed |
+| ~~MC-05~~ | ~~Show all balances in user's home currency with conversion~~ | Removed |
+| MC-01 | All amounts in Indian Rupees (₹ INR) only | P0 |
 
 ### 4.6 Notifications
 
@@ -264,7 +263,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | **Expense Detail** | View/edit single expense | Full details, split breakdown per person, edit/delete actions, receipt view, audit history |
 | **Settle Up** | Record payments | Suggested settlements, manual payment entry, payment confirmation |
 | **Activity Feed** | Timeline of all actions | Chronological list of expenses, payments, edits, deletions across all groups |
-| **Profile & Settings** | User preferences | Currency, language, notification preferences, theme, data export, account management |
+| **Profile & Settings** | User preferences | Language, notification preferences, theme, data export, account management |
 | **Analytics** | Spending insights | Category breakdown charts, monthly trends, group comparisons |
 | **Search** | Find expenses/groups | Full-text search with filters |
 
@@ -291,7 +290,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | **Backend** | Google Firebase (Authentication, Firestore, Cloud Functions, Cloud Storage, Cloud Messaging) | P0 |
 | **Minimum Android** | Android 8.0 (API 26) | P0 |
 | **Minimum iOS** | iOS 15.0 | P0 |
-| **Languages** | English (launch), Hindi, Spanish, French, German, Portuguese (post-launch) | P0/P1 |
+| **Languages** | English, Hindi | P0 |
 
 ### 7.1 Tech Stack Summary
 
@@ -321,7 +320,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 |-----------------|---------------|
 | **Firebase Auth** | Phone/OTP authentication, session management, user identity |
 | **Cloud Firestore** | Primary cloud database — users, groups, expenses, balances, settlements, activity logs. Real-time listeners for live updates |
-| **Cloud Functions** | Server-side logic — debt simplification, recurring expense scheduling, exchange rate fetching, settlement calculations, notification triggers, data validation & security |
+| **Cloud Functions** | Server-side logic — debt simplification, recurring expense scheduling, settlement calculations, notification triggers, data validation & security |
 | **Cloud Storage** | Receipt image uploads and storage |
 | **Cloud Messaging (FCM)** | Push notifications — new expenses, settlements, reminders, nudges |
 | **Firebase Crashlytics** | Crash reporting and stability monitoring |
@@ -402,9 +401,8 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 │ name     │     │ group_id     │     │ name         │
 │ email    │     │ role         │     │ category     │
 │ phone    │     │              │     │              │
-│ avatar   │     │ joined_at    │     │ currency     │
-│ currency │     └──────────────┘     │ cover_photo  │
-│ language │                          │ created_by   │
+│ avatar   │     │ joined_at    │     │ cover_photo  │
+│ language │     └──────────────┘     │ created_by   │
 └──────────┘                          │ archived     │
       │                               └──────────────┘
       │                                      │
@@ -414,8 +412,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
                 │ id           │
                 │ group_id     │
                 │ description  │
-                │ amount       │
-                │ currency     │
+                │ amount (INR) │
                 │ date         │
                 │ category     │
                 │ created_by   │
@@ -442,8 +439,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
   │ group_id     │     │ group_id     │
   │ from_user    │     │ user_id      │
   │ to_user      │     │ action       │
-  │ amount       │     │ entity_type  │
-  │ currency     │     │ entity_id    │
+  │ amount (INR) │     │ entity_type  │
   │ date         │     │ details      │
   │ version      │     │ timestamp    │
   │ sync_status  │     └──────────────┘
@@ -467,12 +463,12 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 **Constraint:** The simplified settlement must be mathematically equivalent to the original debts (total money transferred may differ, but net result per person is identical).
 
-### 11.2 Multi-Currency Conversion
+### ~~11.2 Multi-Currency Conversion~~ *(Removed — INR only)*
 
-- Store expenses in original currency
-- Convert to group currency or user's home currency for display
-- Use rate at time of expense creation (locked rate) for balance calculations
-- Allow manual rate override
+~~- Store expenses in original currency~~
+~~- Convert to group currency or user's home currency for display~~
+~~- Use rate at time of expense creation (locked rate) for balance calculations~~
+~~- Allow manual rate override~~
 
 ---
 
@@ -508,13 +504,11 @@ The app must implement an optimized debt simplification algorithm to minimize th
 - Itemized bill splitting
 - Receipt photo attachment
 - Recurring expenses
-- Multi-currency with auto-rates
+- UPI payment app integrations (Google Pay, PhonePe, Paytm)
 - Group roles & permissions
 - Nudge/reminders
 - Data export (CSV/PDF)
 - Web app (PWA)
-- Additional languages
-
 ### Phase 3 — Premium & Growth (P2 Features)
 - Receipt OCR scanning
 - Advanced analytics & trends
@@ -548,7 +542,7 @@ The app must implement an optimized debt simplification algorithm to minimize th
 4. **Cloud Functions runtime** — Node.js (TypeScript) vs Python vs Go for Cloud Functions?
 5. **Receipt OCR** — Google Cloud Vision API (via Cloud Functions) vs Firebase ML Kit (on-device)?
 6. **Guest/link-based users** — How to handle Firestore data migration when a guest later creates a Firebase Auth account?
-7. **Firestore region** — Single region vs multi-region Firestore deployment for global users? Cost implications.
+7. **Firestore region** — Best Firebase/Firestore region for Indian users (asia-south1 Mumbai recommended)?
 8. **Offline conflict edge cases** — How to handle conflicts beyond Firestore's last-write-wins (e.g., two users editing same expense offline)?
 9. **Firestore cost optimization** — Read/write cost management strategies (caching, batching, pagination) to stay within budget at scale.
 
