@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .header { background: #E8EAF6; padding: 24px; text-align: center; }
+        .profile-img { width: 80px; height: 80px; border-radius: 50%; background: #C5CAE9; margin: 0 auto 16px; display: flex; justify-content: center; align-items: center; font-size: 32px; color: var(--primary); }
+        .name { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+        .email { font-size: 14px; color: #757575; }
+        .list { margin-top: 24px; background: white; border-radius: 12px; overflow: hidden; }
+        .item { padding: 16px; border-bottom: 1px solid #EEEEEE; display: flex; align-items: center; text-decoration: none; color: inherit; }
+        .item:last-child { border-bottom: none; }
+        .icon { margin-right: 16px; color: #757575; }
+        .label { flex: 1; font-size: 16px; }
+        .back-btn { position: absolute; top: 40px; left: 24px; color: var(--text-primary); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <a href="home_screen.html" class="back-btn material-icons-round">arrow_back</a>
+        <div class="header">
+            <div class="profile-img">AG</div>
+            <div class="name">Avtansh Gupta</div>
+            <div class="email">avtansh@example.com</div>
+        </div>
+        <div class="list">
+            <a href="#" class="item">
+                <span class="material-icons-round icon">account_circle</span>
+                <span class="label">Profile</span>
+                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+            </a>
+            <a href="#" class="item">
+                <span class="material-icons-round icon">notifications</span>
+                <span class="label">Notifications</span>
+                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+            </a>
+            <a href="#" class="item">
+                <span class="material-icons-round icon">lock</span>
+                <span class="label">Security</span>
+                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+            </a>
+            <a href="#" class="item">
+                <span class="material-icons-round icon">help</span>
+                <span class="label">Help & Support</span>
+                <span class="material-icons-round" style="color: #bdbdbd;">chevron_right</span>
+            </a>
+            <a href="welcome.html" class="item" style="color: #E53935;">
+                <span class="material-icons-round icon" style="color: #E53935;">logout</span>
+                <span class="label">Log Out</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

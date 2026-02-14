@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Settle Up</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .header { background: #E8EAF6; padding: 24px; text-align: center; }
+        .title { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+        .subtitle { font-size: 14px; color: #757575; }
+        .balance-list { padding: 16px; overflow-y: auto; flex: 1; }
+        .balance-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #EEEEEE; background: white; margin-bottom: 8px; border-radius: 8px; }
+        .avatar { width: 40px; height: 40px; background: #E0E0E0; border-radius: 50%; margin-right: 12px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+        .info { flex: 1; display: flex; align-items: center; }
+        .arrow { margin: 0 8px; color: #757575; }
+        .amount { font-weight: 500; color: var(--text-primary); }
+        .pay-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; text-decoration: none; }
+        .back-btn { position: absolute; top: 40px; left: 24px; color: var(--text-primary); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <a href="group_detail.html" class="back-btn material-icons-round">arrow_back</a>
+        <div class="header">
+            <div class="title">Settle Up</div>
+            <div class="subtitle">Goa Trip 🏖️</div>
+        </div>
+
+        <div class="balance-list">
+            <div class="balance-item">
+                <div class="info">
+                    <div class="avatar" style="background: #C8E6C9; color: black; font-weight: 500;">YOU</div>
+                    <span class="material-icons-round arrow">arrow_forward</span>
+                    <div class="avatar" style="background: #FFECB3; color: black; font-weight: 500;">RA</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="amount" style="margin-bottom: 4px;">₹1,200</div>
+                    <a href="#" style="background: var(--primary); color: white; border: none; padding: 6px 16px; border-radius: 20px; font-size: 14px; text-decoration: none; display: inline-block;">Pay</a>
+                </div>
+            </div>
+            
+            <div class="balance-item" style="opacity: 0.7;">
+                <div class="info">
+                    <div class="avatar" style="background: #F8BBD0; color: black; font-weight: 500;">PR</div>
+                    <span class="material-icons-round arrow">arrow_forward</span>
+                    <div class="avatar" style="background: #E1F5FE; color: black; font-weight: 500;">AM</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="amount" style="margin-bottom: 4px;">₹800</div>
+                    <span style="font-size: 12px; color: #757575;">Remind</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
