@@ -79,7 +79,7 @@ class VerifyOtp extends _$VerifyOtp {
   @override
   FutureOr<UserEntity?> build() => null;
 
-  Future<void> verify({
+  Future<Result<UserEntity?>> verify({
     required String verificationId,
     required String otp,
   }) async {
@@ -96,8 +96,10 @@ class VerifyOtp extends _$VerifyOtp {
         Failure(:final exception) => AsyncError(exception, StackTrace.current),
       };
     } catch (_) {
-      // Ignore if state was already set (e.g. provider disposed)
+      // Ignore if provider's internal completer was already completed
     }
+
+    return result;
   }
 }
 

@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/error/app_exception.dart';
+import '../../../../core/error/result.dart';
 import '../../../providers/auth_providers.dart';
 
 /// OTP verification screen
@@ -89,48 +89,29 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     setState(() => _isLoading = true);
 
-    await ref.read(verifyOtpProvider.notifier).verify(
+    final result = await ref.read(verifyOtpProvider.notifier).verify(
       verificationId: widget.verificationId,
       otp: otp,
     );
-
-    final state = ref.read(verifyOtpProvider);
 
     if (!mounted) {
       return;
     }
 
-    state.when(
-      data: (userEntity) {
-        setState(() => _isLoading = false);
-        
-        if (userEntity == null) {
-          // New user - needs profile setup
-          // For now, just go to home (profile setup can be implemented later)
-          context.go('/');
-        } else {
-          // Existing user - go to home
-          context.go('/');
-        }
-      },
-      error: (error, stack) {
-        setState(() => _isLoading = false);
-        final message = error is AppException 
-            ? error.message 
-            : 'Failed to verify OTP. Please try again.';
-        
+    setState(() => _isLoading = false);
+
+    switch (result) {
+      case Success():
+        context.go('/');
+      case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(exception.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-      loading: () {
-        setState(() => _isLoading = true);
-      },
-    );
+    }
   }
 
   Future<void> _resendOtp() async {
@@ -138,48 +119,35 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       return;
     }
 
-    // Clear current OTP
     for (final controller in _otpControllers) {
       controller.clear();
     }
     _otpFocusNodes[0].requestFocus();
 
-    // Send new OTP
-    await ref.read(sendOtpProvider.notifier).send(widget.phoneNumber);
-
-    final state = ref.read(sendOtpProvider);
+    final result = await ref.read(sendOtpProvider.notifier).send(widget.phoneNumber);
 
     if (!mounted) {
       return;
     }
 
-    state.when(
-      data: (newVerificationId) {
-        if (newVerificationId != null) {
-          _startResendTimer();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('OTP sent successfully'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      },
-      error: (error, stack) {
-        final message = error is AppException 
-            ? error.message 
-            : 'Failed to resend OTP. Please try again.';
-        
+    switch (result) {
+      case Success():
+        _startResendTimer();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OTP sent successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(exception.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-      loading: () {},
-    );
+    }
   }
 
   @override
