@@ -55,9 +55,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
       return;
     }
 
-    final state = ref.read(sendOtpProvider);
-
-    state.when(
+    ref.read(sendOtpProvider).when(
       data: (verificationId) {
         if (verificationId != null) {
           // Navigate to OTP verification screen

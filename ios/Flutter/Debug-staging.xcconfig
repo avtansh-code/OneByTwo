@@ -4,3 +4,4 @@
 PRODUCT_BUNDLE_IDENTIFIER = com.onebytwo.oneByTwo.staging
 DISPLAY_NAME = One By Two Staging
 FLAVOR = staging
+REVERSED_CLIENT_ID = com.googleusercontent.apps.11846878651-tegvdi4ibgur1uo0t3vib68os24gpc9d
