@@ -59,10 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA_7qsOBMxBbZKsRoWxHBlk29LeJlILt2c',
-    appId: '1:613836527971:ios:1f6a06c053ce9e35ff9b56',
+    appId: '1:613836527971:ios:3f11b8bb6672e7c9ff9b56',
     messagingSenderId: '613836527971',
     projectId: 'onebytwo-dev',
     storageBucket: 'onebytwo-dev.firebasestorage.app',
-    iosBundleId: 'com.onebytwo.oneByTwo',
+    iosClientId: '613836527971-v35jtb9ri2pp8th7jem2rl90hv1mt1hc.apps.googleusercontent.com',
+    iosBundleId: 'com.onebytwo.oneByTwo.dev',
   );
 }
