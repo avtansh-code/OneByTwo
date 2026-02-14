@@ -1,12 +1,14 @@
-# OneByTwo
+# One By Two
 
 **Split expenses. Not friendships.**
 
-OneByTwo is a clean, simple, and **ad-free** expense sharing app built with **Flutter** and **Google Firebase**. Designed for the **Indian audience**, it works seamlessly online and offline, making it easy to split bills with friends, roommates, travel groups, and couples — all in ₹.
+**One By Two** (1/2) — the name means splitting in half. In everyday Indian English, *"one by two"* is how you share something equally — *"ek chai one by two"*. The name captures the app's core purpose: **splitting expenses**, simply and fairly.
 
-## Why OneByTwo?
+One By Two is a clean, simple, and **ad-free** expense sharing app built with **Flutter** and **Google Firebase**. Designed for the **Indian audience**, it works seamlessly online and offline, making it easy to split bills with friends, roommates, travel groups, and couples — all in ₹.
 
-Existing expense-splitting apps frustrate users with ads, paywalled features, daily limits, and poor offline support. OneByTwo is built to fix that:
+## Why One By Two?
+
+Existing expense-splitting apps frustrate users with ads, paywalled features, daily limits, and poor offline support. One By Two is built to fix that:
 
 - 🚫 **No ads. Ever.** — Clean, distraction-free experience
 - ♾️ **No limits** — Unlimited expenses, groups, and members on the free tier

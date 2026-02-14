@@ -1,15 +1,26 @@
-# OneByTwo — Product Requirements Document
+# One By Two — Product Requirements Document
 
 > **Version:** 1.0  
-> **App Name:** OneByTwo  
+> **App Name:** One By Two  
 > **Tagline:** Split expenses. Not friendships.  
 > **Audience:** Architect / Engineering Team  
 
 ---
 
-## 1. Executive Summary
+## 1. App Name & Motivation
 
-OneByTwo is a mobile-first expense sharing application designed to provide a **clean, simple, ad-free** experience for splitting expenses among friends, roommates, couples, and travel groups. It works seamlessly **online and offline**, with automatic sync when connectivity is restored.
+**One By Two** (1/2) — the name represents the concept of splitting in half. In everyday Indian English, "one by two" is a familiar phrase used when sharing something equally — *"ek chai one by two"* (one tea split between two). The name captures the app's core purpose — **splitting expenses** — in a way that feels natural, colloquial, and instantly relatable to the Indian audience.
+
+The fraction ½ symbolizes:
+- **Splitting** — dividing costs fairly among friends
+- **Simplicity** — the most basic form of sharing
+- **Equality** — everyone pays their fair share
+
+---
+
+## 2. Executive Summary
+
+One By Two is a mobile-first expense sharing application designed to provide a **clean, simple, ad-free** experience for splitting expenses among friends, roommates, couples, and travel groups. It works seamlessly **online and offline**, with automatic sync when connectivity is restored.
 
 The app is positioned as a modern, user-friendly alternative to Splitwise, SettleUp, and Tricount — solving the key pain points users face with those apps while retaining all essential expense-splitting functionality.
 
@@ -28,7 +39,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 ### 2.2 User Pain Points with Existing Apps (Based on Real User Feedback)
 
-| # | Pain Point | Impact | OneByTwo Solution |
+| # | Pain Point | Impact | One By Two Solution |
 |---|-----------|--------|-------------------|
 | 1 | **Free tier throttling** — Splitwise limits daily expense additions for free users | Users can't log expenses during trips/events when they need the app most | **No artificial limits.** All core features are free and unlimited. Revenue via optional premium cosmetic/convenience features only |
 | 2 | **Ads degrade UX** — Most free versions show intrusive ads | Breaks flow, especially during quick expense entry | **Completely ad-free.** Always. |
@@ -381,7 +392,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | Tier | Price | Features |
 |------|-------|----------|
 | **Free** | ₹0 | All core features: unlimited expenses, groups, members, splits, balances, basic analytics, offline mode, ad-free |
-| **OneByTwo Pro** | ~₹249/month or ₹1,999/year | Receipt OCR scanning, advanced analytics (detailed charts, trends, comparisons), custom categories & tags, priority support, data export (CSV/PDF), custom themes & app icons |
+| **One By Two Pro** | ~₹249/month or ₹1,999/year | Receipt OCR scanning, advanced analytics (detailed charts, trends, comparisons), custom categories & tags, priority support, data export (CSV/PDF), custom themes & app icons |
 
 ### Revenue Alternatives (No Ads Ever)
 - Voluntary tips / "Buy us a coffee" in-app
@@ -571,4 +582,4 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 ---
 
-*This document is intended to serve as the single source of truth for the OneByTwo product. It should be handed off to the system architect for technical architecture design, database schema finalization, and sprint planning.*
+*This document is intended to serve as the single source of truth for the One By Two product. It should be handed off to the system architect for technical architecture design, database schema finalization, and sprint planning.*
