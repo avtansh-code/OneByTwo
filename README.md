@@ -19,7 +19,6 @@ Existing expense-splitting apps frustrate users with ads, paywalled features, da
 - **Group expense tracking** — Create groups for trips, homes, events, or friends
 - **Flexible splitting** — Equal, percentage, exact amounts, shares, or item-by-item
 - **Debt simplification** — Minimizes the number of payments needed to settle up
-- **UPI integration** — Deep link to Google Pay, PhonePe, Paytm for quick settlements
 - **Recurring expenses** — Automate rent, utilities, subscriptions
 - **Receipt attachments** — Attach photos to any expense
 - **Spending insights** — Category breakdowns and monthly trends

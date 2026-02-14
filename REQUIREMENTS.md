@@ -130,8 +130,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | BS-03 | Record manual settlement/payment between two members | P0 |
 | BS-04 | "Settle All" — generate optimized settlement plan for entire group | P0 |
 | BS-05 | Settlement reminders (push notification + in-app) | P1 |
-| BS-06 | Integration with UPI payment apps (Google Pay, PhonePe, Paytm) — deep link to pay | P2 |
-| BS-07 | Export settlement summary (PDF/image) for sharing | P1 |
+| BS-06 | Export settlement summary (PDF/image) for sharing | P1 |
 
 ### ~~4.5 Multi-Currency~~ *(Removed — app targets India only, all amounts in ₹)*
 
@@ -504,7 +503,6 @@ The app must implement an optimized debt simplification algorithm to minimize th
 - Itemized bill splitting
 - Receipt photo attachment
 - Recurring expenses
-- UPI payment app integrations (Google Pay, PhonePe, Paytm)
 - Group roles & permissions
 - Nudge/reminders
 - Data export (CSV/PDF)
@@ -512,7 +510,6 @@ The app must implement an optimized debt simplification algorithm to minimize th
 ### Phase 3 — Premium & Growth (P2 Features)
 - Receipt OCR scanning
 - Advanced analytics & trends
-- Payment app integrations (UPI, PayPal deep links)
 - Custom tags & categories
 - Bulk expense entry
 - B2B/Team plans
