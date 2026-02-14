@@ -1,6 +1,6 @@
 # One By Two — Implementation Plan
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 ---
@@ -100,22 +100,31 @@ The project is delivered in **3 phases** aligned with the priority levels in the
 | S3-11 | Delete expense | Soft delete with 30-second undo snackbar. Sync deletion to Firestore |
 | S3-12 | Expense sync | Firestore listeners for expenses. Write-local-first. Sync queue for offline writes |
 | S3-13 | Non-group expenses | Expense between two individuals (no group). Direct 1:1 expense entry |
+| S3-14 | Friend pair entity & data layer | FriendPair entity, model, mapper, DAO, Firestore source, repository. Canonical pair ID generation |
+| S3-15 | Add friend screen | Search users by phone/name. Create friend pair via Cloud Function (addFriend callable) |
+| S3-16 | Friend detail screen | Display 1:1 expenses with friend, net balance, settle up. Tabs: Expenses, Settle Up |
+| S3-17 | Dashboard friends section | MY FRIENDS section on home with balance per friend. Navigation to Friend Detail |
+| S3-18 | Context chooser | When FAB tapped from home, show Group vs Friend context selector before Add Expense |
+| S3-19 | 1:1 expense split | Add expense in friend context. Both users pre-selected. All split types supported (equal, exact, percentage, shares, itemized) |
+| S3-20 | Friend Cloud Functions | onFriendExpenseCreated/Updated/Deleted triggers. 1:1 balance recalculation. userFriends denormalization |
+| S3-21 | Friend settlement | Record settlement between friends. nudgeFriend callable. settleFriend callable |
+| S3-22 | Friend security rules | Firestore rules for friends/{pairId}/**, userFriends/{uid}/**. isFriendPairMember() helper |
 
-**Deliverable:** Full expense entry with equal, exact, percentage, and shares splits.
+**Deliverable:** Full expense entry with equal, exact, percentage, and shares splits. 1:1 friend expense tracking.
 
 ---
 
 ### Sprint 4: Balances & Settlements
 
-**Goal:** Balance calculation, debt simplification, settlement recording
+**Goal:** Balance calculation, debt simplification, settlement recording (group + friend)
 
 | Task ID | Task | Description |
 |---------|------|-------------|
-| S4-01 | Balance calculation engine | Local balance recalculation from all expenses and settlements. Pairwise balance storage |
-| S4-02 | Balance Cloud Function | Server-side balance recalculation triggered by expense/settlement writes. Update groups/{gid}/balances/ |
+| S4-01 | Balance calculation engine | Local balance recalculation from all expenses and settlements. Pairwise balance storage. Friend balance (single scalar) |
+| S4-02 | Balance Cloud Function | Server-side balance recalculation triggered by expense/settlement writes. Update groups/{gid}/balances/ and friends/{fid}/balance/ |
 | S4-03 | Debt simplification algorithm | Implement greedy net-balance algorithm. Unit tests for correctness (5+ test cases) |
 | S4-04 | Balances tab (Group Detail) | Display pairwise balances. Show simplified debts. Color coding (red: owe, green: owed) |
-| S4-05 | Overall balance (Home) | Aggregate balance across all groups. Summary card on home screen |
+| S4-05 | Overall balance (Home) | Aggregate balance across all groups and friends. Summary card on home screen |
 | S4-06 | Settlement entity & data layer | Settlement entity, model, DAO, Firestore source, repository |
 | S4-07 | Record settlement screen | From/To picker, amount (pre-filled from suggestion), date, notes. Confirmation |
 | S4-08 | Settle up tab | Suggested settlements from debt simplification. One-tap "Record Payment" |

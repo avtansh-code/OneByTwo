@@ -1,6 +1,6 @@
 # One By Two — Low-Level Design
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 > **Note:** All algorithms (split calculations, debt simplification, search ranking, recurring scheduling, guest migration, etc.) are documented in detail in **[10_ALGORITHMS.md](./10_ALGORITHMS.md)**.
@@ -37,8 +37,11 @@
 │                                                                  │
 │    static final _migrations = {                                  │
 │      1: MigrationV1(),  // Initial schema                       │
-│      // 2: MigrationV2(),  // Future: add tags table            │
-│      // 3: MigrationV3(),  // Future: add OCR results           │
+│      2: MigrationV2(),  // Add friends table, context_type to   │
+│                         // expenses/settlements/activity_log/   │
+│                         // sync_queue/notifications/drafts      │
+│      // 3: MigrationV3(),  // Future: add tags table            │
+│      // 4: MigrationV4(),  // Future: add OCR results           │
 │    };                                                            │
 │  }                                                               │
 │                                                                  │

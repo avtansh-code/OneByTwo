@@ -1,6 +1,6 @@
 # One By Two — Key Algorithms Reference
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 This document is a consolidated, detailed reference of **every non-trivial algorithm** used in the One By Two app. Each algorithm includes its purpose, formal specification, pseudocode, complexity analysis, edge cases, and worked examples.
@@ -27,6 +27,7 @@ This document is a consolidated, detailed reference of **every non-trivial algor
 16. [Remainder Distribution (Largest Remainder Method)](#16-remainder-distribution-largest-remainder-method)
 17. [Group Balance Aggregation (My Balance)](#17-group-balance-aggregation-my-balance)
 18. [Notification Fan-Out](#18-notification-fan-out)
+19. [1:1 Friend Balance Calculation](#19-11-friend-balance-calculation)
 
 ---
 
@@ -1389,6 +1390,117 @@ COMPLEXITY:
 
 ---
 
+## 19. 1:1 Friend Balance Calculation
+
+### Purpose
+Calculate the net balance between two friends (outside of any group). This is a simplified version of the group balance calculation — with only 2 participants, there is no need for pairwise matrix or debt simplification.
+
+### Formal Specification
+
+```
+FUNCTION compute1v1Balance(
+  friendPairId: string,
+  userA: string,    // lexicographically smaller userId
+  userB: string     // lexicographically larger userId
+) → int
+
+PRE-CONDITIONS:
+  userA < userB (canonical ordering)
+  All expense amounts in paise (integers)
+
+POST-CONDITION:
+  result > 0 → userA owes userB
+  result < 0 → userB owes userA
+  result == 0 → settled
+
+INVARIANT:
+  balance(A→B) == -balance(B→A)
+```
+
+### Pseudocode
+
+```
+FUNCTION compute1v1Balance(friendPairId, userA, userB):
+  expenses ← fetchActiveExpenses(friendPairId)
+  settlements ← fetchActiveSettlements(friendPairId)
+  
+  netBalance ← 0   // single scalar (not a matrix)
+  
+  // Step 1: Process all expenses
+  FOR expense IN expenses:
+    payers ← fetchPayers(expense.id)
+    splits ← fetchSplits(expense.id)
+    
+    FOR payer IN payers:
+      FOR split IN splits:
+        IF payer.userId == split.userId: CONTINUE  // can't owe yourself
+        
+        // payer paid on behalf of split.userId
+        IF payer.userId == userA AND split.userId == userB:
+          // userB owes userA → netBalance decreases (B owes A = negative)
+          netBalance -= split.amountOwed
+        ELSE IF payer.userId == userB AND split.userId == userA:
+          // userA owes userB → netBalance increases
+          netBalance += split.amountOwed
+
+  // Step 2: Process all settlements
+  FOR settlement IN settlements:
+    IF settlement.fromUserId == userA:
+      // A paid B → reduces A's debt to B
+      netBalance -= settlement.amount
+    ELSE IF settlement.fromUserId == userB:
+      // B paid A → increases A's debt to B
+      netBalance += settlement.amount
+  
+  RETURN netBalance
+
+COMPLEXITY:
+  Time: O(E) where E = number of expenses + settlements
+  Space: O(1) — single accumulator
+```
+
+### Key Differences from Group Balance
+
+| Aspect | Group Balance | 1:1 Friend Balance |
+|--------|--------------|-------------------|
+| Participants | N (2–50) | Always 2 |
+| Data structure | Map<(userA, userB), int> matrix | Single integer |
+| Debt simplification | Required (minimum transactions) | Not needed (only 1 edge) |
+| Firestore output | N×(N-1)/2 balance docs | 1 balance doc |
+| Split types supported | All (equal, exact, %, shares, itemized) | All (equal, exact, %, shares, itemized) |
+| Complexity | O(E × N) | O(E) |
+
+### Worked Example
+
+```
+Friends: Alice (userA), Bob (userB)
+
+Expense 1: "Lunch" ₹900, paid by Bob, split equally
+  → Alice owes Bob ₹450 → netBalance += 450 → netBalance = 450
+
+Expense 2: "Cab" ₹600, paid by Alice, split 60/40
+  → Bob owes Alice ₹240 → netBalance -= 240 → netBalance = 210
+
+Settlement: Alice pays Bob ₹100
+  → netBalance -= 100 → netBalance = 110
+
+Final: netBalance = 110 (positive → Alice owes Bob ₹110)
+         Alice sees: "You owe Bob ₹1.10"
+         Bob sees:   "Alice owes you ₹1.10"
+```
+
+### Edge Cases
+
+| Case | Handling |
+|------|----------|
+| No expenses | Return 0 (settled) |
+| Single expense, single payer, equal split | Standard ÷ 2 with remainder to first person |
+| Both paid for same expense (multiple payers) | Process each payer-split combination separately |
+| Settlement exceeds balance (overpayment) | Result goes negative (other person now owes) |
+| All expenses deleted (soft) | Return 0 (only active expenses counted) |
+
+---
+
 ## Algorithm Complexity Summary
 
 | Algorithm | Time Complexity | Space Complexity | Critical Path? |
@@ -1410,6 +1522,7 @@ COMPLEXITY:
 | Notification Fan-Out | O(M) | O(M) | Every event |
 | Canonical Pair | O(1) | O(1) | Every balance op |
 | My Balance Aggregation | O(B) | O(1) | Every balance view |
+| 1:1 Friend Balance | O(E) | O(1) | Every friend balance view |
 
 Where: n=participants, N=group members, E=expenses, Q=queue size, R=results, M=members, I=items, P=people per item, F=fields, G=groups, B=balance pairs
 
@@ -1430,3 +1543,4 @@ Each algorithm must have comprehensive unit tests covering:
 | Largest Remainder | No remainder, remainder = 1, remainder = n-1, all equal weights, one zero weight |
 | Conflict Resolution | Delete vs edit, both edit non-critical, both edit amount, version mismatch, identical edits |
 | Recurring Schedule | Daily/weekly/monthly/yearly, month-end (31st), Feb 29 leap year, past due dates, end date reached |
+| 1:1 Friend Balance | No expenses, single expense equal split, multiple payers, settlement exceeds balance, all deleted, mixed splits |

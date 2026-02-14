@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Record Payment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --secondary: #009688; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: rgba(0,0,0,0.5); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .modal { background: white; border-radius: 20px; width: 320px; padding: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+        .modal-title { font-size: 20px; font-weight: 500; color: var(--text-primary); margin: 0 0 4px; text-align: center; }
+        .modal-sub { font-size: 14px; color: #757575; text-align: center; margin: 0 0 24px; }
+        .settlement-flow { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 500; color: white; }
+        .arrow { color: var(--secondary); }
+        .name-label { font-size: 12px; color: #757575; text-align: center; margin-top: 4px; }
+        .amount-section { text-align: center; margin-bottom: 24px; }
+        .amount-label { font-size: 14px; color: #757575; margin-bottom: 8px; }
+        .amount-display { display: flex; align-items: baseline; justify-content: center; }
+        .currency { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .amount-input { font-size: 36px; font-weight: 700; border: none; border-bottom: 2px solid #E0E0E0; outline: none; width: 140px; text-align: center; font-family: 'Roboto', sans-serif; background: transparent; }
+        .amount-input:focus { border-bottom-color: var(--primary); }
+        .suggested { font-size: 13px; color: var(--secondary); margin-top: 8px; }
+        .method-label { font-size: 14px; color: #757575; margin-bottom: 8px; }
+        .methods { display: flex; gap: 8px; margin-bottom: 24px; }
+        .method-chip { flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 500; border: 1px solid #e0e0e0; cursor: pointer; }
+        .method-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .note-input { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; font-size: 14px; outline: none; font-family: 'Roboto', sans-serif; margin-bottom: 20px; box-sizing: border-box; }
+        .note-input:focus { border-color: var(--primary); }
+        .btn-row { display: flex; gap: 12px; }
+        .btn-cancel { flex: 1; height: 44px; background: #F5F5F5; border: none; border-radius: 22px; font-size: 15px; font-weight: 500; color: #757575; cursor: pointer; }
+        .btn-confirm { flex: 1; height: 44px; background: var(--secondary); color: white; border: none; border-radius: 22px; font-size: 15px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(0,150,136,0.3); }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="modal">
+            <div class="modal-title">Record Payment</div>
+            <div class="modal-sub">Goa Trip 🏖️</div>
+
+            <div class="settlement-flow">
+                <div>
+                    <div class="avatar" style="background:#3949AB;">YO</div>
+                    <div class="name-label">You</div>
+                </div>
+                <span class="material-icons-round arrow">arrow_forward</span>
+                <div>
+                    <div class="avatar" style="background:#EF6C00;">RA</div>
+                    <div class="name-label">Rahul</div>
+                </div>
+            </div>
+
+            <div class="amount-section">
+                <div class="amount-label">Amount</div>
+                <div class="amount-display">
+                    <span class="currency">₹</span>
+                    <input type="text" class="amount-input" value="2,500">
+                </div>
+                <div class="suggested">Suggested: ₹2,500 (full balance)</div>
+            </div>
+
+            <div class="method-label">Payment Method</div>
+            <div class="methods">
+                <div class="method-chip active">UPI</div>
+                <div class="method-chip">Cash</div>
+                <div class="method-chip">Other</div>
+            </div>
+
+            <input type="text" class="note-input" placeholder="Add a note (optional)" value="">
+
+            <div class="btn-row">
+                <button class="btn-cancel">Cancel</button>
+                <a href="settle_up.html" style="flex:1;text-decoration:none;"><button class="btn-confirm" style="width:100%;">Confirm</button></a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

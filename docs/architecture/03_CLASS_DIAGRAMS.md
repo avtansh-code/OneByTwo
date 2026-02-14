@@ -1,6 +1,6 @@
 # One By Two — Class Diagrams & Module Architecture
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 ---
@@ -78,6 +78,7 @@ lib/
 │   │   │   ├── expense_dao.dart
 │   │   │   ├── settlement_dao.dart
 │   │   │   ├── balance_dao.dart
+│   │   │   ├── friend_dao.dart
 │   │   │   ├── activity_dao.dart
 │   │   │   ├── notification_dao.dart
 │   │   │   ├── sync_queue_dao.dart
@@ -91,10 +92,12 @@ lib/
 │   │   │   ├── group_firestore_source.dart
 │   │   │   ├── expense_firestore_source.dart
 │   │   │   ├── settlement_firestore_source.dart
+│   │   │   ├── friend_firestore_source.dart
 │   │   │   └── invite_firestore_source.dart
 │   │   ├── cloud_functions/
 │   │   │   ├── functions_client.dart
 │   │   │   ├── debt_simplification_fn.dart
+│   │   │   ├── friend_fn.dart                # addFriend, nudgeFriend, settleFriend
 │   │   │   └── export_fn.dart
 │   │   ├── storage/
 │   │   │   └── file_storage_source.dart
@@ -110,6 +113,7 @@ lib/
 │   │   ├── expense_item_model.dart
 │   │   ├── settlement_model.dart
 │   │   ├── balance_model.dart
+│   │   ├── friend_model.dart
 │   │   ├── activity_model.dart
 │   │   ├── notification_model.dart
 │   │   └── sync_queue_model.dart
@@ -118,7 +122,8 @@ lib/
 │   │   ├── user_mapper.dart
 │   │   ├── group_mapper.dart
 │   │   ├── expense_mapper.dart
-│   │   └── settlement_mapper.dart
+│   │   ├── settlement_mapper.dart
+│   │   └── friend_mapper.dart
 │   │
 │   ├── repositories/                  # Repository implementations
 │   │   ├── auth_repository_impl.dart
@@ -127,6 +132,7 @@ lib/
 │   │   ├── expense_repository_impl.dart
 │   │   ├── settlement_repository_impl.dart
 │   │   ├── balance_repository_impl.dart
+│   │   ├── friend_repository_impl.dart
 │   │   ├── notification_repository_impl.dart
 │   │   └── analytics_repository_impl.dart
 │   │
@@ -147,6 +153,7 @@ lib/
 │   │   ├── expense_item.dart
 │   │   ├── settlement.dart
 │   │   ├── balance.dart
+│   │   ├── friend_pair.dart
 │   │   ├── activity.dart
 │   │   └── notification.dart
 │   │
@@ -157,6 +164,7 @@ lib/
 │   │   ├── expense_repository.dart
 │   │   ├── settlement_repository.dart
 │   │   ├── balance_repository.dart
+│   │   ├── friend_repository.dart
 │   │   ├── notification_repository.dart
 │   │   └── analytics_repository.dart
 │   │
@@ -179,6 +187,15 @@ lib/
 │   │   │   ├── archive_group.dart
 │   │   │   ├── generate_invite_link.dart
 │   │   │   └── join_via_invite.dart
+│   │   ├── friend/
+│   │   │   ├── add_friend.dart
+│   │   │   ├── get_friends.dart
+│   │   │   ├── get_friend_detail.dart
+│   │   │   ├── get_friend_expenses.dart
+│   │   │   ├── add_friend_expense.dart
+│   │   │   ├── record_friend_settlement.dart
+│   │   │   ├── get_friend_balance.dart
+│   │   │   └── nudge_friend.dart
 │   │   ├── expense/
 │   │   │   ├── add_expense.dart
 │   │   │   ├── edit_expense.dart
@@ -215,6 +232,7 @@ lib/
 │   │   ├── expense_providers.dart
 │   │   ├── settlement_providers.dart
 │   │   ├── balance_providers.dart
+│   │   ├── friend_providers.dart
 │   │   ├── notification_providers.dart
 │   │   ├── analytics_providers.dart
 │   │   ├── connectivity_provider.dart
@@ -237,6 +255,7 @@ lib/
 │       │   └── widgets/
 │       │       ├── balance_summary_card.dart
 │       │       ├── group_list_tile.dart
+│       │       ├── friend_list_tile.dart
 │       │       ├── recent_activity_list.dart
 │       │       └── quick_add_fab.dart
 │       │
@@ -251,6 +270,16 @@ lib/
 │       │       ├── member_balance_card.dart
 │       │       └── group_header.dart
 │       │
+│       ├── friend/
+│       │   ├── screens/
+│       │   │   ├── friend_detail_screen.dart
+│       │   │   ├── add_friend_screen.dart
+│       │   │   └── friend_settle_screen.dart
+│       │   └── widgets/
+│       │       ├── friend_expense_list_tile.dart
+│       │       ├── friend_balance_card.dart
+│       │       └── friend_header.dart
+│       │
 │       ├── expense/
 │       │   ├── screens/
 │       │   │   ├── add_expense_screen.dart
@@ -263,7 +292,8 @@ lib/
 │       │       ├── payer_selector.dart
 │       │       ├── participant_selector.dart
 │       │       ├── split_preview.dart
-│       │       └── receipt_attachment.dart
+│       │       ├── receipt_attachment.dart
+│       │       └── context_chooser.dart   # Group vs Friend selector
 │       │
 │       ├── settlement/
 │       │   ├── screens/
@@ -352,6 +382,8 @@ lib/
 │  │────────────────────────│                                       │
 │  │ + id: String           │                                       │
 │  │ + groupId: String?     │                                       │
+│  │ + friendPairId: String?│                                       │
+│  │ + contextType: ExpCtx  │  ('group' | 'friend')                │
 │  │ + description: String  │                                       │
 │  │ + amount: Amount       │        ┌──────────────────┐           │
 │  │ + date: DateTime       │───────>│  ExpensePayer    │           │
@@ -374,10 +406,10 @@ lib/
 │  │     Settlement         │         │──────────────────│          │
 │  │────────────────────────│         │ + name: String   │          │
 │  │ + id: String           │         │ + amount: Amount │          │
-│  │ + groupId: String      │         │ + assignedTo: [] │          │
-│  │ + fromUserId: String   │         └──────────────────┘          │
-│  │ + toUserId: String     │                                       │
-│  │ + amount: Amount       │        ┌──────────────────────┐       │
+│  │ + groupId: String?     │         │ + assignedTo: [] │          │
+│  │ + friendPairId: String?│         └──────────────────┘          │
+│  │ + contextType: ExpCtx  │                                       │
+│  │ + fromUserId: String   │         ┌──────────────────────┐       │
 │  │ + date: DateTime       │        │     Balance          │       │
 │  │ + notes: String?       │        │──────────────────────│       │
 │  │ + version: int         │        │ + groupId: String    │       │
@@ -386,9 +418,21 @@ lib/
 │                                    │ + amount: Amount     │       │
 │                                    └──────────────────────┘       │
 │                                                                    │
+│  ┌────────────────────────┐                                       │
+│  │     FriendPair         │                                       │
+│  │────────────────────────│                                       │
+│  │ + id: String           │  canonical: min(A,B)_max(A,B)        │
+│  │ + userAId: String      │  (lexicographically smaller)          │
+│  │ + userBId: String      │  (lexicographically larger)           │
+│  │ + balance: Amount      │  +ve = A owes B                      │
+│  │ + lastActivityAt: DateTime?                                    │
+│  │ + syncStatus: SyncStat │                                       │
+│  └────────────────────────┘                                       │
+│                                                                    │
 │  ┌──────── ENUMS ─────────────────────────────────────────────┐   │
 │  │                                                             │   │
 │  │  SplitType: equal | exact | percentage | shares | itemized │   │
+│  │  ExpenseContext: group | friend                             │   │
 │  │  MemberRole: owner | admin | member                        │   │
 │  │  GroupCategory: trip | home | couple | event | other        │   │
 │  │  ExpenseCategory: food | transport | groceries | rent |    │   │
@@ -520,6 +564,23 @@ lib/
 │  │ + getOverallBalance(): Stream<Amount>             │             │
 │  │ + recalculate(gid): Future<Result<void>>          │             │
 │  │ + getSimplifiedDebts(gid): Future<R<List<Debt>>>  │             │
+│  └──────────────────────────────────────────────────┘             │
+│                                                                    │
+│  ┌──────────────────────────────────────────────────┐             │
+│  │      FriendRepository                             │             │
+│  │  <<abstract>>                                     │             │
+│  │──────────────────────────────────────────────────│             │
+│  │ + addFriend(userId): Future<Result<FriendPair>>   │             │
+│  │ + getFriends(): Stream<List<FriendPair>>          │             │
+│  │ + getFriendDetail(pairId): Future<R<FriendPair>>  │             │
+│  │ + getFriendExpenses(pairId): Stream<List<Exp>>    │             │
+│  │ + addFriendExpense(exp): Future<Result<Expense>>  │             │
+│  │ + editFriendExpense(exp): Future<Result<Expense>> │             │
+│  │ + deleteFriendExpense(id): Future<Result<void>>   │             │
+│  │ + getFriendBalance(pairId): Stream<Amount>        │             │
+│  │ + recordFriendSettlement(Sttl): Future<R<Sttl>>   │             │
+│  │ + getFriendSettlements(pairId): Stream<List<S>>    │             │
+│  │ + nudgeFriend(pairId, userId): Future<R<void>>    │             │
 │  └──────────────────────────────────────────────────┘             │
 │                                                                    │
 │  ┌──────────────────────────────────────────────────┐             │

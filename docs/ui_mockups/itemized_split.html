@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Itemized Split</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --secondary: #009688; --error: #E53935; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .app-bar .left { display: flex; align-items: center; }
+        .app-bar a { text-decoration: none; color: var(--text-primary); margin-right: 16px; }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .done-btn { color: var(--primary); font-weight: 500; font-size: 16px; cursor: pointer; text-decoration: none; }
+        .total-bar { background: white; padding: 16px; border-bottom: 1px solid #eee; }
+        .total-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .total-label { font-size: 14px; color: #757575; }
+        .total-amount { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .remaining { font-size: 13px; color: var(--error); margin-top: 4px; }
+        .content { flex: 1; overflow-y: auto; padding: 16px; }
+        .item-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .item-name { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+        .item-price { font-size: 16px; font-weight: 500; color: var(--primary); }
+        .item-assignees { display: flex; flex-wrap: wrap; gap: 8px; }
+        .assignee-chip { display: flex; align-items: center; padding: 6px 12px; border-radius: 16px; font-size: 13px; border: 1px solid #e0e0e0; }
+        .assignee-chip.assigned { background: #E8EAF6; border-color: var(--primary); color: var(--primary); font-weight: 500; }
+        .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 9px; font-weight: 500; color: white; margin-right: 6px; }
+        .add-item-btn { display: flex; align-items: center; justify-content: center; padding: 16px; border: 2px dashed #E0E0E0; border-radius: 12px; color: var(--primary); font-weight: 500; font-size: 15px; cursor: pointer; }
+        .add-item-btn .material-icons-round { margin-right: 8px; }
+        .summary { background: white; border-radius: 12px; padding: 16px; margin-top: 8px; }
+        .summary-title { font-size: 14px; font-weight: 500; color: #757575; margin-bottom: 12px; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-name { font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .summary-amount { font-size: 14px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <div class="left">
+                <a href="split_options.html" class="material-icons-round">arrow_back</a>
+                <h1>Itemized Split</h1>
+            </div>
+            <a href="add_expense.html" class="done-btn">Done</a>
+        </div>
+
+        <div class="total-bar">
+            <div class="total-row">
+                <span class="total-label">Bill Total</span>
+                <span class="total-amount">₹2,400</span>
+            </div>
+            <div class="remaining">₹300 unassigned</div>
+        </div>
+
+        <div class="content">
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Butter Chicken</span>
+                    <span class="item-price">₹550</span>
+                </div>
+                <div class="item-assignees">
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#3949AB;">YO</div>You
+                    </div>
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#EF6C00;">RA</div>Rahul
+                    </div>
+                    <div class="assignee-chip">
+                        <div class="assignee-avatar" style="background:#E0E0E0;">AM</div>Amit
+                    </div>
+                    <div class="assignee-chip">
+                        <div class="assignee-avatar" style="background:#E0E0E0;">PR</div>Priya
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Goan Fish Curry</span>
+                    <span class="item-price">₹650</span>
+                </div>
+                <div class="item-assignees">
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#E91E63;">PR</div>Priya
+                    </div>
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#43A047;">AM</div>Amit
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-card">
+                <div class="item-header">
+                    <span class="item-name">Naan × 4</span>
+                    <span class="item-price">₹200</span>
+                </div>
+                <div class="item-assignees">
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#3949AB;">YO</div>You
+                    </div>
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#EF6C00;">RA</div>Rahul
+                    </div>
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#43A047;">AM</div>Amit
+                    </div>
+                    <div class="assignee-chip assigned">
+                        <div class="assignee-avatar" style="background:#E91E63;">PR</div>Priya
+                    </div>
+                </div>
+            </div>
+
+            <div class="add-item-btn">
+                <span class="material-icons-round">add</span>
+                Add Item
+            </div>
+
+            <div class="summary">
+                <div class="summary-title">Per-person Total</div>
+                <div class="summary-row">
+                    <span class="summary-name"><div class="assignee-avatar" style="background:#3949AB;">YO</div>You</span>
+                    <span class="summary-amount">₹325</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-name"><div class="assignee-avatar" style="background:#EF6C00;">RA</div>Rahul</span>
+                    <span class="summary-amount">₹325</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-name"><div class="assignee-avatar" style="background:#43A047;">AM</div>Amit</span>
+                    <span class="summary-amount">₹375</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-name"><div class="assignee-avatar" style="background:#E91E63;">PR</div>Priya</span>
+                    <span class="summary-amount">₹375</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

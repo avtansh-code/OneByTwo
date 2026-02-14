@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Add Expense</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; margin-top: 24px; }
+        .back-btn { color: var(--text-primary); text-decoration: none; }
+        .save-btn { color: var(--primary); font-weight: 500; text-decoration: none; font-size: 16px; }
+        .amount-input { font-size: 40px; font-weight: bold; border: none; outline: none; background: transparent; text-align: center; width: 100%; color: var(--text-primary); margin-bottom: 32px; }
+        .form-group { margin-bottom: 24px; }
+        .label { font-size: 14px; color: #757575; margin-bottom: 8px; display: block; }
+        .input-row { display: flex; align-items: center; border-bottom: 1px solid #E0E0E0; padding-bottom: 8px; }
+        .input-field { flex: 1; border: none; outline: none; background: transparent; font-size: 16px; margin-left: 12px; }
+        .split-row { display: flex; align-items: center; justify-content: space-between; background: #E8EAF6; padding: 12px; border-radius: 8px; margin-top: 16px; cursor: pointer; text-decoration: none; color: inherit; }
+        .split-info { display: flex; align-items: center; }
+        .avatar { width: 24px; height: 24px; background: #FFCDD2; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 10px; margin-right: 8px; }
+        .category-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .cat-icon { width: 48px; height: 48px; background: #F5F5F5; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 4px; color: #757575; }
+        .cat-item.active .cat-icon { background: var(--primary); color: white; }
+        .cat-label { font-size: 10px; color: #757575; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="header">
+            <a href="group_detail.html" class="back-btn material-icons-round">close</a>
+            <span style="font-weight: 500; font-size: 18px;">Add Expense</span>
+            <a href="group_detail.html" class="save-btn">Save</a>
+        </div>
+        
+        <div class="form-group">
+            <div class="input-row">
+                <span class="material-icons-round" style="color: #757575;">edit_note</span>
+                <input type="text" class="input-field" placeholder="What is this for?">
+            </div>
+        </div>
+
+        <input type="text" class="amount-input" value="₹ 0" placeholder="₹ 0">
+
+        <a href="split_options.html" class="split-row">
+            <div class="split-info">
+                <span style="font-size: 14px;">Paid by <b>You</b> and split <b>Equally</b></span>
+            </div>
+            <span class="material-icons-round" style="font-size: 16px; color: #757575;">chevron_right</span>
+        </a>
+
+        <div class="form-group" style="margin-top: 32px;">
+            <span class="label">Category</span>
+            <div class="category-grid">
+                <div class="cat-item active">
+                    <div class="cat-icon material-icons-round">restaurant</div>
+                    <span class="cat-label">Food</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon material-icons-round">local_taxi</div>
+                    <span class="cat-label">Transport</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon material-icons-round">flight</div>
+                    <span class="cat-label">Travel</span>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon material-icons-round">shopping_cart</div>
+                    <span class="cat-label">Groceries</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

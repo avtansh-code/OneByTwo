@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Split Options</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; padding: 24px; box-sizing: border-box; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .back-btn { color: var(--text-primary); text-decoration: none; }
+        .done-btn { color: var(--primary); font-weight: 500; text-decoration: none; font-size: 16px; }
+        .tabs { display: flex; margin-bottom: 24px; border-bottom: 1px solid #E0E0E0; }
+        .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; color: #757575; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+        .member-list { flex: 1; overflow-y: auto; }
+        .member-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #EEEEEE; }
+        .member-info { display: flex; align-items: center; }
+        .avatar { width: 40px; height: 40px; background: #E0E0E0; border-radius: 50%; margin-right: 12px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+        .name { font-size: 16px; color: var(--text-primary); }
+        .checkbox { width: 24px; height: 24px; border: 2px solid #BDBDBD; border-radius: 4px; display: flex; justify-content: center; align-items: center; color: white; }
+        .checkbox.checked { background: var(--primary); border-color: var(--primary); }
+        .amount { font-size: 14px; color: #757575; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="header">
+            <a href="add_expense.html" class="back-btn material-icons-round">arrow_back</a>
+            <span style="font-weight: 500; font-size: 18px;">Split Options</span>
+            <a href="add_expense.html" class="done-btn">Done</a>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active">Equally</div>
+            <div class="tab">Unequally</div>
+            <div class="tab">By %</div>
+            <div class="tab">Shares</div>
+            <a href="itemized_split.html" class="tab" style="text-decoration:none;color:inherit;">Itemized</a>
+        </div>
+
+        <div class="member-list">
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="avatar" style="background: #C8E6C9;">ME</div>
+                    <div>
+                        <div class="name">You</div>
+                        <div class="amount">₹600</div>
+                    </div>
+                </div>
+                <div class="checkbox checked"><span class="material-icons-round" style="font-size: 18px;">check</span></div>
+            </div>
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="avatar" style="background: #FFECB3;">RA</div>
+                    <div>
+                        <div class="name">Rahul</div>
+                        <div class="amount">₹600</div>
+                    </div>
+                </div>
+                <div class="checkbox checked"><span class="material-icons-round" style="font-size: 18px;">check</span></div>
+            </div>
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="avatar" style="background: #F8BBD0;">PR</div>
+                    <div>
+                        <div class="name">Priya</div>
+                        <div class="amount">₹600</div>
+                    </div>
+                </div>
+                <div class="checkbox checked"><span class="material-icons-round" style="font-size: 18px;">check</span></div>
+            </div>
+            <div class="member-item">
+                <div class="member-info">
+                    <div class="avatar" style="background: #E1F5FE;">AM</div>
+                    <div>
+                        <div class="name">Amit</div>
+                        <div class="amount">₹600</div>
+                    </div>
+                </div>
+                <div class="checkbox checked"><span class="material-icons-round" style="font-size: 18px;">check</span></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

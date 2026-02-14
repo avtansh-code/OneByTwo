@@ -1,6 +1,6 @@
 # One By Two — Product Requirements Document
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **App Name:** One By Two  
 > **Tagline:** Split expenses. Not friendships.  
 > **Audience:** Architect / Engineering Team  
@@ -20,7 +20,7 @@ The fraction ½ symbolizes:
 
 ## 2. Executive Summary
 
-One By Two is a mobile-first expense sharing application designed to provide a **clean, simple, ad-free** experience for splitting expenses among friends, roommates, couples, and travel groups. It works seamlessly **online and offline**, with automatic sync when connectivity is restored.
+One By Two is a mobile-first expense sharing application designed to provide a **clean, simple, ad-free** experience for splitting expenses among friends, roommates, couples, and travel groups — both within **groups** and directly between **two friends (1:1)**. It works seamlessly **online and offline**, with automatic sync when connectivity is restored.
 
 The app is positioned as a modern, user-friendly alternative to Splitwise, SettleUp, and Tricount — solving the key pain points users face with those apps while retaining all essential expense-splitting functionality.
 
@@ -73,11 +73,13 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 3. Recording a payment/settlement between two people
 4. Viewing "who owes whom" with simplified debts
 5. Managing recurring shared bills (rent, Netflix, utilities)
-6. Tracking expenses across multiple currencies during travel
+6. ~~Tracking expenses across multiple currencies during travel~~ *(Removed — ₹ only)*
 7. Viewing personal spending breakdown by category
 8. Settling all debts at the end of a trip
 9. Adding expenses offline and having them sync later
 10. Inviting a non-app-user to a group via link
+11. Adding a 1:1 expense directly with a friend (outside any group)
+12. Viewing running balance with individual friends across all 1:1 expenses
 
 ---
 
@@ -128,7 +130,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | EX-12 | Delete expense (with soft-delete & undo within 30 seconds) | P0 |
 | EX-13 | Duplicate an existing expense | P1 |
 | EX-14 | Draft auto-save (resume interrupted expense entry) | P1 |
-| EX-15 | Expense entry outside a group (between two individuals) | P0 |
+| EX-15 | Expense entry outside a group (between two individuals). All split types (equal, exact, percentage, shares, itemized) available. See §4.10 for full 1:1 requirements | P0 |
 | EX-16 | Tag expenses (e.g., #day1, #hotel, #food) for filtering | P2 |
 | EX-17 | Bulk expense entry mode (quick-add multiple expenses) | P2 |
 
@@ -136,9 +138,9 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| BS-01 | Real-time balance calculation showing net amounts between all pairs | P0 |
-| BS-02 | Debt simplification — minimize number of transactions to settle all debts | P0 |
-| BS-03 | Record manual settlement/payment between two members | P0 |
+| BS-01 | Real-time balance calculation showing net amounts between all pairs (group) and net balance per friend (1:1) | P0 |
+| BS-02 | Debt simplification — minimize number of transactions to settle all debts (group context only; not needed for 1:1) | P0 |
+| BS-03 | Record manual settlement/payment between two members (group or friend context) | P0 |
 | BS-04 | "Settle All" — generate optimized settlement plan for entire group | P0 |
 | BS-05 | Settlement reminders (push notification + in-app) | P1 |
 | BS-06 | Export settlement summary (PDF/image) for sharing | P1 |
@@ -189,6 +191,42 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 | AU-01 | Complete activity log per group (who added/edited/deleted what, when) | P0 |
 | AU-02 | Per-expense change history (audit trail) | P0 |
 | AU-03 | Show "created by" and "last modified by" on every expense | P0 |
+
+### 4.10 Friends & 1:1 Expenses
+
+Users must be able to track expenses directly with another person **without creating a group**. This covers casual, everyday sharing between two friends (e.g., splitting a cab, lunch, or lending money).
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-01 | Add a friend by searching registered users (by phone number or name) | P0 |
+| FR-02 | "My Friends" list on the home dashboard showing each friend with running balance | P0 |
+| FR-03 | Friend Detail screen showing all 1:1 expenses, settlements, and net balance with that friend | P0 |
+| FR-04 | Add expense in friend (1:1) context — both users are pre-selected as participants | P0 |
+| FR-05 | All split types available for 1:1 expenses: equal, exact amount, percentage, shares, and itemized | P0 |
+| FR-06 | Record settlement between two friends (outside any group) | P0 |
+| FR-07 | Net balance calculation between two friends (single scalar — no debt simplification needed) | P0 |
+| FR-08 | Nudge a friend who owes you money (push notification reminder) | P1 |
+| FR-09 | Activity log per friend pair (who added/edited/deleted what, when) | P0 |
+| FR-10 | Context chooser when adding expense from FAB: "Add to Group" or "Add with Friend" | P0 |
+| FR-11 | Friend expenses must work fully offline (same offline-first rules as group expenses) | P0 |
+| FR-12 | Friend balance included in overall "You owe / You are owed" summary on home dashboard | P0 |
+| FR-13 | Recurring expenses supported in friend context (same rules as group recurring) | P0 |
+| FR-14 | Receipt photo attachment supported in friend context | P0 |
+| FR-15 | Search and filter must include friend expenses in results | P0 |
+| FR-16 | Analytics must include friend expenses in spending breakdowns | P0 |
+| FR-17 | Notifications for friend expenses: added, edited, deleted, settlement recorded | P0 |
+| FR-18 | Friend pair ID uses canonical ordering: `min(userA, userB)_max(userA, userB)` for deterministic storage | P0 |
+
+**Key Differences from Group Expenses:**
+
+| Aspect | Group | Friend (1:1) |
+|--------|-------|-------------|
+| Participants | 2–100 members | Always exactly 2 |
+| Membership | Invite/join flow, roles (owner/admin/member) | Direct add by phone/name, no roles |
+| Balance | Pairwise matrix, debt simplification needed | Single net scalar, no simplification |
+| Data path (Firestore) | `groups/{groupId}/expenses/` | `friends/{friendPairId}/expenses/` |
+| Group settings | Archive, cover photo, category, permissions | N/A — no settings needed |
+| Split types | All 5 types | All 5 types |
 
 ---
 
@@ -267,9 +305,10 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | Screen | Purpose | Key Elements |
 |--------|---------|-------------|
-| **Home / Dashboard** | Overview of all balances | Total owed/owing summary, recent activity feed, quick-add FAB, group list |
+| **Home / Dashboard** | Overview of all balances | Total owed/owing summary, recent activity feed, quick-add FAB, group list, **friends list with balances** |
 | **Group Detail** | Group expenses & balances | Expense list, member balances, settle up button, group settings |
-| **Add Expense** | Log a new expense | Amount input (large, prominent), payer selector, participant selector, split type picker, category, notes, receipt attach |
+| **Friend Detail** | 1:1 expenses & balance with a friend | Expense list between two people, net balance, settle up, nudge |
+| **Add Expense** | Log a new expense | **Context chooser (group or friend)**, amount input (large, prominent), payer selector, participant selector, split type picker, category, notes, receipt attach |
 | **Expense Detail** | View/edit single expense | Full details, split breakdown per person, edit/delete actions, receipt view, audit history |
 | **Settle Up** | Record payments | Suggested settlements, manual payment entry, payment confirmation |
 | **Activity Feed** | Timeline of all actions | Chronological list of expenses, payments, edits, deletions across all groups |
@@ -417,36 +456,50 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
       │                               └──────────────┘
       │                                      │
       │         ┌──────────────┐              │
-      └────────<│   Expense    │>─────────────┘
-                │──────────────│
-                │ id           │
-                │ group_id     │
-                │ description  │
-                │ amount (₹)   │
-                │ date         │
-                │ category     │
-                │ created_by   │
-                │ is_recurring │
-                │ version      │
-                │ sync_status  │
-                └──────┬───────┘
-                       │
-          ┌────────────┼────────────┐
-          │            │            │
-  ┌───────▼──────┐ ┌──▼─────────┐ ┌▼──────────────┐
-  │ ExpensePayer │ │ExpenseSplit│ │ ExpenseAttach  │
-  │──────────────│ │────────────│ │────────────────│
-  │ expense_id   │ │ expense_id │ │ expense_id     │
-  │ user_id      │ │ user_id    │ │ file_url       │
-  │ amount_paid  │ │ amount_owed│ │ type           │
-  └──────────────┘ │ percentage │ └────────────────┘
-                   └────────────┘
-                   
+      ├────────<│   Expense    │>─────────────┘
+      │         │──────────────│
+      │         │ id           │
+      │         │ group_id?    │─── (null for 1:1)
+      │         │ friend_pair? │─── (null for group)
+      │         │ context_type │─── 'group' | 'friend'
+      │         │ description  │
+      │         │ amount (₹)   │
+      │         │ date         │
+      │         │ category     │
+      │         │ created_by   │
+      │         │ is_recurring │
+      │         │ version      │
+      │         │ sync_status  │
+      │         └──────┬───────┘
+      │                │
+      │   ┌────────────┼────────────┐
+      │   │            │            │
+      │   ▼            ▼            ▼
+      │ ┌──────────┐ ┌──────────┐ ┌──────────────┐
+      │ │Exp.Payer │ │Exp.Split │ │ Exp.Attach   │
+      │ │──────────│ │──────────│ │──────────────│
+      │ │expense_id│ │expense_id│ │ expense_id   │
+      │ │user_id   │ │user_id   │ │ file_url     │
+      │ │amount    │ │amount    │ │ type         │
+      │ └──────────┘ │percentage│ └──────────────┘
+      │              └──────────┘
+      │
+      │  ┌──────────────┐
+      ├─<│  FriendPair  │
+      │  │──────────────│
+      └─<│ user_a_id    │  (lexicographically smaller)
+         │ user_b_id    │  (lexicographically larger)
+         │ balance (₹)  │  (+ve = A owes B)
+         │ created_at   │
+         └──────────────┘
+
   ┌──────────────┐     ┌──────────────┐
   │  Settlement  │     │ ActivityLog  │
   │──────────────│     │──────────────│
   │ id           │     │ id           │
-  │ group_id     │     │ group_id     │
+  │ group_id?    │     │ group_id?    │
+  │ friend_pair? │     │ friend_pair? │
+  │ context_type │     │ context_type │
   │ from_user    │     │ user_id      │
   │ to_user      │     │ action       │
   │ amount (₹)   │     │ entity_type  │
@@ -473,7 +526,20 @@ The app must implement an optimized debt simplification algorithm to minimize th
 
 **Constraint:** The simplified settlement must be mathematically equivalent to the original debts (total money transferred may differ, but net result per person is identical).
 
-### ~~11.2 Multi-Currency Conversion~~ *(Removed — ₹ only)*
+> **Note:** Debt simplification is only needed for **group** context (3+ members). For **friend (1:1)** context, the balance is a single scalar between two people — no simplification is required.
+
+### 11.2 1:1 Friend Balance Calculation
+
+For expenses between two friends (outside any group), the balance is a single net amount:
+
+1. Sum all amounts where friend A paid on behalf of friend B → A is owed
+2. Sum all amounts where friend B paid on behalf of friend A → B is owed
+3. Subtract settlements made by each party
+4. Result: positive = A owes B, negative = B owes A, zero = settled
+
+**Convention:** Friend pair ID uses canonical ordering `min(userA, userB)_max(userA, userB)`. Positive balance means the lexicographically smaller user owes the larger one.
+
+### ~~11.3 Multi-Currency Conversion~~ *(Removed — ₹ only)*
 
 ~~- Store expenses in original currency~~
 ~~- Convert to group currency or user's home currency for display~~
@@ -501,9 +567,10 @@ The app must implement an optimized debt simplification algorithm to minimize th
 ### Phase 1 — MVP (P0 Features)
 - User auth (mobile OTP)
 - Groups (create, invite, manage)
-- Expenses (add, edit, delete, equal/custom splits)
-- Balances & debt simplification
-- Settlements
+- **Friends (1:1 expense tracking, add friend, balance, settle)**
+- Expenses (add, edit, delete, equal/custom splits — in group and friend context)
+- Balances & debt simplification (group) / net balance (friend)
+- Settlements (group and friend)
 - Offline-first with sync
 - Basic analytics (category breakdown)
 - Push notifications
@@ -563,7 +630,8 @@ The app must implement an optimized debt simplification algorithm to minimize th
 | **Expense** | A cost incurred by one or more payers, shared among one or more participants |
 | **Split** | The division of an expense among participants |
 | **Settlement** | A payment made from one user to another to reduce or clear a debt |
-| **Debt Simplification** | Algorithm to reduce the number of individual transactions needed to settle all debts in a group |
+| **Friend Pair** | A 1:1 relationship between two users for tracking expenses outside of groups. Identified by canonical pair ID: `min(userA, userB)_max(userA, userB)` |
+| **Debt Simplification** | Algorithm to reduce the number of individual transactions needed to settle all debts in a group (not needed for 1:1 friend pairs) |
 | **Sync** | The process of reconciling local (offline) data with the cloud database |
 | **Guest User** | A participant in a group who does not have a registered account |
 

@@ -23,8 +23,10 @@ One By Two is a mobile-first expense-splitting app built with **Flutter (Dart)**
 3. **Split calculations:** Use integer arithmetic with Largest Remainder Method for distributing remainders. The sum of splits must always equal the expense total exactly.
 4. **Sync status:** Every syncable entity has a `sync_status` field: `synced`, `pending`, or `conflict`.
 5. **Soft deletes:** Expenses and settlements use `is_deleted` flag, never hard-delete.
-6. **Balance pair keys:** Use canonical ordering `min(userA, userB)_max(userA, userB)` for deterministic balance pair IDs.
+6. **Balance pair keys:** Use canonical ordering `min(userA, userB)_max(userA, userB)` for deterministic balance pair IDs. This applies to both group balance pairs AND friend pair IDs.
 7. **Version field:** All mutable entities have an integer `version` field for optimistic concurrency control.
+8. **Dual context (group + friend):** Expenses and settlements can belong to either a **group** (`context_type = 'group'`) or a **friend pair** (`context_type = 'friend'`). The `group_id` and `friend_pair_id` fields are mutually exclusive — one must be non-null, the other null. In Firestore, groups use `groups/{groupId}/expenses/` and friends use `friends/{friendPairId}/expenses/`.
+9. **1:1 friend balance:** Friend balances are a single scalar (not a matrix). No debt simplification needed for 2 people. The `friends` table has a `balance` column (positive = userA owes userB).
 
 ## Project Structure
 

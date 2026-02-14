@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Expense Detail Mockup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3949AB;
+            --secondary: #009688;
+            --error: #E53935;
+            --background: #FAFAFA;
+            --surface: #FFFFFF;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --divider: #EEEEEE;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .device {
+            width: 375px;
+            height: 812px;
+            background-color: var(--background);
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .status-bar {
+            height: 44px;
+            background-color: var(--surface);
+            color: black;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .app-bar {
+            background-color: var(--surface);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--divider);
+        }
+        .app-bar h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 16px;
+        }
+        
+        .expense-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        .category-icon-large {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: #E1F5FE;
+            color: #0288D1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .expense-desc {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .expense-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .expense-meta {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        
+        .info-card {
+            background-color: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--divider);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .info-row {
+            padding: 16px;
+            border-bottom: 1px solid var(--divider);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .info-value {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        
+        .split-list {
+            background-color: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--divider);
+        }
+        .split-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--divider);
+        }
+        .split-item:last-child { border-bottom: none; }
+        
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #eee;
+            margin-right: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .split-name {
+            flex: 1;
+            font-size: 15px;
+        }
+        .split-amount {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .split-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .btn-outline {
+            flex: 1;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--divider);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-delete {
+            color: var(--error);
+            border-color: #FFCDD2;
+        }
+        
+        .material-icons-round { font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span class="material-icons-round" style="font-size: 16px;">wifi battery_full</span>
+        </div>
+        <div class="app-bar">
+            <a href="group_detail.html" class="material-icons-round" style="text-decoration: none; color: inherit;">arrow_back</a>
+            <h1>Expense Details</h1>
+            <span class="material-icons-round">more_vert</span>
+        </div>
+        
+        <div class="content">
+            <div class="expense-header">
+                <div class="category-icon-large">
+                    <span class="material-icons-round" style="font-size: 32px;">restaurant</span>
+                </div>
+                <div class="expense-desc">Lunch at Beach Shack</div>
+                <div class="expense-amount">₹2,400</div>
+                <div class="expense-meta">Added by Rahul • Today, 1:30 PM</div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">Paid by</span>
+                    <span class="info-value">Rahul</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">For</span>
+                    <span class="info-value">4 people</span>
+                </div>
+            </div>
+
+            <div class="section-title">Split Details</div>
+            <div class="split-list">
+                <div class="split-item">
+                    <div class="avatar" style="background-color: #FFECB3;">RA</div>
+                    <div class="split-name">
+                        Rahul (Payer)
+                        <span class="split-sub">Paid ₹2,400 • Owed ₹1,800</span>
+                    </div>
+                    <div class="split-amount" style="color: var(--secondary);">+₹1,800</div>
+                </div>
+                <div class="split-item">
+                    <div class="avatar" style="background-color: #C8E6C9;">ME</div>
+                    <div class="split-name">You</div>
+                    <div class="split-amount" style="color: var(--error);">-₹600</div>
+                </div>
+                <div class="split-item">
+                    <div class="avatar" style="background-color: #F8BBD0;">PR</div>
+                    <div class="split-name">Priya</div>
+                    <div class="split-amount" style="color: var(--error);">-₹600</div>
+                </div>
+                <div class="split-item">
+                    <div class="avatar" style="background-color: #E1F5FE;">AM</div>
+                    <div class="split-name">Amit</div>
+                    <div class="split-amount" style="color: var(--error);">-₹600</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <a href="edit_expense.html" class="btn-outline" style="text-decoration:none;">
+                    <span class="material-icons-round" style="margin-right: 8px; font-size: 20px;">edit</span>
+                    Edit
+                </a>
+                <button class="btn-outline btn-delete">
+                    <span class="material-icons-round" style="margin-right: 8px; font-size: 20px;">delete</span>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

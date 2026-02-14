@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One By Two - Notifications</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root { --primary: #3949AB; --secondary: #009688; --error: #E53935; --background: #FAFAFA; --text-primary: #212121; }
+        body { font-family: 'Roboto', sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .device { width: 375px; height: 812px; background: var(--background); border-radius: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .app-bar { background: white; padding: 48px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .app-bar .left { display: flex; align-items: center; }
+        .app-bar a { text-decoration: none; color: var(--text-primary); margin-right: 16px; }
+        .app-bar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+        .mark-all { font-size: 14px; color: var(--primary); font-weight: 500; cursor: pointer; }
+        .content { flex: 1; overflow-y: auto; }
+        .notif-item { display: flex; padding: 16px; border-bottom: 1px solid #f5f5f5; }
+        .notif-item.unread { background: #EDE7F6; }
+        .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-right: 12px; margin-top: 6px; flex-shrink: 0; }
+        .notif-dot.read { background: transparent; }
+        .notif-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 12px; flex-shrink: 0; }
+        .notif-body { flex: 1; }
+        .notif-text { font-size: 14px; color: var(--text-primary); line-height: 1.4; }
+        .notif-text b { font-weight: 500; }
+        .notif-time { font-size: 12px; color: #9e9e9e; margin-top: 4px; }
+        .notif-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .notif-btn { padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; }
+        .notif-btn.accept { background: var(--primary); color: white; }
+        .notif-btn.decline { background: #F5F5F5; color: #757575; }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="app-bar">
+            <div class="left">
+                <a href="home_screen.html" class="material-icons-round">arrow_back</a>
+                <h1>Notifications</h1>
+            </div>
+            <span class="mark-all">Mark all read</span>
+        </div>
+        <div class="content">
+            <div class="notif-item unread">
+                <div class="notif-dot"></div>
+                <div class="notif-icon" style="background:#E8F5E9;"><span class="material-icons-round" style="font-size:18px;color:var(--secondary);">person_add</span></div>
+                <div class="notif-body">
+                    <div class="notif-text"><b>Priya Sharma</b> wants to add you as a friend.</div>
+                    <div class="notif-time">10 min ago</div>
+                    <div class="notif-actions">
+                        <button class="notif-btn accept">Accept</button>
+                        <button class="notif-btn decline">Decline</button>
+                    </div>
+                </div>
+            </div>
+            <div class="notif-item unread">
+                <div class="notif-dot"></div>
+                <div class="notif-icon" style="background:#FFF3E0;"><span class="material-icons-round" style="font-size:18px;color:#EF6C00;">receipt_long</span></div>
+                <div class="notif-body">
+                    <div class="notif-text"><b>Rahul</b> added "Uber to airport" (₹450) in <b>Goa Trip</b>. You owe ₹150.</div>
+                    <div class="notif-time">2h ago</div>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-dot read"></div>
+                <div class="notif-icon" style="background:#E1F5FE;"><span class="material-icons-round" style="font-size:18px;color:#0288D1;">notifications_active</span></div>
+                <div class="notif-body">
+                    <div class="notif-text"><b>Amit</b> sent you a reminder for ₹2,500 in <b>Goa Trip</b>.</div>
+                    <div class="notif-time">Yesterday</div>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-dot read"></div>
+                <div class="notif-icon" style="background:#E8EAF6;"><span class="material-icons-round" style="font-size:18px;color:var(--primary);">group_add</span></div>
+                <div class="notif-body">
+                    <div class="notif-text"><b>Neha</b> added you to <b>Office Lunch</b> group.</div>
+                    <div class="notif-time">2 days ago</div>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-dot read"></div>
+                <div class="notif-icon" style="background:#E8F5E9;"><span class="material-icons-round" style="font-size:18px;color:var(--secondary);">payments</span></div>
+                <div class="notif-body">
+                    <div class="notif-text"><b>Priya</b> settled ₹1,000 with you.</div>
+                    <div class="notif-time">3 days ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

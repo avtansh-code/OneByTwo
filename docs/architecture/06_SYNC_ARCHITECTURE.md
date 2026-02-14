@@ -1,6 +1,6 @@
 # One By Two — Sync Architecture & Offline-First Design
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 ---
@@ -111,8 +111,9 @@ The app must be **fully functional without internet**. Users should never be blo
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
 │       │ 4. RECALCULATE LOCAL BALANCES              │            │
-│       │    - Update group_balances table            │            │
-│       │    - Update groups.my_balance               │            │
+│       │    GROUP: Update group_balances table      │            │
+│       │           Update groups.my_balance         │            │
+│       │    FRIEND: Update friends.balance           │            │
 │       └─────────┬──────────────────────────────────┘            │
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
@@ -127,6 +128,8 @@ The app must be **fully functional without internet**. Users should never be blo
 │       │      entity_id: expense.id,                 │            │
 │       │      operation: 'create',                   │            │
 │       │      payload_json: serializedExpense,        │            │
+│       │      context_type: 'group' | 'friend',      │            │
+│       │      context_id: groupId | friendPairId,    │            │
 │       │      status: 'pending'                      │            │
 │       │    })                                       │            │
 │       └─────────┬──────────────────────────────────┘            │
@@ -161,11 +164,12 @@ The app must be **fully functional without internet**. Users should never be blo
 ┌─────────────────────────────────────────────────────────────────┐
 │                    READ FLOW                                     │
 │                                                                  │
-│  UI requests data (e.g., group expenses)                        │
+│  UI requests data (e.g., group or friend expenses)              │
 │       │                                                          │
 │       ▼                                                          │
 │  ┌─────────────────────────────────────────────────┐            │
-│  │ Repository.getExpenses(groupId)                  │            │
+│  │ Repository.getExpenses(groupId) OR               │            │
+│  │ Repository.getFriendExpenses(friendPairId)       │            │
 │  │                                                  │            │
 │  │ Returns: Stream<List<Expense>>                   │            │
 │  │                                                  │            │
@@ -176,10 +180,18 @@ The app must be **fully functional without internet**. Users should never be blo
 │       ┌─────────▼──────────────────────────────────┐            │
 │       │ Concurrent: Firestore Real-Time Listener    │            │
 │       │                                             │            │
+│       │ GROUP:                                      │            │
 │       │ firestore.collection('groups/$gid/expenses')│            │
 │       │   .where('isDeleted', isEqualTo: false)     │            │
 │       │   .orderBy('date', descending: true)        │            │
 │       │   .snapshots()                              │            │
+│       │                                             │            │
+│       │ FRIEND:                                     │            │
+│       │ firestore.collection('friends/$fid/expenses')│           │
+│       │   .where('isDeleted', isEqualTo: false)     │            │
+│       │   .orderBy('date', descending: true)        │            │
+│       │   .snapshots()                              │            │
+│       │                                             │            │
 │       │   .listen((snapshot) {                      │            │
 │       │     for each changed doc:                   │            │
 │       │       upsert into local sqflite             │            │
@@ -315,16 +327,24 @@ The app must be **fully functional without internet**. Users should never be blo
 │  │ Screen               │ Active Listeners                  │   │
 │  │──────────────────────┼───────────────────────────────────│   │
 │  │ Home                 │ userGroups/{uid}/groups            │   │
+│  │                      │ userFriends/{uid}/friends          │   │
 │  │                      │ users/{uid}/notifications          │   │
 │  │──────────────────────┼───────────────────────────────────│   │
 │  │ Group Detail         │ groups/{gid}/expenses              │   │
 │  │                      │ groups/{gid}/balances              │   │
 │  │                      │ groups/{gid}/members               │   │
 │  │──────────────────────┼───────────────────────────────────│   │
-│  │ Activity Feed        │ groups/{gid}/activity              │   │
+│  │ Friend Detail        │ friends/{fid}/expenses             │   │
+│  │                      │ friends/{fid}/balance              │   │
 │  │──────────────────────┼───────────────────────────────────│   │
-│  │ Settle Up            │ groups/{gid}/balances              │   │
+│  │ Activity Feed        │ groups/{gid}/activity              │   │
+│  │                      │ friends/{fid}/activity             │   │
+│  │──────────────────────┼───────────────────────────────────│   │
+│  │ Settle Up (Group)    │ groups/{gid}/balances              │   │
 │  │                      │ groups/{gid}/settlements           │   │
+│  │──────────────────────┼───────────────────────────────────│   │
+│  │ Settle Up (Friend)   │ friends/{fid}/balance              │   │
+│  │                      │ friends/{fid}/settlements          │   │
 │  └──────────────────────┴───────────────────────────────────┘   │
 │                                                                  │
 │  Lifecycle:                                                      │

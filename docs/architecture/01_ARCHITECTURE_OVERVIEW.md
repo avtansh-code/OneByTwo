@@ -1,6 +1,6 @@
 # One By Two — System Architecture Overview
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14  
 > **Status:** Draft
 
@@ -152,6 +152,19 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 - Enables use of latest platform APIs and Flutter features
 - Reduces backward-compatibility burden
 - Aligns with modern device capabilities (biometrics, notifications)
+
+### ADR-08: Dual Context Architecture — Groups + Friends (1:1)
+
+**Decision:** Support two independent expense contexts — **Group** (N-person shared expenses) and **Friend** (1:1 direct expenses between two users) — using separate Firestore collections (`groups/` and `friends/`).
+
+**Rationale:**
+- EX-15 in requirements defines 1:1 expense entry outside groups as P0
+- Separate `friends/{pairId}` collection avoids muddying the group concept with a `type: 'friend'` discriminator
+- Simpler, more restrictive Firestore security rules (friend pairs vs group membership)
+- 1:1 balance is trivially a single scalar, not a matrix — different Cloud Function triggers
+- Separate triggers (`onFriendExpenseCreated` vs `onExpenseCreated`) keep logic clean
+- Canonical pair ID (`min(A,B)_max(A,B)`) reuses the existing balance pair convention
+- Shared expense entity with `context_type` discriminator (`'group'` | `'friend'`) in sqflite avoids table duplication locally
 
 ---
 
