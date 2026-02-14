@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/error/app_exception.dart';
+import '../../../../core/error/result.dart';
 import '../../../providers/auth_providers.dart';
 
 /// Phone number input screen
@@ -49,44 +51,34 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
     setState(() => _isLoading = true);
 
     final phoneNumber = '+91${_phoneController.text.trim()}';
-    await ref.read(sendOtpProvider.notifier).send(phoneNumber);
+    final result = await ref.read(sendOtpProvider.notifier).send(phoneNumber);
 
     if (!mounted) {
       return;
     }
 
-    ref.read(sendOtpProvider).when(
-      data: (verificationId) {
-        if (verificationId != null) {
-          // Navigate to OTP verification screen
-          context.push(
+    setState(() => _isLoading = false);
+
+    switch (result) {
+      case Success(:final data):
+        if (mounted) {
+          unawaited(context.push(
             '/otp-verification',
             extra: {
-              'verificationId': verificationId,
+              'verificationId': data,
               'phoneNumber': phoneNumber,
             },
-          );
+          ));
         }
-        setState(() => _isLoading = false);
-      },
-      error: (error, stack) {
-        setState(() => _isLoading = false);
-        final message = error is AppException 
-            ? error.message 
-            : 'Failed to send OTP. Please try again.';
-        
+      case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(exception.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-      loading: () {
-        setState(() => _isLoading = true);
-      },
-    );
+    }
   }
 
   @override

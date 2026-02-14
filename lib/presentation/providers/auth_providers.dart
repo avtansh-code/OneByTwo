@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -55,7 +55,7 @@ class SendOtp extends _$SendOtp {
   @override
   FutureOr<String?> build() => null;
 
-  Future<void> send(String phoneNumber) async {
+  Future<Result<String>> send(String phoneNumber) async {
     state = const AsyncLoading();
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.sendOtp(phoneNumber);
@@ -66,8 +66,10 @@ class SendOtp extends _$SendOtp {
         Failure(:final exception) => AsyncError(exception, StackTrace.current),
       };
     } catch (_) {
-      // Ignore if state was already set (e.g. provider disposed)
+      // Ignore if provider's internal completer was already completed
     }
+
+    return result;
   }
 }
 
