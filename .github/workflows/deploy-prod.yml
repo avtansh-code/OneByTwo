@@ -101,8 +101,8 @@ jobs:
 
       - name: Provide Firebase config
         run: |
-          mkdir -p ios/Runner
-          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_PROD }}' | base64 -d > ios/Runner/GoogleService-Info.plist
+          mkdir -p ios/config/prod
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_PROD }}' | base64 -d > ios/config/prod/GoogleService-Info.plist
 
       - name: Build IPA
         run: flutter build ipa --flavor prod --no-codesign

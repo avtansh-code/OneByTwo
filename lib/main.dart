@@ -8,11 +8,17 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase (guard against duplicate init on hot restart)
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+  // Initialize Firebase
+  // On iOS, Firebase may auto-init from GoogleService-Info.plist in the bundle.
+  // Use the existing app if already initialized, otherwise init with options.
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } on FirebaseException catch (_) {
+    // Already initialized by native iOS auto-configuration — safe to continue
   }
   
   runApp(
