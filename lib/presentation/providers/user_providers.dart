@@ -48,7 +48,7 @@ class CreateProfile extends _$CreateProfile {
   @override
   FutureOr<UserEntity?> build() => null;
 
-  Future<void> create({
+  Future<Result<UserEntity>> create({
     required String name,
     required String email,
     String? avatarUrl,
@@ -61,10 +61,16 @@ class CreateProfile extends _$CreateProfile {
       avatarUrl: avatarUrl,
     );
 
-    state = switch (result) {
-      Success(:final data) => AsyncData(data),
-      Failure(:final exception) => AsyncError(exception, StackTrace.current),
-    };
+    try {
+      state = switch (result) {
+        Success(:final data) => AsyncData(data),
+        Failure(:final exception) => AsyncError(exception, StackTrace.current),
+      };
+    } catch (_) {
+      // Ignore if provider's internal completer was already completed
+    }
+
+    return result;
   }
 }
 

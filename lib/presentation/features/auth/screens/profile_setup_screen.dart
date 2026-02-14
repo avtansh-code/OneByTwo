@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/error/app_exception.dart';
+import '../../../../core/error/result.dart';
 import '../../../providers/user_providers.dart';
 
 /// Profile setup screen
@@ -63,44 +63,30 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     setState(() => _isLoading = true);
 
-    await ref.read(createProfileProvider.notifier).create(
+    final result = await ref.read(createProfileProvider.notifier).create(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
     );
-
-    final state = ref.read(createProfileProvider);
 
     if (!mounted) {
       return;
     }
 
-    state.when(
-      data: (user) {
-        if (user != null) {
-          // Profile created successfully - navigate to home
-          context.go('/');
-        } else {
-          setState(() => _isLoading = false);
-        }
-      },
-      error: (error, stack) {
-        setState(() => _isLoading = false);
-        final message = error is AppException
-            ? error.message
-            : 'Failed to create profile. Please try again.';
+    setState(() => _isLoading = false);
 
+    switch (result) {
+      case Success():
+        // Profile created — router redirect will send to /home
+        context.go('/home');
+      case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(exception.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-      loading: () {
-        setState(() => _isLoading = true);
-      },
-    );
+    }
   }
 
   @override
