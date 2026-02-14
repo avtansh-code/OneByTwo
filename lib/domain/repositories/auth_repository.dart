@@ -35,6 +35,17 @@ abstract class AuthRepository {
   /// Sign out current user
   Future<Result<void>> signOut();
   
+  /// Delete user account and all associated data (GDPR)
+  /// 
+  /// This operation:
+  /// - Calls Cloud Function to delete all user data from Firestore
+  /// - Removes all local data from sqflite database
+  /// - Signs out the user
+  /// - Deletes Firebase Auth account
+  /// 
+  /// This is irreversible and complies with GDPR Article 17 (Right to Erasure)
+  Future<Result<void>> deleteAccount();
+  
   /// Check if user is signed in
   bool get isSignedIn;
 }

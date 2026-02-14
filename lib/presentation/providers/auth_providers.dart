@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/error/result.dart';
+import '../../data/local/database_helper.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -16,6 +18,8 @@ AuthRepository authRepository(AuthRepositoryRef ref) {
   return AuthRepositoryImpl(
     firebaseAuth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
+    functions: FirebaseFunctions.instanceFor(region: 'asia-south1'),
+    databaseHelper: DatabaseHelper(),
     logger: Logger(),
   );
 }
@@ -97,6 +101,24 @@ class SignOut extends _$SignOut {
     state = const AsyncLoading();
     final repository = ref.read(authRepositoryProvider);
     final result = await repository.signOut();
+
+    state = switch (result) {
+      Success() => const AsyncData(null),
+      Failure(:final exception) => AsyncError(exception, StackTrace.current),
+    };
+  }
+}
+
+/// Provider for deleting account
+@riverpod
+class DeleteAccount extends _$DeleteAccount {
+  @override
+  FutureOr<void> build() {}
+
+  Future<void> deleteAccount() async {
+    state = const AsyncLoading();
+    final repository = ref.read(authRepositoryProvider);
+    final result = await repository.deleteAccount();
 
     state = switch (result) {
       Success() => const AsyncData(null),

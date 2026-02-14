@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart' hide Result;
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:logger/logger.dart';
 
 import '../../core/error/app_exception.dart';
 import '../../core/error/result.dart';
+import '../../data/local/database_helper.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../mappers/user_mapper.dart';
@@ -15,19 +17,26 @@ import '../models/user_model.dart';
 /// - Phone authentication with OTP
 /// - User profile management in Firestore
 /// - Auth state stream
+/// - Account deletion (GDPR compliance)
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required firebase_auth.FirebaseAuth firebaseAuth,
     required FirebaseFirestore firestore,
+    required FirebaseFunctions functions,
+    required DatabaseHelper databaseHelper,
     required Logger logger,
   })  : _firebaseAuth = firebaseAuth,
         _firestore = firestore,
+        _functions = functions,
+        _databaseHelper = databaseHelper,
         _logger = logger;
 
   static const _tag = 'Repo.Auth';
 
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
+  final DatabaseHelper _databaseHelper;
   final Logger _logger;
 
   @override
@@ -163,6 +172,82 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Success(null);
     } catch (e, stack) {
       _logger.e('[$_tag] Error signing out', error: e, stackTrace: stack);
+      return Failure(
+        AuthException.operationFailed(e, stack),
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteAccount() async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user == null) {
+        _logger.w('[$_tag] No user signed in for deletion');
+        return const Failure(
+          AuthException(
+            code: 'AUTH_NOT_SIGNED_IN',
+            message: 'No user is currently signed in.',
+          ),
+        );
+      }
+
+      final uid = user.uid;
+      _logger.i('[$_tag] Deleting account', error: {'uid': uid});
+
+      // 1. Call Cloud Function to delete all server-side data
+      // This includes Firestore, Cloud Storage, and Firebase Auth
+      final callable = _functions.httpsCallable('deleteUserAccount');
+      final result = await callable.call<Map<String, dynamic>>();
+      
+      if (result.data['success'] != true) {
+        _logger.e('[$_tag] Cloud Function reported failure', 
+          error: {'uid': uid, 'response': result.data});
+        return const Failure(
+          AuthException(
+            code: 'AUTH_DELETE_FAILED',
+            message: 'Failed to delete account. Please try again.',
+          ),
+        );
+      }
+
+      _logger.i('[$_tag] Server-side deletion completed', error: {'uid': uid});
+
+      // 2. Clear local database
+      await _databaseHelper.resetDatabase();
+      _logger.i('[$_tag] Local database cleared', error: {'uid': uid});
+
+      // 3. Sign out (user is already deleted from Firebase Auth by Cloud Function)
+      // This clears the local session
+      try {
+        await _firebaseAuth.signOut();
+      } catch (e) {
+        // Ignore sign out errors since the account is already deleted
+        _logger.d('[$_tag] Sign out after deletion (expected to fail): $e');
+      }
+
+      _logger.i('[$_tag] Account deletion completed successfully', 
+        error: {'uid': uid});
+
+      return const Success(null);
+    } on firebase_auth.FirebaseAuthException catch (e, stack) {
+      _logger.e('[$_tag] FirebaseAuth error during deletion', 
+        error: e, stackTrace: stack);
+      return Failure(_mapFirebaseAuthException(e));
+    } on FirebaseFunctionsException catch (e, stack) {
+      _logger.e('[$_tag] Cloud Function error during deletion', 
+        error: e, stackTrace: stack);
+      return Failure(
+        AuthException(
+          code: 'AUTH_DELETE_FUNCTION_ERROR',
+          message: e.message ?? 'Failed to delete account. Please try again.',
+          originalError: e,
+          stackTrace: stack,
+        ),
+      );
+    } catch (e, stack) {
+      _logger.e('[$_tag] Unexpected error deleting account', 
+        error: e, stackTrace: stack);
       return Failure(
         AuthException.operationFailed(e, stack),
       );

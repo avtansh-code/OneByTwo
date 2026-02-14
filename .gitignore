@@ -134,4 +134,4 @@ app.*.symbols
 *.g.dart
 *.freezed.dart
 *.gr.dart
-*.gen.dart
+*.gen.darttodos.db

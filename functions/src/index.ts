@@ -1,19 +1,9 @@
 /**
- * Import function triggers from their respective submodules:
+ * One By Two - Cloud Functions Entry Point
  *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Exports all Cloud Functions for Firebase deployment
+ * Region: asia-south1
  */
 
-import {onRequest} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
-
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
-
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Auth functions
+export {deleteUserAccount} from "./callable/delete_account";
