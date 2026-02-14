@@ -119,7 +119,9 @@ jobs:
         run: flutter pub get
 
       - name: Provide Firebase config
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON_DEV }}' | base64 -d > android/app/src/dev/google-services.json
+        run: |
+          mkdir -p android/app/src/dev
+          echo '${{ secrets.GOOGLE_SERVICES_JSON_DEV }}' | base64 -d > android/app/src/dev/google-services.json
 
       - name: Build APK (debug)
         run: flutter build apk --debug --flavor dev
@@ -148,7 +150,9 @@ jobs:
         run: flutter pub get
 
       - name: Provide Firebase config
-        run: echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV }}' | base64 -d > ios/Runner/GoogleService-Info.plist
+        run: |
+          mkdir -p ios/Runner
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV }}' | base64 -d > ios/Runner/GoogleService-Info.plist
 
       - name: Build iOS
         run: flutter build ios --no-codesign --flavor dev
