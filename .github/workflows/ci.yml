@@ -97,10 +97,25 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # TODO: Once Firebase is configured (S1-02) and build flavors are set up,
-      # switch to: flutter build appbundle --flavor prod --target lib/main_prod.dart
+      - name: Provide Firebase config for CI
+        run: |
+          # Use secret if available, otherwise create a dummy for build verification
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON_DEV }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON_DEV }}' | base64 -d > android/app/src/dev/google-services.json
+          else
+            cat > android/app/src/dev/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "placeholder-ci", "storage_bucket": "placeholder-ci.appspot.com" },
+            "client": [{ "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.onebytwo.one_by_two.dev" } }, "api_key": [{ "current_key": "placeholder" }] }],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
+      # TODO: Once Firebase secrets are configured, switch to:
+      # flutter build appbundle --flavor prod --target lib/main_prod.dart
       - name: Build Android (debug)
-        run: flutter build apk --debug
+        run: flutter build apk --debug --flavor dev
 
   build-ios:
     name: Build iOS
@@ -125,7 +140,37 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # TODO: Once Firebase is configured (S1-02), switch to:
+      - name: Provide Firebase config for CI
+        run: |
+          # Use secret if available, otherwise create a dummy for build verification
+          if [ -n "${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST_DEV }}' | base64 -d > ios/Runner/GoogleService-Info.plist
+          else
+            cat > ios/Runner/GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key><string>placeholder.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.placeholder</string>
+            <key>API_KEY</key><string>placeholder</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>PLIST_VERSION</key><string>1</string>
+            <key>BUNDLE_ID</key><string>com.onebytwo.oneByTwo.dev</string>
+            <key>PROJECT_ID</key><string>placeholder-ci</string>
+            <key>STORAGE_BUCKET</key><string>placeholder-ci.appspot.com</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000</string>
+          </dict>
+          </plist>
+          EOF
+          fi
+
+      # TODO: Once Firebase secrets are configured, switch to:
       # flutter build ipa --no-codesign --flavor prod --target lib/main_prod.dart
       - name: Build iOS
-        run: flutter build ios --no-codesign
+        run: flutter build ios --no-codesign --flavor dev
