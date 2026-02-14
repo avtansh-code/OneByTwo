@@ -76,13 +76,14 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| UM-01 | User registration via email/password | P0 |
-| UM-02 | Social login (Google, Apple Sign-In) | P0 |
-| UM-03 | User profile (name, avatar, default currency, preferred language) | P0 |
-| UM-04 | Phone number based login/OTP | P1 |
+| UM-01 | User registration via mobile number with OTP verification. Phone number must be unique per account | P0 |
+| UM-02 | Mandatory fields for account creation: name and email | P0 |
+| UM-03 | User login via mobile OTP (primary and only auth method) | P0 |
+| UM-04 | User profile (name, email, phone number, avatar, default currency, preferred language) | P0 |
 | UM-05 | Guest participation via invite link (no account required) | P0 |
 | UM-06 | Account deletion with full data removal (GDPR compliance) | P0 |
 | UM-07 | Contact book integration to find friends on the app | P1 |
+| UM-08 | Phone number change with re-verification (OTP on new number) | P1 |
 
 ### 4.2 Groups
 
@@ -300,7 +301,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 
 | Service | Responsibility |
 |---------|---------------|
-| **Auth Service** | User registration, login, session management, social auth, OTP |
+| **Auth Service** | User registration (mobile OTP), login (mobile OTP), session management, phone number verification |
 | **User Service** | Profile management, contacts, preferences |
 | **Group Service** | Group CRUD, membership, roles, permissions, invite links |
 | **Expense Service** | Expense CRUD, split calculation, recurring expense scheduling |
@@ -380,6 +381,7 @@ The app is positioned as a modern, user-friendly alternative to Splitwise, Settl
 │ id       │     │ user_id      │     │ id           │
 │ name     │     │ group_id     │     │ name         │
 │ email    │     │ role         │     │ category     │
+│ phone    │     │              │     │              │
 │ avatar   │     │ joined_at    │     │ currency     │
 │ currency │     └──────────────┘     │ cover_photo  │
 │ language │                          │ created_by   │
@@ -470,7 +472,7 @@ The app must implement an optimized debt simplification algorithm to minimize th
 ## 13. Launch Plan & Milestones
 
 ### Phase 1 — MVP (P0 Features)
-- User auth (email + social)
+- User auth (mobile OTP)
 - Groups (create, invite, manage)
 - Expenses (add, edit, delete, equal/custom splits)
 - Balances & debt simplification
