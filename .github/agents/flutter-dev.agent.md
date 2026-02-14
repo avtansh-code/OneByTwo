@@ -39,8 +39,8 @@ When creating a new feature, generate files in this order:
 
 Every write operation must:
 1. Save to local sqflite first (sync_status = 'pending')
-2. Recalculate local balances
-3. Enqueue to sync_queue table
+2. Recalculate local balances (group_balances table for group context, friends.balance for friend context)
+3. Enqueue to sync_queue table (with context_type and context_id)
 4. Return success immediately (< 500ms)
 5. Sync to Firestore asynchronously
 
@@ -48,6 +48,19 @@ Every read operation must:
 1. Return Stream from local sqflite (never wait for network)
 2. Firestore listeners update local DB in background
 3. Local DB changes trigger Stream re-emission
+
+## Dual Context (Group + Friend)
+
+Expenses and settlements support two contexts:
+- **Group context:** `context_type = 'group'`, `group_id` is non-null, `friend_pair_id` is null
+- **Friend context:** `context_type = 'friend'`, `friend_pair_id` is non-null, `group_id` is null
+
+When generating expense/settlement code:
+- Always include both `group_id` and `friend_pair_id` fields (one nullable)
+- Check `context_type` to determine which path to use
+- Firestore paths differ: `groups/{gid}/expenses/` vs `friends/{fid}/expenses/`
+- 1:1 friend expenses support all split types: equal, exact, percentage, shares, and itemized
+- Friend pair IDs use canonical ordering: `min(userA, userB)_max(userA, userB)`
 
 ## Conventions
 

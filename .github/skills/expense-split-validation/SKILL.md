@@ -50,6 +50,7 @@ When implementing or reviewing split code, verify:
 - [ ] Edge case: 1 participant → gets full amount
 - [ ] Edge case: amount < participants → some get 0
 - [ ] Edge case: amount = 0 → all get 0
+- [ ] Edge case: 1:1 friend context → exactly 2 participants, all split types including itemized
 
 ## Testing Template
 

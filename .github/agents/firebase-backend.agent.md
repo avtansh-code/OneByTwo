@@ -29,18 +29,22 @@ functions/src/
 ## Key Rules
 
 1. **All amounts in paise** (integer). Never use floating-point for money.
-2. **Balance recalculation** is triggered by Firestore triggers on expense/settlement writes. It recalculates all pairwise balances for the group.
-3. **Debt simplification** uses the greedy net-balance algorithm (see `docs/architecture/10_ALGORITHMS.md`).
+2. **Balance recalculation** is triggered by Firestore triggers on expense/settlement writes. For groups, it recalculates all pairwise balances. For friends, it recalculates a single net scalar.
+3. **Debt simplification** uses the greedy net-balance algorithm. Not applicable for 1:1 friend context (only 2 users).
 4. **Notification fan-out** respects user preferences and handles stale FCM tokens.
 5. **Rate limiting** uses Firestore-backed counters: `rateLimits/{userId}_{action}`.
 6. **Firestore region:** asia-south1 (Mumbai).
-7. **Canonical balance pair key:** `min(userA, userB)_max(userA, userB)` with positive amount meaning userA owes userB.
+7. **Canonical pair key:** `min(userA, userB)_max(userA, userB)` — used for both group balance pairs AND friend pair IDs.
+8. **Dual context triggers:** Group triggers fire on `groups/{gid}/expenses/`, friend triggers fire on `friends/{fid}/expenses/`. Keep them separate for clarity.
+9. **Friend balance:** Single scalar per pair (positive = userA owes userB). Written to `friends/{fid}/balance/` and denormalized to `userFriends/{uid}/friends/{friendUid}`.
 
 ## Security Rules
 
 - Users can only read groups they belong to
+- Users can only read/write friend pairs they belong to (verified via `userA`/`userB` fields)
 - Users can only write their own profile
 - Balances and activity logs are read-only for clients (written by Cloud Functions)
+- Friend pair creation is Cloud Functions only (via `addFriend` callable)
 - Invites are read-only for clients (managed by Cloud Functions)
 - All file uploads must be images < 10MB
 

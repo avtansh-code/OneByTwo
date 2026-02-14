@@ -1,6 +1,6 @@
 # One By Two — Security Architecture
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 ---
@@ -43,6 +43,8 @@
 │  │ • Document-level access control                           │  │
 │  │ • Role-based permissions (owner > admin > member)         │  │
 │  │ • Users can only read groups they belong to               │  │
+│  │ • Users can only read/write friend pairs they belong to   │  │
+│  │ • Friend pair membership verified via userA/userB fields  │  │
 │  │ • Users can only modify their own profile                 │  │
 │  │ • Balances & activity logs are read-only (written by CF)  │  │
 │  │ • See 05_API_DESIGN.md for full rules                     │  │
@@ -54,6 +56,7 @@
 │  │ • Amount must be positive integer                         │  │
 │  │ • Splits must sum to expense amount                       │  │
 │  │ • User must be group member to write expenses             │  │
+│  │ • User must be friend pair member to write 1:1 expenses  │  │
 │  │ • Rate limiting on sensitive operations                   │  │
 │  │ • Input sanitization (XSS prevention for text fields)     │  │
 │  └───────────────────────────────────────────────────────────┘  │

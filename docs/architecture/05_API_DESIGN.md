@@ -1,6 +1,6 @@
 # One By Two — API & Cloud Functions Design
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Last Updated:** 2026-02-14
 
 ---
@@ -60,6 +60,19 @@ These are called explicitly by the client via `FirebaseFunctions.httpsCallable()
 │  settleAll                   │ { groupId,             │ { count }  │
 │  Records all suggested       │   settlements: [] }    │            │
 │  settlements in batch        │                        │            │
+│                                                                    │
+│  addFriend                   │ { friendUserId }       │ { pairId } │
+│  Creates a friend pair and   │                        │            │
+│  userFriends entries for     │                        │            │
+│  both users                  │                        │            │
+│                                                                    │
+│  nudgeFriend                 │ { friendPairId,        │ { success }│
+│  Sends reminder notification │   targetUserId }       │            │
+│  to a friend who owes money  │                        │            │
+│                                                                    │
+│  settleFriend                │ { friendPairId,        │ { id }     │
+│  Records a settlement        │   amount,              │            │
+│  between two friends         │   date? }              │            │
 │                                                                    │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -123,6 +136,30 @@ These run automatically when Firestore documents change.
 │                              │ onDelete             │   orphaned    │
 │                              │                      │   references  │
 │                                                                    │
+│  ─── FRIEND-SCOPED TRIGGERS ────────────────────────────────────── │
+│                                                                    │
+│  onFriendExpenseCreated      │ friends/{fid}/       │ • Recalculate │
+│                              │ expenses/{eid}       │   1:1 balance │
+│                              │ onCreate             │ • Log activity│
+│                              │                      │ • Send push   │
+│                              │                      │ • Update      │
+│                              │                      │   userFriends │
+│                                                                    │
+│  onFriendExpenseUpdated      │ friends/{fid}/       │ • Recalculate │
+│                              │ expenses/{eid}       │   1:1 balance │
+│                              │ onUpdate             │ • Log changes │
+│                              │                      │ • Send push   │
+│                                                                    │
+│  onFriendExpenseDeleted      │ friends/{fid}/       │ • Recalculate │
+│                              │ expenses/{eid}       │   1:1 balance │
+│                              │ onUpdate             │ • Log deletion│
+│                              │ (soft delete)        │ • Send push   │
+│                                                                    │
+│  onFriendSettlementCreated   │ friends/{fid}/       │ • Update      │
+│                              │ settlements/{sid}    │   1:1 balance │
+│                              │ onCreate             │ • Log activity│
+│                              │                      │ • Send push   │
+│                                                                    │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -161,6 +198,8 @@ These run automatically when Firestore documents change.
 
 ## 3. Balance Recalculation Logic
 
+### 3.1 Group Balance Recalculation
+
 Triggered by `onExpenseCreated`, `onExpenseUpdated`, `onExpenseDeleted`, and `onSettlementCreated`.
 
 ```
@@ -194,6 +233,42 @@ Triggered by `onExpenseCreated`, `onExpenseUpdated`, `onExpenseDeleted`, and `on
 │  • Full recalc for groups ≤ 50 members and ≤ 10,000 expenses     │
 │  • Uses Firestore batch writes (max 500 ops per batch)            │
 │  • Idempotent: safe to re-run on conflicts                       │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Friend (1:1) Balance Recalculation
+
+Triggered by `onFriendExpenseCreated/Updated/Deleted` and `onFriendSettlementCreated`.
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│           1:1 FRIEND BALANCE RECALCULATION (Cloud Function)       │
+│                                                                    │
+│  Input: friendPairId (triggered by expense/settlement change)     │
+│                                                                    │
+│  Algorithm:                                                        │
+│  1. Fetch ALL active expenses in friends/{fid}/expenses/          │
+│  2. Fetch ALL active settlements in friends/{fid}/settlements/    │
+│  3. Initialize netBalance = 0  (single scalar, not a matrix)     │
+│                                                                    │
+│  For each expense:                                                 │
+│    For each payer P:                                               │
+│      For each split S:                                             │
+│        if P == userA && S == userB: netBalance -= S.amount        │
+│        if P == userB && S == userA: netBalance += S.amount        │
+│                                                                    │
+│  For each settlement:                                              │
+│    if from == userA: netBalance -= settlement.amount              │
+│    if from == userB: netBalance += settlement.amount              │
+│                                                                    │
+│  4. Write to friends/{fid}/balance/ (single doc)                  │
+│  5. Update userFriends/{userA}/friends/{userB}.balance            │
+│  6. Update userFriends/{userB}/friends/{userA}.balance (negated)  │
+│                                                                    │
+│  Convention: positive netBalance = userA owes userB               │
+│  Simpler than group: no debt simplification needed (only 2 users) │
+│  Idempotent: safe to re-run on conflicts                          │
 │                                                                    │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -321,6 +396,75 @@ service cloud.firestore {
     // Invites (public read for join flow)
     match /invites/{inviteCode} {
       allow read: if isSignedIn();
+      allow write: if false; // only Cloud Functions
+    }
+
+    // ── FRIEND (1:1) RULES ──────────────────────────────────────
+
+    function isFriendPairMember(friendPairId) {
+      let pair = get(/databases/$(database)/documents/friends/$(friendPairId));
+      return request.auth.uid == pair.data.userA || request.auth.uid == pair.data.userB;
+    }
+
+    // Friend pairs
+    match /friends/{friendPairId} {
+      allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+      allow create: if false; // only Cloud Functions (addFriend callable)
+      allow update: if false; // only Cloud Functions
+      allow delete: if false;
+
+      // 1:1 Expenses
+      match /expenses/{expenseId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow create: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow update: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow delete: if false; // soft delete only
+
+        match /splits/{splitId} {
+          allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+          allow write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+
+        match /payers/{payerId} {
+          allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+          allow write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+
+        match /items/{itemId} {
+          allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+          allow write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+
+        match /attachments/{attachmentId} {
+          allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+          allow write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+      }
+
+      // 1:1 Settlements
+      match /settlements/{settlementId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow create: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow update: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow delete: if false;
+      }
+
+      // 1:1 Balance (read-only for clients, written by Cloud Functions)
+      match /balance/{balanceId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow write: if false; // only Cloud Functions
+      }
+
+      // 1:1 Activity log (read-only for clients)
+      match /activity/{activityId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow write: if false; // only Cloud Functions
+      }
+    }
+
+    // User Friends (denormalized, read-only for clients)
+    match /userFriends/{userId}/friends/{friendUserId} {
+      allow read: if isOwner(userId);
       allow write: if false; // only Cloud Functions
     }
   }
