@@ -37,38 +37,17 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Result<UserEntity>> createProfile({
     required String name,
-    required String email,
     String? avatarUrl,
   }) async {
     try {
       // Validate inputs
       final trimmedName = name.trim();
-      final trimmedEmail = email.trim();
       
       if (trimmedName.isEmpty) {
         return const Failure(
           ValidationException(
             code: 'INVALID_NAME',
             message: 'Name cannot be empty',
-          ),
-        );
-      }
-      
-      if (trimmedEmail.isEmpty) {
-        return const Failure(
-          ValidationException(
-            code: 'INVALID_EMAIL',
-            message: 'Email cannot be empty',
-          ),
-        );
-      }
-      
-      // Basic email validation
-      if (!_isValidEmail(trimmedEmail)) {
-        return const Failure(
-          ValidationException(
-            code: 'INVALID_EMAIL',
-            message: 'Please enter a valid email address',
           ),
         );
       }
@@ -93,7 +72,6 @@ class UserRepositoryImpl implements UserRepository {
       final userModel = UserModel(
         uid: firebaseUser.uid,
         name: trimmedName,
-        email: trimmedEmail,
         phone: firebaseUser.phoneNumber ?? '',
         avatarUrl: avatarUrl,
         createdAt: now,
@@ -132,7 +110,6 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Result<UserEntity>> updateProfile({
     String? name,
-    String? email,
     String? avatarUrl,
   }) async {
     try {
@@ -165,7 +142,6 @@ class UserRepositoryImpl implements UserRepository {
 
       // Validate and apply updates
       String updatedName = existingUser.name;
-      String updatedEmail = existingUser.email;
       String? updatedAvatarUrl = existingUser.avatarUrl;
 
       if (name != null) {
@@ -181,27 +157,6 @@ class UserRepositoryImpl implements UserRepository {
         updatedName = trimmedName;
       }
 
-      if (email != null) {
-        final trimmedEmail = email.trim();
-        if (trimmedEmail.isEmpty) {
-          return const Failure(
-            ValidationException(
-              code: 'INVALID_EMAIL',
-              message: 'Email cannot be empty',
-            ),
-          );
-        }
-        if (!_isValidEmail(trimmedEmail)) {
-          return const Failure(
-            ValidationException(
-              code: 'INVALID_EMAIL',
-              message: 'Please enter a valid email address',
-            ),
-          );
-        }
-        updatedEmail = trimmedEmail;
-      }
-
       if (avatarUrl != null) {
         updatedAvatarUrl = avatarUrl;
       }
@@ -210,7 +165,6 @@ class UserRepositoryImpl implements UserRepository {
       final updatedUser = UserModel(
         uid: existingUser.uid,
         name: updatedName,
-        email: updatedEmail,
         phone: existingUser.phone,
         avatarUrl: updatedAvatarUrl,
         language: existingUser.language,
@@ -364,14 +318,5 @@ class UserRepositoryImpl implements UserRepository {
       );
       // Don't rethrow - offline-first means local DB is source of truth
     }
-  }
-
-  /// Basic email validation
-  bool _isValidEmail(String email) {
-    // Basic RFC 5322 email validation
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$',
-    );
-    return emailRegex.hasMatch(email);
   }
 }

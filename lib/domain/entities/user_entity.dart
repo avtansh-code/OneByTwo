@@ -9,7 +9,6 @@ class UserEntity {
   const UserEntity({
     required this.uid,
     required this.name,
-    required this.email,
     required this.phone,
     required this.createdAt,
     required this.updatedAt,
@@ -19,7 +18,6 @@ class UserEntity {
 
   final String uid;
   final String name;
-  final String email;
   final String phone;
   final String? avatarUrl;
   final String language;
@@ -33,7 +31,6 @@ class UserEntity {
           runtimeType == other.runtimeType &&
           uid == other.uid &&
           name == other.name &&
-          email == other.email &&
           phone == other.phone &&
           avatarUrl == other.avatarUrl &&
           language == other.language &&
@@ -44,7 +41,6 @@ class UserEntity {
   int get hashCode =>
       uid.hashCode ^
       name.hashCode ^
-      email.hashCode ^
       phone.hashCode ^
       (avatarUrl?.hashCode ?? 0) ^
       language.hashCode ^
@@ -53,6 +49,6 @@ class UserEntity {
 
   @override
   String toString() =>
-      'UserEntity(uid: $uid, name: $name, email: $email, phone: $phone, '
+      'UserEntity(uid: $uid, name: $name, phone: $phone, '
       'avatarUrl: $avatarUrl, language: $language, createdAt: $createdAt, updatedAt: $updatedAt)';
 }

@@ -27,7 +27,6 @@ class UserDao extends BaseDao<UserModel> {
     return UserModel(
       uid: map['id'] as String,
       name: map['name'] as String,
-      email: map['email'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
       avatarUrl: map['avatar_url'] as String?,
       language: map['language'] as String? ?? 'en',
@@ -41,7 +40,6 @@ class UserDao extends BaseDao<UserModel> {
     return {
       'id': entity.uid,
       'name': entity.name,
-      'email': entity.email,
       'phone': entity.phone,
       'avatar_url': entity.avatarUrl,
       'language': entity.language,

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/error/app_exception.dart';
+import '../../../../core/error/result.dart';
 import '../../../providers/user_providers.dart';
 
 /// Profile setup screen
 /// 
 /// Shown after first-time OTP verification when user has no profile.
-/// Allows user to enter their name and email.
+/// Allows user to enter their name.
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
@@ -18,14 +18,12 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
@@ -39,23 +37,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return null;
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please enter your email';
-    }
-    
-    // Basic RFC 5322 email validation
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$',
-    );
-    
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Please enter a valid email address';
-    }
-    
-    return null;
-  }
-
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -63,44 +44,29 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     setState(() => _isLoading = true);
 
-    await ref.read(createProfileProvider.notifier).create(
+    final result = await ref.read(createProfileProvider.notifier).create(
       name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
     );
-
-    final state = ref.read(createProfileProvider);
 
     if (!mounted) {
       return;
     }
 
-    state.when(
-      data: (user) {
-        if (user != null) {
-          // Profile created successfully - navigate to home
-          context.go('/');
-        } else {
-          setState(() => _isLoading = false);
-        }
-      },
-      error: (error, stack) {
-        setState(() => _isLoading = false);
-        final message = error is AppException
-            ? error.message
-            : 'Failed to create profile. Please try again.';
+    setState(() => _isLoading = false);
 
+    switch (result) {
+      case Success():
+        // Profile created — explicitly navigate to /home for immediate feedback
+        context.go('/home');
+      case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
+            content: Text(exception.message),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      },
-      loading: () {
-        setState(() => _isLoading = true);
-      },
-    );
+    }
   }
 
   @override
@@ -187,25 +153,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   ),
                   textCapitalization: TextCapitalization.words,
                   validator: _validateName,
-                  enabled: !_isLoading,
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
-
-                // Email field
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'Enter your email address',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: _validateEmail,
                   enabled: !_isLoading,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _saveProfile(),

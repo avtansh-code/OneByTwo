@@ -10,7 +10,6 @@ class UserModel {
   const UserModel({
     required this.uid,
     required this.name,
-    required this.email,
     required this.phone,
     required this.createdAt,
     required this.updatedAt,
@@ -22,7 +21,6 @@ class UserModel {
     return UserModel(
       uid: json['uid'] as String,
       name: json['name'] as String,
-      email: json['email'] as String,
       phone: json['phone'] as String,
       avatarUrl: json['avatarUrl'] as String?,
       language: json['language'] as String? ?? 'en',
@@ -39,7 +37,6 @@ class UserModel {
 
   final String uid;
   final String name;
-  final String email;
   final String phone;
   final String? avatarUrl;
   final String language;
@@ -50,7 +47,6 @@ class UserModel {
     return {
       'uid': uid,
       'name': name,
-      'email': email,
       'phone': phone,
       'avatarUrl': avatarUrl,
       'language': language,
@@ -69,7 +65,6 @@ class UserModel {
           runtimeType == other.runtimeType &&
           uid == other.uid &&
           name == other.name &&
-          email == other.email &&
           phone == other.phone &&
           avatarUrl == other.avatarUrl &&
           language == other.language &&
@@ -80,7 +75,6 @@ class UserModel {
   int get hashCode =>
       uid.hashCode ^
       name.hashCode ^
-      email.hashCode ^
       phone.hashCode ^
       (avatarUrl?.hashCode ?? 0) ^
       language.hashCode ^
@@ -89,6 +83,6 @@ class UserModel {
 
   @override
   String toString() =>
-      'UserModel(uid: $uid, name: $name, email: $email, phone: $phone, '
+      'UserModel(uid: $uid, name: $name, phone: $phone, '
       'avatarUrl: $avatarUrl, language: $language, createdAt: $createdAt, updatedAt: $updatedAt)';
 }

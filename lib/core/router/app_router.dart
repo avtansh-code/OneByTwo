@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../presentation/features/auth/screens/otp_verification_screen.dart';
 import '../../presentation/features/auth/screens/phone_input_screen.dart';
+import '../../presentation/features/auth/screens/profile_setup_screen.dart';
 import '../../presentation/features/auth/screens/splash_screen.dart';
 import '../../presentation/features/auth/screens/welcome_screen.dart';
 import '../../presentation/features/home/screens/activity_screen.dart';
@@ -12,6 +13,7 @@ import '../../presentation/features/home/widgets/main_shell.dart';
 import '../../presentation/features/profile/screens/profile_screen.dart';
 import '../../presentation/features/profile/screens/settings_screen.dart';
 import '../../presentation/providers/auth_providers.dart';
+import '../../presentation/providers/user_providers.dart';
 
 part 'app_router.g.dart';
 
@@ -20,10 +22,12 @@ part 'app_router.g.dart';
 GoRouter appRouter(AppRouterRef ref) {
   // Watch auth state for redirects
   final authState = ref.watch(authStateProvider);
+  // Watch user profile to detect new users needing profile setup
+  final userProfile = ref.watch(userProfileProvider);
 
   return GoRouter(
     debugLogDiagnostics: true,
-    initialLocation: '/home',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final location = state.uri.path;
       
@@ -32,36 +36,48 @@ GoRouter appRouter(AppRouterRef ref) {
           location == '/phone-input' ||
           location == '/otp-verification';
       
-      // Protected routes that require auth
-      final isOnProtectedRoute = location.startsWith('/home') ||
-          location.startsWith('/activity') ||
-          location.startsWith('/profile') ||
-          location.startsWith('/settings');
+      final isOnSplash = location == '/splash';
+      final isOnProfileSetup = location == '/profile-setup';
 
-      // Handle loading state - show splash
+      // Handle auth loading state — always show splash
       if (authState.isLoading) {
-        return '/splash';
+        return isOnSplash ? null : '/splash';
       }
 
       // Get auth status
       final isAuthenticated = authState.asData?.value != null;
 
-      // If not authenticated and trying to access protected route
-      if (!isAuthenticated && isOnProtectedRoute) {
+      // --- Not authenticated ---
+      if (!isAuthenticated) {
+        // Allow staying on auth screens
+        if (isOnAuthScreen) {
+          return null;
+        }
+        // Everything else → welcome
         return '/welcome';
       }
 
-      // If authenticated and on auth screen, redirect to home
-      if (isAuthenticated && isOnAuthScreen) {
-        return '/home';
+      // --- Authenticated — check profile status ---
+      final hasProfile = userProfile.asData?.value != null;
+      final isProfileLoading = userProfile.isLoading;
+
+      // Profile still loading → show splash
+      if (isProfileLoading) {
+        return isOnSplash ? null : '/splash';
       }
 
-      // If on splash and auth state is loaded, redirect appropriately
-      if (location == '/splash' && !authState.isLoading) {
-        return isAuthenticated ? '/home' : '/welcome';
+      // Profile exists → ensure user is on a protected route
+      if (hasProfile) {
+        if (isOnAuthScreen || isOnSplash || isOnProfileSetup) {
+          return '/home';
+        }
+        return null; // Already on a valid protected route
       }
 
-      // No redirect needed
+      // No profile → must go to profile setup
+      if (!isOnProfileSetup) {
+        return '/profile-setup';
+      }
       return null;
     },
     routes: [
@@ -96,6 +112,13 @@ GoRouter appRouter(AppRouterRef ref) {
             phoneNumber: phoneNumber,
           );
         },
+      ),
+      
+      // Profile setup (shown once for new users)
+      GoRoute(
+        path: '/profile-setup',
+        name: 'profile-setup',
+        builder: (context, state) => const ProfileSetupScreen(),
       ),
       
       // Main app routes with bottom navigation
