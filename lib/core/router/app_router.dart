@@ -36,65 +36,48 @@ GoRouter appRouter(AppRouterRef ref) {
           location == '/phone-input' ||
           location == '/otp-verification';
       
+      final isOnSplash = location == '/splash';
       final isOnProfileSetup = location == '/profile-setup';
-      
-      // Protected routes that require auth
-      final isOnProtectedRoute = location.startsWith('/home') ||
-          location.startsWith('/activity') ||
-          location.startsWith('/profile') ||
-          location.startsWith('/settings');
 
-      // Handle loading state - show splash
+      // Handle auth loading state — always show splash
       if (authState.isLoading) {
-        return '/splash';
+        return isOnSplash ? null : '/splash';
       }
 
       // Get auth status
       final isAuthenticated = authState.asData?.value != null;
 
-      // If not authenticated and trying to access protected route or profile setup
-      if (!isAuthenticated && (isOnProtectedRoute || isOnProfileSetup)) {
+      // --- Not authenticated ---
+      if (!isAuthenticated) {
+        // Allow staying on auth screens
+        if (isOnAuthScreen) {
+          return null;
+        }
+        // Everything else → welcome
         return '/welcome';
       }
 
-      // If authenticated, check if profile exists
-      if (isAuthenticated) {
-        final hasProfile = userProfile.asData?.value != null;
-        final isProfileLoading = userProfile.isLoading;
+      // --- Authenticated — check profile status ---
+      final hasProfile = userProfile.asData?.value != null;
+      final isProfileLoading = userProfile.isLoading;
 
-        // If on auth screen, redirect based on profile status
-        if (isOnAuthScreen) {
-          if (isProfileLoading) {
-            return '/splash';
-          }
-          return hasProfile ? '/home' : '/profile-setup';
-        }
+      // Profile still loading → show splash
+      if (isProfileLoading) {
+        return isOnSplash ? null : '/splash';
+      }
 
-        // If on protected route but no profile, redirect to setup
-        if (isOnProtectedRoute && !isProfileLoading && !hasProfile) {
-          return '/profile-setup';
-        }
-
-        // If on profile setup but already has profile, go home
-        if (isOnProfileSetup && hasProfile) {
+      // Profile exists → ensure user is on a protected route
+      if (hasProfile) {
+        if (isOnAuthScreen || isOnSplash || isOnProfileSetup) {
           return '/home';
         }
+        return null; // Already on a valid protected route
       }
 
-      // If on splash and auth state is loaded, redirect appropriately
-      if (location == '/splash' && !authState.isLoading) {
-        if (!isAuthenticated) {
-          return '/welcome';
-        }
-        final hasProfile = userProfile.asData?.value != null;
-        final isProfileLoading = userProfile.isLoading;
-        if (isProfileLoading) {
-          return null; // Stay on splash while profile loads
-        }
-        return hasProfile ? '/home' : '/profile-setup';
+      // No profile → must go to profile setup
+      if (!isOnProfileSetup) {
+        return '/profile-setup';
       }
-
-      // No redirect needed
       return null;
     },
     routes: [

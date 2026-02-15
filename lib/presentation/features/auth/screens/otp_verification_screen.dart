@@ -102,7 +102,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     switch (result) {
       case Success():
-        context.go('/');
+        // Navigate to splash — router redirect will evaluate
+        // auth + profile state and send to correct destination
+        context.go('/splash');
       case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
