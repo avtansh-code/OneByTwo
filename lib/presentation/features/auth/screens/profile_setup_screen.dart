@@ -76,7 +76,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     switch (result) {
       case Success():
-        // Profile created — router redirect will send to /home
+        // Profile created — explicitly navigate to /home for immediate feedback
         context.go('/home');
       case Failure(:final exception):
         ScaffoldMessenger.of(context).showSnackBar(
