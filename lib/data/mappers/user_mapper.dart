@@ -11,7 +11,6 @@ class UserMapper {
     return UserEntity(
       uid: model.uid,
       name: model.name,
-      email: model.email,
       phone: model.phone,
       avatarUrl: model.avatarUrl,
       language: model.language,
@@ -25,7 +24,6 @@ class UserMapper {
     return UserModel(
       uid: entity.uid,
       name: entity.name,
-      email: entity.email,
       phone: entity.phone,
       avatarUrl: entity.avatarUrl,
       language: entity.language,
@@ -42,7 +40,6 @@ class UserMapper {
     return UserEntity(
       uid: firebaseUser.uid,
       name: firebaseUser.displayName ?? '',
-      email: firebaseUser.email ?? '',
       phone: firebaseUser.phoneNumber ?? '',
       avatarUrl: firebaseUser.photoURL,
       createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),

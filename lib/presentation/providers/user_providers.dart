@@ -50,14 +50,12 @@ class CreateProfile extends _$CreateProfile {
 
   Future<Result<UserEntity>> create({
     required String name,
-    required String email,
     String? avatarUrl,
   }) async {
     state = const AsyncLoading();
     final repository = ref.read(userRepositoryProvider);
     final result = await repository.createProfile(
       name: name,
-      email: email,
       avatarUrl: avatarUrl,
     );
 
@@ -82,14 +80,12 @@ class UpdateProfile extends _$UpdateProfile {
 
   Future<void> updateUserProfile({
     String? name,
-    String? email,
     String? avatarUrl,
   }) async {
     state = const AsyncLoading();
     final repository = ref.read(userRepositoryProvider);
     final result = await repository.updateProfile(
       name: name,
-      email: email,
       avatarUrl: avatarUrl,
     );
 

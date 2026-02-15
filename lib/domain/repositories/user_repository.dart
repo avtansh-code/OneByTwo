@@ -14,7 +14,6 @@ abstract class UserRepository {
   /// Returns [Result] with created [UserEntity] on success
   Future<Result<UserEntity>> createProfile({
     required String name,
-    required String email,
     String? avatarUrl,
   });
 
@@ -26,7 +25,6 @@ abstract class UserRepository {
   /// Returns [Result] with updated [UserEntity] on success
   Future<Result<UserEntity>> updateProfile({
     String? name,
-    String? email,
     String? avatarUrl,
   });
 
