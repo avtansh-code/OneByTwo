@@ -27,7 +27,7 @@ GoRouter appRouter(AppRouterRef ref) {
 
   return GoRouter(
     debugLogDiagnostics: true,
-    initialLocation: '/home',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final location = state.uri.path;
       
