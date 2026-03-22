@@ -68,12 +68,18 @@ async function sendToUsers(
 ): Promise<void> {
   const db = getFirestore();
 
+  // Batch-fetch all user documents in a single call
+  const docRefs = userIds.map((userId) => db.doc(userDoc(userId)));
+  const userSnaps = await db.getAll(...docRefs);
+
   // Collect FCM tokens from users who have notifications enabled
   const tokensByUser = new Map<string, string[]>();
   const allTokens: string[] = [];
 
-  for (const userId of userIds) {
-    const userSnap = await db.doc(userDoc(userId)).get();
+  for (let i = 0; i < userIds.length; i++) {
+    const userSnap = userSnaps[i];
+    if (!userSnap.exists) continue;
+
     const userData = userSnap.data();
     if (!userData) continue;
 
@@ -85,7 +91,7 @@ async function sendToUsers(
 
     const tokens: string[] = userData.fcmTokens ?? [];
     if (tokens.length > 0) {
-      tokensByUser.set(userId, tokens);
+      tokensByUser.set(userIds[i], tokens);
       allTokens.push(...tokens);
     }
   }
@@ -115,15 +121,23 @@ async function sendToUsers(
     }
   });
 
-  // Remove stale tokens from user documents
+  // Remove stale tokens from user documents using a batch write
   if (staleTokens.size > 0) {
+    const batch = db.batch();
+    let hasBatchOps = false;
+
     for (const [userId, tokens] of tokensByUser.entries()) {
       const staleForUser = tokens.filter((t) => staleTokens.has(t));
       if (staleForUser.length > 0) {
-        await db.doc(userDoc(userId)).update({
+        batch.update(db.doc(userDoc(userId)), {
           fcmTokens: FieldValue.arrayRemove(...staleForUser),
         });
+        hasBatchOps = true;
       }
+    }
+
+    if (hasBatchOps) {
+      await batch.commit();
     }
   }
 }

@@ -126,9 +126,18 @@ abstract final class FirestorePaths {
   static String friendSettlements(String friendPairId) =>
       '$friends/$friendPairId/$settlements';
 
-  /// Returns the balance document path for a friend pair.
+  /// Returns the balance subcollection path for a friend pair:
+  /// `friends/{friendPairId}/balance`.
   static String friendBalance(String friendPairId) =>
       '$friends/$friendPairId/balance';
+
+  /// Returns the net balance document path for a friend pair:
+  /// `friends/{friendPairId}/balance/net`.
+  ///
+  /// This is the full document path used by Cloud Functions to store
+  /// the computed net balance between two friends.
+  static String friendBalanceDoc(String friendPairId) =>
+      '$friends/$friendPairId/balance/net';
 
   /// Returns the activity subcollection path for a friend pair.
   static String friendActivity(String friendPairId) =>

@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
             Text(l10n.appTitle, style: theme.textTheme.headlineMedium),
             const SizedBox(height: 8),
             Text(
-              'Home — Coming soon',
+              l10n.homeComingSoon,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
               ),

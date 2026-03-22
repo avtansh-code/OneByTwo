@@ -51,8 +51,8 @@ void main() {
       });
 
       test('should handle multiple spaces between words', () {
-        // split(' ') will create empty strings for consecutive spaces
-        expect('hello  world'.titleCase(), equals('Hello  World'));
+        // split(RegExp(r'\s+')) normalizes whitespace to a single space
+        expect('hello  world'.titleCase(), equals('Hello World'));
       });
 
       test('should handle three words', () {

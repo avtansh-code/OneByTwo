@@ -33,25 +33,27 @@ export async function checkRateLimit(
   const db = getFirestore();
   const docPath = rateLimitDoc(`${uid}_${action}`);
   const docRef = db.doc(docPath);
-  const doc = await docRef.get();
 
-  const now = Date.now();
-  const data = doc.data();
+  await db.runTransaction(async (transaction) => {
+    const doc = await transaction.get(docRef);
+    const now = Date.now();
+    const data = doc.data();
 
-  if (data) {
-    const windowStart = data.windowStart as number;
-    if (now - windowStart < limits.windowMs) {
-      if ((data.count as number) >= limits.maxCalls) {
-        throw new HttpsError(
-          "resource-exhausted",
-          "Rate limit exceeded. Please try again later."
-        );
+    if (data) {
+      const windowStart = data.windowStart as number;
+      if (now - windowStart < limits.windowMs) {
+        if ((data.count as number) >= limits.maxCalls) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Rate limit exceeded. Please try again later."
+          );
+        }
+        transaction.update(docRef, { count: FieldValue.increment(1) });
+        return;
       }
-      await docRef.update({ count: FieldValue.increment(1) });
-      return;
     }
-  }
 
-  // Start a new window
-  await docRef.set({ windowStart: now, count: 1 });
+    // Start a new window
+    transaction.set(docRef, { windowStart: now, count: 1 });
+  });
 }

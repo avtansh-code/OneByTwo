@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:one_by_two/core/l10n/generated/app_localizations.dart';
 import 'package:one_by_two/core/theme/app_colors.dart';
 
 /// Possible sync states for a document or write operation.
@@ -36,22 +37,23 @@ class ConnectivityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = context.appColors;
+    final l10n = AppLocalizations.of(context);
 
     final (IconData icon, Color color, String tooltip) = switch (status) {
       SyncStatus.synced => (
         Icons.check_circle_rounded,
         appColors.syncSuccessColor,
-        'Synced',
+        l10n.synced,
       ),
       SyncStatus.pending => (
         Icons.cloud_upload_outlined,
         appColors.syncPendingColor,
-        'Syncing…',
+        l10n.syncing,
       ),
       SyncStatus.error => (
         Icons.warning_amber_rounded,
         appColors.syncErrorColor,
-        'Sync failed',
+        l10n.syncFailed,
       ),
     };
 

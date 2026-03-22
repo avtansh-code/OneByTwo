@@ -16,15 +16,20 @@ extension StringExtensions on String {
 
   /// Capitalizes the first letter of every word in this string.
   ///
-  /// Words are defined as sequences separated by whitespace.
+  /// Words are defined as non-empty sequences separated by whitespace.
+  /// Consecutive whitespace is normalized to a single space.
   ///
   /// Example:
   /// ```dart
   /// 'hello world'.titleCase(); // → 'Hello World'
+  /// 'hello  world'.titleCase(); // → 'Hello World'
   /// ```
   String titleCase() {
     if (isEmpty) return this;
-    return split(' ').map((word) => word.capitalize()).join(' ');
+    return split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => word.capitalize())
+        .join(' ');
   }
 
   /// Truncates this string to [maxLength] characters, appending [ellipsis]

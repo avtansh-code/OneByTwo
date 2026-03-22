@@ -81,6 +81,54 @@ void main() {
 
     // ── Relative Formatting ─────────────────────────────────────────────
 
+    group('timeAgoValue', () {
+      test('should return justNow for less than 1 minute ago', () {
+        final date = DateTime.now().subtract(const Duration(seconds: 30));
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.justNow));
+        expect(result.value, equals(0));
+      });
+
+      test('should return minutes with count for less than 1 hour ago', () {
+        final date = DateTime.now().subtract(const Duration(minutes: 5));
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.minutes));
+        expect(result.value, equals(5));
+      });
+
+      test('should return hours with count for less than 24 hours ago', () {
+        final date = DateTime.now().subtract(const Duration(hours: 3));
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.hours));
+        expect(result.value, equals(3));
+      });
+
+      test('should return yesterday for exactly 1 day ago', () {
+        final date = DateTime.now().subtract(const Duration(days: 1));
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.yesterday));
+      });
+
+      test('should return dateOtherYear for date in different year', () {
+        final date = DateTime(2023, 6, 15);
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.dateOtherYear));
+        expect(result.date, equals(date));
+      });
+
+      test('should return dateOtherYear for future date', () {
+        final date = DateTime.now().add(const Duration(days: 100));
+        final result = date.timeAgoValue;
+        expect(result.unit, equals(TimeAgoUnit.dateOtherYear));
+      });
+
+      test('should preserve original date in record', () {
+        final date = DateTime.now().subtract(const Duration(minutes: 10));
+        final result = date.timeAgoValue;
+        expect(result.date, equals(date));
+      });
+    });
+
     group('timeAgo', () {
       test('should return "Just now" for less than 1 minute ago', () {
         final date = DateTime.now().subtract(const Duration(seconds: 30));
@@ -240,6 +288,36 @@ void main() {
         expect(start.day, equals(1));
         expect(start.hour, equals(0));
         expect(start.minute, equals(0));
+      });
+    });
+
+    group('groupKeyValue', () {
+      test('should return today type for today', () {
+        final today = DateTime.now();
+        final result = today.groupKeyValue;
+        expect(result.type, equals(GroupKeyType.today));
+      });
+
+      test('should return yesterday type for yesterday', () {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final result = yesterday.groupKeyValue;
+        expect(result.type, equals(GroupKeyType.yesterday));
+      });
+
+      test('should return monthThisYear for same year', () {
+        final now = DateTime.now();
+        final pastDate = now.subtract(const Duration(days: 60));
+        if (pastDate.year == now.year) {
+          final result = pastDate.groupKeyValue;
+          expect(result.type, equals(GroupKeyType.monthThisYear));
+        }
+      });
+
+      test('should return monthOtherYear for different year', () {
+        final date = DateTime(2023, 6, 15);
+        final result = date.groupKeyValue;
+        expect(result.type, equals(GroupKeyType.monthOtherYear));
+        expect(result.date, equals(date));
       });
     });
 

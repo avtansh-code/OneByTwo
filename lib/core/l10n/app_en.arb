@@ -129,5 +129,17 @@
   "settings": "Settings",
   "@settings": {
     "description": "Settings screen title"
+  },
+  "homeComingSoon": "Home — Coming soon",
+  "@homeComingSoon": {
+    "description": "Placeholder subtitle on the home screen during development"
+  },
+  "syncing": "Syncing…",
+  "@syncing": {
+    "description": "Sync status tooltip: currently syncing to server"
+  },
+  "syncFailed": "Sync failed",
+  "@syncFailed": {
+    "description": "Sync status tooltip: sync attempt failed"
   }
 }

@@ -4,6 +4,7 @@
 
 import { HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { groupMemberDoc, friendDoc } from "./firestore_paths";
 
 /**
  * Validates that the caller is authenticated.
@@ -30,15 +31,15 @@ export async function requireGroupMember(
   uid: string,
   groupId: string
 ): Promise<void> {
-  const memberDoc = await getFirestore()
-    .doc(`groups/${groupId}/members/${uid}`)
+  const memberSnap = await getFirestore()
+    .doc(groupMemberDoc(groupId, uid))
     .get();
 
-  if (!memberDoc.exists) {
+  if (!memberSnap.exists) {
     throw new HttpsError("permission-denied", "Not a group member.");
   }
 
-  const data = memberDoc.data();
+  const data = memberSnap.data();
   if (data && data.isActive === false) {
     throw new HttpsError("permission-denied", "Group membership is inactive.");
   }
@@ -55,15 +56,15 @@ export async function requireGroupAdmin(
   uid: string,
   groupId: string
 ): Promise<void> {
-  const memberDoc = await getFirestore()
-    .doc(`groups/${groupId}/members/${uid}`)
+  const memberSnap = await getFirestore()
+    .doc(groupMemberDoc(groupId, uid))
     .get();
 
-  if (!memberDoc.exists) {
+  if (!memberSnap.exists) {
     throw new HttpsError("permission-denied", "Not a group member.");
   }
 
-  const data = memberDoc.data();
+  const data = memberSnap.data();
   if (!data || data.isActive === false) {
     throw new HttpsError("permission-denied", "Group membership is inactive.");
   }
@@ -84,15 +85,15 @@ export async function requireFriendPairMember(
   uid: string,
   friendPairId: string
 ): Promise<void> {
-  const pairDoc = await getFirestore()
-    .doc(`friends/${friendPairId}`)
+  const pairSnap = await getFirestore()
+    .doc(friendDoc(friendPairId))
     .get();
 
-  if (!pairDoc.exists) {
+  if (!pairSnap.exists) {
     throw new HttpsError("not-found", "Friend relationship not found.");
   }
 
-  const data = pairDoc.data();
+  const data = pairSnap.data();
   if (!data || (data.userA !== uid && data.userB !== uid)) {
     throw new HttpsError(
       "permission-denied",

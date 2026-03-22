@@ -20,7 +20,7 @@ class OneByTwoApp extends StatelessWidget {
     const isAuthenticated = false;
 
     return MaterialApp.router(
-      title: 'One By Two',
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

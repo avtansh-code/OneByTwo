@@ -172,6 +172,13 @@ void main() {
         );
       });
 
+      test('friendBalanceDoc should return friends/{pairId}/balance/net', () {
+        expect(
+          FirestorePaths.friendBalanceDoc('alice_bob'),
+          equals('friends/alice_bob/balance/net'),
+        );
+      });
+
       test('friendActivity should return friends/{pairId}/activity', () {
         expect(
           FirestorePaths.friendActivity('alice_bob'),

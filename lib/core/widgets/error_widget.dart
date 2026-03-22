@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:one_by_two/core/l10n/generated/app_localizations.dart';
+
 /// Full-screen error display with an icon, message, and optional retry button.
 ///
 /// Use this for top-level error states that replace an entire page or section.
@@ -46,7 +48,7 @@ class ErrorDisplay extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry'),
+                label: Text(AppLocalizations.of(context).retry),
               ),
             ],
           ],
@@ -100,7 +102,7 @@ class InlineErrorDisplay extends StatelessWidget {
             onPressed: onRetry,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            tooltip: 'Retry',
+            tooltip: AppLocalizations.of(context).retry,
           ),
         ],
       ],

@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 
 /// Categories for classifying individual expenses.
 ///
-/// Each category has an associated [icon] for display and a human-readable
-/// [label]. These are used in expense creation and filtering.
+/// Each category has an associated [icon] for display and a [fallbackLabel]
+/// for non-localized contexts. The presentation layer should use [key] to
+/// look up localized strings via `AppLocalizations`.
+///
+/// Example l10n mapping in a widget:
+/// ```dart
+/// String localizedLabel(AppLocalizations l10n, ExpenseCategory category) =>
+///     switch (category) {
+///       ExpenseCategory.food => l10n.categoryFood,
+///       // ...
+///     };
+/// ```
 enum ExpenseCategory {
   /// Food & Dining — restaurants, cafes, takeout.
   food(Icons.restaurant, 'Food & Dining'),
@@ -35,20 +45,37 @@ enum ExpenseCategory {
   /// Other — uncategorised expenses.
   other(Icons.category, 'Other');
 
-  /// Creates an [ExpenseCategory] with the given [icon] and [label].
-  const ExpenseCategory(this.icon, this.label);
+  /// Creates an [ExpenseCategory] with the given [icon] and [fallbackLabel].
+  const ExpenseCategory(this.icon, this.fallbackLabel);
 
   /// The Material Design icon representing this category.
   final IconData icon;
 
-  /// The human-readable display label for this category.
-  final String label;
+  /// English fallback label for non-localized contexts (e.g., logging).
+  ///
+  /// Prefer using [key] with localized strings in the presentation layer.
+  final String fallbackLabel;
+
+  /// Stable string key for l10n lookup, derived from the enum [name].
+  ///
+  /// Use this to map to localized strings in the presentation layer.
+  String get key => name;
 }
 
 /// Categories for classifying groups.
 ///
-/// Each category has an associated [icon] and [label] for display in the
-/// group creation and listing screens.
+/// Each category has an associated [icon] and a [fallbackLabel] for
+/// non-localized contexts. The presentation layer should use [key] to
+/// look up localized strings via `AppLocalizations`.
+///
+/// Example l10n mapping in a widget:
+/// ```dart
+/// String localizedLabel(AppLocalizations l10n, GroupCategory category) =>
+///     switch (category) {
+///       GroupCategory.trip => l10n.groupCategoryTrip,
+///       // ...
+///     };
+/// ```
 enum GroupCategory {
   /// Trip — travel and holiday groups.
   trip(Icons.flight, 'Trip'),
@@ -65,19 +92,28 @@ enum GroupCategory {
   /// Other — miscellaneous group types.
   other(Icons.group, 'Other');
 
-  /// Creates a [GroupCategory] with the given [icon] and [label].
-  const GroupCategory(this.icon, this.label);
+  /// Creates a [GroupCategory] with the given [icon] and [fallbackLabel].
+  const GroupCategory(this.icon, this.fallbackLabel);
 
   /// The Material Design icon representing this group category.
   final IconData icon;
 
-  /// The human-readable display label for this group category.
-  final String label;
+  /// English fallback label for non-localized contexts (e.g., logging).
+  ///
+  /// Prefer using [key] with localized strings in the presentation layer.
+  final String fallbackLabel;
+
+  /// Stable string key for l10n lookup, derived from the enum [name].
+  ///
+  /// Use this to map to localized strings in the presentation layer.
+  String get key => name;
 }
 
 /// Types of expense splits supported by the app.
 ///
 /// Determines how an expense's total amount is divided among participants.
+/// The presentation layer should use [key] to look up localized display
+/// names via `AppLocalizations`.
 enum SplitType {
   /// Equal split — the total is divided equally among all participants
   /// using the Largest Remainder Method to avoid rounding errors.
@@ -99,9 +135,16 @@ enum SplitType {
   /// each assigned to specific participants.
   itemized('Itemized');
 
-  /// Creates a [SplitType] with the given [label].
-  const SplitType(this.label);
+  /// Creates a [SplitType] with the given [fallbackLabel].
+  const SplitType(this.fallbackLabel);
 
-  /// The human-readable display label for this split type.
-  final String label;
+  /// English fallback label for non-localized contexts (e.g., logging).
+  ///
+  /// Prefer using [key] with localized strings in the presentation layer.
+  final String fallbackLabel;
+
+  /// Stable string key for l10n lookup, derived from the enum [name].
+  ///
+  /// Use this to map to localized strings in the presentation layer.
+  String get key => name;
 }

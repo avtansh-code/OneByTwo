@@ -1,5 +1,64 @@
 import 'package:intl/intl.dart';
 
+/// Relative time unit for localization support.
+///
+/// Callers should map these to localized strings in the presentation layer
+/// using `AppLocalizations`. The associated numeric value (for [minutes]
+/// and [hours]) is provided via [TimeAgoValue].
+enum TimeAgoUnit {
+  /// Less than 1 minute ago.
+  justNow,
+
+  /// 1–59 minutes ago. See the `value` field of the returned record.
+  minutes,
+
+  /// 1–23 hours ago. See the `value` field of the returned record.
+  hours,
+
+  /// Exactly 1 calendar day ago.
+  yesterday,
+
+  /// A specific date within the current calendar year.
+  dateThisYear,
+
+  /// A specific date in a different (or future) year.
+  dateOtherYear,
+}
+
+/// Structured relative time descriptor for localization.
+///
+/// * [unit] — selects the appropriate l10n string.
+/// * [value] — the numeric count (meaningful for [TimeAgoUnit.minutes]
+///   and [TimeAgoUnit.hours]; `0` otherwise).
+/// * [date] — the original [DateTime], useful for custom formatting
+///   when [unit] is [TimeAgoUnit.dateThisYear] or
+///   [TimeAgoUnit.dateOtherYear].
+typedef TimeAgoValue = ({TimeAgoUnit unit, int value, DateTime date});
+
+/// Date group key type for localization support.
+///
+/// Callers should map these to localized section headers in the
+/// presentation layer using `AppLocalizations`.
+enum GroupKeyType {
+  /// Today's date.
+  today,
+
+  /// Yesterday's date.
+  yesterday,
+
+  /// A month within the current calendar year.
+  monthThisYear,
+
+  /// A month in a different calendar year.
+  monthOtherYear,
+}
+
+/// Structured date group key descriptor for localization.
+///
+/// * [type] — selects the appropriate l10n string.
+/// * [date] — the original [DateTime], useful for formatting month/year.
+typedef GroupKeyValue = ({GroupKeyType type, DateTime date});
+
 /// Extensions on [DateTime] for formatting, comparison, and grouping.
 ///
 /// All format methods return locale-aware strings using the `intl` package.
@@ -29,44 +88,71 @@ extension DateTimeExtensions on DateTime {
 
   // ── Relative Formatting ──────────────────────────────────────────────
 
-  /// Returns a human-readable relative time string.
+  /// Returns structured relative time components for localization.
+  ///
+  /// Prefer this over [timeAgo] when building localized UIs. Map the
+  /// returned [TimeAgoUnit] to the appropriate `AppLocalizations` string
+  /// in the presentation layer.
+  ///
+  /// The [TimeAgoValue] record fields:
+  /// * `unit` — the time bucket (see [TimeAgoUnit]).
+  /// * `value` — numeric count for [TimeAgoUnit.minutes] and
+  ///   [TimeAgoUnit.hours]; `0` otherwise.
+  /// * `date` — the original [DateTime] for date-range formatting.
+  TimeAgoValue get timeAgoValue {
+    final now = DateTime.now();
+    final diff = now.difference(this);
+
+    if (diff.isNegative) {
+      return (unit: TimeAgoUnit.dateOtherYear, value: 0, date: this);
+    }
+
+    if (diff.inMinutes < 1) {
+      return (unit: TimeAgoUnit.justNow, value: 0, date: this);
+    }
+
+    if (diff.inHours < 1) {
+      return (unit: TimeAgoUnit.minutes, value: diff.inMinutes, date: this);
+    }
+
+    if (diff.inHours < 24) {
+      return (unit: TimeAgoUnit.hours, value: diff.inHours, date: this);
+    }
+
+    if (diff.inDays == 1) {
+      return (unit: TimeAgoUnit.yesterday, value: 0, date: this);
+    }
+
+    if (year == now.year) {
+      return (unit: TimeAgoUnit.dateThisYear, value: 0, date: this);
+    }
+
+    return (unit: TimeAgoUnit.dateOtherYear, value: 0, date: this);
+  }
+
+  /// Returns a human-readable relative time string (English fallback).
+  ///
+  /// For localized output, use [timeAgoValue] instead and map the
+  /// [TimeAgoUnit] to the appropriate l10n string in the presentation layer.
   ///
   /// Examples:
   /// - `Just now` (< 1 minute ago)
   /// - `5m ago` (< 1 hour ago)
   /// - `3h ago` (< 24 hours ago)
-  /// - `Yesterday` (1 day ago, same week)
+  /// - `Yesterday` (1 day ago)
   /// - `Wed, 25 Dec` (this year)
   /// - `25 Dec 2023` (different year)
+  // TODO(l10n): Migrate callers to use timeAgoValue with localized formatting.
   String get timeAgo {
-    final now = DateTime.now();
-    final diff = now.difference(this);
-
-    if (diff.isNegative) {
-      return formatDayMonthYear;
-    }
-
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    }
-
-    if (diff.inHours < 1) {
-      return '${diff.inMinutes}m ago';
-    }
-
-    if (diff.inHours < 24) {
-      return '${diff.inHours}h ago';
-    }
-
-    if (diff.inDays == 1) {
-      return 'Yesterday';
-    }
-
-    if (year == now.year) {
-      return formatDayOfWeek;
-    }
-
-    return formatDayMonthYear;
+    final tav = timeAgoValue;
+    return switch (tav.unit) {
+      TimeAgoUnit.justNow => 'Just now',
+      TimeAgoUnit.minutes => '${tav.value}m ago',
+      TimeAgoUnit.hours => '${tav.value}h ago',
+      TimeAgoUnit.yesterday => 'Yesterday',
+      TimeAgoUnit.dateThisYear => tav.date.formatDayOfWeek,
+      TimeAgoUnit.dateOtherYear => tav.date.formatDayMonthYear,
+    };
   }
 
   // ── Comparison ───────────────────────────────────────────────────────
@@ -103,16 +189,35 @@ extension DateTimeExtensions on DateTime {
   /// Useful for grouping items by month (e.g., monthly expense totals).
   DateTime get startOfMonth => DateTime(year, month);
 
-  /// Returns a grouping key string for section headers.
+  /// Returns structured group key components for localization.
+  ///
+  /// Prefer this over [groupKey] when building localized section headers.
+  /// Map the returned [GroupKeyType] to the appropriate `AppLocalizations`
+  /// string in the presentation layer.
+  GroupKeyValue get groupKeyValue {
+    if (isToday) return (type: GroupKeyType.today, date: this);
+    if (isYesterday) return (type: GroupKeyType.yesterday, date: this);
+    if (isThisYear) return (type: GroupKeyType.monthThisYear, date: this);
+    return (type: GroupKeyType.monthOtherYear, date: this);
+  }
+
+  /// Returns a grouping key string for section headers (English fallback).
+  ///
+  /// For localized output, use [groupKeyValue] instead and map the
+  /// [GroupKeyType] to the appropriate l10n string in the presentation layer.
   ///
   /// - Today: `'Today'`
   /// - Yesterday: `'Yesterday'`
   /// - Same year: `'December'` (month name)
   /// - Different year: `'December 2023'`
+  // TODO(l10n): Migrate callers to use groupKeyValue with localized formatting.
   String get groupKey {
-    if (isToday) return 'Today';
-    if (isYesterday) return 'Yesterday';
-    if (isThisYear) return DateFormat('MMMM').format(this);
-    return formatMonthYear;
+    final gkv = groupKeyValue;
+    return switch (gkv.type) {
+      GroupKeyType.today => 'Today',
+      GroupKeyType.yesterday => 'Yesterday',
+      GroupKeyType.monthThisYear => DateFormat('MMMM').format(this),
+      GroupKeyType.monthOtherYear => formatMonthYear,
+    };
   }
 }
