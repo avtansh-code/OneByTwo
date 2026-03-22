@@ -3,6 +3,8 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // NOTE: google-services and crashlytics plugins are added by `flutterfire configure`.
+    // Do not add them manually — the CLI manages build.gradle.kts automatically.
 }
 
 android {

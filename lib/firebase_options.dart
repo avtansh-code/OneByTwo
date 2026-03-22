@@ -32,22 +32,22 @@ class DefaultFirebaseOptions {
     }
   }
 
-  /// Placeholder Android options — replace with real values.
+  /// Android Firebase options — replace with real values via `flutterfire configure`.
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'PLACEHOLDER-API-KEY',
     appId: '1:000000000000:android:0000000000000000000000',
     messagingSenderId: '000000000000',
     projectId: 'one-by-two-placeholder',
-    storageBucket: 'one-by-two-placeholder.appspot.com',
+    storageBucket: 'one-by-two-placeholder.firebasestorage.app',
   );
 
-  /// Placeholder iOS options — replace with real values.
+  /// iOS Firebase options — replace with real values via `flutterfire configure`.
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'PLACEHOLDER-API-KEY',
     appId: '1:000000000000:ios:0000000000000000000000',
     messagingSenderId: '000000000000',
     projectId: 'one-by-two-placeholder',
-    storageBucket: 'one-by-two-placeholder.appspot.com',
+    storageBucket: 'one-by-two-placeholder.firebasestorage.app',
     iosBundleId: 'com.onebytwo.oneByTwo',
   );
 }
