@@ -39,7 +39,7 @@ initializeApp();
 // export { onExpenseCreated, onExpenseUpdated, onExpenseDeleted } from "./triggers/onExpenseWrite";
 // export { onSettlementCreated } from "./triggers/onSettlementWrite";
 // export { onMemberJoined, onMemberLeft } from "./triggers/onMemberChange";
-// export { onUserCreated } from "./triggers/onUserWrite";
+export { onUserCreated } from "./triggers/onUserCreated";
 // export { onFriendExpenseCreated, onFriendExpenseUpdated, onFriendExpenseDeleted } from "./triggers/onFriendExpenseWrite";
 // export { onFriendSettlementCreated } from "./triggers/onFriendSettlementWrite";
 

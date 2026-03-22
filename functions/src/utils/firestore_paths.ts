@@ -199,12 +199,18 @@ export const inviteDoc = (inviteCode: string) => `invites/${inviteCode}`;
 
 // ── User Groups (denormalized) ──────────────────────────────────────────
 
+/** The metadata document for a user's groups listing. */
+export const userGroupsMetaDoc = (userId: string) => `userGroups/${userId}`;
+
 export const userGroupsCol = (userId: string) =>
   `userGroups/${userId}/groups`;
 export const userGroupDoc = (userId: string, groupId: string) =>
   `userGroups/${userId}/groups/${groupId}`;
 
 // ── User Friends (denormalized) ─────────────────────────────────────────
+
+/** The metadata document for a user's friends listing. */
+export const userFriendsMetaDoc = (userId: string) => `userFriends/${userId}`;
 
 export const userFriendsCol = (userId: string) =>
   `userFriends/${userId}/friends`;

@@ -141,5 +141,143 @@
   "syncFailed": "सिंक विफल",
   "@syncFailed": {
     "description": "Sync status tooltip: sync attempt failed"
+  },
+
+  "phoneInputTitle": "अपना फ़ोन नंबर दर्ज करें",
+  "@phoneInputTitle": {
+    "description": "Title on the phone number input screen"
+  },
+  "phoneInputSubtitle": "हम आपको एक सत्यापन कोड भेजेंगे",
+  "@phoneInputSubtitle": {
+    "description": "Subtitle on the phone number input screen"
+  },
+  "phoneInputHint": "10 अंकों का फ़ोन नंबर",
+  "@phoneInputHint": {
+    "description": "Hint text for the phone number input field"
+  },
+  "sendOtp": "OTP भेजें",
+  "@sendOtp": {
+    "description": "Button label to send OTP to the entered phone number"
+  },
+  "countryCode": "+91",
+  "@countryCode": {
+    "description": "Default country code prefix for phone numbers"
+  },
+
+  "otpVerificationTitle": "अपना नंबर सत्यापित करें",
+  "@otpVerificationTitle": {
+    "description": "Title on the OTP verification screen"
+  },
+  "otpVerificationSubtitle": "{phone} पर भेजा गया 6 अंकों का कोड दर्ज करें",
+  "@otpVerificationSubtitle": {
+    "description": "Subtitle on the OTP verification screen with masked phone number",
+    "placeholders": {
+      "phone": {
+        "type": "String",
+        "example": "+91 •••••• 4567"
+      }
+    }
+  },
+  "verifyOtp": "सत्यापित करें",
+  "@verifyOtp": {
+    "description": "Button label to verify the entered OTP"
+  },
+  "resendCode": "कोड दोबारा भेजें",
+  "@resendCode": {
+    "description": "Button label to resend the OTP code"
+  },
+  "resendCodeIn": "{seconds} सेकंड में दोबारा भेजें",
+  "@resendCodeIn": {
+    "description": "Countdown label showing seconds until OTP can be resent",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+
+  "profileSetupTitle": "अपनी प्रोफ़ाइल सेट करें",
+  "@profileSetupTitle": {
+    "description": "Title on the profile setup screen"
+  },
+  "profileSetupSubtitle": "अपने बारे में कुछ बताएँ",
+  "@profileSetupSubtitle": {
+    "description": "Subtitle on the profile setup screen"
+  },
+  "nameHint": "आपका नाम",
+  "@nameHint": {
+    "description": "Hint text for the name input field"
+  },
+  "nameRequired": "नाम आवश्यक है",
+  "@nameRequired": {
+    "description": "Validation error when name field is empty"
+  },
+  "emailHint": "ईमेल (वैकल्पिक)",
+  "@emailHint": {
+    "description": "Hint text for the optional email input field"
+  },
+  "completeProfile": "पूरा करें",
+  "@completeProfile": {
+    "description": "Button label to complete profile setup"
+  },
+  "changePhoto": "फ़ोटो बदलें",
+  "@changePhoto": {
+    "description": "Button label to change profile photo"
+  },
+
+  "avatarPickerTitle": "प्रोफ़ाइल फ़ोटो",
+  "@avatarPickerTitle": {
+    "description": "Title of the avatar picker bottom sheet"
+  },
+  "takePhoto": "फ़ोटो लें",
+  "@takePhoto": {
+    "description": "Option to take a new photo with the camera"
+  },
+  "chooseFromGallery": "गैलरी से चुनें",
+  "@chooseFromGallery": {
+    "description": "Option to choose a photo from the device gallery"
+  },
+  "removePhoto": "फ़ोटो हटाएँ",
+  "@removePhoto": {
+    "description": "Option to remove the current profile photo"
+  },
+
+  "invalidOtp": "गलत कोड। कृपया पुनः प्रयास करें।",
+  "@invalidOtp": {
+    "description": "Error message when the entered OTP is incorrect"
+  },
+  "otpExpired": "कोड समाप्त हो गया। नया कोड पाने के लिए 'कोड दोबारा भेजें' दबाएँ।",
+  "@otpExpired": {
+    "description": "Error message when the OTP has expired"
+  },
+  "tooManyAttempts": "बहुत अधिक प्रयास। कृपया बाद में प्रयास करें।",
+  "@tooManyAttempts": {
+    "description": "Error message when user has exceeded maximum OTP attempts"
+  },
+  "rateLimitExceeded": "बहुत अधिक अनुरोध। कृपया कुछ देर प्रतीक्षा करें।",
+  "@rateLimitExceeded": {
+    "description": "Error message when API rate limit is exceeded"
+  },
+  "authFailed": "प्रमाणीकरण विफल। कृपया पुनः प्रयास करें।",
+  "@authFailed": {
+    "description": "Generic authentication failure error message"
+  },
+  "profileSaveFailed": "प्रोफ़ाइल सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "@profileSaveFailed": {
+    "description": "Error message when profile save operation fails"
+  },
+  "avatarUploadFailed": "फ़ोटो अपलोड विफल। कृपया पुनः प्रयास करें।",
+  "@avatarUploadFailed": {
+    "description": "Error message when avatar upload fails"
+  },
+
+  "signingOut": "साइन आउट हो रहा है...",
+  "@signingOut": {
+    "description": "Loading message shown during sign out"
+  },
+  "accountDeleted": "खाता सफलतापूर्वक हटाया गया",
+  "@accountDeleted": {
+    "description": "Confirmation message after account deletion"
   }
 }
