@@ -57,10 +57,7 @@ void main() {
         final failure = result as Failure<void>;
         expect(failure.exception, isA<AuthException>());
         expect(failure.exception.code, equals('requires-recent-login'));
-        expect(
-          failure.exception.message,
-          equals('Re-authentication required'),
-        );
+        expect(failure.exception.message, equals('Re-authentication required'));
       });
 
       test('should propagate UnknownException from repository', () async {
