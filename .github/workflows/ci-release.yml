@@ -34,6 +34,10 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
 
       - run: flutter pub get
+      - name: Generate code
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
       - run: dart format --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
 
@@ -50,6 +54,10 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
 
       - run: flutter pub get
+      - name: Generate code
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
       - run: flutter test --coverage
 
   # ===========================================================================
@@ -77,6 +85,11 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate code
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
 
       - name: Extract version from tag
         id: version
