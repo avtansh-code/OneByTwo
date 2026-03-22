@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Compiled output
+lib/
+
+# Coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+*.local
+
+# Firebase debug logs
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
