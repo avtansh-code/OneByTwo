@@ -1,0 +1,60 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── User Avatars ──────────────────────────────────────────────────────
+    // Any authenticated user can view avatars (needed for group member lists).
+    // Users can only upload/replace their own avatar.
+    // Max 5 MB, images only.
+    match /avatars/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Group Cover Photos ────────────────────────────────────────────────
+    // Only group members can view or upload cover photos.
+    // Max 5 MB, images only.
+    match /groups/{groupId}/cover/{fileName} {
+      allow read: if request.auth != null
+                  && firestore.exists(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid));
+      allow write: if request.auth != null
+                   && firestore.exists(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid))
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Expense Receipts ──────────────────────────────────────────────────
+    // Only group members can view or upload expense receipts.
+    // Max 10 MB, images only.
+    match /groups/{groupId}/receipts/{expenseId}/{fileName} {
+      allow read: if request.auth != null
+                  && firestore.exists(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid));
+      allow write: if request.auth != null
+                   && firestore.exists(/databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid))
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Friend Expense Receipts ───────────────────────────────────────────
+    // Only the two users in the friend pair can view or upload receipts.
+    // Max 10 MB, images only.
+    match /friends/{friendPairId}/receipts/{expenseId}/{fileName} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == firestore.get(/databases/(default)/documents/friends/$(friendPairId)).data.userA
+                      || request.auth.uid == firestore.get(/databases/(default)/documents/friends/$(friendPairId)).data.userB);
+      allow write: if request.auth != null
+                   && (request.auth.uid == firestore.get(/databases/(default)/documents/friends/$(friendPairId)).data.userA
+                       || request.auth.uid == firestore.get(/databases/(default)/documents/friends/$(friendPairId)).data.userB)
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Deny all other paths ──────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

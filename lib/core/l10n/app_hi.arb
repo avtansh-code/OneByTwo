@@ -1,0 +1,145 @@
+{
+  "@@locale": "hi",
+  "appTitle": "वन बाय टू",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcomeTitle": "वन बाय टू",
+  "@welcomeTitle": {
+    "description": "Title on the welcome screen"
+  },
+  "welcomeSubtitle": "खर्चे बाँटना हुआ आसान",
+  "@welcomeSubtitle": {
+    "description": "Subtitle on the welcome screen"
+  },
+  "getStarted": "शुरू करें",
+  "@getStarted": {
+    "description": "Get started button label"
+  },
+  "genericError": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+  "@genericError": {
+    "description": "Generic error message shown to users"
+  },
+  "networkError": "इंटरनेट कनेक्शन नहीं है। कनेक्ट होने पर बदलाव सिंक होंगे।",
+  "@networkError": {
+    "description": "Error message when device is offline"
+  },
+  "retry": "पुनः प्रयास",
+  "@retry": {
+    "description": "Retry button label"
+  },
+  "cancel": "रद्द करें",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "save": "सहेजें",
+  "@save": {
+    "description": "Save button label"
+  },
+  "delete": "हटाएँ",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "undo": "वापस लें",
+  "@undo": {
+    "description": "Undo button label"
+  },
+  "loading": "लोड हो रहा है...",
+  "@loading": {
+    "description": "Loading indicator text"
+  },
+  "offlineBanner": "आप ऑफ़लाइन हैं। कनेक्ट होने पर बदलाव सिंक होंगे।",
+  "@offlineBanner": {
+    "description": "Banner text shown when device is offline"
+  },
+  "noExpensesYet": "अभी कोई खर्चा नहीं",
+  "@noExpensesYet": {
+    "description": "Empty state title for expenses"
+  },
+  "addFirstExpense": "शुरू करने के लिए अपना पहला खर्चा जोड़ें",
+  "@addFirstExpense": {
+    "description": "Empty state subtitle for expenses"
+  },
+  "noGroupsYet": "अभी कोई ग्रुप नहीं",
+  "@noGroupsYet": {
+    "description": "Empty state title for groups"
+  },
+  "createFirstGroup": "खर्चे बाँटने के लिए ग्रुप बनाएँ",
+  "@createFirstGroup": {
+    "description": "Empty state subtitle for groups"
+  },
+  "noFriendsYet": "अभी कोई दोस्त नहीं",
+  "@noFriendsYet": {
+    "description": "Empty state title for friends"
+  },
+  "addFirstFriend": "खर्चे बाँटने के लिए दोस्त जोड़ें",
+  "@addFirstFriend": {
+    "description": "Empty state subtitle for friends"
+  },
+  "youOwe": "आपको देना है",
+  "@youOwe": {
+    "description": "Label when user owes money"
+  },
+  "youAreOwed": "आपको मिलना है",
+  "@youAreOwed": {
+    "description": "Label when user is owed money"
+  },
+  "settledUp": "सब बराबर!",
+  "@settledUp": {
+    "description": "Label when all balances are zero"
+  },
+  "amountWithCurrency": "₹{amount}",
+  "@amountWithCurrency": {
+    "description": "Amount formatted with rupee symbol",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1,234.56"
+      }
+    }
+  },
+  "deletedWithUndo": "हटाया गया। वापस लाने के लिए 'वापस लें' दबाएँ।",
+  "@deletedWithUndo": {
+    "description": "Snackbar message after soft delete with undo option"
+  },
+  "synced": "सिंक हो गया",
+  "@synced": {
+    "description": "Sync status: synced to server"
+  },
+  "pending": "सिंक बाकी",
+  "@pending": {
+    "description": "Sync status: waiting to sync"
+  },
+  "groups": "ग्रुप",
+  "@groups": {
+    "description": "Groups tab label"
+  },
+  "friends": "दोस्त",
+  "@friends": {
+    "description": "Friends tab label"
+  },
+  "activity": "गतिविधि",
+  "@activity": {
+    "description": "Activity tab label"
+  },
+  "analytics": "विश्लेषण",
+  "@analytics": {
+    "description": "Analytics tab label"
+  },
+  "settings": "सेटिंग्स",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "homeComingSoon": "होम — जल्द आ रहा है",
+  "@homeComingSoon": {
+    "description": "Placeholder subtitle on the home screen during development"
+  },
+  "syncing": "सिंक हो रहा है…",
+  "@syncing": {
+    "description": "Sync status tooltip: currently syncing to server"
+  },
+  "syncFailed": "सिंक विफल",
+  "@syncFailed": {
+    "description": "Sync status tooltip: sync attempt failed"
+  }
+}

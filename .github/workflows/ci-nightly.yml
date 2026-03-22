@@ -1,0 +1,122 @@
+# =============================================================================
+# CI/CD — Nightly Quality Scan
+# =============================================================================
+# Runs daily at 02:00 IST (20:30 UTC) on the default branch.
+# Performs deeper audits that are too slow for every PR.
+# Sprint 0 task: S0-08b
+# =============================================================================
+
+name: Nightly Quality Scan
+
+on:
+  schedule:
+    # 02:00 IST = 20:30 UTC (previous day)
+    - cron: '30 20 * * *'
+  workflow_dispatch: # allow manual trigger
+
+env:
+  FLUTTER_CHANNEL: stable
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================================================
+  # Dependency Audit
+  # ===========================================================================
+  dependency-audit:
+    name: "📦 Dependency Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Flutter — pub outdated
+        run: |
+          flutter pub get
+          echo "### 📦 Flutter Outdated Packages" >> "$GITHUB_STEP_SUMMARY"
+          dart pub outdated 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Flutter — pub audit (advisory check)
+        run: |
+          echo "### 🛡️ Flutter Pub Audit" >> "$GITHUB_STEP_SUMMARY"
+          # dart pub audit is available in newer Dart SDKs
+          if dart pub --help 2>&1 | grep -q "audit"; then
+            dart pub audit 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          else
+            echo "ℹ️  dart pub audit not available in this SDK version" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Cloud Functions — npm audit
+        run: |
+          echo "### 🛡️ npm Audit (Cloud Functions)" >> "$GITHUB_STEP_SUMMARY"
+          cd functions && npm ci
+          npm audit --audit-level=moderate 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+
+  # ===========================================================================
+  # Code Quality Metrics
+  # ===========================================================================
+  code-quality-metrics:
+    name: "📏 Code Quality Metrics"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Check for large files (> 300 lines)"
+        run: |
+          echo "### 📏 Large Files Report" >> "$GITHUB_STEP_SUMMARY"
+          LARGE_FILES=0
+          while IFS= read -r file; do
+            LINES=$(wc -l < "$file")
+            if [ "$LINES" -gt 300 ]; then
+              echo "⚠️  $file — $LINES lines" | tee -a "$GITHUB_STEP_SUMMARY"
+              LARGE_FILES=$((LARGE_FILES + 1))
+            fi
+          done < <(find lib/ -name "*.dart" -not -name "*.g.dart" -not -name "*.freezed.dart")
+
+          if [ "$LARGE_FILES" -eq 0 ]; then
+            echo "✅ No files exceed 300 lines" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "⚠️  $LARGE_FILES file(s) exceed 300 lines — consider refactoring" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: "Count TODO/FIXME/HACK markers"
+        run: |
+          echo "### 📝 Code Markers" >> "$GITHUB_STEP_SUMMARY"
+          TODO_COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX" lib/ --include="*.dart" | wc -l | tr -d ' ')
+          echo "Found **$TODO_COUNT** TODO/FIXME/HACK markers in lib/" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            grep -rn "TODO\|FIXME\|HACK\|XXX" lib/ --include="*.dart" | head -30 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          fi
+
+  # ===========================================================================
+  # Integration Tests (placeholder)
+  # ===========================================================================
+  integration-tests:
+    name: "🔗 Integration Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: echo "ℹ️  Integration tests against Firebase emulator will be added in Sprint 1"
+
+  # ===========================================================================
+  # Performance Benchmarks (placeholder)
+  # ===========================================================================
+  performance-benchmarks:
+    name: "⚡ Performance Benchmarks"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder
+        run: echo "ℹ️  Performance benchmarks (cold start, scroll, memory) will be added in Sprint 2"
