@@ -96,16 +96,10 @@ export const onUserCreated = onDocumentCreated(
     const userData = snapshot.data();
     const language = (userData?.language as string) || "en";
 
-    try {
-      await initializeNewUser(uid, language);
-      logger.info(`onUserCreated: Successfully initialized user ${uid}.`);
-    } catch (error) {
-      // Do not re-throw: trigger retries on unhandled errors,
-      // but business-logic failures should not be retried.
-      logger.error(
-        `onUserCreated: Failed to initialize user ${uid}.`,
-        { error }
-      );
-    }
+    // initializeNewUser is idempotent (batch.set overwrites), so
+    // retries on transient failures (e.g., Firestore unavailable) are safe.
+    // We let errors propagate so Cloud Functions retries the invocation.
+    await initializeNewUser(uid, language);
+    logger.info(`onUserCreated: Successfully initialized user ${uid}.`);
   }
 );

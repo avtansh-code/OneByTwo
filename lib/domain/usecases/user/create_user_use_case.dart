@@ -6,10 +6,11 @@ import '../../repositories/user_repository.dart';
 
 /// Use case for creating a new user profile in Firestore.
 ///
-/// Validates that the [User] entity has a non-empty name and phone
+/// Validates that the [User] entity has a non-empty ID, name, and phone
 /// number before delegating to [UserRepository.createUser].
 ///
 /// ## Validation
+/// - [User.id] must not be empty or whitespace-only.
 /// - [User.name] must not be empty or whitespace-only.
 /// - [User.phone] must not be empty or whitespace-only.
 ///
@@ -36,6 +37,15 @@ class CreateUserUseCase {
   /// - [Failure] with a [ValidationException] if required fields are missing.
   /// - [Failure] with a [FirestoreException] if the write fails.
   Future<Result<void>> call(User user) async {
+    if (user.id.trim().isEmpty) {
+      return Result.failure(
+        const ValidationException(
+          'User ID cannot be empty',
+          code: 'empty-user-id',
+        ),
+      );
+    }
+
     if (user.name.trim().isEmpty) {
       return Result.failure(
         const ValidationException(

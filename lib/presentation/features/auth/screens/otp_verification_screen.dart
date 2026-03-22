@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/l10n/generated/app_localizations.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/router/route_paths.dart';
@@ -184,13 +185,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           _pinController.clear();
           _pinFocusNode.requestFocus();
 
-          final message = switch (error) {
-            final Exception e when e.toString().contains('invalid') =>
-              l10n.invalidOtp,
-            final Exception e when e.toString().contains('expired') =>
-              l10n.otpExpired,
-            _ => l10n.genericError,
-          };
+          final message = _mapOtpErrorToMessage(error, l10n);
 
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -376,4 +371,23 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       animationDuration: const Duration(milliseconds: 200),
     );
   }
+}
+
+/// Maps an OTP verification error to a localized user-facing message.
+///
+/// Switches on [AppException.code] for typed errors (Firebase Auth codes like
+/// `invalid-verification-code`, `session-expired`) and falls back to
+/// [AppLocalizations.genericError] for unrecognised exceptions.
+String _mapOtpErrorToMessage(Object error, AppLocalizations l10n) {
+  if (error is AppException) {
+    return switch (error.code) {
+      'invalid-verification-code' => l10n.invalidOtp,
+      'invalid-verification-id' => l10n.invalidOtp,
+      'session-expired' => l10n.otpExpired,
+      'too-many-requests' => l10n.rateLimitExceeded,
+      'network-request-failed' => l10n.networkError,
+      _ => l10n.authFailed,
+    };
+  }
+  return l10n.genericError;
 }

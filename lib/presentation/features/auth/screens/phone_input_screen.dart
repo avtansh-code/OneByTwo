@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/l10n/generated/app_localizations.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/utils/validators.dart';
@@ -96,9 +97,15 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
           );
         },
         error: (error, _) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error.toString())));
+          final message = _mapErrorToMessage(error, l10n);
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(message),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
         },
       );
     });
@@ -239,4 +246,20 @@ class _CountryCodeBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Maps an error from the send-OTP flow to a localized user-facing message.
+///
+/// Switches on [AppException.code] for typed errors, falling back to
+/// [AppLocalizations.genericError] for unrecognised exceptions.
+String _mapErrorToMessage(Object error, AppLocalizations l10n) {
+  if (error is AppException) {
+    return switch (error.code) {
+      'too-many-requests' => l10n.rateLimitExceeded,
+      'invalid-phone-number' => l10n.invalidPhone,
+      'network-request-failed' => l10n.networkError,
+      _ => l10n.authFailed,
+    };
+  }
+  return l10n.genericError;
 }

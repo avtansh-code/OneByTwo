@@ -263,6 +263,10 @@
   "@authFailed": {
     "description": "Generic authentication failure error message"
   },
+  "invalidPhone": "अमान्य फ़ोन नंबर। कृपया जाँचें और पुनः प्रयास करें।",
+  "@invalidPhone": {
+    "description": "Error message when an invalid phone number is entered"
+  },
   "profileSaveFailed": "प्रोफ़ाइल सहेजने में विफल। कृपया पुनः प्रयास करें।",
   "@profileSaveFailed": {
     "description": "Error message when profile save operation fails"

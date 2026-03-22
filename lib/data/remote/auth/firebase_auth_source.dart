@@ -46,8 +46,14 @@ class FirebaseAuthSource {
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           // Auto-verification on Android — sign in directly.
+          // The completer must also complete here, otherwise callers hang
+          // when codeSent is never fired (instant verification).
           try {
             await _auth.signInWithCredential(credential);
+            // Use a sentinel value to signal auto-verification succeeded.
+            if (!completer.isCompleted) {
+              completer.complete('AUTO_VERIFIED');
+            }
           } on FirebaseAuthException catch (e) {
             if (!completer.isCompleted) {
               completer.completeError(

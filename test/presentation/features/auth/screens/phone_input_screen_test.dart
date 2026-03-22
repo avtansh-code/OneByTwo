@@ -282,19 +282,23 @@ void main() {
         );
         await tester.pump();
 
-        // Assert — if the formatter correctly keeps only digits, the field
-        // contains a valid 10-digit phone and the button becomes enabled.
-        // NOTE: Whether this passes depends on how the test framework
-        // applies FilteringTextInputFormatter. The assertion is intentionally
-        // checking the behavioural outcome (button state).
+        // Assert — FilteringTextInputFormatter keeps only digits.
+        // The input '9a8b7c6d5e4f3g2h1i0j' contains digits '9876543210'
+        // which is a valid 10-digit phone → button should be enabled.
+        // If the formatter doesn't strip in tests, the raw string fails
+        // validation → button disabled. Either way the screen must not crash.
         final button = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'Send OTP'),
         );
-        // The formatter may or may not strip letters in widget tests;
-        // either the button is enabled (digits kept) or disabled (full text
-        // kept, failing phone validation). We only care that the screen
-        // does NOT crash.
-        expect(button.onPressed, anyOf(isNull, isNotNull));
+        final field = tester.widget<TextFormField>(find.byType(TextFormField));
+        final controller = field.controller!;
+        if (controller.text == '9876543210') {
+          // Formatter stripped letters → valid phone → button enabled
+          expect(button.onPressed, isNotNull);
+        } else {
+          // Formatter kept raw text → invalid phone → button disabled
+          expect(button.onPressed, isNull);
+        }
       });
     });
   });

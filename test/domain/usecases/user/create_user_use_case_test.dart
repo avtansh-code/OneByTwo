@@ -107,6 +107,43 @@ void main() {
       });
     });
 
+    // ── ID validation ─────────────────────────────────────────────────
+
+    group('id validation', () {
+      test('should return ValidationException when id is empty', () async {
+        // Arrange
+        final user = createTestUser(id: '');
+
+        // Act
+        final result = await useCase.call(user);
+
+        // Assert
+        expect(result.isFailure, isTrue);
+        final failure = result as Failure<void>;
+        expect(failure.exception, isA<ValidationException>());
+        expect(failure.exception.code, equals('empty-user-id'));
+        expect(failure.exception.message, equals('User ID cannot be empty'));
+        verifyNever(() => mockUserRepository.createUser(any()));
+      });
+
+      test(
+        'should return ValidationException when id is whitespace only',
+        () async {
+          // Arrange
+          final user = createTestUser(id: '   ');
+
+          // Act
+          final result = await useCase.call(user);
+
+          // Assert
+          expect(result.isFailure, isTrue);
+          expect((result as Failure).exception, isA<ValidationException>());
+          expect(result.exception.code, equals('empty-user-id'));
+          verifyNever(() => mockUserRepository.createUser(any()));
+        },
+      );
+    });
+
     // ── Name validation ─────────────────────────────────────────────────
 
     group('name validation', () {
@@ -201,14 +238,26 @@ void main() {
     // ── Validation priority ─────────────────────────────────────────────
 
     group('validation priority', () {
-      test('should check name before phone when both are invalid', () async {
+      test('should check id before name when both are invalid', () async {
+        // Arrange
+        final user = createTestUser(id: '', name: '', phone: '');
+
+        // Act
+        final result = await useCase.call(user);
+
+        // Assert — id validation happens first
+        expect(result.isFailure, isTrue);
+        expect((result as Failure).exception.code, equals('empty-user-id'));
+      });
+
+      test('should check name before phone when id is valid', () async {
         // Arrange
         final user = createTestUser(name: '', phone: '');
 
         // Act
         final result = await useCase.call(user);
 
-        // Assert — name validation happens first
+        // Assert — name validation happens after id
         expect(result.isFailure, isTrue);
         expect((result as Failure).exception.code, equals('empty-user-name'));
       });

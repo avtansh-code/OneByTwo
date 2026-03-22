@@ -263,6 +263,10 @@
   "@authFailed": {
     "description": "Generic authentication failure error message"
   },
+  "invalidPhone": "Invalid phone number. Please check and try again.",
+  "@invalidPhone": {
+    "description": "Error message when an invalid phone number is entered"
+  },
   "profileSaveFailed": "Failed to save profile. Please try again.",
   "@profileSaveFailed": {
     "description": "Error message when profile save operation fails"

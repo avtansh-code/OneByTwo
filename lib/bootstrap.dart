@@ -22,8 +22,18 @@ Future<void> bootstrap() async {
   // Initialise the logging system.
   await AppLogger.initialize();
 
+  // Fail fast if Firebase config is still the placeholder.
+  final options = DefaultFirebaseOptions.currentPlatform;
+  if (options.projectId == 'PLACEHOLDER-PROJECT-ID') {
+    throw StateError(
+      'Firebase is not configured. Run `flutterfire configure` and copy '
+      'the generated file to lib/firebase_options.local.dart. '
+      'See README for details.',
+    );
+  }
+
   // Initialise Firebase with platform-specific options.
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: options);
 
   // Enable Firestore offline persistence with unlimited cache size.
   // This ensures the app works fully offline and syncs when connectivity
