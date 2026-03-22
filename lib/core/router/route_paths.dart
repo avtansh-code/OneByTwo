@@ -15,8 +15,12 @@ abstract final class RoutePaths {
   /// `/welcome/phone/otp`
   static const String otpVerification = 'otp';
 
-  /// `/welcome/profile-setup`
-  static const String profileSetup = 'profile-setup';
+  // Fix: Profile setup moved to root level so the `/welcome/*` → home redirect
+  // for authenticated users does not block new users from reaching this screen.
+  // Previously at `/welcome/profile-setup`, any authenticated user was
+  // immediately redirected to home before they could set up their profile.
+  /// `/profile-setup`
+  static const String profileSetup = '/profile-setup';
 
   /// `/` — root path for the home shell.
   static const String home = '/';

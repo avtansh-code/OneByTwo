@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/generated/app_localizations.dart';
+import '../../../../core/router/route_names.dart';
 
 /// Welcome screen displayed to unauthenticated users.
 ///
@@ -50,7 +52,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () {
-                    // TODO(sprint-1): Navigate to phone input screen.
+                    context.goNamed(RouteNames.phoneInput);
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),

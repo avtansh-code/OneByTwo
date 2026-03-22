@@ -51,10 +51,32 @@ service cloud.firestore {
     // Cloud Function which performs GDPR-compliant cleanup.
 
     match /users/{userId} {
+      // Any authenticated user may read profiles (name/avatar lookups).
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if false; // Account deletion via Cloud Function only
+
+      // Users can only create their own profile document.
+      // Validates: required fields present, isDeleted is false,
+      // and timestamps use server time.
+      // Note: uid is the document ID (isOwner check), not a document field.
+      allow create: if isSignedIn()
+        && isOwner(userId)
+        && hasRequiredFields(['name', 'phone', 'createdAt', 'updatedAt', 'isDeleted'])
+        && request.resource.data.isDeleted == false
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      // Users can only update their own profile.
+      // Immutable fields (phone, createdAt) cannot be changed.
+      // uid is the document ID, not a document field — no immutability check needed.
+      // updatedAt must be refreshed to the current server timestamp.
+      allow update: if isSignedIn()
+        && isOwner(userId)
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      // Hard deletion disallowed — use isDeleted soft-delete via Cloud Function.
+      allow delete: if false;
 
       // Per-user notification inbox
       match /notifications/{notificationId} {

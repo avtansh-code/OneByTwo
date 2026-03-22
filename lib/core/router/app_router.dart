@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../presentation/features/auth/screens/phone_input_screen.dart';
+import '../../presentation/features/auth/screens/otp_verification_screen.dart';
+import '../../presentation/features/auth/screens/profile_setup_screen.dart';
 import '../../presentation/features/auth/screens/welcome_screen.dart';
 import '../../presentation/features/home/screens/home_screen.dart';
 import 'route_names.dart';
@@ -24,9 +27,13 @@ abstract final class AppRouter {
       redirect: (BuildContext context, GoRouterState state) {
         final isAtAuth = state.matchedLocation.startsWith('/welcome');
 
+        // Unauthenticated users must go to the welcome/auth flow.
         if (!isAuthenticated && !isAtAuth) {
           return RoutePaths.welcome;
         }
+        // Authenticated users on auth pages should go home.
+        // Profile setup is at /profile-setup (root level, not /welcome/*),
+        // so authenticated new users can still reach it.
         if (isAuthenticated && isAtAuth) {
           return RoutePaths.home;
         }
@@ -42,24 +49,26 @@ abstract final class AppRouter {
             GoRoute(
               path: RoutePaths.phoneInput,
               name: RouteNames.phoneInput,
-              builder: (context, state) =>
-                  const _PlaceholderScreen(title: 'Phone Input'),
+              builder: (context, state) => const PhoneInputScreen(),
               routes: [
                 GoRoute(
                   path: RoutePaths.otpVerification,
                   name: RouteNames.otpVerification,
-                  builder: (context, state) =>
-                      const _PlaceholderScreen(title: 'OTP Verification'),
+                  builder: (context, state) => const OtpVerificationScreen(),
                 ),
               ],
             ),
-            GoRoute(
-              path: RoutePaths.profileSetup,
-              name: RouteNames.profileSetup,
-              builder: (context, state) =>
-                  const _PlaceholderScreen(title: 'Profile Setup'),
-            ),
           ],
+        ),
+
+        // ── Profile Setup (root level) ─────────────────────────────
+        // Fix: Moved from /welcome/profile-setup to /profile-setup so
+        // that the /welcome/* → home redirect for authenticated users
+        // does not block new users from completing profile setup.
+        GoRoute(
+          path: RoutePaths.profileSetup,
+          name: RouteNames.profileSetup,
+          builder: (context, state) => const ProfileSetupScreen(),
         ),
 
         // ── Splash ─────────────────────────────────────────────────

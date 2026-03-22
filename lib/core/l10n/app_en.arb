@@ -141,5 +141,147 @@
   "syncFailed": "Sync failed",
   "@syncFailed": {
     "description": "Sync status tooltip: sync attempt failed"
+  },
+
+  "phoneInputTitle": "Enter your phone number",
+  "@phoneInputTitle": {
+    "description": "Title on the phone number input screen"
+  },
+  "phoneInputSubtitle": "We'll send you a verification code",
+  "@phoneInputSubtitle": {
+    "description": "Subtitle on the phone number input screen"
+  },
+  "phoneInputHint": "10-digit phone number",
+  "@phoneInputHint": {
+    "description": "Hint text for the phone number input field"
+  },
+  "sendOtp": "Send OTP",
+  "@sendOtp": {
+    "description": "Button label to send OTP to the entered phone number"
+  },
+  "countryCode": "+91",
+  "@countryCode": {
+    "description": "Default country code prefix for phone numbers"
+  },
+
+  "otpVerificationTitle": "Verify your number",
+  "@otpVerificationTitle": {
+    "description": "Title on the OTP verification screen"
+  },
+  "otpVerificationSubtitle": "Enter the 6-digit code sent to {phone}",
+  "@otpVerificationSubtitle": {
+    "description": "Subtitle on the OTP verification screen with masked phone number",
+    "placeholders": {
+      "phone": {
+        "type": "String",
+        "example": "+91 •••••• 4567"
+      }
+    }
+  },
+  "verifyOtp": "Verify",
+  "@verifyOtp": {
+    "description": "Button label to verify the entered OTP"
+  },
+  "resendCode": "Resend Code",
+  "@resendCode": {
+    "description": "Button label to resend the OTP code"
+  },
+  "resendCodeIn": "Resend code in {seconds}s",
+  "@resendCodeIn": {
+    "description": "Countdown label showing seconds until OTP can be resent",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+
+  "profileSetupTitle": "Set up your profile",
+  "@profileSetupTitle": {
+    "description": "Title on the profile setup screen"
+  },
+  "profileSetupSubtitle": "Tell us a bit about yourself",
+  "@profileSetupSubtitle": {
+    "description": "Subtitle on the profile setup screen"
+  },
+  "nameHint": "Your name",
+  "@nameHint": {
+    "description": "Hint text for the name input field"
+  },
+  "nameRequired": "Name is required",
+  "@nameRequired": {
+    "description": "Validation error when name field is empty"
+  },
+  "emailHint": "Email (optional)",
+  "@emailHint": {
+    "description": "Hint text for the optional email input field"
+  },
+  "completeProfile": "Complete",
+  "@completeProfile": {
+    "description": "Button label to complete profile setup"
+  },
+  "changePhoto": "Change Photo",
+  "@changePhoto": {
+    "description": "Button label to change profile photo"
+  },
+
+  "avatarPickerTitle": "Profile Photo",
+  "@avatarPickerTitle": {
+    "description": "Title of the avatar picker bottom sheet"
+  },
+  "takePhoto": "Take Photo",
+  "@takePhoto": {
+    "description": "Option to take a new photo with the camera"
+  },
+  "chooseFromGallery": "Choose from Gallery",
+  "@chooseFromGallery": {
+    "description": "Option to choose a photo from the device gallery"
+  },
+  "removePhoto": "Remove Photo",
+  "@removePhoto": {
+    "description": "Option to remove the current profile photo"
+  },
+
+  "invalidOtp": "Invalid code. Please try again.",
+  "@invalidOtp": {
+    "description": "Error message when the entered OTP is incorrect"
+  },
+  "otpExpired": "Code expired. Tap 'Resend Code' to get a new one.",
+  "@otpExpired": {
+    "description": "Error message when the OTP has expired"
+  },
+  "tooManyAttempts": "Too many attempts. Please try again later.",
+  "@tooManyAttempts": {
+    "description": "Error message when user has exceeded maximum OTP attempts"
+  },
+  "rateLimitExceeded": "Too many requests. Please wait a moment.",
+  "@rateLimitExceeded": {
+    "description": "Error message when API rate limit is exceeded"
+  },
+  "authFailed": "Authentication failed. Please try again.",
+  "@authFailed": {
+    "description": "Generic authentication failure error message"
+  },
+  "invalidPhone": "Invalid phone number. Please check and try again.",
+  "@invalidPhone": {
+    "description": "Error message when an invalid phone number is entered"
+  },
+  "profileSaveFailed": "Failed to save profile. Please try again.",
+  "@profileSaveFailed": {
+    "description": "Error message when profile save operation fails"
+  },
+  "avatarUploadFailed": "Failed to upload photo. Please try again.",
+  "@avatarUploadFailed": {
+    "description": "Error message when avatar upload fails"
+  },
+
+  "signingOut": "Signing out...",
+  "@signingOut": {
+    "description": "Loading message shown during sign out"
+  },
+  "accountDeleted": "Account deleted successfully",
+  "@accountDeleted": {
+    "description": "Confirmation message after account deletion"
   }
 }

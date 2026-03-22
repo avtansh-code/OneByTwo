@@ -49,6 +49,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate code (freezed, json_serializable, riverpod, l10n)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
+
       - name: Check formatting
         run: dart format --set-exit-if-changed .
 
@@ -80,6 +85,11 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate code (freezed, json_serializable, riverpod, l10n)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
 
       - name: Run tests with coverage
         run: flutter test --coverage
@@ -147,6 +157,11 @@ jobs:
           else
             echo "✅ No suspect double-for-money patterns found"
           fi
+
+      - name: "Run custom lint checks (S0-08d)"
+        run: |
+          chmod +x scripts/lint-checks.sh
+          ./scripts/lint-checks.sh
 
   # ===========================================================================
   # Job 4 — Architecture Compliance
@@ -261,6 +276,11 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate code (freezed, json_serializable, riverpod, l10n)
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
 
       - name: Build APK (release, analyze size)
         run: flutter build apk --release --analyze-size 2>&1 | tee build-output.txt || true
