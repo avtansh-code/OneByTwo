@@ -32,7 +32,7 @@ The project is configured with four layers of Copilot customization:
 │   ├── code-coverage-analysis/SKILL.md
 │   ├── expense-split-validation/SKILL.md
 │   ├── offline-sync-debugging/SKILL.md  ← Sync queue, conflicts, listener debugging
-│   ├── database-migration/SKILL.md      ← sqflite schema migrations
+│   ├── firestore-schema/SKILL.md        ← Firestore collection/document management
 │   ├── localization/SKILL.md            ← ARB files, i18n, Hindi/English
 │   ├── security-audit/SKILL.md          ← OWASP Mobile Top 10, PII, GDPR
 │   ├── release-management/SKILL.md      ← Versioning, changelog, Fastlane, stores
@@ -57,7 +57,7 @@ The project is configured with four layers of Copilot customization:
 This file is **automatically included** in every Copilot interaction within the repository. It provides:
 
 - Project overview (Flutter + Firebase, India-only, offline-first)
-- Architecture summary (Clean Architecture, Riverpod, GoRouter, sqflite, Firestore)
+- Architecture summary (Clean Architecture, Riverpod, GoRouter, Firestore)
 - Key rules (paise-based amounts, offline-first writes, sync status, soft deletes, version fields)
 - Project structure outline (`lib/`, `functions/`)
 - Coding conventions (freezed, riverpod codegen, Result pattern, i18n)
@@ -186,7 +186,7 @@ copilot --agent=flutter-dev --prompt "Create the Settlement entity and full data
 - Floating-point used for money (must use integer paise)
 - Split sums ≠ expense total
 - Missing auth checks or security rule gaps
-- Offline-first violations (reading from Firestore instead of local DB)
+- Firestore usage violations (missing offline persistence configuration, unnecessary network-only reads)
 - Hard-deletes instead of soft-deletes
 - Domain layer importing Flutter/Firebase
 
@@ -231,7 +231,7 @@ copilot --agent=flutter-dev --prompt "Create the Settlement entity and full data
 - All split algorithm invariants (sum = total, non-negative, fairness)
 - AAA pattern (Arrange, Act, Assert)
 - Mocking with Mocktail/Mockito
-- In-memory sqflite for DAO tests
+- Mock Firestore for data source tests
 - Firebase Emulator Suite for integration tests
 - Widget testing with ProviderScope
 
@@ -388,7 +388,7 @@ copilot --agent=flutter-dev --prompt "Create the Settlement entity and full data
 - Flutter DevTools profiling (timeline, memory, app size)
 - `ListView.builder` optimization patterns
 - Deferred initialization and lazy loading
-- sqflite query optimization (indexes, joins, pagination)
+- Firestore query optimization (indexes, pagination, denormalization)
 - Cloud Functions cold start minimization
 - R8/ProGuard and Dart obfuscation
 - Common anti-patterns (missing const, FutureBuilder in build, unkeyed lists)
@@ -474,7 +474,7 @@ Skills are sets of instructions and resources that Copilot loads **automatically
 | **Code Coverage Analysis** | `.github/skills/code-coverage-analysis/` | Analyzing or improving test coverage |
 | **Expense Split Validation** | `.github/skills/expense-split-validation/` | Implementing or debugging split calculations |
 | **Offline Sync Debugging** | `.github/skills/offline-sync-debugging/` | Debugging sync queue, conflicts, listeners |
-| **Database Migration** | `.github/skills/database-migration/` | Adding tables, columns, or modifying sqflite schema |
+| **Firestore Schema** | `.github/skills/firestore-schema/` | Adding collections, fields, or modifying Firestore document structure |
 | **Localization** | `.github/skills/localization/` | Working with ARB files, i18n, translations |
 | **Security Audit** | `.github/skills/security-audit/` | Auditing security, OWASP, PII, GDPR |
 | **Release Management** | `.github/skills/release-management/` | Version bumping, changelogs, store deployment |
@@ -487,7 +487,7 @@ Skills are sets of instructions and resources that Copilot loads **automatically
 Provides a step-by-step process for diagnosing CI failures using GitHub MCP tools (`list_workflow_runs`, `get_job_logs`). Includes a categorization guide for different failure types and local reproduction commands.
 
 #### Flutter Testing
-Contains test structure conventions, unit test and widget test templates, key testing rules (split invariants, offline mocking, in-memory sqflite), and commands for running tests with coverage.
+Contains test structure conventions, unit test and widget test templates, key testing rules (split invariants, offline mocking, mock Firestore), and commands for running tests with coverage.
 
 #### Firestore Rules Testing
 Provides the `@firebase/rules-unit-testing` setup template, test patterns for positive/negative access checks, a required test cases matrix for every collection, and commands for running rules tests with the emulator.
@@ -499,10 +499,10 @@ Includes commands for generating coverage reports (Flutter + TypeScript), covera
 Defines the 5 core invariants every split must satisfy, a validation checklist for implementation/review, a Dart testing template for verifying invariants, and references to the full algorithm specs.
 
 #### Offline Sync Debugging
-Provides systematic debugging guides for the 5 most common sync issues: data not syncing, remote data not appearing locally, duplicate entries, conflict detection failures, and stale data after reconnect. Includes SQL queries for inspecting the sync queue and key tables.
+Provides systematic debugging guides for the 5 most common sync issues: data not syncing, remote data not appearing locally, duplicate entries, conflict detection failures, and stale data after reconnect. Includes Firestore queries for inspecting the sync queue and key collections.
 
-#### Database Migration
-Contains the migration file structure, step-by-step guide for writing new migrations, migration rules (never modify existing migrations, SQLite ALTER limitations), common migration patterns, and migration testing templates.
+#### Firestore Schema
+Contains the collection/document structure, step-by-step guide for evolving Firestore schemas, schema rules (backward-compatible field additions, data migration strategies), common schema patterns, and schema change testing templates.
 
 #### Localization
 Covers ARB file format and conventions, ICU message format for plurals, Indian number formatting (1,00,000), l10n.yaml configuration, code generation commands, and testing localized strings with different locales.
@@ -650,11 +650,11 @@ These instructions are automatically applied when Copilot works with files match
 ### Database Schema Change
 
 ```
-1. Use `flutter-dev` agent to create new entity/DAO/repository
+1. Use `flutter-dev` agent to create new entity/repository with Firestore data source
 
-2. Auto-loads database-migration skill for writing the migration
+2. Auto-loads firestore-schema skill for managing collection/document structure
 
-3. Use `test-writer` agent to write migration tests (v1→v2 data preservation)
+3. Use `test-writer` agent to write schema change tests (backward compatibility, data migration)
 ```
 
 ---

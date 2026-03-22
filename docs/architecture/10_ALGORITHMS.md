@@ -1190,7 +1190,7 @@ PROPERTIES:
 
 USAGE:
   Firestore document ID: balances/{canonicalPair.id}
-  sqflite UNIQUE constraint: (group_id, user_a_id, user_b_id)
+  Firestore document ID: balancePairs/{groupId}_{canonicalPair.id}
 
 INTERPRETATION OF AMOUNT:
   For balancePair(A, B) with A < B:

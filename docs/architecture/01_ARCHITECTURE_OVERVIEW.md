@@ -10,8 +10,8 @@
 
 One By Two follows an **offline-first, event-driven** architecture. The system is designed around these principles:
 
-1. **Offline-First**: Local database is the primary data source. Cloud sync is secondary.
-2. **Single Source of Truth**: Local sqflite DB drives all UI; Firestore is the sync/backup layer.
+1. **Offline-Capable**: Firestore with offline persistence is the primary data source. Reads are served from cache when offline.
+2. **Single Source of Truth**: Firestore drives all UI (with built-in offline persistence); no separate local database layer.
 3. **Event-Driven Reactivity**: All state flows unidirectionally from data sources → repositories → state → UI.
 4. **Separation of Concerns**: Clean Architecture layers — Presentation, Domain, Data.
 5. **Firebase-Native**: Leverage Firebase managed services to minimize custom infrastructure.
@@ -34,24 +34,25 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 │  │   (Riverpod) │  │              │  │ • Mappers    │  │ • Router   │  │
 │  └──────────────┘  └──────────────┘  └──────┬───────┘  └────────────┘  │
 │                                             │                           │
-│                          ┌──────────────────┼──────────────────┐        │
-│                          │                  │                  │        │
-│                   ┌──────▼──────┐    ┌──────▼──────┐   ┌──────▼──────┐ │
-│                   │   sqflite   │    │  Firestore  │   │   Cloud     │ │
-│                   │  (Local DB) │    │  SDK Cache  │   │  Storage    │ │
-│                   │  PRIMARY    │    │  + Listeners│   │  (Receipts) │ │
-│                   └──────┬──────┘    └──────┬──────┘   └──────┬──────┘ │
-│                          │                  │                  │        │
-└──────────────────────────┼──────────────────┼──────────────────┼────────┘
-                           │                  │                  │
-                     ══════╪══════════════════╪══════════════════╪═══════
-                     NETWORK BOUNDARY         │                  │
-                     ══════╪══════════════════╪══════════════════╪═══════
-                           │                  │                  │
-┌──────────────────────────┼──────────────────┼──────────────────┼────────┐
-│                    FIREBASE BACKEND          │                  │        │
-│                          │                  │                  │        │
-│  ┌───────────────────────▼──────────────────▼──────────────────▼─────┐  │
+│                          ┌──────────────────┴──────────────────┐        │
+│                          │                                     │        │
+│                   ┌──────▼──────────────┐            ┌─────────▼─────┐  │
+│                   │   Firestore SDK     │            │   Cloud       │  │
+│                   │  (offline cache +   │            │   Storage     │  │
+│                   │   real-time streams)│            │   (Receipts)  │  │
+│                   │   SOURCE OF TRUTH   │            └─────────┬─────┘  │
+│                   └──────────┬──────────┘                      │        │
+│                              │                                 │        │
+└──────────────────────────────┼─────────────────────────────────┼────────┘
+                               │                                 │
+                         ══════╪═════════════════════════════════╪═══════
+                         NETWORK BOUNDARY                        │
+                         ══════╪═════════════════════════════════╪═══════
+                               │                                 │
+┌──────────────────────────────┼─────────────────────────────────┼────────┐
+│                        FIREBASE BACKEND                        │        │
+│                              │                                 │        │
+│  ┌───────────────────────────▼─────────────────────────────────▼─────┐  │
 │  │                     Firebase Services                             │  │
 │  │                                                                   │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │  │
@@ -91,15 +92,15 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 - No BuildContext dependency for accessing state
 - Active community, well-maintained, production-ready
 
-### ADR-02: Local Database — sqflite + shared_preferences
+### ADR-02: Database — Cloud Firestore with Offline Persistence
 
-**Decision:** Use sqflite as the primary local database, shared_preferences for app settings.
+**Decision:** Use Cloud Firestore as the sole database with built-in offline persistence enabled. Use shared_preferences for app settings.
 
 **Rationale:**
-- sqflite provides full SQL query capability essential for complex joins (expenses + splits + members)
-- Relational model maps naturally to the expense data structure
-- Better indexing for search and filter operations across 10,000+ expenses
-- Well-tested, stable package with broad Flutter support
+- Firestore's built-in offline persistence caches data locally, eliminating the need for a separate local database
+- Real-time snapshot listeners provide reactive streams natively — no manual sync engine needed
+- Eliminates the complexity of maintaining two data stores (local + cloud) and a sync layer
+- Firestore queries support filtering, ordering, and pagination sufficient for the expense data model
 - shared_preferences for simple key-value settings (theme, language, etc.)
 
 ### ADR-03: Flutter Architecture — Clean Architecture
@@ -164,7 +165,7 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 - 1:1 balance is trivially a single scalar, not a matrix — different Cloud Function triggers
 - Separate triggers (`onFriendExpenseCreated` vs `onExpenseCreated`) keep logic clean
 - Canonical pair ID (`min(A,B)_max(A,B)`) reuses the existing balance pair convention
-- Shared expense entity with `context_type` discriminator (`'group'` | `'friend'`) in sqflite avoids table duplication locally
+- Shared expense entity with `context_type` discriminator (`'group'` | `'friend'`) in Firestore avoids collection duplication
 
 ---
 
@@ -189,11 +190,10 @@ One By Two follows an **offline-first, event-driven** architecture. The system i
 │  │   ├── ConflictException                   │
 │  │   └── ValidationException                 │
 │  ├── StorageException                        │
-│  │   ├── LocalDbException                    │
+│  │   ├── FirestoreException                  │
 │  │   └── FileUploadException                 │
-│  └── SyncException                           │
-│      ├── SyncConflictException               │
-│      └── SyncTimeoutException                │
+│  └── CacheException                          │
+│      └── OfflineCacheException               │
 └──────────────────────────────────────────────┘
 ```
 
@@ -246,12 +246,12 @@ Logging is a **first-class architectural concern**. The app uses a centralized, 
 
 | Level     | When to Use                                              | Destinations                 | Example                                             |
 | --------- | -------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
-| `verbose` | Ultra-detailed tracing (SQL queries, provider rebuilds)  | Console only (dev)           | `SQL: SELECT * FROM expenses WHERE group_id = 'g1'` |
+| `verbose` | Ultra-detailed tracing (Firestore queries, provider rebuilds)  | Console only (dev)           | `Firestore: query expenses where group_id == 'g1'` |
 | `debug`   | Developer-useful context (state changes, cache hits)     | Console + File               | `SyncEngine: processing queue item expense:e123`    |
 | `info`    | Key business events (user actions, milestones)           | Console + File               | `Expense created: id=e123 group=g1 amount=5000`     |
 | `warning` | Recoverable issues (retry, fallback, degraded)           | Console + File + Crashlytics | `SyncQueue: retry 3/5 for expense:e123`             |
 | `error`   | Failures requiring attention (unhandled, data loss risk) | Console + File + Crashlytics | `BalanceRecalc failed: group=g1 error=timeout`      |
-| `fatal`   | Unrecoverable crash (app cannot continue)                | Console + File + Crashlytics | `Database corruption detected: onebytwo.db`         |
+| `fatal`   | Unrecoverable crash (app cannot continue)                | Console + File + Crashlytics | `Firestore persistence failure detected`            |
 
 #### Level Configuration by Environment
 
@@ -288,8 +288,8 @@ Logging is a **first-class architectural concern**. The app uses a centralized, 
 
 | Layer                        | Events Logged                                                                                                                                                                           |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Data / Sync**              | Sync queue operations (enqueue, process, retry, fail, conflict), Firestore listener lifecycle (start, data, error, dispose), sqflite query timing (if > 100ms), receipt upload progress |
-| **Data / Repository**        | Repository method calls with entity IDs, offline-first flow (local save, sync enqueue), errors with context                                                                             |
+| **Data / Sync**              | Firestore listener lifecycle (start, data, error, dispose), Firestore query timing (if > 100ms), offline cache status, receipt upload progress |
+| **Data / Repository**        | Repository method calls with entity IDs, Firestore read/write operations, errors with context                                                                             |
 | **Domain / Use Cases**       | Business operation start/end with duration, validation failures, split calculation inputs/outputs                                                                                       |
 | **Presentation / Providers** | State transitions (loading → data → error), user actions (navigate, tap, submit)                                                                                                        |
 | **Core / Network**           | Connectivity changes (online/offline), Cloud Function calls with latency                                                                                                                |
@@ -364,9 +364,8 @@ Logging is a **first-class architectural concern**. The app uses a centralized, 
 | **Framework**          | Flutter                    | Latest stable                                                   |
 | **State Management**   | Riverpod                   | v2+ with code generation                                        |
 | **Navigation**         | GoRouter                   | Declarative, deep-link support                                  |
-| **Local DB**           | sqflite                    | SQL-based, offline-first primary store                          |
+| **Database**             | Cloud Firestore              | asia-south1, offline persistence enabled, real-time source of truth |
 | **Settings Store**     | shared_preferences         | Key-value for app config                                        |
-| **Cloud DB**           | Cloud Firestore            | asia-south1, real-time sync                                     |
 | **Auth**               | Firebase Auth              | Phone/OTP only                                                  |
 | **Cloud Functions**    | TypeScript / Node.js       | v2 (2nd gen)                                                    |
 | **File Storage**       | Cloud Storage for Firebase | Receipts, avatars, covers                                       |

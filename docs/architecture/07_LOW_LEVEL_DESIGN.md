@@ -7,49 +7,49 @@
 
 ---
 
-## 1. Local Database Migration Strategy
+## 1. Firestore Schema Evolution Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              DATABASE MIGRATION SYSTEM                           │
+│              FIRESTORE SCHEMA EVOLUTION                           │
 │                                                                  │
-│  class AppDatabase {                                             │
-│    static const _dbName = 'onebytwo.db';                        │
-│    static const _currentVersion = 1;                             │
+│  Firestore is the sole database. Documents evolve over time     │
+│  as new fields are added or field semantics change.             │
 │                                                                  │
-│    Future<Database> open() async {                               │
-│      return openDatabase(                                        │
-│        _dbName,                                                  │
-│        version: _currentVersion,                                 │
-│        onCreate: (db, version) => _runMigrations(db, 0, version),│
-│        onUpgrade: (db, old, new) => _runMigrations(db, old, new),│
-│      );                                                          │
-│    }                                                             │
+│  Principles:                                                     │
+│  • Additive changes only — never remove or rename fields in     │
+│    existing documents; add new fields alongside old ones        │
+│  • Default values — app code always provides defaults when      │
+│    reading fields that may not exist in older documents         │
+│  • Schema version field — each document type includes a         │
+│    `schemaVersion` int field to track its format                │
 │                                                                  │
-│    Future<void> _runMigrations(Database db, int from, int to) {  │
-│      for (version = from + 1; version <= to; version++) {        │
-│        final migration = _migrations[version];                   │
-│        if (migration != null) {                                  │
-│          await migration.up(db);                                 │
-│        }                                                         │
-│      }                                                           │
-│    }                                                             │
+│  Handling old document formats:                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                                                           │  │
+│  │  1. Read-time migration (lazy):                           │  │
+│  │     - fromFirestore() factory checks schemaVersion        │  │
+│  │     - Missing fields filled with sensible defaults        │  │
+│  │     - Example: old expense docs without `contextType`     │  │
+│  │       default to contextType = 'group'                    │  │
+│  │                                                           │  │
+│  │  2. Write-time upgrade (opportunistic):                   │  │
+│  │     - When a document is updated for any reason,          │  │
+│  │       toFirestore() writes the latest schema version      │  │
+│  │     - Gradually migrates documents without batch jobs     │  │
+│  │                                                           │  │
+│  │  3. Batch migration (rare, breaking changes):             │  │
+│  │     - Cloud Function iterates collection in batches       │  │
+│  │     - Updates documents to new schema version             │  │
+│  │     - Runs during scheduled maintenance window            │  │
+│  │                                                           │  │
+│  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
-│    static final _migrations = {                                  │
-│      1: MigrationV1(),  // Initial schema                       │
-│      2: MigrationV2(),  // Add friends table, context_type to   │
-│                         // expenses/settlements/activity_log/   │
-│                         // sync_queue/notifications/drafts      │
-│      // 3: MigrationV3(),  // Future: add tags table            │
-│      // 4: MigrationV4(),  // Future: add OCR results           │
-│    };                                                            │
-│  }                                                               │
-│                                                                  │
-│  Each migration:                                                 │
-│  • Has up() and down() methods                                  │
-│  • Runs inside a transaction                                    │
-│  • Is idempotent (safe to re-run)                               │
-│  • Preserves existing data                                      │
+│  Example — adding a `contextType` field to expenses:             │
+│  • schemaVersion 1: no contextType field                        │
+│  • schemaVersion 2: contextType = 'group' | 'friend'           │
+│  • fromFirestore(): if schemaVersion < 2, default to 'group'   │
+│  • toFirestore(): always writes schemaVersion = 2               │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -179,9 +179,9 @@
 │  │                                                           │  │
 │  │  3. Firebase.initializeApp() (parallel with step 4)       │  │
 │  │                                                           │  │
-│  │  4. Open sqflite database + run migrations                │  │
-│  │     (parallel with step 3)                                │  │
-│  │     - Log: each migration step with duration              │  │
+│  │  4. Initialize Firestore SDK + configure offline           │  │
+│  │     persistence (parallel with step 3)                    │  │
+│  │     - Log: Firestore initialization with duration         │  │
 │  │                                                           │  │
 │  │  5. Initialize SharedPreferences                          │  │
 │  │                                                           │  │
@@ -189,7 +189,7 @@
 │  │     - Log: "Auth state: authenticated/unauthenticated"    │  │
 │  │                                                           │  │
 │  │  7. If authenticated:                                     │  │
-│  │     a. Load current user from local DB                    │  │
+│  │     a. Load current user from Firestore (cache)           │  │
 │  │     b. Start Firestore listeners (background)             │  │
 │  │     c. Initialize sync engine                             │  │
 │  │     d. Register FCM token                                 │  │
@@ -204,9 +204,8 @@
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  Parallel initialization reduces cold start:                    │
-│  Firebase.init ──┐                                               │
-│  sqflite.open ───┤── await Future.wait([...])                   │
-│  SharedPrefs ────┘                                               │
+│  Firebase.init + Firestore.instance ──┐                          │
+│  SharedPrefs ────────────────────────┘── await Future.wait([…]) │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -255,8 +254,8 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │              LOCAL ANALYTICS COMPUTATION                         │
 │                                                                  │
-│  All analytics computed locally from sqflite for speed and      │
-│  offline access. No server-side aggregation needed.             │
+│  All analytics computed from Firestore queries with offline     │
+│  persistence for speed and offline access.                      │
 │                                                                  │
 │  Category Breakdown:                                             │
 │  ┌───────────────────────────────────────────────────────────┐  │
