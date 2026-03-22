@@ -17,12 +17,10 @@ Pure Dart code with no Flutter or Firebase dependencies.
 ### 2. Data Layer (`lib/data/`)
 Handles data persistence and external services.
 
-- **`local/dao/`** - sqflite data access objects (local DB operations)
-- **`remote/firestore/`** - Firestore data sources (cloud operations)
+- **`remote/firestore/`** - Firestore data sources (reads, writes, real-time listeners)
 - **`models/`** - Data transfer objects (DTO) with JSON serialization
 - **`mappers/`** - Convert between entities ↔ models
-- **`repositories/`** - Repository implementations (delegates to DAO + Firestore)
-- **`sync/`** - Offline-first sync engine
+- **`repositories/`** - Repository implementations (delegates to Firestore data sources)
 
 ### 3. Presentation Layer (`lib/presentation/`)
 UI and state management.
@@ -55,7 +53,7 @@ All repository methods return `Result<T>`:
 ```dart
 Future<Result<User>> getUser(String id) async {
   try {
-    final user = await dao.getUser(id);
+    final user = await firestoreDataSource.getUser(id);
     return Success(user);
   } catch (e, stack) {
     return Failure(DatabaseException.queryFailed(e, stack));
@@ -81,21 +79,21 @@ class UserNotifier extends _$UserNotifier {
 }
 ```
 
-### Offline-First
+### Firestore-Backed with Offline Persistence
 Every write operation:
-1. Save to local sqflite first
+1. Save to Firestore (cached locally by SDK when offline)
 2. Return success immediately
-3. Sync to Firestore asynchronously via sync queue
+3. SDK syncs to cloud automatically when connectivity is restored
 
 Every read operation:
-1. Return Stream from local sqflite
-2. Firestore listeners update local DB in background
+1. Return Stream from Firestore (reads from cache when offline)
+2. Firestore snapshot listeners push real-time updates to UI
 
 ## Dependencies
 
 - **State Management**: Riverpod v2+ with code generation
 - **Navigation**: GoRouter with type-safe routes
-- **Local DB**: sqflite
+- **Database**: Cloud Firestore (with offline persistence)
 - **Cloud**: Firebase (Auth, Firestore, Analytics, Crashlytics)
 - **Code Generation**: freezed, json_serializable, riverpod_generator
 

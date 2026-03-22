@@ -14,7 +14,8 @@
 │  Layer 1: Device Security                                       │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │ • Biometric / PIN app lock (optional, user-enabled)       │  │
-│  │ • Local DB encryption (sqflite_sqlcipher)                 │  │
+│  │ • Firebase data protection (security rules + encryption   │  │
+│  │   at rest)                                                │  │
 │  │ • Secure storage for tokens (flutter_secure_storage)      │  │
 │  │ • Certificate pinning for Firebase connections            │  │
 │  │ • No data in app screenshots (FLAG_SECURE on Android,     │  │
@@ -77,28 +78,39 @@
 
 ---
 
-## 2. Local Database Encryption
+## 2. Data Protection
 
 ```
-Implementation: sqflite_sqlcipher (SQLCipher for sqflite)
+Firestore is the sole database — no local SQL database exists.
 
-Key management:
-  1. On first app launch:
-     - Generate 256-bit AES key
-     - Store in flutter_secure_storage
-       (iOS: Keychain, Android: EncryptedSharedPreferences / Keystore)
-  2. On every DB open:
-     - Retrieve key from secure storage
-     - Pass to SQLCipher as PRAGMA key
+Encryption at rest:
+  • Firestore automatically encrypts all data at rest using
+    Google-managed AES-256 encryption keys
+  • No client-side database encryption needed
 
-If user enables biometric lock:
-  - Key access requires biometric authentication
-  - Adds another layer before DB can be decrypted
+Encryption in transit:
+  • All Firestore SDK communication uses TLS 1.3
+  • Firebase SDK handles certificate management and pinning
+  • No HTTP fallback — HTTPS only
+
+Access control (Firestore Security Rules):
+  • Document-level access control enforced server-side
+  • Rules verify auth state, group membership, friend pair membership
+  • See 05_API_DESIGN.md for full security rules
+
+Offline cache:
+  • Firestore SDK's offline persistence stores data in a local cache
+  • On iOS: cache stored in the app sandbox (protected by OS-level
+    data protection / file encryption when device is locked)
+  • On Android: cache stored in app-private internal storage
+    (protected by Android's app sandboxing)
+  • Biometric/PIN lock (via local_auth) adds another layer —
+    prevents app access while device is unlocked
 
 Threat model:
-  - Device stolen while locked → DB encrypted, key in Keychain/Keystore
+  - Device stolen while locked → OS-level encryption protects cache
   - Device stolen while unlocked → biometric lock prevents app access
-  - Rooted/jailbroken device → Keystore still provides protection
+  - Rooted/jailbroken device → OS sandboxing still provides protection
     (best effort — can't guarantee security on compromised devices)
 ```
 
@@ -150,12 +162,12 @@ Threat model:
 
 | Data | Storage | Encryption | Notes |
 |------|---------|------------|-------|
-| Phone number | Firestore + local DB | At rest (SQLCipher) + in transit (TLS) | Used for auth only |
-| Email | Firestore + local DB | At rest + in transit | Used for account recovery |
+| Phone number | Firestore | At rest (Google-managed AES-256) + in transit (TLS) | Used for auth only |
+| Email | Firestore | At rest + in transit | Used for account recovery |
 | OTP codes | Firebase Auth (server) | Never stored locally | Auto-expire in 5 min |
 | Firebase tokens | flutter_secure_storage | Keychain / Keystore | Short-lived, auto-refresh |
-| Expense amounts | Firestore + local DB | At rest + in transit | Integer paise |
-| Receipt images | Cloud Storage + local | At rest + in transit | Max 10MB, image/* only |
+| Expense amounts | Firestore | At rest + in transit | Integer paise |
+| Receipt images | Cloud Storage + local cache | At rest + in transit | Max 10MB, image/* only |
 | PIN hash | flutter_secure_storage | Keychain / Keystore | Bcrypt hash, never plain text |
 
 ---
@@ -172,5 +184,5 @@ Threat model:
 | M6 | Inadequate privacy controls | GDPR compliance; minimal data collection; no 3rd-party sharing |
 | M7 | Insufficient binary protections | Obfuscation enabled (--obfuscate --split-debug-info); ProGuard on Android |
 | M8 | Security misconfiguration | Firebase security rules tested in CI; no debug flags in production |
-| M9 | Insecure data storage | SQLCipher encryption; secure storage for secrets |
-| M10 | Insufficient cryptography | AES-256 for local DB; TLS 1.3 for transport; no custom crypto |
+| M9 | Insecure data storage | Firestore encryption at rest; OS-level cache protection; secure storage for secrets |
+| M10 | Insufficient cryptography | Firebase server-side encryption at rest; TLS 1.3 for transport; no custom crypto |

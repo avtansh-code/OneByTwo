@@ -237,7 +237,7 @@ Users must be able to track expenses directly with another person **without crea
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | OF-01 | **All core features must work offline** — add/edit/delete expenses, view balances, record settlements, browse history | P0 |
-| OF-02 | Local-first data storage (Hive/sqflite) with Firestore offline persistence as primary data sources | P0 |
+| OF-02 | Firestore with offline persistence as the primary data source (built-in SDK caching replaces separate local database) | P0 |
 | OF-03 | Background sync when connectivity is restored (queue-based) | P0 |
 | OF-04 | Conflict resolution strategy for concurrent offline edits (last-write-wins with user notification for critical conflicts) | P0 |
 | OF-05 | Visual sync status indicators (synced ✓, pending ↑, conflict ⚠) | P0 |
@@ -260,7 +260,7 @@ Users must be able to track expenses directly with another person **without crea
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | SP-01 | End-to-end encryption for data in transit (TLS 1.3) | P0 |
-| SP-02 | Encryption at rest for local database | P0 |
+| SP-02 | Firebase security rules and encryption at rest for Firestore data | P0 |
 | SP-03 | Firebase Authentication with secure token management | P0 |
 | SP-04 | Biometric/PIN lock for app access | P1 |
 | SP-05 | No third-party analytics/tracking SDKs that share data | P0 |
@@ -347,10 +347,9 @@ Users must be able to track expenses directly with another person **without crea
 |-------|-----------|
 | **Frontend** | Flutter (Dart) |
 | **State Management** | Riverpod / Bloc |
-| **Local Database** | Hive / sqflite (offline-first storage) |
+| **Database** | Cloud Firestore (NoSQL, real-time sync, offline persistence) |
 | **Backend** | Google Firebase |
 | **Authentication** | Firebase Authentication (Phone/OTP) |
-| **Database (Cloud)** | Cloud Firestore (NoSQL, real-time sync) |
 | **Server Logic** | Firebase Cloud Functions (Node.js/TypeScript) |
 | **File Storage** | Firebase Cloud Storage |
 | **Push Notifications** | Firebase Cloud Messaging (FCM) |
@@ -380,8 +379,7 @@ Users must be able to track expenses directly with another person **without crea
 
 | Store | Use Case |
 |-------|----------|
-| **Cloud Firestore** | Primary NoSQL cloud database for all app data (users, groups, expenses, balances). Provides real-time sync, offline persistence, and automatic conflict resolution |
-| **Hive / sqflite** | Local on-device database for offline-first storage, draft expenses, and cached data |
+| **Cloud Firestore** | Primary NoSQL cloud database for all app data (users, groups, expenses, balances). Provides real-time sync, offline persistence, and automatic conflict resolution. Built-in SDK caching serves as the offline data layer |
 | **Firebase Cloud Storage** | Receipt images, group cover photos, user avatars |
 
 ### 8.3 API & Communication Design
@@ -395,12 +393,12 @@ Users must be able to track expenses directly with another person **without crea
 ### 8.4 Sync Protocol
 
 ```
-┌─────────────────┐          ┌──────────────────────┐
-│  Local Cache     │◄────────►│  Firestore SDK       │
-│ (Hive/sqflite)  │          │  (offline persistence │
-│                  │          │   + sync engine)      │
-└─────────────────┘          └──────────┬────────────┘
-                                        │
+┌─────────────────────────────────┐
+│  Firestore SDK                  │
+│  (offline persistence +         │
+│   local cache + sync engine)    │
+└────────────────┬────────────────┘
+                 │
                         ┌───────────────▼───────────────┐
                         │   Cloud Firestore (Backend)   │
                         │  - Real-time sync             │
@@ -420,7 +418,7 @@ Users must be able to track expenses directly with another person **without crea
 - **Firestore offline persistence** enabled by default — SDK handles caching, queuing, and sync automatically
 - Conflict resolution: Firestore's last-write-wins for standard fields; Cloud Functions validate critical fields (e.g., amount changes trigger audit log entries)
 - Sync granularity: Per-document (Firestore native)
-- Additional local storage (Hive/sqflite) for app-specific caches, drafts, and computed data not stored in Firestore
+- Firestore SDK's built-in local cache handles drafts, computed data, and app-specific state without a separate local database
 
 ---
 
@@ -612,7 +610,7 @@ For expenses between two friends (outside any group), the balance is a single ne
 ## 15. Open Questions for Architecture Discussion
 
 1. **Flutter state management** — Riverpod vs Bloc vs Provider? Recommend based on team familiarity and app complexity.
-2. **Local storage strategy** — Hive vs sqflite vs Isar for offline-first caching alongside Firestore? Trade-offs between performance, query capability, and Firestore sync.
+2. **Database strategy** — Firestore is used as the sole database with built-in offline persistence. No separate local database is needed.
 3. **Firestore data modeling** — Optimal document/collection structure for expenses, balances, and groups? Subcollections vs root collections? Denormalization strategy for read performance.
 4. **Cloud Functions runtime** — Node.js (TypeScript) vs Python vs Go for Cloud Functions?
 5. **Receipt OCR** — Google Cloud Vision API (via Cloud Functions) vs Firebase ML Kit (on-device)?
@@ -632,7 +630,7 @@ For expenses between two friends (outside any group), the balance is a single ne
 | **Settlement** | A payment made from one user to another to reduce or clear a debt |
 | **Friend Pair** | A 1:1 relationship between two users for tracking expenses outside of groups. Identified by canonical pair ID: `min(userA, userB)_max(userA, userB)` |
 | **Debt Simplification** | Algorithm to reduce the number of individual transactions needed to settle all debts in a group (not needed for 1:1 friend pairs) |
-| **Sync** | The process of reconciling local (offline) data with the cloud database |
+| **Sync** | The process of reconciling locally cached (offline) Firestore data with the cloud database, handled automatically by the Firestore SDK |
 | **Guest User** | A participant in a group who does not have a registered account |
 
 ---

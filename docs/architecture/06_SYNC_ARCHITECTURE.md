@@ -1,7 +1,7 @@
 # One By Two — Sync Architecture & Offline-First Design
 
-> **Version:** 1.1  
-> **Last Updated:** 2026-02-14
+> **Version:** 2.0  
+> **Last Updated:** 2025-07-15
 
 ---
 
@@ -11,11 +11,20 @@ The app must be **fully functional without internet**. Users should never be blo
 
 ### Core Principles
 
-1. **Local DB (sqflite) is the UI's source of truth** — all reads come from local DB
-2. **Write-local-first** — all mutations save locally before syncing
-3. **Background sync** — Firestore sync happens asynchronously
-4. **Conflict resolution** — deterministic rules for handling concurrent edits
-5. **Transparent status** — user always knows sync state (✓ synced, ↑ pending, ⚠ conflict)
+1. **Firestore SDK is the source of truth** — with built-in offline cache, all reads and writes go through the Firestore SDK
+2. **Write-through-SDK** — all mutations are written to the Firestore SDK, which caches locally and syncs to the cloud automatically
+3. **Automatic sync** — the Firestore SDK handles queuing pending writes and syncing when connectivity resumes; no custom sync engine needed
+4. **Last-write-wins by default** — Firestore's server timestamps determine the winner; transactions used for atomic operations requiring consistency
+5. **Transparent connectivity** — user sees offline banner when disconnected; writes continue seamlessly against the local cache
+
+### How Firestore Offline Persistence Works
+
+Firestore SDK (enabled via `settings.persistenceEnabled = true`) maintains a **local disk cache** of all documents the client has read or written. This means:
+
+- **Reads**: The SDK returns data from the local cache instantly. When online, it also listens for server updates and merges them into the cache. Snapshot listeners fire for both cached and server data.
+- **Writes**: The SDK accepts writes immediately (even offline) and queues them internally. When connectivity resumes, the SDK replays pending writes to the server in order. The app never needs to manage a sync queue.
+- **Cache size**: Configurable via `settings.cacheSizeBytes`. Default is 100MB. When the cache exceeds the configured size, Firestore garbage-collects the least-recently-used documents.
+- **Metadata**: Each snapshot includes `metadata.isFromCache` and `metadata.hasPendingWrites`, allowing the UI to show sync state without custom tracking.
 
 ---
 
@@ -26,55 +35,39 @@ The app must be **fully functional without internet**. Users should never be blo
 │                    SYNC ARCHITECTURE                             │
 │                                                                  │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐ │
-│  │     UI       │────>│  Repository  │────>│  Local sqflite   │ │
-│  │  (Riverpod)  │     │  (write)     │     │  (immediate save)│ │
-│  │              │<────│              │     │                  │ │
-│  │              │     │              │     │  sync_status =   │ │
-│  │              │     │              │     │  'pending'       │ │
-│  └──────────────┘     └──────┬───────┘     └────────┬─────────┘ │
-│                              │                      │            │
-│                              │              ┌───────▼──────────┐ │
-│                              │              │   Sync Queue     │ │
-│                              │              │   (sync_queue    │ │
-│                              │              │    table)        │ │
-│                              │              └───────┬──────────┘ │
-│                              │                      │            │
-│                              │              ┌───────▼──────────┐ │
-│                              │              │   Sync Engine    │ │
-│                              │              │                  │ │
-│                              │              │ • Watches queue  │ │
-│                              │              │ • Watches network│ │
-│                              │              │ • Processes ops  │ │
-│                              │              └───────┬──────────┘ │
-│                              │                      │            │
-│  ════════════════════════════╪══════════════════════╪════════════│
-│                   NETWORK BOUNDARY                  │            │
-│  ════════════════════════════╪══════════════════════╪════════════│
-│                              │                      │            │
-│                              │              ┌───────▼──────────┐ │
-│                              │              │   Firestore      │ │
-│                              └──────────────│   (cloud DB)     │ │
+│  │     UI       │────>│  Repository  │────>│  Firestore SDK   │ │
+│  │  (Riverpod)  │     │  (write)     │     │                  │ │
+│  │              │<────│              │<────│  • Local cache   │ │
+│  │              │     │  (read via   │     │    (disk-backed) │ │
+│  │              │     │   streams)   │     │  • Pending write │ │
+│  │              │     │              │     │    queue (auto)  │ │
+│  └──────────────┘     └──────────────┘     └────────┬─────────┘ │
+│                                                      │           │
+│  ════════════════════════════════════════════════════╪═══════════│
+│                   NETWORK BOUNDARY                   │           │
+│  ════════════════════════════════════════════════════╪═══════════│
+│                                                      │           │
+│                                             ┌────────▼─────────┐ │
+│                                             │  Cloud Firestore │ │
+│                                             │  (asia-south1)   │ │
 │                                             │                  │ │
-│                        ┌────────────────────│ • Real-time      │ │
-│                        │                    │   listeners      │ │
-│                        │                    │ • Offline cache  │ │
-│                        │                    └──────────────────┘ │
-│                        │                                         │
-│                ┌───────▼──────────┐                              │
-│                │  Firestore       │                              │
-│                │  Listener        │                              │
-│                │  Handler         │                              │
-│                │                  │                              │
-│                │  On remote       │                              │
-│                │  change:         │                              │
-│                │  • Update local  │                              │
-│                │    sqflite       │                              │
-│                │  • Notify UI     │                              │
-│                │    via Stream    │                              │
-│                └──────────────────┘                              │
+│                                             │ • Authoritative  │ │
+│                                             │   data store     │ │
+│                                             │ • Real-time sync │ │
+│                                             │ • Security Rules │ │
+│                                             └────────┬─────────┘ │
+│                                                      │           │
+│                                             ┌────────▼─────────┐ │
+│                                             │ Cloud Functions  │ │
+│                                             │ • Recalc balance │ │
+│                                             │ • Send push notif│ │
+│                                             │ • Activity log   │ │
+│                                             └──────────────────┘ │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Key simplification**: There is no separate local database, sync queue, or sync engine. The Firestore SDK's built-in offline cache replaces all of these. The Repository layer talks exclusively to the Firestore SDK, which transparently handles caching and synchronization.
 
 ---
 
@@ -97,64 +90,65 @@ The app must be **fully functional without internet**. Users should never be blo
 │                 │                                                │
 │       ┌─────────▼─────────┐                                     │
 │       │ 2. GENERATE ID    │  UUID v4 on device                  │
-│       │    SET version = 1│                                     │
 │       └─────────┬─────────┘                                     │
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
-│       │ 3. SAVE TO LOCAL sqflite                   │            │
-│       │    - expenses table (sync_status = pending)│            │
-│       │    - expense_payers table                  │            │
-│       │    - expense_splits table                  │            │
-│       │    - expense_items table (if itemized)     │            │
-│       │    Transaction: all-or-nothing             │            │
+│       │ 3. WRITE TO FIRESTORE SDK                  │            │
+│       │    Uses batched write for atomicity:        │            │
+│       │    batch.set(expenseDoc, expenseData)       │            │
+│       │    batch.set(payerDocs, payerData)          │            │
+│       │    batch.set(splitDocs, splitData)          │            │
+│       │    batch.set(itemDocs, itemData) // if any  │            │
+│       │    await batch.commit()                     │            │
+│       │                                             │            │
+│       │    SDK behavior:                            │            │
+│       │    • Online → writes to server immediately  │            │
+│       │    • Offline → writes to local cache,       │            │
+│       │      queued for server sync automatically   │            │
 │       └─────────┬──────────────────────────────────┘            │
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
-│       │ 4. RECALCULATE LOCAL BALANCES              │            │
-│       │    GROUP: Update group_balances table      │            │
-│       │           Update groups.my_balance         │            │
-│       │    FRIEND: Update friends.balance           │            │
+│       │ 4. RETURN SUCCESS TO UI (< 200ms)          │            │
+│       │    Firestore SDK confirms write to cache    │            │
+│       │    instantly — no network round-trip needed  │            │
+│       │                                             │            │
+│       │    - Snapshot listener fires immediately     │            │
+│       │      with hasPendingWrites = true            │            │
+│       │    - Expense appears in list instantly       │            │
+│       │    - Show undo snackbar (30s)                │            │
 │       └─────────┬──────────────────────────────────┘            │
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
-│       │ 5. LOG ACTIVITY LOCALLY                    │            │
-│       │    - Insert into activity_log table         │            │
-│       └─────────┬──────────────────────────────────┘            │
-│                 │                                                │
-│       ┌─────────▼──────────────────────────────────┐            │
-│       │ 6. ENQUEUE SYNC OPERATION                  │            │
-│       │    sync_queue.insert({                      │            │
-│       │      entity_type: 'expense',                │            │
-│       │      entity_id: expense.id,                 │            │
-│       │      operation: 'create',                   │            │
-│       │      payload_json: serializedExpense,        │            │
-│       │      context_type: 'group' | 'friend',      │            │
-│       │      context_id: groupId | friendPairId,    │            │
-│       │      status: 'pending'                      │            │
-│       │    })                                       │            │
-│       └─────────┬──────────────────────────────────┘            │
-│                 │                                                │
-│       ┌─────────▼──────────────────────────────────┐            │
-│       │ 7. RETURN SUCCESS TO UI (< 500ms)          │            │
-│       │    - Show expense in list                   │            │
-│       │    - Show "↑ pending" sync badge            │            │
-│       │    - Show undo snackbar (30s)               │            │
-│       └─────────┬──────────────────────────────────┘            │
-│                 │                                                │
-│       ┌─────────▼──────────────────────────────────┐            │
-│       │ 8. SYNC ENGINE (async, non-blocking)       │            │
+│       │ 5. SDK SYNCS TO CLOUD (automatic)          │            │
 │       │    IF online:                               │            │
-│       │      - Process sync queue                   │            │
-│       │      - Write to Firestore                   │            │
-│       │      - On success: sync_status = 'synced'   │            │
-│       │      - On failure: retry with backoff        │            │
+│       │      - SDK sends write to Cloud Firestore   │            │
+│       │      - Snapshot listener fires again with   │            │
+│       │        hasPendingWrites = false              │            │
+│       │      - Cloud Functions triggered:            │            │
+│       │        • Recalculate balances               │            │
+│       │        • Log activity                       │            │
+│       │        • Send push notifications            │            │
 │       │    ELSE:                                    │            │
-│       │      - Queue remains pending                │            │
-│       │      - Processed when connectivity returns  │            │
+│       │      - SDK holds write in pending queue     │            │
+│       │      - Synced automatically when online     │            │
 │       └────────────────────────────────────────────┘            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Write Patterns by Operation Type
+
+| Operation       | Firestore Method           | Atomicity                      |
+|-----------------|----------------------------|--------------------------------|
+| Add expense     | `WriteBatch` (multi-doc)   | All docs written atomically    |
+| Edit expense    | `Transaction` (read+write) | Ensures consistent update      |
+| Delete expense  | `update({isDeleted: true})`| Soft delete, single field      |
+| Add settlement  | `WriteBatch` (multi-doc)   | Settlement + balance update    |
+| Create group    | `WriteBatch` (multi-doc)   | Group doc + member subdocs     |
+
+### Server Timestamps
+
+All documents include `createdAt` and `updatedAt` fields using `FieldValue.serverTimestamp()`. When written offline, these resolve to `null` locally and are assigned by the server upon sync. The UI handles `null` timestamps gracefully by falling back to `DateTime.now()` for display.
 
 ---
 
@@ -173,12 +167,13 @@ The app must be **fully functional without internet**. Users should never be blo
 │  │                                                  │            │
 │  │ Returns: Stream<List<Expense>>                   │            │
 │  │                                                  │            │
-│  │ Source: LOCAL sqflite only                        │            │
-│  │         (never waits for network)                │            │
+│  │ Source: Firestore SDK snapshot listener           │            │
+│  │         (returns cached data when offline,       │            │
+│  │          live data when online)                   │            │
 │  └──────────────┬──────────────────────────────────┘            │
 │                 │                                                │
 │       ┌─────────▼──────────────────────────────────┐            │
-│       │ Concurrent: Firestore Real-Time Listener    │            │
+│       │ Firestore Snapshot Listener                 │            │
 │       │                                             │            │
 │       │ GROUP:                                      │            │
 │       │ firestore.collection('groups/$gid/expenses')│            │
@@ -192,125 +187,93 @@ The app must be **fully functional without internet**. Users should never be blo
 │       │   .orderBy('date', descending: true)        │            │
 │       │   .snapshots()                              │            │
 │       │                                             │            │
-│       │   .listen((snapshot) {                      │            │
-│       │     for each changed doc:                   │            │
-│       │       upsert into local sqflite             │            │
-│       │       // This triggers Stream re-emission   │            │
-│       │   })                                        │            │
+│       │ Behavior:                                   │            │
+│       │ • First emission: data from local cache     │            │
+│       │   (instant, even on cold start)             │            │
+│       │ • Subsequent emissions: live server updates  │            │
+│       │ • snapshot.metadata.isFromCache tells UI     │            │
+│       │   whether data is from cache or server      │            │
 │       └─────────────────────────────────────────────┘            │
 │                                                                  │
 │  Result:                                                         │
-│  • Instant display from local data (even offline)               │
-│  • Live updates when Firestore pushes changes                   │
-│  • UI always reflects latest local state                        │
+│  • Instant display from cached data (even offline)              │
+│  • Live updates when Firestore pushes remote changes            │
+│  • UI reflects local pending writes immediately                 │
+│  • No separate local DB query — single data path                │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Cache vs Server Reads
+
+The Firestore SDK provides fine-grained control over data source:
+
+```dart
+// Default: SDK decides (cache first if available, then server)
+firestore.collection('expenses').snapshots();
+
+// Force server read (useful for pull-to-refresh)
+firestore.collection('expenses').get(GetOptions(source: Source.server));
+
+// Force cache read (useful for instant display)
+firestore.collection('expenses').get(GetOptions(source: Source.cache));
+```
+
+For real-time streams (`snapshots()`), the SDK always returns cached data first, then updates with server data when available. This provides the best of both worlds: instant UI and live updates.
 
 ---
 
-## 5. Sync Engine Details
+## 5. Conflict Resolution
 
-### 5.1 Sync Queue Processing
+### 5.1 Firestore's Default: Last-Write-Wins
+
+Firestore uses **last-write-wins** semantics by default. When two users edit the same document offline, the last write to reach the server overwrites the previous one. For most fields in our app, this is acceptable:
+
+| Field Type         | Strategy            | Rationale                                    |
+|--------------------|---------------------|----------------------------------------------|
+| description, notes | Last-write-wins     | Low-stakes; either version is fine            |
+| category, date     | Last-write-wins     | Low-stakes; either version is fine            |
+| amount, splits     | Transaction-based   | Financial data requires consistency           |
+| isDeleted          | Last-write-wins     | Delete intent should propagate                |
+| group membership   | Server-authoritative| Cloud Function manages canonical member list  |
+
+### 5.2 Transactions for Critical Operations
+
+For operations where consistency matters (e.g., editing an expense's amount), we use Firestore **transactions**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                SYNC QUEUE PROCESSOR                              │
+│            TRANSACTION-BASED EDIT FLOW                           │
 │                                                                  │
-│  Triggers:                                                       │
-│  • App comes online (connectivity change)                       │
-│  • New item enqueued while online                               │
-│  • Manual sync button pressed                                   │
-│  • App returns to foreground                                    │
+│  1. Start Firestore transaction                                 │
+│  2. Read current document from server                           │
+│  3. Validate: has the document changed since user loaded it?    │
+│     • Compare updatedAt timestamp                               │
+│     • If unchanged → apply edits, commit                        │
+│     • If changed → abort, reload latest, prompt user            │
+│  4. On commit: server applies atomically                        │
 │                                                                  │
-│  Processing Loop:                                                │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                                                          │   │
-│  │  1. Query: SELECT * FROM sync_queue                      │   │
-│  │           WHERE status = 'pending'                       │   │
-│  │           ORDER BY created_at ASC                        │   │
-│  │           LIMIT 10                                       │   │
-│  │                                                          │   │
-│  │  2. For each operation:                                  │   │
-│  │     a. Mark status = 'in_progress'                       │   │
-│  │     b. Execute Firestore write                           │   │
-│  │     c. On SUCCESS:                                       │   │
-│  │        - Mark status = 'completed'                       │   │
-│  │        - Update entity sync_status = 'synced'            │   │
-│  │        - Delete from sync_queue                          │   │
-│  │     d. On FAILURE:                                       │   │
-│  │        - Increment retry_count                           │   │
-│  │        - If retry_count < max_retries:                   │   │
-│  │          Mark status = 'pending'                         │   │
-│  │          Apply exponential backoff                       │   │
-│  │        - If retry_count >= max_retries:                  │   │
-│  │          Mark status = 'failed'                          │   │
-│  │          Mark entity sync_status = 'conflict'            │   │
-│  │          Notify user                                     │   │
-│  │                                                          │   │
-│  │  3. Repeat until queue empty or offline                  │   │
-│  │                                                          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Backoff schedule:                                               │
-│  Retry 1: 2s | Retry 2: 4s | Retry 3: 8s |                     │
-│  Retry 4: 16s | Retry 5: 32s (max)                             │
+│  Note: Transactions require network connectivity.               │
+│  If offline, the edit is queued as a regular write              │
+│  (last-write-wins) and the user is informed that the            │
+│  edit will sync when connectivity resumes.                      │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Conflict Resolution Strategy
+### 5.3 Additive Operations
+
+New expenses, new settlements, and new groups use **client-generated UUIDs** as document IDs. Since each document ID is unique, these operations never conflict — they are purely additive and always succeed.
+
+### 5.4 Balance Recalculation
+
+Balances are **not** edited by clients directly. Instead, Cloud Functions listen for expense/settlement changes and recalculate balances server-side. This eliminates balance conflicts entirely:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│               CONFLICT RESOLUTION                                │
-│                                                                  │
-│  Scenario: Two users edit same expense offline                  │
-│                                                                  │
-│  Detection:                                                      │
-│  • Each expense has a `version` field (integer, incremented on  │
-│    every edit)                                                   │
-│  • When pushing to Firestore, Cloud Function checks:            │
-│    IF doc.version != expected_version → CONFLICT                │
-│                                                                  │
-│  Resolution Rules:                                               │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                                                          │   │
-│  │  RULE 1: Delete always wins                              │   │
-│  │  If one party deleted and other edited → delete wins     │   │
-│  │                                                          │   │
-│  │  RULE 2: Last-write-wins for non-critical fields         │   │
-│  │  Fields: description, notes, category, date              │   │
-│  │  Resolution: Server timestamp determines winner          │   │
-│  │                                                          │   │
-│  │  RULE 3: User-prompted for critical fields               │   │
-│  │  Fields: amount, payers, splits                          │   │
-│  │  Resolution:                                             │   │
-│  │  • Mark expense sync_status = 'conflict'                 │   │
-│  │  • Show ⚠ badge on expense in UI                        │   │
-│  │  • User taps → sees both versions side-by-side           │   │
-│  │  • User picks which version to keep                      │   │
-│  │  • Resolved version pushed with incremented version      │   │
-│  │                                                          │   │
-│  │  RULE 4: Additive operations don't conflict              │   │
-│  │  New expense, new settlement → always succeeds           │   │
-│  │  (unique IDs prevent collision)                          │   │
-│  │                                                          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Conflict UI:                                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  ⚠ Conflict: "Lunch at Beach Shack"                     │   │
-│  │                                                          │   │
-│  │  Your version:              Server version:              │   │
-│  │  Amount: ₹2,400             Amount: ₹2,800              │   │
-│  │  Split: 4 people            Split: 5 people              │   │
-│  │  Modified: 2 min ago        Modified: 1 min ago          │   │
-│  │                                                          │   │
-│  │  [Keep Mine]    [Keep Theirs]    [Edit & Merge]          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+Client writes expense → Cloud Function triggers →
+  Recalculates all balances for group/friend →
+    Writes updated balance docs →
+      Clients receive updated balances via snapshot listeners
 ```
 
 ---
@@ -351,37 +314,70 @@ The app must be **fully functional without internet**. Users should never be blo
 │  • Listener started when screen is opened (via Riverpod)        │
 │  • Listener disposed when screen is popped                      │
 │  • Riverpod autoDispose ensures no memory leaks                 │
-│  • Each listener updates local sqflite → triggers UI Stream     │
+│  • Snapshot streams drive UI directly — no intermediate DB      │
 │                                                                  │
 │  Cost optimization:                                              │
-│  • Listen to changed docs only (Firestore diff)                 │
+│  • Listen to changed docs only (Firestore incremental sync)     │
 │  • Use field masks where possible                               │
 │  • Pagination for large collections (expenses)                  │
 │  • Debounce rapid changes (200ms window)                        │
+│                                                                  │
+│  Snapshot metadata:                                              │
+│  • snapshot.metadata.isFromCache — true when data is cached     │
+│  • snapshot.metadata.hasPendingWrites — true when local writes  │
+│    have not yet been confirmed by the server                    │
+│  • docChange.type — 'added', 'modified', 'removed'             │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 7. Sync Status Indicators
+## 7. Connectivity & Sync Status
+
+### 7.1 Connectivity Handling
+
+The app monitors network connectivity to provide appropriate UI feedback. However, unlike a custom sync engine, **no action is needed** on connectivity changes — the Firestore SDK resumes syncing automatically.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              CONNECTIVITY STATE MACHINE                          │
+│                                                                  │
+│  ┌─────────┐    network lost    ┌──────────┐                   │
+│  │ ONLINE  │ ──────────────────>│ OFFLINE  │                   │
+│  │         │                    │          │                   │
+│  │ • Reads │    network back    │ • Reads  │                   │
+│  │   from  │ <──────────────────│   from   │                   │
+│  │   server│                    │   cache  │                   │
+│  │ • Writes│                    │ • Writes │                   │
+│  │   sync  │                    │   queued │                   │
+│  │   live  │                    │   by SDK │                   │
+│  └─────────┘                    └──────────┘                   │
+│                                                                  │
+│  UI behavior:                                                    │
+│  • ONLINE:  No banner. Data streams from server.                │
+│  • OFFLINE: Show offline banner. All features still work.       │
+│             Pending writes indicated via hasPendingWrites.       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 Sync Status Indicators
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │              SYNC STATUS UI                                      │
 │                                                                  │
-│  Status Badge (shown on each expense/settlement card):          │
+│  Determined from Firestore snapshot metadata:                   │
 │                                                                  │
-│  ✓  Synced     — Green checkmark, subtle                       │
-│  ↑  Pending    — Blue upload arrow, pulsing                    │
-│  ⚠  Conflict   — Orange warning, requires user action          │
-│  ✕  Failed     — Red X, tap to retry                           │
+│  ✓  Synced     — hasPendingWrites = false, isFromCache = false  │
+│                  Green checkmark, subtle                        │
+│  ↑  Pending    — hasPendingWrites = true                        │
+│                  Blue upload arrow, shown while offline          │
+│  ☁  Cached     — isFromCache = true, hasPendingWrites = false   │
+│                  Grey cloud icon, data from cache               │
 │                                                                  │
-│  Global Sync Bar (top of screen, shown when syncing):           │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  ↑ Syncing 3 changes...                    [████░░] 60% │   │
-│  └──────────────────────────────────────────────────────────┘   │
+│  No custom sync_status field needed — metadata is live.         │
 │                                                                  │
 │  Offline Banner (shown when no internet):                       │
 │                                                                  │
@@ -419,37 +415,32 @@ The app must be **fully functional without internet**. Users should never be blo
 │                     ┌────────▼────────┐                              │
 │                     │  Repositories   │                              │
 │                     │  (Data Layer)   │                              │
-│                     └───┬─────────┬───┘                              │
-│                         │         │                                   │
-│              ┌──────────▼──┐  ┌───▼──────────┐                      │
-│              │  Local DAO  │  │  Firestore   │                      │
-│              │  (sqflite)  │  │  Source       │                      │
-│              └──────┬──────┘  └───┬──────────┘                      │
-│                     │             │                                   │
-│         ┌───────────▼──┐    ┌────▼───────────┐                      │
-│         │   sqflite    │    │  Sync Engine   │                      │
-│         │   Database   │    │                │                      │
-│         │              │◄───│  Pull: FS →    │                      │
-│         │  • expenses  │    │    Local DB    │                      │
-│         │  • groups    │    │                │                      │
-│         │  • balances  │    │  Push: Queue → │                      │
-│         │  • sync_queue│───►│    Firestore   │                      │
-│         │              │    │                │                      │
-│         └──────────────┘    └────┬───────────┘                      │
-│                                  │                                   │
-│           ═══════════════════════╪═══════════════                    │
-│                                  │                                   │
-│                          ┌───────▼───────────┐                      │
-│                          │  Cloud Firestore  │                      │
-│                          │  (asia-south1)    │                      │
-│                          └───────┬───────────┘                      │
-│                                  │                                   │
-│                          ┌───────▼───────────┐                      │
-│                          │ Cloud Functions   │                      │
-│                          │ • Recalc balances │                      │
-│                          │ • Send push notif │                      │
-│                          │ • Activity log    │                      │
-│                          └───────────────────┘                      │
+│                     └────────┬────────┘                              │
+│                              │                                       │
+│                     ┌────────▼────────┐                              │
+│                     │  Firestore SDK  │                              │
+│                     │                 │                              │
+│                     │  • Local cache  │                              │
+│                     │    (disk-backed)│                              │
+│                     │  • Pending write│                              │
+│                     │    queue (auto) │                              │
+│                     │  • Snapshot     │                              │
+│                     │    listeners    │                              │
+│                     └────────┬────────┘                              │
+│                              │                                       │
+│           ═══════════════════╪═══════════════                        │
+│                              │                                       │
+│                     ┌────────▼────────┐                              │
+│                     │ Cloud Firestore │                              │
+│                     │ (asia-south1)   │                              │
+│                     └────────┬────────┘                              │
+│                              │                                       │
+│                     ┌────────▼────────┐                              │
+│                     │ Cloud Functions │                              │
+│                     │ • Recalc balance│                              │
+│                     │ • Send push ntf │                              │
+│                     │ • Activity log  │                              │
+│                     └─────────────────┘                              │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```

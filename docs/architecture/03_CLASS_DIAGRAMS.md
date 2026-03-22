@@ -11,7 +11,7 @@
 lib/
 ├── main.dart                         # App entry point
 ├── app.dart                          # MaterialApp + GoRouter setup
-├── bootstrap.dart                    # Initialization (DI, DB, Firebase)
+├── bootstrap.dart                    # Initialization (DI, Firebase)
 │
 ├── core/                             # Shared infrastructure
 │   ├── constants/
@@ -60,39 +60,28 @@ lib/
 │   │   ├── empty_state.dart
 │   │   ├── error_widget.dart
 │   │   ├── loading_widget.dart
-│   │   └── sync_status_badge.dart
+│   │   └── connectivity_badge.dart
 │   └── l10n/                         # Internationalization
 │       ├── app_en.arb
 │       └── app_hi.arb
 │
 ├── data/                              # Data layer
 │   ├── local/
-│   │   ├── database/
-│   │   │   ├── app_database.dart      # sqflite initialization & migrations
-│   │   │   └── migration/
-│   │   │       ├── migration_v1.dart
-│   │   │       └── migration_runner.dart
-│   │   ├── dao/                       # Data Access Objects
-│   │   │   ├── user_dao.dart
-│   │   │   ├── group_dao.dart
-│   │   │   ├── expense_dao.dart
-│   │   │   ├── settlement_dao.dart
-│   │   │   ├── balance_dao.dart
-│   │   │   ├── friend_dao.dart
-│   │   │   ├── activity_dao.dart
-│   │   │   ├── notification_dao.dart
-│   │   │   ├── sync_queue_dao.dart
-│   │   │   └── draft_dao.dart
 │   │   └── preferences/
 │   │       └── app_preferences.dart
 │   │
 │   ├── remote/
 │   │   ├── firestore/
+│   │   │   ├── firestore_config.dart          # Firestore initialization & configuration
 │   │   │   ├── user_firestore_source.dart
 │   │   │   ├── group_firestore_source.dart
 │   │   │   ├── expense_firestore_source.dart
 │   │   │   ├── settlement_firestore_source.dart
+│   │   │   ├── balance_firestore_source.dart
 │   │   │   ├── friend_firestore_source.dart
+│   │   │   ├── activity_firestore_source.dart
+│   │   │   ├── notification_firestore_source.dart
+│   │   │   ├── draft_firestore_source.dart
 │   │   │   └── invite_firestore_source.dart
 │   │   ├── cloud_functions/
 │   │   │   ├── functions_client.dart
@@ -116,7 +105,7 @@ lib/
 │   │   ├── friend_model.dart
 │   │   ├── activity_model.dart
 │   │   ├── notification_model.dart
-│   │   └── sync_queue_model.dart
+│   │   └── draft_model.dart
 │   │
 │   ├── mappers/                       # Entity ↔ Model mappers
 │   │   ├── user_mapper.dart
@@ -125,22 +114,16 @@ lib/
 │   │   ├── settlement_mapper.dart
 │   │   └── friend_mapper.dart
 │   │
-│   ├── repositories/                  # Repository implementations
-│   │   ├── auth_repository_impl.dart
-│   │   ├── user_repository_impl.dart
-│   │   ├── group_repository_impl.dart
-│   │   ├── expense_repository_impl.dart
-│   │   ├── settlement_repository_impl.dart
-│   │   ├── balance_repository_impl.dart
-│   │   ├── friend_repository_impl.dart
-│   │   ├── notification_repository_impl.dart
-│   │   └── analytics_repository_impl.dart
-│   │
-│   └── sync/                          # Sync engine
-│       ├── sync_engine.dart
-│       ├── sync_worker.dart
-│       ├── conflict_resolver.dart
-│       └── sync_status_notifier.dart
+│   └── repositories/                  # Repository implementations
+│       ├── auth_repository_impl.dart
+│       ├── user_repository_impl.dart
+│       ├── group_repository_impl.dart
+│       ├── expense_repository_impl.dart
+│       ├── settlement_repository_impl.dart
+│       ├── balance_repository_impl.dart
+│       ├── friend_repository_impl.dart
+│       ├── notification_repository_impl.dart
+│       └── analytics_repository_impl.dart
 │
 ├── domain/                            # Domain layer (pure Dart)
 │   ├── entities/
@@ -235,8 +218,7 @@ lib/
 │   │   ├── friend_providers.dart
 │   │   ├── notification_providers.dart
 │   │   ├── analytics_providers.dart
-│   │   ├── connectivity_provider.dart
-│   │   └── sync_providers.dart
+│   │   └── connectivity_provider.dart
 │   │
 │   └── features/                      # Feature modules
 │       ├── auth/
@@ -399,8 +381,7 @@ lib/
 │  │ + isRecurring: bool    │        │ + amountOwed: Amt│           │
 │  │ + recurringRule: Rule? │        │ + percentage: ?  │           │
 │  │ + version: int         │        │ + shares: double?│           │
-│  │ + syncStatus: SyncStat │        └──────────────────┘           │
-│  └────────────────────────┘                                       │
+│  └────────────────────────┘        └──────────────────┘           │
 │                                     ┌──────────────────┐          │
 │  ┌────────────────────────┐         │  ExpenseItem     │          │
 │  │     Settlement         │         │──────────────────│          │
@@ -413,8 +394,8 @@ lib/
 │  │ + date: DateTime       │        │     Balance          │       │
 │  │ + notes: String?       │        │──────────────────────│       │
 │  │ + version: int         │        │ + groupId: String    │       │
-│  │ + syncStatus: SyncStat │        │ + userAId: String    │       │
-│  └────────────────────────┘        │ + userBId: String    │       │
+│  └────────────────────────┘        │ + userAId: String    │       │
+│                                    │ + userBId: String    │       │
 │                                    │ + amount: Amount     │       │
 │                                    └──────────────────────┘       │
 │                                                                    │
@@ -426,7 +407,6 @@ lib/
 │  │ + userBId: String      │  (lexicographically larger)           │
 │  │ + balance: Amount      │  +ve = A owes B                      │
 │  │ + lastActivityAt: DateTime?                                    │
-│  │ + syncStatus: SyncStat │                                       │
 │  └────────────────────────┘                                       │
 │                                                                    │
 │  ┌──────── ENUMS ─────────────────────────────────────────────┐   │
@@ -438,7 +418,6 @@ lib/
 │  │  ExpenseCategory: food | transport | groceries | rent |    │   │
 │  │    entertainment | utilities | shopping | health | travel | │   │
 │  │    other                                                    │   │
-│  │  SyncStatus: synced | pending | conflict                   │   │
 │  │  AppLocale: en | hi                                        │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────┘
@@ -605,25 +584,18 @@ lib/
 │  │          ExpenseRepositoryImpl                            │   │
 │  │  implements ExpenseRepository                             │   │
 │  │──────────────────────────────────────────────────────────│   │
-│  │ - _expenseDao: ExpenseDao          (local sqflite)        │   │
-│  │ - _firestoreSource: ExpenseFS      (remote Firestore)     │   │
-│  │ - _syncQueue: SyncQueueDao         (pending sync ops)     │   │
+│  │ - _expenseDataSource: ExpenseFirestoreSource (Firestore)  │   │
 │  │ - _connectivity: ConnectivitySvc   (network state)        │   │
 │  │──────────────────────────────────────────────────────────│   │
 │  │                                                            │   │
 │  │  addExpense(expense):                                      │   │
 │  │    1. Validate expense data                                │   │
-│  │    2. Save to local sqflite (sync_status = 'pending')      │   │
-│  │    3. Recalculate local balances                           │   │
-│  │    4. Log to local activity                                │   │
-│  │    5. Enqueue sync operation                               │   │
-│  │    6. If online → trigger immediate sync                   │   │
-│  │    7. Return success (from local data)                     │   │
+│  │    2. Save to Firestore (SDK handles offline caching)      │   │
+│  │    3. Return success                                       │   │
 │  │                                                            │   │
 │  │  getExpenses(gid):                                         │   │
-│  │    1. Return Stream from local sqflite                     │   │
-│  │    2. Firestore listener updates local DB in background    │   │
-│  │    3. Local DB changes re-emit via Stream                  │   │
+│  │    1. Return Stream from Firestore snapshot listener       │   │
+│  │    2. Firestore SDK provides offline-first reads           │   │
 │  │                                                            │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
@@ -631,65 +603,16 @@ lib/
 │  │                                                          │    │
 │  │  UI ──reads──> Provider ──reads──> Repository            │    │
 │  │                                       │                  │    │
-│  │                                  ┌────┴────┐             │    │
-│  │                                  │         │             │    │
-│  │                              Local DAO  Firestore        │    │
-│  │                              (sqflite)  (listener)       │    │
-│  │                                  │         │             │    │
-│  │                                  └────┬────┘             │    │
+│  │                                   Firestore              │    │
+│  │                                   (Firestore SDK)        │    │
 │  │                                       │                  │    │
 │  │  UI <──stream── Provider <──stream── Repository          │    │
 │  │                                                          │    │
+│  │  Note: Firestore SDK handles offline caching and         │    │
+│  │  automatic sync when connectivity is restored.           │    │
+│  │                                                          │    │
 │  └──────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
-```
-
-### 2.5 Sync Engine
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                      SYNC ENGINE                               │
-│                                                                │
-│  ┌────────────────────────────────┐                           │
-│  │         SyncEngine             │                           │
-│  │────────────────────────────────│                           │
-│  │ - _syncQueue: SyncQueueDao     │                           │
-│  │ - _connectivity: ConnSvc       │                           │
-│  │ - _workers: Map<String, Worker>│                           │
-│  │────────────────────────────────│                           │
-│  │ + initialize(): void           │  Start listeners          │
-│  │ + syncNow(): Future<void>      │  Manual trigger           │
-│  │ + enqueue(SyncOp): Future<>    │  Add to queue             │
-│  │ + status: Stream<SyncState>    │  syncing|synced|error     │
-│  │ + pendingCount: Stream<int>    │  Unsynced item count      │
-│  └──────────┬─────────────────────┘                           │
-│             │                                                  │
-│             │ delegates to                                     │
-│             │                                                  │
-│  ┌──────────▼─────────────────────┐                           │
-│  │         SyncWorker             │  Per-entity-type worker    │
-│  │────────────────────────────────│                           │
-│  │ + processQueue(): Future<void> │                           │
-│  │ + pushToFirestore(op): Future  │                           │
-│  │ + pullFromFirestore(): Future  │                           │
-│  │ + resolveConflict(local,       │                           │
-│  │     remote): Resolution        │                           │
-│  └────────────────────────────────┘                           │
-│                                                                │
-│  ┌────────────────────────────────┐                           │
-│  │      ConflictResolver          │                           │
-│  │────────────────────────────────│                           │
-│  │ + resolve(local, remote):      │                           │
-│  │     ConflictResolution         │                           │
-│  │                                │                           │
-│  │  Strategy:                     │                           │
-│  │  1. Compare versions           │                           │
-│  │  2. Last-write-wins for most   │                           │
-│  │  3. Amount conflicts → notify  │                           │
-│  │     user for manual resolution │                           │
-│  │  4. Delete always wins         │                           │
-│  └────────────────────────────────┘                           │
-└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -705,26 +628,24 @@ lib/
 │  │  firebaseAuthProvider ─────► FirebaseAuth instance             │
 │  │  firestoreProvider ────────► FirebaseFirestore instance         │
 │  │  storageProvider ──────────► FirebaseStorage instance           │
-│  │  databaseProvider ─────────► sqflite Database instance          │
 │  │  connectivityProvider ─────► ConnectivityService                │
 │  │                                                                │
 │  ── Data Source Providers ─────────────────────────────────────── │
 │  │                                                                │
-│  │  userDaoProvider ──────────► UserDao(database)                  │
-│  │  groupDaoProvider ─────────► GroupDao(database)                 │
-│  │  expenseDaoProvider ───────► ExpenseDao(database)               │
-│  │  syncQueueDaoProvider ─────► SyncQueueDao(database)             │
 │  │  userFirestoreProvider ────► UserFirestoreSource(firestore)     │
 │  │  groupFirestoreProvider ───► GroupFirestoreSource(firestore)    │
 │  │  expenseFirestoreProvider ─► ExpenseFirestoreSource(firestore)  │
+│  │  settlementFSProvider ────►  SettlementFirestoreSource(fs)     │
+│  │  balanceFirestoreProvider ─► BalanceFirestoreSource(firestore)  │
+│  │  friendFirestoreProvider ──► FriendFirestoreSource(firestore)   │
 │  │                                                                │
 │  ── Repository Providers ──────────────────────────────────────── │
 │  │                                                                │
-│  │  authRepoProvider ────────► AuthRepositoryImpl(auth, dao, fs)   │
-│  │  groupRepoProvider ───────► GroupRepositoryImpl(dao, fs, sync)   │
-│  │  expenseRepoProvider ─────► ExpenseRepositoryImpl(dao, fs, sync)│
-│  │  settlementRepoProvider ──► SettlementRepoImpl(dao, fs, sync)   │
-│  │  balanceRepoProvider ─────► BalanceRepositoryImpl(dao)          │
+│  │  authRepoProvider ────────► AuthRepositoryImpl(auth, userFS)    │
+│  │  groupRepoProvider ───────► GroupRepositoryImpl(groupFS)        │
+│  │  expenseRepoProvider ─────► ExpenseRepositoryImpl(expenseFS)    │
+│  │  settlementRepoProvider ──► SettlementRepoImpl(settlementFS)    │
+│  │  balanceRepoProvider ─────► BalanceRepositoryImpl(balanceFS)    │
 │  │                                                                │
 │  ── Use Case Providers ────────────────────────────────────────── │
 │  │                                                                │
@@ -741,7 +662,6 @@ lib/
 │  │  expenseListProvider(gid)► StreamProvider<List<Expense>>        │
 │  │  balanceProvider(gid) ───► StreamProvider<List<Balance>>        │
 │  │  overallBalanceProvider ─► StreamProvider<Amount>               │
-│  │  syncStatusProvider ─────► StreamProvider<SyncState>            │
 │  │  notificationProvider ───► StreamProvider<List<Notification>>   │
 │  │                                                                │
 │  ── Action Providers (mutations) ──────────────────────────────── │
