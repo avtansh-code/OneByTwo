@@ -148,6 +148,11 @@ jobs:
             echo "✅ No suspect double-for-money patterns found"
           fi
 
+      - name: "Run custom lint checks (S0-08d)"
+        run: |
+          chmod +x scripts/lint-checks.sh
+          ./scripts/lint-checks.sh
+
   # ===========================================================================
   # Job 4 — Architecture Compliance
   # ===========================================================================
