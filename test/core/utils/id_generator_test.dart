@@ -85,10 +85,7 @@ void main() {
         final compactId = IdGenerator.generateCompact();
         // A standard UUID v4 without hyphens is exactly 32 hex chars
         expect(compactId.length, equals(32));
-        expect(
-          RegExp(r'^[0-9a-f]{32}$').hasMatch(compactId),
-          isTrue,
-        );
+        expect(RegExp(r'^[0-9a-f]{32}$').hasMatch(compactId), isTrue);
       });
     });
   });

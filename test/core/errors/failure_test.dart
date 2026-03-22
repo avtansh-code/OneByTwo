@@ -53,10 +53,7 @@ void main() {
       });
 
       test('should preserve exception details', () {
-        const exception = AuthException(
-          'Token expired',
-          code: 'token-expired',
-        );
+        const exception = AuthException('Token expired', code: 'token-expired');
         final result = Result<String>.failure(exception);
 
         final failure = result as Failure<String>;
@@ -74,18 +71,14 @@ void main() {
       });
 
       test('should return false for Failure', () {
-        final result = Result<int>.failure(
-          const NetworkException('error'),
-        );
+        final result = Result<int>.failure(const NetworkException('error'));
         expect(result.isSuccess, isFalse);
       });
     });
 
     group('isFailure', () {
       test('should return true for Failure', () {
-        final result = Result<int>.failure(
-          const NetworkException('error'),
-        );
+        final result = Result<int>.failure(const NetworkException('error'));
         expect(result.isFailure, isTrue);
       });
 
@@ -288,9 +281,7 @@ void main() {
 
       test('Success and Failure should never be equal', () {
         final success = Result<int>.success(42);
-        final failure = Result<int>.failure(
-          const NetworkException('error'),
-        );
+        final failure = Result<int>.failure(const NetworkException('error'));
 
         expect(success, isNot(equals(failure)));
       });
@@ -301,9 +292,7 @@ void main() {
       });
 
       test('identical Failure should be equal', () {
-        final result = Result<int>.failure(
-          const NetworkException('error'),
-        );
+        final result = Result<int>.failure(const NetworkException('error'));
         expect(result, equals(result));
       });
     });

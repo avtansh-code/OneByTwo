@@ -157,17 +157,11 @@ void main() {
       test('should reject name exceeding max length', () {
         final name = 'A' * 51;
         expect(Validators.groupName(name), isNotNull);
-        expect(
-          Validators.groupName(name),
-          contains('50 characters or fewer'),
-        );
+        expect(Validators.groupName(name), contains('50 characters or fewer'));
       });
 
       test('should reject null', () {
-        expect(
-          Validators.groupName(null),
-          equals('Group name is required'),
-        );
+        expect(Validators.groupName(null), equals('Group name is required'));
       });
 
       test('should reject empty string', () {
@@ -175,10 +169,7 @@ void main() {
       });
 
       test('should reject whitespace-only', () {
-        expect(
-          Validators.groupName('   '),
-          equals('Group name is required'),
-        );
+        expect(Validators.groupName('   '), equals('Group name is required'));
       });
     });
 
@@ -400,18 +391,12 @@ void main() {
 
       test('should reject negative', () {
         expect(Validators.percentage('-1'), isNotNull);
-        expect(
-          Validators.percentage('-1'),
-          contains('between 0 and 100'),
-        );
+        expect(Validators.percentage('-1'), contains('between 0 and 100'));
       });
 
       test('should reject above 100', () {
         expect(Validators.percentage('101'), isNotNull);
-        expect(
-          Validators.percentage('101'),
-          contains('between 0 and 100'),
-        );
+        expect(Validators.percentage('101'), contains('between 0 and 100'));
       });
 
       test('should reject non-numeric', () {
@@ -420,10 +405,7 @@ void main() {
       });
 
       test('should reject null', () {
-        expect(
-          Validators.percentage(null),
-          equals('Percentage is required'),
-        );
+        expect(Validators.percentage(null), equals('Percentage is required'));
       });
 
       test('should reject empty string', () {
@@ -444,18 +426,12 @@ void main() {
 
       test('should reject "0"', () {
         expect(Validators.shares('0'), isNotNull);
-        expect(
-          Validators.shares('0'),
-          contains('greater than zero'),
-        );
+        expect(Validators.shares('0'), contains('greater than zero'));
       });
 
       test('should reject negative integer', () {
         expect(Validators.shares('-1'), isNotNull);
-        expect(
-          Validators.shares('-1'),
-          contains('greater than zero'),
-        );
+        expect(Validators.shares('-1'), contains('greater than zero'));
       });
 
       test('should reject non-integer "3.5"', () {
@@ -469,17 +445,11 @@ void main() {
       });
 
       test('should reject null', () {
-        expect(
-          Validators.shares(null),
-          equals('Shares value is required'),
-        );
+        expect(Validators.shares(null), equals('Shares value is required'));
       });
 
       test('should reject empty string', () {
-        expect(
-          Validators.shares(''),
-          equals('Shares value is required'),
-        );
+        expect(Validators.shares(''), equals('Shares value is required'));
       });
     });
   });

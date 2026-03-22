@@ -6,12 +6,14 @@ void main() {
     // ── Phone number masking ────────────────────────────────────────────
 
     group('sanitize – phone numbers', () {
-      test('should mask 10-digit Indian phone number showing last 2 digits',
-          () {
-        final result = PiiSanitizer.sanitize('Call me at 9876543210');
-        expect(result, contains('XXXXXXXX10'));
-        expect(result, isNot(contains('98765432')));
-      });
+      test(
+        'should mask 10-digit Indian phone number showing last 2 digits',
+        () {
+          final result = PiiSanitizer.sanitize('Call me at 9876543210');
+          expect(result, contains('XXXXXXXX10'));
+          expect(result, isNot(contains('98765432')));
+        },
+      );
 
       test('should mask +91 prefixed phone number', () {
         final result = PiiSanitizer.sanitize('Phone: +919876543210');
@@ -70,9 +72,7 @@ void main() {
       });
 
       test('should mask multiple emails in the same string', () {
-        final result = PiiSanitizer.sanitize(
-          'alice@a.com and bob@b.com',
-        );
+        final result = PiiSanitizer.sanitize('alice@a.com and bob@b.com');
         expect(result, contains('a***@a.com'));
         expect(result, contains('b***@b.com'));
       });
@@ -126,17 +126,19 @@ void main() {
         expect(result['token'], equals('abcd***'));
       });
 
-      test('should not mask sensitive keys when value is short (<=10 chars)',
-          () {
-        final data = <String, dynamic>{
-          'token': 'short', // 5 chars <= 10
-        };
+      test(
+        'should not mask sensitive keys when value is short (<=10 chars)',
+        () {
+          final data = <String, dynamic>{
+            'token': 'short', // 5 chars <= 10
+          };
 
-        final result = PiiSanitizer.sanitizeMap(data);
+          final result = PiiSanitizer.sanitizeMap(data);
 
-        // Short sensitive values are passed through sanitize() instead
-        expect(result['token'], equals('short'));
-      });
+          // Short sensitive values are passed through sanitize() instead
+          expect(result['token'], equals('short'));
+        },
+      );
 
       test('should mask all sensitive key names', () {
         final sensitiveKeys = [

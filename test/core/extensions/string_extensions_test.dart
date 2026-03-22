@@ -76,10 +76,7 @@ void main() {
       });
 
       test('should use custom ellipsis', () {
-        expect(
-          'Hello World'.truncate(5, ellipsis: '...'),
-          equals('Hello...'),
-        );
+        expect('Hello World'.truncate(5, ellipsis: '...'), equals('Hello...'));
       });
 
       test('should handle empty string', () {
@@ -115,17 +112,11 @@ void main() {
       });
 
       test('should respect count parameter', () {
-        expect(
-          'Alice Bob Charlie'.initials(count: 3),
-          equals('ABC'),
-        );
+        expect('Alice Bob Charlie'.initials(count: 3), equals('ABC'));
       });
 
       test('should limit to count even with more words', () {
-        expect(
-          'Alice Bob Charlie'.initials(count: 2),
-          equals('AB'),
-        );
+        expect('Alice Bob Charlie'.initials(count: 2), equals('AB'));
       });
 
       test('should handle extra whitespace', () {
@@ -141,17 +132,11 @@ void main() {
 
     group('formatAsIndianPhone()', () {
       test('should format 10-digit number with +91 prefix', () {
-        expect(
-          '9876543210'.formatAsIndianPhone(),
-          equals('+91 98765 43210'),
-        );
+        expect('9876543210'.formatAsIndianPhone(), equals('+91 98765 43210'));
       });
 
       test('should format 12-digit number with 91 prefix', () {
-        expect(
-          '919876543210'.formatAsIndianPhone(),
-          equals('+91 98765 43210'),
-        );
+        expect('919876543210'.formatAsIndianPhone(), equals('+91 98765 43210'));
       });
 
       test('should format +91 prefixed number', () {
@@ -170,10 +155,7 @@ void main() {
       });
 
       test('should handle number with spaces', () {
-        expect(
-          '98765 43210'.formatAsIndianPhone(),
-          equals('+91 98765 43210'),
-        );
+        expect('98765 43210'.formatAsIndianPhone(), equals('+91 98765 43210'));
       });
     });
 

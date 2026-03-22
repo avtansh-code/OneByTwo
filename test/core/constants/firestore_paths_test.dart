@@ -83,10 +83,7 @@ void main() {
 
     group('user paths', () {
       test('userDoc should return users/{userId}', () {
-        expect(
-          FirestorePaths.userDoc('user-1'),
-          equals('users/user-1'),
-        );
+        expect(FirestorePaths.userDoc('user-1'), equals('users/user-1'));
       });
 
       test('userNotifications should return users/{userId}/notifications', () {
@@ -108,17 +105,11 @@ void main() {
 
     group('group paths', () {
       test('groupDoc should return groups/{groupId}', () {
-        expect(
-          FirestorePaths.groupDoc('g1'),
-          equals('groups/g1'),
-        );
+        expect(FirestorePaths.groupDoc('g1'), equals('groups/g1'));
       });
 
       test('groupMembers should return groups/{groupId}/members', () {
-        expect(
-          FirestorePaths.groupMembers('g1'),
-          equals('groups/g1/members'),
-        );
+        expect(FirestorePaths.groupMembers('g1'), equals('groups/g1/members'));
       });
 
       test('groupExpenses should return groups/{groupId}/expenses', () {
