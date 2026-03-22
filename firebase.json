@@ -40,5 +40,33 @@
       "enabled": true
     },
     "singleProjectMode": true
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "onebytwo-506ac",
+          "appId": "1:621727324944:android:9fcd0dc17325c5831fa395",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "onebytwo-506ac",
+          "appId": "1:621727324944:ios:7a27e962d4395e171fa395",
+          "uploadDebugSymbols": true,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "onebytwo-506ac",
+          "configurations": {
+            "android": "1:621727324944:android:9fcd0dc17325c5831fa395",
+            "ios": "1:621727324944:ios:7a27e962d4395e171fa395"
+          }
+        }
+      }
+    }
   }
 }

@@ -434,6 +434,31 @@ Branch: main, develop
 
 ---
 
+## Implementation Progress
+
+| Sprint | Status | PR | Key Metrics |
+|--------|--------|-----|-------------|
+| **Sprint 0 — Foundation** | ✅ Complete | [#11](https://github.com/avtansh-code/OneByTwo/pull/11) (merged) | 434 Flutter tests, 69 Functions tests, 0 analyzer issues |
+| **Sprint 1 — Authentication** | 🔲 Not started | — | — |
+| **Sprint 2 — Groups** | 🔲 Not started | — | — |
+| **Sprint 3 — Expenses** | 🔲 Not started | — | — |
+| **Sprint 4 — Balances & Settlements** | 🔲 Not started | — | — |
+| **Sprint 5 — Friends & 1:1** | 🔲 Not started | — | — |
+| **Sprint 6 — Notifications** | 🔲 Not started | — | — |
+| **Sprint 7 — Search & Analytics** | 🔲 Not started | — | — |
+| **Sprint 8 — Polish & Perf** | 🔲 Not started | — | — |
+| **Sprint 9 — Release** | 🔲 Not started | — | — |
+
+### Sprint 0 Completion Notes
+
+- **Merged:** 2026-03-22 via squash merge to `develop`
+- **Firebase:** Project `onebytwo-506ac` (asia-south1), Firestore rules deployed, Storage initialized, Phone Auth enabled
+- **CI/CD:** 7-job PR pipeline green, branch protection active via GitHub rulesets
+- **Files created:** 150+ files across `lib/core/`, `lib/presentation/`, `functions/src/`, `.github/workflows/`, `firestore.rules`, `storage.rules`
+- **Review:** 24 review comments addressed (l10n hardcoded strings, storage rules membership checks, rate limiter transactions, Firestore path helpers, build config)
+
+---
+
 ## Option A: Vertical Slice Strategy (Recommended)
 
 **Philosophy:** Build complete features end-to-end, one at a time. Each slice is a shippable increment.
@@ -441,7 +466,7 @@ Branch: main, develop
 **Pros:** Always have a working app; early feedback; clear progress; easier to demo.
 **Cons:** Some refactoring as shared infrastructure evolves; cross-cutting concerns addressed incrementally.
 
-### Sprint 0 — Foundation (Infrastructure)
+### Sprint 0 — Foundation (Infrastructure) ✅
 
 **Agents:** Architect, DevOps, Flutter Dev, Firebase Dev
 
