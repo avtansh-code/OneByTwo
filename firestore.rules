@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==================== Helper Functions ====================
+
+    /// Returns true if the request has a valid Firebase Auth context.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /// Returns true if the authenticated user's UID matches the given userId.
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /// Returns true if the authenticated user is an active member of the group.
+    function isGroupMember(groupId) {
+      return exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.isActive == true;
+    }
+
+    /// Returns true if the authenticated user is an admin or owner of the group.
+    function isGroupAdmin(groupId) {
+      let member = get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+      return member.data.isActive == true
+        && (member.data.role == 'owner' || member.data.role == 'admin');
+    }
+
+    /// Returns true if the authenticated user is one of the two users in the friend pair.
+    function isFriendPairMember(friendPairId) {
+      let pair = get(/databases/$(database)/documents/friends/$(friendPairId));
+      return request.auth.uid == pair.data.userA || request.auth.uid == pair.data.userB;
+    }
+
+    /// Returns true if the value is a positive integer (used for paise amounts).
+    function isValidAmount(amount) {
+      return amount is int && amount > 0;
+    }
+
+    /// Returns true if the incoming document has all of the specified fields.
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ==================== Users ====================
+    //
+    // Users can read any authenticated user's profile (for name/avatar lookup).
+    // Users can only create/update their own profile.
+    // Deletion is disallowed — account removal is handled by the deleteAccount
+    // Cloud Function which performs GDPR-compliant cleanup.
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if false; // Account deletion via Cloud Function only
+
+      // Per-user notification inbox
+      match /notifications/{notificationId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+
+      // Unsaved expense drafts (offline-first drafts)
+      match /drafts/{draftId} {
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+    }
+
+    // ==================== User Groups (denormalized, read-only) ====================
+    //
+    // Cloud Functions maintain this denormalized collection for fast
+    // "my groups" listing on the dashboard. Clients can only read.
+
+    match /userGroups/{userId}/groups/{groupId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ==================== Groups ====================
+    //
+    // Group documents are readable only by active members.
+    // Any authenticated user can create a group (they become the owner).
+    // Only admins/owners can update group metadata.
+    // Groups are never hard-deleted — use isArchived soft delete.
+
+    match /groups/{groupId} {
+      allow read: if isSignedIn() && isGroupMember(groupId);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && isGroupAdmin(groupId);
+      allow delete: if false; // Archive only (soft delete)
+
+      // ── Members ──────────────────────────────────────────────
+      // Admins can add/remove members.
+      // Members can update their own membership (e.g. leave group).
+      match /members/{memberId} {
+        allow read: if isSignedIn() && isGroupMember(groupId);
+        allow create: if isSignedIn() && isGroupAdmin(groupId);
+        allow update: if isSignedIn() && (isGroupAdmin(groupId) || isOwner(memberId));
+        allow delete: if isSignedIn() && isGroupAdmin(groupId);
+      }
+
+      // ── Expenses ─────────────────────────────────────────────
+      // Any active member can create/update expenses.
+      // Hard delete disallowed — use isDeleted soft delete with undo support.
+      match /expenses/{expenseId} {
+        allow read: if isSignedIn() && isGroupMember(groupId);
+        allow create: if isSignedIn() && isGroupMember(groupId);
+        allow update: if isSignedIn() && isGroupMember(groupId);
+        allow delete: if false; // Soft delete only
+
+        // Expense subcollections: splits, payers, items, attachments
+        match /splits/{splitId} {
+          allow read, write: if isSignedIn() && isGroupMember(groupId);
+        }
+        match /payers/{payerId} {
+          allow read, write: if isSignedIn() && isGroupMember(groupId);
+        }
+        match /items/{itemId} {
+          allow read, write: if isSignedIn() && isGroupMember(groupId);
+        }
+        match /attachments/{attachmentId} {
+          allow read, write: if isSignedIn() && isGroupMember(groupId);
+        }
+      }
+
+      // ── Settlements ──────────────────────────────────────────
+      // Members can create and update settlements (e.g. mark as confirmed).
+      // Hard delete disallowed.
+      match /settlements/{settlementId} {
+        allow read: if isSignedIn() && isGroupMember(groupId);
+        allow create, update: if isSignedIn() && isGroupMember(groupId);
+        allow delete: if false;
+      }
+
+      // ── Balances ─────────────────────────────────────────────
+      // Pre-computed by Cloud Functions. Read-only for clients.
+      match /balances/{balanceId} {
+        allow read: if isSignedIn() && isGroupMember(groupId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // ── Activity Feed ────────────────────────────────────────
+      // Written by Cloud Functions. Read-only for clients.
+      match /activity/{activityId} {
+        allow read: if isSignedIn() && isGroupMember(groupId);
+        allow write: if false; // Cloud Functions only
+      }
+    }
+
+    // ==================== Friends ====================
+    //
+    // Friend pair documents are managed by Cloud Functions (addFriend callable).
+    // Only the two users in the pair can read the relationship and its subcollections.
+
+    match /friends/{friendPairId} {
+      allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+      allow create, update, delete: if false; // Cloud Functions only
+
+      // ── Friend Expenses ──────────────────────────────────────
+      match /expenses/{expenseId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow create, update: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow delete: if false; // Soft delete only
+
+        match /splits/{splitId} {
+          allow read, write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+        match /payers/{payerId} {
+          allow read, write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+        match /items/{itemId} {
+          allow read, write: if isSignedIn() && isFriendPairMember(friendPairId);
+        }
+      }
+
+      // ── Friend Settlements ───────────────────────────────────
+      match /settlements/{settlementId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow create, update: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow delete: if false;
+      }
+
+      // ── Friend Balance (single doc, Cloud Functions only) ────
+      match /balance/{balanceId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow write: if false; // Cloud Functions only
+      }
+
+      // ── Friend Activity Feed ─────────────────────────────────
+      match /activity/{activityId} {
+        allow read: if isSignedIn() && isFriendPairMember(friendPairId);
+        allow write: if false; // Cloud Functions only
+      }
+    }
+
+    // ==================== User Friends (denormalized, read-only) ====================
+    //
+    // Cloud Functions maintain this for fast "my friends" listing.
+
+    match /userFriends/{userId}/friends/{friendUserId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ==================== Invites ====================
+    //
+    // Invite documents are created and managed by Cloud Functions.
+    // Any authenticated user can read (to validate invite codes).
+
+    match /invites/{inviteCode} {
+      allow read: if isSignedIn();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ==================== Rate Limits ====================
+    //
+    // Internal to Cloud Functions. No client access.
+
+    match /rateLimits/{docId} {
+      allow read, write: if false;
+    }
+  }
+}

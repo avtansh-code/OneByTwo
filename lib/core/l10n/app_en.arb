@@ -1,0 +1,133 @@
+{
+  "@@locale": "en",
+  "appTitle": "One By Two",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcomeTitle": "One By Two",
+  "@welcomeTitle": {
+    "description": "Title on the welcome screen"
+  },
+  "welcomeSubtitle": "Split expenses the easy way",
+  "@welcomeSubtitle": {
+    "description": "Subtitle on the welcome screen"
+  },
+  "getStarted": "Get Started",
+  "@getStarted": {
+    "description": "Get started button label"
+  },
+  "genericError": "Something went wrong. Please try again.",
+  "@genericError": {
+    "description": "Generic error message shown to users"
+  },
+  "networkError": "No internet connection. Changes will sync when connected.",
+  "@networkError": {
+    "description": "Error message when device is offline"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button label"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button label"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "undo": "Undo",
+  "@undo": {
+    "description": "Undo button label"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading indicator text"
+  },
+  "offlineBanner": "You're offline. Changes will sync when connected.",
+  "@offlineBanner": {
+    "description": "Banner text shown when device is offline"
+  },
+  "noExpensesYet": "No expenses yet",
+  "@noExpensesYet": {
+    "description": "Empty state title for expenses"
+  },
+  "addFirstExpense": "Add your first expense to get started",
+  "@addFirstExpense": {
+    "description": "Empty state subtitle for expenses"
+  },
+  "noGroupsYet": "No groups yet",
+  "@noGroupsYet": {
+    "description": "Empty state title for groups"
+  },
+  "createFirstGroup": "Create a group to start splitting expenses",
+  "@createFirstGroup": {
+    "description": "Empty state subtitle for groups"
+  },
+  "noFriendsYet": "No friends yet",
+  "@noFriendsYet": {
+    "description": "Empty state title for friends"
+  },
+  "addFirstFriend": "Add a friend to split expenses",
+  "@addFirstFriend": {
+    "description": "Empty state subtitle for friends"
+  },
+  "youOwe": "You owe",
+  "@youOwe": {
+    "description": "Label when user owes money"
+  },
+  "youAreOwed": "You are owed",
+  "@youAreOwed": {
+    "description": "Label when user is owed money"
+  },
+  "settledUp": "All settled up!",
+  "@settledUp": {
+    "description": "Label when all balances are zero"
+  },
+  "amountWithCurrency": "₹{amount}",
+  "@amountWithCurrency": {
+    "description": "Amount formatted with rupee symbol",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1,234.56"
+      }
+    }
+  },
+  "deletedWithUndo": "Deleted. Tap undo to restore.",
+  "@deletedWithUndo": {
+    "description": "Snackbar message after soft delete with undo option"
+  },
+  "synced": "Synced",
+  "@synced": {
+    "description": "Sync status: synced to server"
+  },
+  "pending": "Pending sync",
+  "@pending": {
+    "description": "Sync status: waiting to sync"
+  },
+  "groups": "Groups",
+  "@groups": {
+    "description": "Groups tab label"
+  },
+  "friends": "Friends",
+  "@friends": {
+    "description": "Friends tab label"
+  },
+  "activity": "Activity",
+  "@activity": {
+    "description": "Activity tab label"
+  },
+  "analytics": "Analytics",
+  "@analytics": {
+    "description": "Analytics tab label"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  }
+}

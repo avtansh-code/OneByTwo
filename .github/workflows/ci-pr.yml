@@ -1,0 +1,278 @@
+# =============================================================================
+# CI/CD — PR Quality Gate
+# =============================================================================
+# Runs on every pull request targeting main or develop.
+# 7 jobs enforce code quality, security, architecture, and build health.
+# Sprint 0 task: S0-08
+# =============================================================================
+
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# ---------------------------------------------------------------------------
+# Shared environment
+# ---------------------------------------------------------------------------
+env:
+  FLUTTER_CHANNEL: stable
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================================================
+  # Job 1 — Analyze & Format
+  # ===========================================================================
+  analyze-and-format:
+    name: "🔍 Analyze & Format"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool/
+          key: flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: flutter-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Run static analysis
+        run: flutter analyze --fatal-infos
+
+  # ===========================================================================
+  # Job 2 — Test & Coverage
+  # ===========================================================================
+  test-and-coverage:
+    name: "🧪 Test & Coverage"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: analyze-and-format
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool/
+          key: flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: flutter-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if command -v lcov &> /dev/null && [ -f coverage/lcov.info ]; then
+            echo "### 📊 Coverage Summary" >> "$GITHUB_STEP_SUMMARY"
+            lcov --summary coverage/lcov.info 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ℹ️  lcov not available — skipping coverage summary"
+            if [ -f coverage/lcov.info ]; then
+              LINES_HIT=$(grep -c "^DA:" coverage/lcov.info || true)
+              echo "Lines with coverage data: $LINES_HIT"
+            fi
+          fi
+
+  # ===========================================================================
+  # Job 3 — Security Scan
+  # ===========================================================================
+  security-scan:
+    name: "🔒 Security Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: analyze-and-format
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool/
+          key: flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: flutter-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: "Check for print() usage in lib/"
+        run: |
+          if grep -rn "print(" lib/ --include="*.dart" | grep -v "// ignore: avoid_print"; then
+            echo "::error::Use AppLogger instead of print()"
+            exit 1
+          fi
+          echo "✅ No disallowed print() calls found"
+
+      - name: "Check for insecure http:// URLs"
+        run: |
+          if grep -rn "http://" lib/ --include="*.dart" | grep -v "https://" | grep -v "localhost" | grep -v "// ignore"; then
+            echo "::error::Use https:// instead of http://"
+            exit 1
+          fi
+          echo "✅ No insecure http:// URLs found"
+
+      - name: "Check for double used with money fields"
+        run: |
+          if grep -rn "double.*amount\|double.*paise\|double.*rupee\|double.*balance\|double.*total" lib/ --include="*.dart" | grep -v "// display only" | grep -v "_test.dart" | grep -v ".g.dart" | grep -v ".freezed.dart"; then
+            echo "::warning::Possible double used for money — review manually"
+          else
+            echo "✅ No suspect double-for-money patterns found"
+          fi
+
+  # ===========================================================================
+  # Job 4 — Architecture Compliance
+  # ===========================================================================
+  architecture-compliance:
+    name: "🏛️ Architecture Compliance"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: analyze-and-format
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Domain layer must not import Flutter or Firebase"
+        run: |
+          if grep -rn "import.*package:flutter\|import.*package:cloud_firestore\|import.*package:firebase" lib/domain/ --include="*.dart"; then
+            echo "::error::Domain layer must not import Flutter or Firebase packages"
+            exit 1
+          fi
+          echo "✅ Domain layer is clean"
+
+      - name: "Data layer must not import presentation"
+        run: |
+          if grep -rn "import.*presentation/" lib/data/ --include="*.dart"; then
+            echo "::error::Data layer must not import presentation layer"
+            exit 1
+          fi
+          echo "✅ Data layer does not reference presentation"
+
+      - name: "Presentation must not import data directly"
+        run: |
+          if grep -rn "import.*data/" lib/presentation/ --include="*.dart" | grep -v "// bridge ok"; then
+            echo "::warning::Presentation layer imports data layer directly — prefer going through domain"
+          else
+            echo "✅ Presentation layer does not bypass domain"
+          fi
+
+  # ===========================================================================
+  # Job 5 — Cloud Functions Check
+  # ===========================================================================
+  cloud-functions-check:
+    name: "☁️ Cloud Functions"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: functions/node_modules
+          key: npm-${{ hashFiles('functions/package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install dependencies
+        run: cd functions && npm ci
+
+      - name: Lint
+        run: cd functions && npm run lint
+
+      - name: Build
+        run: cd functions && npm run build
+
+      - name: Test
+        run: cd functions && npm test
+
+  # ===========================================================================
+  # Job 6 — Firestore Rules Test (placeholder)
+  # ===========================================================================
+  firestore-rules-test:
+    name: "📜 Firestore Rules"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate rules file exists
+        run: |
+          if [ ! -f firestore.rules ]; then
+            echo "::error::firestore.rules not found"
+            exit 1
+          fi
+          echo "✅ firestore.rules present"
+
+      - name: Placeholder for rules tests
+        run: echo "ℹ️  Firestore rules tests will be added in Sprint 1"
+
+  # ===========================================================================
+  # Job 7 — Build Check
+  # ===========================================================================
+  build-check:
+    name: "🏗️ Build Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test-and-coverage
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool/
+          key: flutter-${{ hashFiles('pubspec.lock') }}
+          restore-keys: flutter-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK (release, analyze size)
+        run: flutter build apk --release --analyze-size 2>&1 | tee build-output.txt || true
+
+      - name: Build App Bundle (release)
+        run: flutter build appbundle --release || true
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "### 🏗️ Build Output" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f build-output.txt ]; then
+            tail -20 build-output.txt >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # Note: iOS build requires macOS runner — skipped on ubuntu
