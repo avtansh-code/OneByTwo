@@ -45,11 +45,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase config (contains API keys — do not commit for production)
-# NOTE: lib/firebase_options.dart is currently a placeholder with dummy values
-# for Sprint 0 development. Uncomment the line below before going to production
-# to prevent real API keys from being committed.
-# firebase_options.dart  # Uncomment for production
+# Firebase config (contains API keys — do not commit)
+# The repo contains a placeholder firebase_options.dart with dummy values.
+# Run `flutterfire configure` locally to generate real config (gitignored).
+**/firebase_options.local.dart
 **/google-services.json
 **/GoogleService-Info.plist
 

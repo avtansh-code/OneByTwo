@@ -32,24 +32,22 @@ class DefaultFirebaseOptions {
     }
   }
 
+  /// Android Firebase options — replace with real values via `flutterfire configure`.
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBFgCWgcIFJKLuoiLmu4KTEk84iXQPjAig',
-    appId: '1:621727324944:android:9fcd0dc17325c5831fa395',
-    messagingSenderId: '621727324944',
-    projectId: 'onebytwo-506ac',
-    storageBucket: 'onebytwo-506ac.firebasestorage.app',
+    apiKey: 'PLACEHOLDER-API-KEY',
+    appId: '1:000000000000:android:0000000000000000000000',
+    messagingSenderId: '000000000000',
+    projectId: 'one-by-two-placeholder',
+    storageBucket: 'one-by-two-placeholder.firebasestorage.app',
   );
 
-  /// Placeholder Android options — replace with real values.
-
+  /// iOS Firebase options — replace with real values via `flutterfire configure`.
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDKW9_yhoecA42Q5wd7tQhyMP39cgnnIHA',
-    appId: '1:621727324944:ios:7a27e962d4395e171fa395',
-    messagingSenderId: '621727324944',
-    projectId: 'onebytwo-506ac',
-    storageBucket: 'onebytwo-506ac.firebasestorage.app',
+    apiKey: 'PLACEHOLDER-API-KEY',
+    appId: '1:000000000000:ios:0000000000000000000000',
+    messagingSenderId: '000000000000',
+    projectId: 'one-by-two-placeholder',
+    storageBucket: 'one-by-two-placeholder.firebasestorage.app',
     iosBundleId: 'com.onebytwo.oneByTwo',
   );
-
-  /// Placeholder iOS options — replace with real values.
 }
