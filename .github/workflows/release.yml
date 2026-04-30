@@ -1,0 +1,257 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# OneByTwo — Production Release Pipeline
+# SRS section 9.2.2
+#
+# Trigger: push tag v*.*.* on main, or manual workflow_dispatch
+# Steps: test guard, deploy Firebase backend, build signed apps, upload to stores
+# ────────────────────────────────────────────────────────────────────────────────
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Guard: re-run full test suite ───────────────────────────────────────────
+  test-guard:
+    name: Test Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Flutter analyse and test
+        run: |
+          flutter analyze --fatal-infos
+          flutter test --coverage
+
+      - name: Install and test Cloud Functions
+        run: |
+          cd functions
+          npm ci
+          npm run lint
+          npm test
+
+      - name: Run simplified-debts canonical tests
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:exec \
+            --only firestore,functions \
+            "cd functions && npm run test:canonical" \
+            --project demo-onebytwo
+
+  # ── Deploy Firebase backend ─────────────────────────────────────────────────
+  deploy-firebase:
+    name: Deploy Firebase (Rules, Indexes, Functions)
+    runs-on: ubuntu-latest
+    needs: [test-guard]
+    environment:
+      name: production-firebase
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Cloud Functions dependencies
+        run: cd functions && npm ci
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy Firestore rules and indexes
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes \
+            --token "${{ secrets.FIREBASE_TOKEN }}"
+        # TODO(devops): confirm project ID matches the single production project
+
+      - name: Deploy Cloud Functions
+        run: |
+          firebase deploy \
+            --only functions \
+            --token "${{ secrets.FIREBASE_TOKEN }}"
+
+      # TODO(devops): add post-deploy smoke test for production Cloud Functions
+      # using a synthetic monitor or health-check callable function.
+
+  # ── Build and upload Android ────────────────────────────────────────────────
+  build-android:
+    name: Build & Upload Android
+    runs-on: ubuntu-latest
+    needs: [deploy-firebase]
+    environment:
+      name: production-android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
+        # Secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+        #          KEY_ALIAS, KEY_PASSWORD (SRS section 9.3)
+
+      - name: Build signed App Bundle
+        run: |
+          flutter build appbundle --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      # TODO(devops): configure key.properties to read from environment variables
+      # so the build step above can sign the AAB.
+
+      - name: Upload to Google Play Internal Track
+        run: |
+          echo "TODO(devops): integrate Fastlane supply for Play Store upload"
+          echo "Secret: PLAY_SERVICE_ACCOUNT_JSON (SRS section 9.3)"
+        # TODO(devops): replace with:
+        # fastlane supply \
+        #   --aab build/app/outputs/bundle/release/app-release.aab \
+        #   --track internal \
+        #   --json_key_data "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 90
+
+  # ── Build and upload iOS ────────────────────────────────────────────────────
+  build-ios:
+    name: Build & Upload iOS
+    runs-on: macos-latest
+    needs: [deploy-firebase]
+    environment:
+      name: production-ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Sync certificates with Fastlane match
+        run: |
+          echo "TODO(devops): configure Fastlane match for certificate sync"
+          echo "Secrets: MATCH_GIT_URL, MATCH_PASSWORD (SRS section 9.3)"
+        # TODO(devops): replace with:
+        # fastlane match appstore \
+        #   --git_url "${{ secrets.MATCH_GIT_URL }}" \
+        #   --password "${{ secrets.MATCH_PASSWORD }}"
+
+      - name: Build signed IPA
+        run: |
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        # TODO(devops): create ExportOptions.plist with correct team ID and
+        # provisioning profile.
+
+      - name: Upload to TestFlight
+        run: |
+          echo "TODO(devops): configure Fastlane pilot for TestFlight upload"
+          echo "Secrets: APP_STORE_CONNECT_API_KEY_ID, ISSUER_ID, KEY_BASE64 (SRS section 9.3)"
+        # TODO(devops): replace with:
+        # fastlane pilot upload \
+        #   --ipa build/ios/ipa/OneByTwo.ipa \
+        #   --api_key_path fastlane/api_key.json
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: build/ios/ipa/*.ipa
+          retention-days: 90
+
+  # ── Create GitHub Release ───────────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG="${GITHUB_REF_NAME:-${{ inputs.tag }}}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -A1 "^${TAG}$" | tail -1 || echo "")
+          if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s (%h)" "${PREV_TAG}..${TAG}")
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" --max-count=50)
+          fi
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$NOTES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag }}
+          name: Release ${{ github.ref_name || inputs.tag }}
+          body: |
+            ## Changes
+
+            ${{ steps.notes.outputs.notes }}
+
+            ## Rollback
+
+            Previous release artifacts are retained for 90 days as workflow
+            artifacts. To rollback:
+            1. Redeploy the previous Cloud Functions version using `firebase deploy --only functions`.
+            2. Resubmit the previous AAB/IPA to the respective store.
+            See SRS section 9.4 for the full rollback strategy.
+
+          ## Notifications
+
+          # TODO(devops): send release notification via OPS_NOTIFY_WEBHOOK
+          # (SRS section 9.3).
+          draft: false
+          prerelease: false

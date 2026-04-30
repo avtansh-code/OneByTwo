@@ -1,0 +1,121 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# OneByTwo — Lefthook Configuration
+# Local git hooks runner — separate from agentic lifecycle hooks.
+# ────────────────────────────────────────────────────────────────────────────────
+
+pre-commit:
+  parallel: true
+  commands:
+    dart-format:
+      glob: "*.dart"
+      run: dart format --set-exit-if-changed {staged_files}
+      stage_fixed: true
+
+    flutter-analyze:
+      glob: "*.dart"
+      run: flutter analyze {staged_files}
+
+    eslint-functions:
+      glob: "functions/**/*.{ts,js}"
+      run: cd functions && npx eslint {staged_files}
+
+    secret-scanner:
+      run: |
+        # Simple regex scanner for common secret patterns.
+        # Checks staged diff for Firebase API keys, keystore files, and
+        # common secret patterns.
+        DIFF=$(git diff --cached --diff-filter=ACM)
+        PATTERNS='AIza[0-9A-Za-z_-]{35}|\.jks$|\.keystore$|FIREBASE_TOKEN|PRIVATE_KEY|BEGIN RSA PRIVATE KEY|password\s*=\s*["\x27][^\s]+["\x27]'
+        if echo "$DIFF" | grep -qE "$PATTERNS"; then
+          echo "ERROR: Potential secret or credential detected in staged files."
+          echo "Review the flagged content and remove any secrets before committing."
+          echo "Secrets must be stored in GitHub Actions secrets (SRS section 9.3)."
+          exit 1
+        fi
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: |
+        # Enforce Conventional Commits format.
+        # Pattern: type(scope): subject
+        # Types: feat, fix, chore, docs, test, refactor, ci, build
+        MSG=$(cat {1})
+        PATTERN='^(feat|fix|chore|docs|test|refactor|ci|build)(\([a-z0-9_-]+\))?!?: .{1,72}$'
+        FIRST_LINE=$(echo "$MSG" | head -1)
+        if ! echo "$FIRST_LINE" | grep -qE "$PATTERN"; then
+          echo "ERROR: Commit message does not follow Conventional Commits format."
+          echo ""
+          echo "Expected: <type>(<scope>): <subject>"
+          echo "Types: feat, fix, chore, docs, test, refactor, ci, build"
+          echo "Subject: imperative mood, lowercase, no trailing full stop, max 72 chars."
+          echo ""
+          echo "Examples:"
+          echo "  feat(expenses): add unequal split validation"
+          echo "  fix(simplified-debts): correct tie-breaking order"
+          echo "  chore(deps): bump flutter_riverpod to 2.4.0"
+          echo ""
+          echo "Your message: $FIRST_LINE"
+          exit 1
+        fi
+
+pre-push:
+  commands:
+    unit-tests:
+      run: |
+        # Run unit tests for touched feature folders.
+        CHANGED=$(git diff --name-only HEAD @{push} -- 'lib/features/' 2>/dev/null || true)
+        if [ -n "$CHANGED" ]; then
+          # Extract unique feature folders.
+          FEATURES=$(echo "$CHANGED" | grep -oE 'lib/features/[^/]+' | sort -u)
+          for FEATURE in $FEATURES; do
+            FEATURE_NAME=$(basename "$FEATURE")
+            TEST_DIR="test/features/$FEATURE_NAME"
+            if [ -d "$TEST_DIR" ]; then
+              echo "Running tests for $FEATURE_NAME..."
+              flutter test "$TEST_DIR"
+            fi
+          done
+        fi
+
+    functions-tests:
+      run: |
+        CHANGED=$(git diff --name-only HEAD @{push} -- 'functions/' 2>/dev/null || true)
+        if [ -n "$CHANGED" ]; then
+          echo "Running Cloud Functions tests..."
+          cd functions && npm test
+        fi
+
+    coverage-check:
+      run: |
+        # Block push if coverage drops below SRS thresholds.
+        # 70% non-UI, 50% overall.
+        flutter test --coverage 2>/dev/null || true
+        if [ -f coverage/lcov.info ]; then
+          if command -v lcov >/dev/null 2>&1; then
+            TOTAL=$(lcov --summary coverage/lcov.info 2>&1 | grep 'lines' | grep -oE '[0-9]+\.[0-9]+%' | head -1 | tr -d '%')
+            if [ -n "$TOTAL" ]; then
+              BELOW=$(echo "$TOTAL < 50.0" | bc -l 2>/dev/null || echo "0")
+              if [ "$BELOW" = "1" ]; then
+                echo "ERROR: Overall coverage ${TOTAL}% is below the 50% threshold."
+                echo "SRS section 5.7 requires >= 50% overall and >= 70% non-UI coverage."
+                exit 1
+              fi
+            fi
+          fi
+        fi
+
+post-merge:
+  commands:
+    dependency-reminder:
+      run: |
+        # Remind to re-install dependencies if manifests changed.
+        CHANGED=$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null || true)
+        if echo "$CHANGED" | grep -q 'pubspec.yaml'; then
+          echo ""
+          echo "pubspec.yaml changed — run: flutter pub get"
+        fi
+        if echo "$CHANGED" | grep -q 'functions/package.json\|functions/package-lock.json'; then
+          echo ""
+          echo "functions/ dependencies changed — run: cd functions && npm ci"
+        fi

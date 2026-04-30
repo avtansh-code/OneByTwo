@@ -1,0 +1,47 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# OneByTwo — CODEOWNERS
+# Defines code ownership for pull request review routing.
+# Uses placeholder GitHub handles — replace with real handles when team forms.
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Firestore rules, indexes, and Cloud Functions — Architect + Functions Dev
+firestore.rules                           @oneByTwo-architect @oneByTwo-functions-dev
+firestore.indexes.json                    @oneByTwo-architect @oneByTwo-functions-dev
+functions/                                @oneByTwo-architect @oneByTwo-functions-dev
+
+# Flutter feature code — Flutter Dev + QA
+lib/features/                             @oneByTwo-flutter-dev @oneByTwo-qa
+
+# Flutter core, data, and app shell
+lib/                                      @oneByTwo-flutter-dev
+
+# Tests
+test/                                     @oneByTwo-flutter-dev @oneByTwo-qa
+integration_test/                         @oneByTwo-flutter-dev @oneByTwo-qa
+
+# CI/CD workflows — DevOps + Architect
+.github/workflows/                        @oneByTwo-devops @oneByTwo-architect
+
+# Agentic configuration — Architect + PM
+.github/agents/                           @oneByTwo-architect @oneByTwo-pm
+.github/skills/                           @oneByTwo-architect @oneByTwo-pm
+.github/shared/                           @oneByTwo-architect @oneByTwo-pm
+.github/hooks/                            @oneByTwo-architect @oneByTwo-pm
+
+# Documentation and SRS — PM + Architect
+docs/                                     @oneByTwo-pm @oneByTwo-architect
+
+# Platform shells — Flutter Dev
+ios/                                      @oneByTwo-flutter-dev
+android/                                  @oneByTwo-flutter-dev
+
+# Fastlane and deployment — DevOps
+fastlane/                                 @oneByTwo-devops
+
+# Local git hooks — DevOps + Architect
+lefthook.yml                              @oneByTwo-devops @oneByTwo-architect
+
+# Firebase configuration — Architect + DevOps
+firebase.json                             @oneByTwo-architect @oneByTwo-devops
+.firebaserc                               @oneByTwo-architect @oneByTwo-devops
+storage.rules                             @oneByTwo-architect @oneByTwo-devops
