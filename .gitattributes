@@ -1,0 +1,56 @@
+# ────────────────────────────────────────
+# OneByTwo — Git Attributes
+# ────────────────────────────────────────
+
+# Auto-detect text files and normalise line endings to LF on commit.
+* text=auto eol=lf
+
+# Dart
+*.dart text diff=dart
+
+# TypeScript / JavaScript
+*.ts text diff=typescript
+*.js text
+*.json text
+
+# Markdown and docs
+*.md text diff=markdown
+*.txt text
+
+# Config
+*.yml text
+*.yaml text
+*.toml text
+*.xml text
+*.properties text
+
+# Shell scripts — always LF
+*.sh text eol=lf
+
+# Batch files — always CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — do not diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.jks binary
+*.keystore binary
+
+# Lock files — generated, treat as binary for diff
+pubspec.lock -diff
+functions/package-lock.json -diff
+
+# iOS / Android platform binaries
+*.ipa binary
+*.aab binary
+*.apk binary

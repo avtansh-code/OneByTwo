@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": ".github/hooks/pre-tool-use/block-simplified-balances-write.sh"
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": ".github/hooks/pre-tool-use/block-platform-share-targets.sh"
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": ".github/hooks/pre-tool-use/block-second-firebase-project.sh"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": ".github/hooks/post-tool-use/dart-format.sh"
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": ".github/hooks/post-tool-use/eslint-fix.sh"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "command": ".github/hooks/user-prompt-submit/load-srs-context.sh"
+      }
+    ],
+    "Stop": [
+      {
+        "command": ".github/hooks/stop/summarise-changes.sh"
+      }
+    ]
+  }
+}
