@@ -63,7 +63,6 @@ REQUIRED_SECRETS=(
   "KEY_BASE64"
   "MATCH_GIT_URL"
   "MATCH_PASSWORD"
-  "OPS_NOTIFY_WEBHOOK"
 )
 
 # ── Validate all secrets are present ──────────────────────────────────────────

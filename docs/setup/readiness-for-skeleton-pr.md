@@ -105,7 +105,6 @@ Source of truth: `docs/setup/00-decisions.md`.
   - [ ] `KEY_BASE64` — requires API key from Phase 4 section 2.5
   - [ ] `MATCH_GIT_URL` — requires match repo from Phase 4 section 2.6
   - [ ] `MATCH_PASSWORD` — requires match repo from Phase 4 section 2.6
-  - [ ] `OPS_NOTIFY_WEBHOOK` — requires Slack/Teams webhook creation
 
 ## Repo Configuration
 

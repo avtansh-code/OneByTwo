@@ -23,7 +23,6 @@ Source of truth for configuration values: `docs/setup/00-decisions.md`.
 | `KEY_BASE64` | Phase 4 section 4.4 — App Store Connect API key `.p8` file | Base64-encoded `.p8` file | Rotate annually | Release pipeline (`release.yml`) — Fastlane `pilot` upload to TestFlight |
 | `MATCH_GIT_URL` | Phase 4 section 4.5 — Fastlane match private repo URL | Git URL (HTTPS or SSH) | Stable | Release pipeline (`release.yml`) — Fastlane `match` certificate sync |
 | `MATCH_PASSWORD` | Phase 4 section 4.5 — passphrase chosen during match setup | Plain text passphrase | Rotate annually | Release pipeline (`release.yml`) — Fastlane `match` certificate sync |
-| `OPS_NOTIFY_WEBHOOK` | Slack or Teams incoming webhook URL (created by stakeholder) | URL | Rotate on channel change | Release pipeline (`release.yml`) — post-release notification |
 
 ---
 

@@ -254,10 +254,5 @@ jobs:
             1. Redeploy the previous Cloud Functions version using `firebase deploy --only functions`.
             2. Resubmit the previous AAB/IPA to the respective store.
             See SRS section 9.4 for the full rollback strategy.
-
-          ## Notifications
-
-          # TODO(devops): send release notification via OPS_NOTIFY_WEBHOOK
-          # (SRS section 9.3).
           draft: false
           prerelease: false

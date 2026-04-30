@@ -647,23 +647,7 @@ now manage service accounts via **Google Cloud Console** and grant access via
 
 ---
 
-### 5.3 Create Slack/Teams notification webhook
-
-- **Where:** Slack Admin or Microsoft Teams
-- **Steps:**
-  1. Create an incoming webhook for a `#releases` or `#ops` channel.
-  2. Copy the webhook URL.
-- **Expected result:** A valid webhook URL that accepts POST requests.
-
-| Credential | GitHub Secret Name |
-|---|---|
-| Webhook URL | `OPS_NOTIFY_WEBHOOK` |
-
-[ ] Done
-
----
-
-### 5.4 Upload all GitHub secrets
+### 5.3 Upload all GitHub secrets
 
 - **Where:** Your local terminal
 - **Steps:**
@@ -683,7 +667,6 @@ now manage service accounts via **Google Cloud Console** and grant access via
      .secrets/KEY_BASE64
      .secrets/MATCH_GIT_URL
      .secrets/MATCH_PASSWORD
-     .secrets/OPS_NOTIFY_WEBHOOK
      ```
   3. Run the upload script:
      ```bash
@@ -694,8 +677,8 @@ now manage service accounts via **Google Cloud Console** and grant access via
      ```bash
      rm -rf .secrets
      ```
-- **Expected result:** All 12 secrets appear in the GitHub repository's Actions
-  secrets page. `FIREBASE_SERVICE_ACCOUNT_JSON` is already uploaded (13 total).
+- **Expected result:** All 11 secrets appear in the GitHub repository's Actions
+  secrets page. `FIREBASE_SERVICE_ACCOUNT_JSON` is already uploaded (12 total).
 - **Note:** `FIREBASE_TOKEN` (`firebase login:ci`) is deprecated and removed.
   Workflows use `FIREBASE_SERVICE_ACCOUNT_JSON` with
   `google-github-actions/auth` for Firebase deploys instead.

@@ -123,7 +123,6 @@ All secret names match SRS section 9.3 verbatim. No additional or renamed secret
 | `KEY_BASE64` | Phase 4 App Store Connect API key | Base64-encoded `.p8` file | Rotate annually | Release pipeline — TestFlight upload |
 | `MATCH_GIT_URL` | Phase 4 Fastlane match repo setup | Git URL (SSH or HTTPS) | Stable | Release pipeline — iOS cert sync |
 | `MATCH_PASSWORD` | Phase 4 Fastlane match repo setup | Plain text passphrase | Rotate annually | Release pipeline — iOS cert sync |
-| `OPS_NOTIFY_WEBHOOK` | Slack/Teams webhook URL | URL | Rotate on channel change | Release pipeline — notifications |
 
 ---
 
