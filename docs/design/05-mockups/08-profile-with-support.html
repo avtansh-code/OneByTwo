@@ -1,0 +1,581 @@
+<!--
+  OneByTwo — Profile Screen Mockup
+  ==========================================================================
+  SRS Requirements:
+    FR-PR-01  View own profile (P0)
+    FR-PR-02  Edit display name (P0) — Edit Profile button leads here
+    FR-PR-03  Edit profile photo (P0) — Edit Profile button leads here
+    FR-PR-04  View friends/groups counts (P0)
+    FR-PR-05  Access settings from profile (P0)
+    FR-AU-08  Sign out (P0)
+    FR-AU-09  Delete account (P1)
+  Wireframe ref: docs/design/04-wireframes/profile-and-support.md
+  Design tokens ref: docs/design/02-design-system/tokens.md
+  ==========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0">
+  <title>OneByTwo — Profile Screen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       Design Tokens (from docs/design/02-design-system/tokens.md)
+       ================================================================ */
+    :root {
+      /* Colour — Light Theme */
+      --primary:          #1F4E79;
+      --primaryVariant:   #2E86AB;
+      --secondary:        #F4A261;
+      --secondaryVariant: #E08C4A;
+      --success:          #2A9D8F;
+      --danger:           #E76F51;
+      --surface:          #FFFFFF;
+      --surfaceVariant:   #F2F4F7;
+      --background:       #F8F9FB;
+      --onPrimary:        #FFFFFF;
+      --onSurface:        #1A1A1A;
+      --textPrimary:      #1A1A1A;
+      --textSecondary:    #4B5563;
+      --textTertiary:     #9CA3AF;
+      --divider:          #E4E7EC;
+      --outline:          #C4C9D1;
+      --disabled:         #B0B7C3;
+
+      /* Spacing (4-point grid) */
+      --space-4:  4px;
+      --space-8:  8px;
+      --space-12: 12px;
+      --space-16: 16px;
+      --space-20: 20px;
+      --space-24: 24px;
+      --space-32: 32px;
+      --space-48: 48px;
+
+      /* Corner Radii */
+      --radiusSmall:  8px;
+      --radiusMedium: 12px;
+      --radiusLarge:  16px;
+      --radiusXL:     24px;
+      --radiusFull:   9999px;
+
+      /* Elevation — Light */
+      --elevation1: 0 1px 4px rgba(0,0,0,0.04);
+      --elevation2: 0 2px 6px rgba(0,0,0,0.06);
+
+      /* Typography */
+      --fontFamily: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ================================================================
+       Reset & Base
+       ================================================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--fontFamily);
+      background: #E0E0E0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ================================================================
+       Device Frame — iPhone 12 (390 x 844)
+       ================================================================ */
+    .device-frame {
+      width: 390px;
+      height: 844px;
+      background: var(--background);
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ================================================================
+       Status Bar (cosmetic)
+       ================================================================ */
+    .status-bar {
+      height: 44px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-24);
+      color: var(--onPrimary);
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .status-bar .time { font-weight: 600; }
+    .status-bar .icons { display: flex; gap: 6px; font-size: 12px; }
+
+    /* ================================================================
+       App Bar — OBTAppBar
+       ================================================================ */
+    .app-bar {
+      height: 56px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .app-bar-title {
+      color: var(--onPrimary);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    /* ================================================================
+       Scrollable Content
+       ================================================================ */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ================================================================
+       User Profile Header
+       ================================================================ */
+    .profile-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-24) var(--space-20) var(--space-16);
+      background: var(--surface);
+    }
+
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radiusFull);
+      background: var(--primary);
+      color: var(--onPrimary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+    }
+
+    .display-name {
+      margin-top: var(--space-12);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--textPrimary);
+      text-align: center;
+    }
+
+    .phone-number {
+      margin-top: var(--space-4);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--textSecondary);
+      text-align: center;
+    }
+
+    .edit-profile-btn {
+      margin-top: var(--space-12);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primaryVariant);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: var(--space-4) var(--space-12);
+      border-radius: var(--radiusMedium);
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      transition: background 200ms ease-in-out;
+    }
+    .edit-profile-btn:hover {
+      background: rgba(46, 134, 171, 0.08);
+    }
+
+    /* ================================================================
+       Divider
+       ================================================================ */
+    .divider {
+      height: 1px;
+      background: var(--divider);
+      width: 100%;
+      flex-shrink: 0;
+    }
+    .divider-thick {
+      height: 8px;
+      background: var(--surfaceVariant);
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    /* ================================================================
+       Stats Row
+       ================================================================ */
+    .stats-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-16) var(--space-20);
+      background: var(--surface);
+      gap: 0;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-8) var(--space-24);
+      cursor: pointer;
+      border-radius: var(--radiusMedium);
+      transition: background 200ms ease-in-out;
+      min-height: var(--space-48);
+    }
+    .stat-item:hover {
+      background: var(--surfaceVariant);
+    }
+
+    .stat-number {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-right: var(--space-4);
+    }
+    .stat-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--textSecondary);
+    }
+
+    .stat-separator {
+      width: 1px;
+      height: 24px;
+      background: var(--divider);
+      margin: 0 var(--space-4);
+    }
+
+    /* ================================================================
+       Section
+       ================================================================ */
+    .section {
+      background: var(--surface);
+    }
+
+    .section-label {
+      padding: var(--space-12) var(--space-20) var(--space-4);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--textTertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ================================================================
+       List Row
+       ================================================================ */
+    .list-row {
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-20);
+      min-height: 56px;
+      cursor: pointer;
+      transition: background 200ms ease-in-out;
+      position: relative;
+    }
+    .list-row:hover {
+      background: var(--surfaceVariant);
+    }
+
+    .list-row + .list-row {
+      border-top: 1px solid var(--divider);
+    }
+
+    .row-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radiusMedium);
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+    .row-icon.primary {
+      background: rgba(31, 78, 121, 0.08);
+      color: var(--primary);
+    }
+    .row-icon.danger {
+      background: rgba(231, 111, 81, 0.08);
+      color: var(--danger);
+    }
+    .row-icon.neutral {
+      background: rgba(26, 26, 26, 0.06);
+      color: var(--textPrimary);
+    }
+
+    .row-label {
+      flex: 1;
+      margin-left: var(--space-12);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--textPrimary);
+    }
+    .row-label.danger-text {
+      color: var(--danger);
+      font-weight: 500;
+    }
+
+    .row-chevron {
+      color: var(--textTertiary);
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-left: var(--space-8);
+    }
+
+    /* Contact Support — visually prominent (P0) */
+    .list-row.prominent {
+      background: rgba(31, 78, 121, 0.03);
+    }
+    .list-row.prominent:hover {
+      background: rgba(31, 78, 121, 0.08);
+    }
+    .list-row.prominent .row-label {
+      font-weight: 500;
+      color: var(--primary);
+    }
+    .list-row.prominent .row-icon {
+      background: rgba(31, 78, 121, 0.12);
+    }
+
+    /* ================================================================
+       Bottom Navigation — OBTBottomNav
+       ================================================================ */
+    .bottom-nav {
+      height: 64px;
+      background: var(--surface);
+      border-top: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex-shrink: 0;
+      padding-bottom: 0;
+    }
+
+    /* Safe area for home indicator */
+    .bottom-safe {
+      height: 20px;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: var(--space-4) var(--space-8);
+      min-width: 60px;
+      border-radius: var(--radiusSmall);
+      transition: background 200ms ease-in-out;
+    }
+    .nav-item:hover {
+      background: var(--surfaceVariant);
+    }
+
+    .nav-icon {
+      font-size: 22px;
+      color: var(--disabled);
+      line-height: 1;
+    }
+    .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--disabled);
+      letter-spacing: 0.3px;
+    }
+
+    .nav-item.active .nav-icon {
+      color: var(--primary);
+    }
+    .nav-item.active .nav-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Active indicator pill */
+    .nav-item.active .nav-icon-wrap {
+      background: rgba(31, 78, 121, 0.10);
+      padding: 4px 16px;
+      border-radius: var(--radiusFull);
+    }
+  </style>
+</head>
+<body>
+
+<div class="device-frame" role="img" aria-label="iPhone 12 mockup of OneByTwo Profile screen">
+
+  <!-- Status Bar (cosmetic) -->
+  <div class="status-bar" aria-hidden="true">
+    <span class="time">9:41</span>
+    <span class="icons">
+      <!-- signal, wifi, battery symbols -->
+      <span>&#9679;</span>
+      <span>&#9679;</span>
+      <span>&#9632;</span>
+    </span>
+  </div>
+
+  <!-- OBTAppBar — title: "Profile", no back button (root tab screen) -->
+  <div class="app-bar" role="banner">
+    <span class="app-bar-title">Profile</span>
+  </div>
+
+  <!-- Scrollable content area -->
+  <div class="content" role="main">
+
+    <!-- ============================================================
+         User Profile Header
+         FR-PR-01: View own profile
+         ============================================================ -->
+    <div class="profile-header">
+      <!-- OBTUserAvatar: 80dp, initials fallback -->
+      <div class="avatar" role="img" aria-label="Avtansh Gupta profile photo">AG</div>
+
+      <!-- Display name: titleLarge, textPrimary -->
+      <div class="display-name">Avtansh Gupta</div>
+
+      <!-- Phone: bodyMedium, textSecondary, read-only -->
+      <div class="phone-number" aria-label="Phone number: plus 91 98765 43210">+91 98765 43210</div>
+
+      <!-- Edit Profile text button — FR-PR-02, FR-PR-03 -->
+      <button class="edit-profile-btn" role="button" aria-label="Edit Profile, button">
+        <!-- pencil icon (Unicode) -->
+        <span aria-hidden="true">&#9998;</span>
+        Edit Profile
+      </button>
+    </div>
+
+    <div class="divider-thick"></div>
+
+    <!-- ============================================================
+         Stats Row — FR-PR-04
+         ============================================================ -->
+    <div class="stats-row">
+      <div class="stat-item" role="button" aria-label="5 Friends, button" tabindex="0">
+        <span class="stat-number">5</span>
+        <span class="stat-label">Friends</span>
+      </div>
+      <div class="stat-separator" aria-hidden="true"></div>
+      <div class="stat-item" role="button" aria-label="3 Groups, button" tabindex="0">
+        <span class="stat-number">3</span>
+        <span class="stat-label">Groups</span>
+      </div>
+    </div>
+
+    <div class="divider-thick"></div>
+
+    <!-- ============================================================
+         Settings Section — FR-PR-05
+         ============================================================ -->
+    <div class="section">
+      <div class="section-label">Settings</div>
+
+      <!-- Notification Preferences -->
+      <div class="list-row" role="button" aria-label="Notification Preferences, button" tabindex="0">
+        <div class="row-icon primary" aria-hidden="true">&#128276;</div>
+        <span class="row-label">Notification Preferences</span>
+        <span class="row-chevron" aria-hidden="true">&#8250;</span>
+      </div>
+
+      <!-- Contact Support — P0, visually prominent -->
+      <div class="list-row prominent" role="button" aria-label="Contact Support, button" tabindex="0">
+        <div class="row-icon primary" aria-hidden="true">&#9993;</div>
+        <span class="row-label">Contact Support</span>
+        <span class="row-chevron" aria-hidden="true">&#8250;</span>
+      </div>
+
+      <!-- IA-EXT-03: Language selector row - hidden in v1.0, visible in v1.1 -->
+
+    </div>
+
+    <div class="divider-thick"></div>
+
+    <!-- ============================================================
+         Account Section — FR-AU-08, FR-AU-09
+         ============================================================ -->
+    <div class="section">
+      <div class="section-label">Account</div>
+
+      <!-- Sign Out — FR-AU-08 -->
+      <div class="list-row" role="button" aria-label="Sign Out, button" tabindex="0">
+        <div class="row-icon neutral" aria-hidden="true">&#10152;</div>
+        <span class="row-label">Sign Out</span>
+      </div>
+
+      <!-- Delete Account — FR-AU-09, danger colour -->
+      <div class="list-row" role="button" aria-label="Delete Account, button" tabindex="0">
+        <div class="row-icon danger" aria-hidden="true">&#128465;</div>
+        <span class="row-label danger-text">Delete Account</span>
+      </div>
+    </div>
+
+    <!-- Spacer to ensure content does not hide behind bottom nav -->
+    <div style="flex-shrink:0; height: 8px;"></div>
+
+  </div><!-- /.content -->
+
+  <!-- ============================================================
+       OBTBottomNav — tab index 4 ("Profile") active
+       ============================================================ -->
+  <div class="bottom-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-item" role="button" aria-label="Home" tabindex="0">
+      <div class="nav-icon-wrap"><span class="nav-icon">&#8962;</span></div>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" role="button" aria-label="Friends" tabindex="0">
+      <div class="nav-icon-wrap"><span class="nav-icon">&#128101;</span></div>
+      <span class="nav-label">Friends</span>
+    </div>
+    <div class="nav-item" role="button" aria-label="Groups" tabindex="0">
+      <div class="nav-icon-wrap"><span class="nav-icon">&#128100;</span></div>
+      <span class="nav-label">Groups</span>
+    </div>
+    <div class="nav-item" role="button" aria-label="Activity" tabindex="0">
+      <div class="nav-icon-wrap"><span class="nav-icon">&#128337;</span></div>
+      <span class="nav-label">Activity</span>
+    </div>
+    <div class="nav-item active" role="button" aria-label="Profile, selected" tabindex="0" aria-current="page">
+      <div class="nav-icon-wrap"><span class="nav-icon">&#9679;</span></div>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+
+  <!-- Home indicator safe area -->
+  <div class="bottom-safe" aria-hidden="true"></div>
+
+</div><!-- /.device-frame -->
+
+</body>
+</html>

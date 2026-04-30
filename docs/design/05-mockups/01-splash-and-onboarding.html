@@ -1,0 +1,495 @@
+<!--
+  ============================================================
+  OneByTwo — Splash and Onboarding Mockup
+  ============================================================
+  SRS Requirements:  FR-AU-01 (Authentication), Section 6.3 item 1
+  Wireframe ref:     docs/design/04-wireframes/auth-flow.md
+  Design tokens ref: docs/design/02-design-system/tokens.md
+  ============================================================
+  Screens rendered:
+    1. Splash Screen  (route: /splash)
+    2. Onboarding Slide 1 of 3  (route: /onboarding)
+  ============================================================
+  Viewport: iPhone 12 (390 x 844)
+  Typography: Inter (Google Fonts), weights 400 / 600 / 700
+  Colour tokens (Light Theme):
+    primary:          #1F4E79
+    primaryVariant:   #2E86AB
+    secondary:        #F4A261
+    surface:          #FFFFFF
+    background:       #F8F9FB
+    onPrimary:        #FFFFFF
+    textPrimary:      #1A1A1A
+    textSecondary:    #4B5563
+    textTertiary:     #9CA3AF
+    disabled:         #B0B7C3
+  Corner radii:
+    radiusMedium: 12dp (buttons)
+    radiusLarge:  16dp (cards)
+    radiusXL:     24dp (sheets)
+  Spacing: 4-point grid
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneByTwo — Splash and Onboarding Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #E4E7EC;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+      padding: 48px 24px;
+      min-height: 100vh;
+    }
+
+    /* ── Shared phone frame ── */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 0 0 2px #C4C9D1,
+        0 12px 40px rgba(0, 0, 0, 0.18);
+      flex-shrink: 0;
+    }
+
+    .screen-label {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: #4B5563;
+      text-align: center;
+      margin-bottom: 12px;
+      letter-spacing: 0.1px;
+    }
+
+    .phone-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Status bar (shared) ── */
+    .status-bar {
+      height: 44px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .status-bar-light {
+      color: #FFFFFF;
+    }
+
+    .status-bar-dark {
+      color: #1A1A1A;
+    }
+
+    /* ── Home indicator ── */
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      border-radius: 9999px;
+    }
+
+    .home-indicator-light {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .home-indicator-dark {
+      background: rgba(26, 26, 26, 0.2);
+    }
+
+    /* ============================================================
+       SPLASH SCREEN
+       ============================================================ */
+    .splash-screen {
+      background: #1F4E79;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .splash-logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .splash-logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.25px;
+    }
+
+    .splash-app-name {
+      font-size: 34px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.25px;
+      line-height: 1.18;
+      margin-bottom: 8px;
+    }
+
+    .splash-tagline {
+      font-size: 16px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.15px;
+      line-height: 1.5;
+      margin-bottom: 64px;
+    }
+
+    /* Three-dot loader */
+    .splash-loader {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .splash-loader-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .splash-loader-dot.active {
+      background: #FFFFFF;
+    }
+
+    /* ============================================================
+       ONBOARDING SCREEN
+       ============================================================ */
+    .onboarding-screen {
+      background: #FFFFFF;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .onboarding-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0 20px;
+      height: 48px;
+    }
+
+    .skip-button {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4B5563;
+      letter-spacing: 0.1px;
+      cursor: pointer;
+      padding: 12px;
+      min-width: 48px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .onboarding-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    /* Illustration placeholder */
+    .illustration-area {
+      width: 310px;
+      height: 240px;
+      background: #F2F4F7;
+      border-radius: 24px;
+      margin-top: 32px;
+      margin-bottom: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative illustration elements */
+    .illus-circle-large {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 9999px;
+      background: rgba(46, 134, 171, 0.12);
+      top: 30px;
+      left: 40px;
+    }
+
+    .illus-circle-small {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: rgba(244, 162, 97, 0.2);
+      top: 60px;
+      right: 50px;
+    }
+
+    .illus-rect-1 {
+      position: absolute;
+      width: 100px;
+      height: 60px;
+      border-radius: 12px;
+      background: rgba(31, 78, 121, 0.12);
+      bottom: 40px;
+      left: 60px;
+      transform: rotate(-5deg);
+    }
+
+    .illus-rect-2 {
+      position: absolute;
+      width: 80px;
+      height: 50px;
+      border-radius: 12px;
+      background: rgba(42, 157, 143, 0.15);
+      bottom: 35px;
+      right: 55px;
+      transform: rotate(3deg);
+    }
+
+    .illus-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #9CA3AF;
+      letter-spacing: 0.5px;
+      z-index: 1;
+    }
+
+    .onboarding-headline {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1A1A1A;
+      letter-spacing: 0;
+      line-height: 1.25;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .onboarding-subtitle {
+      font-size: 14px;
+      font-weight: 400;
+      color: #4B5563;
+      letter-spacing: 0.15px;
+      line-height: 1.43;
+      text-align: center;
+      max-width: 280px;
+    }
+
+    /* Dot pagination */
+    .dot-pagination {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: auto;
+      margin-bottom: 32px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: #C4C9D1;
+      transition: all 250ms ease-in-out;
+    }
+
+    .dot.active {
+      width: 24px;
+      background: #1F4E79;
+    }
+
+    /* Next button */
+    .next-button {
+      width: calc(100% - 40px);
+      max-width: 350px;
+      height: 52px;
+      background: #1F4E79;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 6px rgba(31, 78, 121, 0.2);
+    }
+
+    .next-button svg {
+      width: 18px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       SCREEN 1: SPLASH
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">Splash Screen</div>
+    <div class="phone-frame">
+      <div class="splash-screen">
+
+        <!-- Status bar -->
+        <div class="status-bar status-bar-light" style="position: absolute; top: 0; left: 0; right: 0;">
+          9:41
+        </div>
+
+        <!-- Logo -->
+        <div class="splash-logo">
+          <!-- Inline SVG: stylised split icon -->
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="20" stroke="#FFFFFF" stroke-width="2.5" fill="none" />
+            <line x1="24" y1="8" x2="24" y2="40" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="4 3" />
+            <circle cx="16" cy="24" r="4" fill="rgba(255,255,255,0.6)" />
+            <circle cx="32" cy="24" r="4" fill="#FFFFFF" />
+          </svg>
+        </div>
+
+        <!-- App name (displayLarge: 34sp, 700) -->
+        <div class="splash-app-name">One By Two</div>
+
+        <!-- Tagline (bodyLarge: 16sp, 400, muted) -->
+        <div class="splash-tagline">Split it. Settle it. Simple.</div>
+
+        <!-- Indeterminate three-dot loader -->
+        <div class="splash-loader" role="status" aria-label="Loading, please wait">
+          <div class="splash-loader-dot active"></div>
+          <div class="splash-loader-dot"></div>
+          <div class="splash-loader-dot"></div>
+        </div>
+
+        <!-- Home indicator -->
+        <div class="home-indicator home-indicator-light"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 2: ONBOARDING — SLIDE 1 of 3
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">Onboarding — Slide 1 of 3</div>
+    <div class="phone-frame">
+      <div class="onboarding-screen">
+
+        <!-- Status bar -->
+        <div class="status-bar status-bar-dark">
+          9:41
+        </div>
+
+        <!-- Header with Skip -->
+        <div class="onboarding-header">
+          <div class="skip-button" role="button" aria-label="Skip onboarding">Skip</div>
+        </div>
+
+        <!-- Content -->
+        <div class="onboarding-content">
+
+          <!-- Illustration placeholder (radiusXL: 24dp, ~240dp tall) -->
+          <div class="illustration-area" role="img" aria-hidden="true">
+            <!-- Decorative geometric shapes representing two friends splitting a bill -->
+            <div class="illus-circle-large"></div>
+            <div class="illus-circle-small"></div>
+            <div class="illus-rect-1"></div>
+            <div class="illus-rect-2"></div>
+            <!-- Inline SVG: abstract split/share motif -->
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="z-index:1; opacity:0.5;">
+              <circle cx="28" cy="32" r="14" stroke="#1F4E79" stroke-width="2" fill="rgba(31,78,121,0.08)" />
+              <circle cx="52" cy="32" r="14" stroke="#2E86AB" stroke-width="2" fill="rgba(46,134,171,0.08)" />
+              <rect x="25" y="52" width="30" height="18" rx="6" stroke="#F4A261" stroke-width="2" fill="rgba(244,162,97,0.1)" />
+              <line x1="40" y1="55" x2="40" y2="67" stroke="#F4A261" stroke-width="1.5" stroke-dasharray="3 2" />
+            </svg>
+          </div>
+
+          <!-- Headline (headlineLarge: 24sp, 600) -->
+          <h1 class="onboarding-headline">Track every rupee</h1>
+
+          <!-- Subtitle (bodyMedium: 14sp, 400, textSecondary) -->
+          <p class="onboarding-subtitle">
+            Add expenses with friends and groups. We handle the maths.
+          </p>
+
+          <!-- Dot pagination -->
+          <div class="dot-pagination" role="tablist" aria-label="Page 1 of 3">
+            <div class="dot active" role="tab" aria-selected="true" aria-label="Page 1"></div>
+            <div class="dot" role="tab" aria-selected="false" aria-label="Page 2"></div>
+            <div class="dot" role="tab" aria-selected="false" aria-label="Page 3"></div>
+          </div>
+
+          <!-- Next button (radiusMedium: 12dp, primary fill, min 48dp tap target) -->
+          <button class="next-button" aria-label="Next">
+            Next
+            <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 4.5L11.5 9L7 13.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+
+        </div>
+
+        <!-- Home indicator -->
+        <div class="home-indicator home-indicator-dark"></div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
