@@ -1,0 +1,814 @@
+<!--
+  OneByTwo — Group Detail Screen Mockup
+  ======================================
+  SRS Functional Requirements:
+    FR-GR-01: Create group
+    FR-GR-02: Invite members to group
+    FR-GR-03: Shareable invite link
+    FR-GR-04: View group detail, members, balances
+    FR-GR-05: Edit group settings
+    FR-GR-06: Remove member from group
+    FR-GR-07: Leave group
+    FR-SE-01: Simplified balances (server-maintained, client-read-only — Invariant 2)
+
+  Wireframe reference: docs/design/04-wireframes/groups-flow.md (Screen 3: Group Detail)
+  Design tokens reference: docs/design/02-design-system/tokens.md
+
+  All monetary values are integer paise internally; displayed as rupees at the UI layer (Invariant 1).
+  Indian numbering format used for amounts.
+  simplifiedBalances is read-only on client (Invariant 2).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OneByTwo — Group Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+  <style>
+    /* ============================================================
+       RESET
+       ============================================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ============================================================
+       DESIGN TOKENS  (from tokens.md — Light Theme)
+       ============================================================ */
+    :root {
+      /* Colour */
+      --primary:          #1F4E79;
+      --primary-variant:  #2E86AB;
+      --secondary:        #F4A261;
+      --secondary-variant:#E08C4A;
+      --success:          #2A9D8F;
+      --danger:           #E76F51;
+      --surface:          #FFFFFF;
+      --surface-variant:  #F2F4F7;
+      --background:       #F8F9FB;
+      --on-primary:       #FFFFFF;
+      --on-surface:       #1A1A1A;
+      --on-background:    #1A1A1A;
+      --outline:          #C4C9D1;
+      --divider:          #E4E7EC;
+      --disabled:         #B0B7C3;
+      --text-primary:     #1A1A1A;
+      --text-secondary:   #4B5563;
+      --text-tertiary:    #9CA3AF;
+      --balance-positive: #2A9D8F;
+      --balance-negative: #E76F51;
+      --balance-zero:     #6B7280;
+
+      /* Spacing (4-point grid) */
+      --space-2:  2px;
+      --space-4:  4px;
+      --space-8:  8px;
+      --space-12: 12px;
+      --space-16: 16px;
+      --space-20: 20px;
+      --space-24: 24px;
+      --space-32: 32px;
+      --space-48: 48px;
+
+      /* Corner Radii */
+      --radius-small:  8px;
+      --radius-medium: 12px;
+      --radius-large:  16px;
+      --radius-xl:     24px;
+      --radius-full:   9999px;
+
+      /* Elevation (light mode) */
+      --elevation-1: 0px 1px 4px rgba(0, 0, 0, 0.04);
+      --elevation-2: 0px 2px 6px rgba(0, 0, 0, 0.06);
+      --elevation-3: 0px 4px 12px rgba(0, 0, 0, 0.08);
+
+      /* Typography */
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ============================================================
+       BODY / DEVICE FRAME
+       ============================================================ */
+    body {
+      font-family: var(--font-family);
+      background: #E5E5E5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+
+    .device-frame {
+      width: 390px;
+      height: 844px;
+      background: var(--background);
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ============================================================
+       STATUS BAR (iOS chrome)
+       ============================================================ */
+    .status-bar {
+      height: 47px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-24);
+      flex-shrink: 0;
+    }
+
+    .status-bar-time {
+      font-family: var(--font-family);
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--on-primary);
+    }
+
+    .status-bar-icons {
+      display: flex;
+      gap: var(--space-8);
+      align-items: center;
+    }
+
+    .status-bar-icons span {
+      font-size: 14px;
+      color: var(--on-primary);
+      font-weight: 500;
+    }
+
+    /* ============================================================
+       APP BAR  (OBTAppBar)
+       tokens: primary bg, onPrimary text, titleLarge (18sp/600)
+       ============================================================ */
+    .app-bar {
+      height: 56px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-8);
+      flex-shrink: 0;
+    }
+
+    .app-bar-back {
+      width: var(--space-48);
+      height: var(--space-48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--on-primary);
+      cursor: pointer;
+      border-radius: var(--radius-full);
+    }
+
+    .app-bar-back .material-symbols-rounded {
+      font-size: 24px;
+    }
+
+    .app-bar-title {
+      flex: 1;
+      font-weight: 600;
+      font-size: 18px;
+      line-height: 24px;
+      color: var(--on-primary);
+      margin-left: var(--space-4);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-bar-action {
+      width: var(--space-48);
+      height: var(--space-48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--on-primary);
+      cursor: pointer;
+      border-radius: var(--radius-full);
+    }
+
+    .app-bar-action .material-symbols-rounded {
+      font-size: 24px;
+    }
+
+    /* ============================================================
+       SCROLLABLE CONTENT
+       ============================================================ */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ============================================================
+       GROUP HEADER CARD
+       tokens: radiusXL (24dp), gradient primary-variant to primary
+       ============================================================ */
+    .group-header {
+      position: relative;
+      margin: 0;
+    }
+
+    .group-cover {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, var(--primary-variant) 0%, var(--primary) 100%);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: var(--space-20);
+    }
+
+    .group-cover::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 100px;
+      background: linear-gradient(transparent, rgba(31, 78, 121, 0.6));
+    }
+
+    .group-cover-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .group-name-header {
+      font-weight: 700;
+      font-size: 24px;
+      line-height: 30px;
+      color: var(--on-primary);
+      margin-bottom: var(--space-8);
+    }
+
+    .group-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+
+    .group-type-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-4) var(--space-12);
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--on-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .group-member-count {
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .meta-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ============================================================
+       SECTION HEADERS
+       tokens: headlineMedium (20sp/600)
+       ============================================================ */
+    .section-header {
+      padding: var(--space-20);
+      padding-bottom: var(--space-12);
+      font-weight: 600;
+      font-size: 18px;
+      line-height: 24px;
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
+       BALANCES SECTION
+       ============================================================ */
+    .balances-section {
+      padding: 0 var(--space-20);
+    }
+
+    .balance-row {
+      display: flex;
+      align-items: center;
+      padding: var(--space-12) 0;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .balance-row:last-child {
+      border-bottom: none;
+    }
+
+    .balance-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--on-primary);
+      flex-shrink: 0;
+      margin-right: var(--space-12);
+    }
+
+    .balance-avatar.avatar-rahul { background: var(--primary-variant); }
+    .balance-avatar.avatar-priya { background: var(--secondary-variant); }
+    .balance-avatar.avatar-amit  { background: var(--disabled); }
+
+    .balance-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .balance-text {
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+    }
+
+    .balance-text.positive { color: var(--balance-positive); }
+    .balance-text.negative { color: var(--balance-negative); }
+    .balance-text.zero     { color: var(--balance-zero); }
+
+    .balance-amount {
+      font-weight: 600;
+    }
+
+    .settle-up-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4) var(--space-12);
+      font-family: var(--font-family);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      border-radius: var(--radius-medium);
+      cursor: pointer;
+      min-height: 32px;
+      min-width: 80px;
+      transition: background 250ms ease-in-out, box-shadow 250ms ease-in-out;
+      border: none;
+      flex-shrink: 0;
+      margin-left: var(--space-8);
+    }
+
+    .settle-up-btn.positive-btn {
+      background: var(--success);
+      color: var(--on-primary);
+    }
+
+    .settle-up-btn.negative-btn {
+      background: var(--danger);
+      color: var(--on-primary);
+    }
+
+    .settle-up-btn:hover {
+      box-shadow: var(--elevation-2);
+    }
+
+    /* ============================================================
+       EXPENSES SECTION
+       ============================================================ */
+    .expenses-section {
+      padding: 0 var(--space-20);
+      padding-bottom: var(--space-24);
+    }
+
+    .expense-card {
+      background: var(--surface);
+      border-radius: var(--radius-large);
+      padding: var(--space-16);
+      margin-bottom: var(--space-12);
+      box-shadow: var(--elevation-1);
+      display: flex;
+      align-items: center;
+      gap: var(--space-12);
+      cursor: pointer;
+      transition: box-shadow 250ms ease-in-out;
+    }
+
+    .expense-card:hover {
+      box-shadow: var(--elevation-2);
+    }
+
+    .expense-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .expense-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .expense-icon.food {
+      background: rgba(244, 162, 97, 0.12);
+      color: var(--secondary);
+    }
+
+    .expense-icon.transport {
+      background: rgba(46, 134, 171, 0.12);
+      color: var(--primary-variant);
+    }
+
+    .expense-icon.lodging {
+      background: rgba(31, 78, 121, 0.12);
+      color: var(--primary);
+    }
+
+    .expense-icon .material-symbols-rounded {
+      font-size: 24px;
+    }
+
+    .expense-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .expense-description {
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .expense-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin-top: var(--space-2);
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--text-secondary);
+    }
+
+    .expense-meta-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+
+    .expense-payer-avatar {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 8px;
+      color: var(--on-primary);
+      flex-shrink: 0;
+    }
+
+    .expense-amount-section {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .expense-amount {
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 22px;
+      color: var(--text-primary);
+    }
+
+    .expense-date {
+      font-size: 11px;
+      line-height: 14px;
+      color: var(--text-tertiary);
+      margin-top: var(--space-2);
+    }
+
+    /* ============================================================
+       FLOATING ACTION BUTTON  (OBTFloatingActionButton)
+       tokens: primaryVariant bg, onPrimary icon, elevation3,
+       radiusFull, spring motion
+       ============================================================ */
+    .fab {
+      position: absolute;
+      bottom: 80px;
+      right: var(--space-20);
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--primary-variant);
+      color: var(--on-primary);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--elevation-3);
+      cursor: pointer;
+      transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 250ms ease-in-out;
+      z-index: 10;
+    }
+
+    .fab:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .fab:active {
+      transform: scale(0.95);
+    }
+
+    .fab .material-symbols-rounded {
+      font-size: 28px;
+    }
+
+    /* ============================================================
+       BOTTOM NAVIGATION BAR  (OBTBottomNav)
+       tokens: surface bg, elevation2, primary active, textTertiary inactive
+       currentIndex: 2 (Groups tab active)
+       ============================================================ */
+    .bottom-nav {
+      height: 64px;
+      background: var(--surface);
+      border-top: 1px solid var(--divider);
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+      padding-bottom: 8px;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      cursor: pointer;
+      text-decoration: none;
+      min-height: var(--space-48);
+      position: relative;
+    }
+
+    .nav-item .material-symbols-rounded {
+      font-size: 24px;
+      color: var(--text-tertiary);
+      transition: color 200ms ease-in-out;
+    }
+
+    .nav-item span.nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      transition: color 200ms ease-in-out;
+    }
+
+    .nav-item.active .material-symbols-rounded {
+      color: var(--primary);
+    }
+
+    .nav-item.active span.nav-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 3px;
+      border-radius: 0 0 3px 3px;
+      background: var(--primary);
+    }
+
+    /* ============================================================
+       RUPEE SYMBOL HELPER
+       ============================================================ */
+    .rupee {
+      font-family: var(--font-family);
+    }
+
+    /* ============================================================
+       SECTION DIVIDER
+       ============================================================ */
+    .section-divider {
+      height: 1px;
+      background: var(--divider);
+      margin: 0 var(--space-20);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="device-frame">
+
+    <!-- STATUS BAR -->
+    <div class="status-bar" role="presentation" aria-hidden="true">
+      <span class="status-bar-time">9:41</span>
+      <div class="status-bar-icons">
+        <span class="material-symbols-rounded" style="font-size:16px;">signal_cellular_alt</span>
+        <span class="material-symbols-rounded" style="font-size:16px;">wifi</span>
+        <span class="material-symbols-rounded" style="font-size:16px;">battery_full</span>
+      </div>
+    </div>
+
+    <!-- APP BAR -->
+    <nav class="app-bar" role="navigation" aria-label="Group detail navigation">
+      <div class="app-bar-back" role="button" aria-label="Back" tabindex="0">
+        <span class="material-symbols-rounded">arrow_back</span>
+      </div>
+      <h1 class="app-bar-title">Goa Trip</h1>
+      <div class="app-bar-action" role="button" aria-label="More options" tabindex="0">
+        <span class="material-symbols-rounded">more_vert</span>
+      </div>
+    </nav>
+
+    <!-- SCROLLABLE CONTENT -->
+    <main class="content" role="main">
+
+      <!-- GROUP HEADER -->
+      <div class="group-header" role="region" aria-label="Goa Trip, Trip group, 4 members">
+        <div class="group-cover">
+          <div class="group-cover-content">
+            <div class="group-name-header">Goa Trip</div>
+            <div class="group-meta">
+              <span class="group-type-badge">Trip</span>
+              <span class="meta-dot"></span>
+              <span class="group-member-count">4 members</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMPLIFIED BALANCES SECTION -->
+      <div class="section-header" id="balances-heading">Balances</div>
+      <div class="balances-section" role="list" aria-labelledby="balances-heading">
+
+        <!-- Rahul owes You -->
+        <div class="balance-row" role="listitem" aria-label="Rahul owes you 850 rupees. Settle up button available.">
+          <div class="balance-avatar avatar-rahul" aria-hidden="true">R</div>
+          <div class="balance-info">
+            <div class="balance-text positive">
+              Rahul owes You <span class="balance-amount"><span class="rupee">&#8377;</span>850.00</span>
+            </div>
+          </div>
+          <button class="settle-up-btn positive-btn" aria-label="Settle up with Rahul">Settle Up</button>
+        </div>
+
+        <!-- You owe Priya -->
+        <div class="balance-row" role="listitem" aria-label="You owe Priya 400 rupees. Settle up button available.">
+          <div class="balance-avatar avatar-priya" aria-hidden="true">P</div>
+          <div class="balance-info">
+            <div class="balance-text negative">
+              You owe Priya <span class="balance-amount"><span class="rupee">&#8377;</span>400.00</span>
+            </div>
+          </div>
+          <button class="settle-up-btn negative-btn" aria-label="Settle up with Priya">Settle Up</button>
+        </div>
+
+        <!-- Amit is settled up -->
+        <div class="balance-row" role="listitem" aria-label="Amit is settled up.">
+          <div class="balance-avatar avatar-amit" aria-hidden="true">A</div>
+          <div class="balance-info">
+            <div class="balance-text zero">
+              Amit is settled up
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- EXPENSES LIST -->
+      <div class="section-header" id="expenses-heading">Expenses</div>
+      <div class="expenses-section" role="list" aria-labelledby="expenses-heading">
+
+        <!-- Expense 1: Dinner at Barbeque Nation -->
+        <div class="expense-card" role="listitem" aria-label="Dinner at Barbeque Nation, 1,250 rupees, paid by You, 15 January">
+          <div class="expense-icon food" aria-hidden="true">
+            <span class="material-symbols-rounded">restaurant</span>
+          </div>
+          <div class="expense-details">
+            <div class="expense-description">Dinner at Barbeque Nation</div>
+            <div class="expense-meta">
+              <span class="expense-payer-avatar" style="background: var(--success);" aria-hidden="true">Y</span>
+              <span>Paid by You</span>
+            </div>
+          </div>
+          <div class="expense-amount-section">
+            <div class="expense-amount"><span class="rupee">&#8377;</span>1,250.00</div>
+            <div class="expense-date">15 Jan</div>
+          </div>
+        </div>
+
+        <!-- Expense 2: Cab to hotel -->
+        <div class="expense-card" role="listitem" aria-label="Cab to hotel, 600 rupees, paid by Rahul, 14 January">
+          <div class="expense-icon transport" aria-hidden="true">
+            <span class="material-symbols-rounded">directions_car</span>
+          </div>
+          <div class="expense-details">
+            <div class="expense-description">Cab to hotel</div>
+            <div class="expense-meta">
+              <span class="expense-payer-avatar" style="background: var(--primary-variant);" aria-hidden="true">R</span>
+              <span>Paid by Rahul</span>
+            </div>
+          </div>
+          <div class="expense-amount-section">
+            <div class="expense-amount"><span class="rupee">&#8377;</span>600.00</div>
+            <div class="expense-date">14 Jan</div>
+          </div>
+        </div>
+
+        <!-- Expense 3: Hotel booking -->
+        <div class="expense-card" role="listitem" aria-label="Hotel booking, 8,500 rupees, paid by Priya, 14 January">
+          <div class="expense-icon lodging" aria-hidden="true">
+            <span class="material-symbols-rounded">hotel</span>
+          </div>
+          <div class="expense-details">
+            <div class="expense-description">Hotel booking</div>
+            <div class="expense-meta">
+              <span class="expense-payer-avatar" style="background: var(--secondary-variant);" aria-hidden="true">P</span>
+              <span>Paid by Priya</span>
+            </div>
+          </div>
+          <div class="expense-amount-section">
+            <div class="expense-amount"><span class="rupee">&#8377;</span>8,500.00</div>
+            <div class="expense-date">14 Jan</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom padding to clear FAB -->
+      <div style="height: 80px;" aria-hidden="true"></div>
+
+    </main>
+
+    <!-- FLOATING ACTION BUTTON -->
+    <button class="fab" aria-label="Add expense to group" tabindex="0">
+      <span class="material-symbols-rounded">add</span>
+    </button>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <a class="nav-item" role="tab" aria-label="Home" aria-selected="false" tabindex="0">
+        <span class="material-symbols-rounded">home</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a class="nav-item" role="tab" aria-label="Friends" aria-selected="false" tabindex="0">
+        <span class="material-symbols-rounded">people</span>
+        <span class="nav-label">Friends</span>
+      </a>
+      <a class="nav-item active" role="tab" aria-label="Groups, selected" aria-selected="true" tabindex="0">
+        <span class="material-symbols-rounded">group</span>
+        <span class="nav-label">Groups</span>
+      </a>
+      <a class="nav-item" role="tab" aria-label="Activity" aria-selected="false" tabindex="0">
+        <span class="material-symbols-rounded">receipt_long</span>
+        <span class="nav-label">Activity</span>
+      </a>
+      <a class="nav-item" role="tab" aria-label="Profile" aria-selected="false" tabindex="0">
+        <span class="material-symbols-rounded">person</span>
+        <span class="nav-label">Profile</span>
+      </a>
+    </nav>
+
+  </div>
+
+</body>
+</html>

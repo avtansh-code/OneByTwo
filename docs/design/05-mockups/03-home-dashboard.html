@@ -1,0 +1,713 @@
+<!--
+  OneByTwo — Home Dashboard Mockup (Populated State)
+  ===================================================
+  SRS References:
+    - FR-HD-01: Net balance as primary visual element, colour-coded
+    - FR-HD-02: Top 5 friends/groups with quick settle action
+    - FR-HD-03: Current-month category breakdown (P1 placeholder)
+    - FR-HD-04: Persistent FAB for adding expenses
+
+  Wireframe Reference: docs/design/04-wireframes/home-dashboard.md (Section 2: Populated State)
+  Design Tokens:    docs/design/02-design-system/tokens.md
+
+  Invariant 1: All monetary values displayed are converted from integer paise at
+               the UI layer. Values shown here are illustrative.
+  Invariant 2: Balance data is read from simplifiedBalances (server-maintained,
+               client-read-only).
+
+  Two versions rendered side by side: Light Mode and Dark Mode.
+  Each at iPhone 12 viewport (390x844).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneByTwo — Home Dashboard Mockup (Populated)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     RESET AND PAGE LAYOUT
+     ============================================================ */
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #E4E7EC;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 48px;
+    padding: 40px 24px;
+    min-height: 100vh;
+    flex-wrap: wrap;
+  }
+
+  .mode-label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: #4B5563;
+  }
+
+  .phone-wrapper {
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     PHONE FRAME — iPhone 12 (390 x 844)
+     ============================================================ */
+  .phone {
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  /* ============================================================
+     LIGHT THEME TOKENS (SRS 6.2, tokens.md Section 1.1)
+     ============================================================ */
+  .light {
+    --primary: #1F4E79;
+    --primaryVariant: #2E86AB;
+    --secondary: #F4A261;
+    --success: #2A9D8F;
+    --danger: #E76F51;
+    --surface: #FFFFFF;
+    --surfaceVariant: #F2F4F7;
+    --background: #F8F9FB;
+    --onPrimary: #FFFFFF;
+    --onSurface: #1A1A1A;
+    --textPrimary: #1A1A1A;
+    --textSecondary: #4B5563;
+    --textTertiary: #9CA3AF;
+    --balancePositive: #2A9D8F;
+    --balanceNegative: #E76F51;
+    --divider: #E4E7EC;
+    --outline: #C4C9D1;
+    --disabled: #B0B7C3;
+    --successBg: rgba(42, 157, 143, 0.12);
+    --dangerBg: rgba(231, 111, 81, 0.12);
+    --navBg: #FFFFFF;
+    --navBorder: #E4E7EC;
+    --avatarBg: #E8F0FE;
+    --avatarText: #1F4E79;
+    --settleText: #1F4E79;
+    --fabShadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  /* ============================================================
+     DARK THEME TOKENS (SRS 6.2, tokens.md Section 1.2)
+     ============================================================ */
+  .dark {
+    --primary: #2E86AB;
+    --primaryVariant: #5AAFCE;
+    --secondary: #F4A261;
+    --success: #3CC0AF;
+    --danger: #F08B72;
+    --surface: #1E1E1E;
+    --surfaceVariant: #2A2A2A;
+    --background: #121212;
+    --onPrimary: #FFFFFF;
+    --onSurface: #E8E8E8;
+    --textPrimary: #F0F0F0;
+    --textSecondary: #A1A1AA;
+    --textTertiary: #6B7280;
+    --balancePositive: #3CC0AF;
+    --balanceNegative: #F08B72;
+    --divider: #2F2F2F;
+    --outline: #3D3D3D;
+    --disabled: #4A4A4A;
+    --successBg: rgba(60, 192, 175, 0.12);
+    --dangerBg: rgba(240, 139, 114, 0.12);
+    --navBg: #1E1E1E;
+    --navBorder: #2F2F2F;
+    --avatarBg: #1A3A4F;
+    --avatarText: #5AAFCE;
+    --settleText: #5AAFCE;
+    --fabShadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  /* ============================================================
+     SHARED COMPONENT STYLES
+     ============================================================ */
+
+  /* -- App Bar (OBTAppBar) -- */
+  .app-bar {
+    height: 56px;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .app-bar__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--onPrimary);
+    letter-spacing: -0.15px;
+  }
+
+  /* -- Status Bar (cosmetic) -- */
+  .status-bar {
+    height: 44px;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+
+  /* -- Scrollable Content -- */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--background);
+    padding: 20px;
+    padding-bottom: 88px; /* space for FAB above bottom nav */
+  }
+
+  /* -- Net Balance Header Card (FR-HD-01) -- */
+  /* 24 dp radius, elevationLow, colour-coded background tint */
+  .balance-card {
+    background: var(--successBg);
+    border-radius: 24px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 24px;
+    /* elevation1: 0 dp Y, 1 dp blur, 4% black (light) */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .dark .balance-card {
+    box-shadow: none;
+    /* Dark mode: elevation via surface tint, not shadow */
+    background: var(--successBg);
+  }
+  .balance-card__label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--textSecondary);
+    letter-spacing: 0.1px;
+    margin-bottom: 8px;
+  }
+  .balance-card__amount {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--balancePositive);
+    letter-spacing: -0.15px;
+    line-height: 1.21;
+  }
+
+  /* -- Section Header -- */
+  .section-header {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--textPrimary);
+    margin-bottom: 16px;
+    letter-spacing: 0;
+  }
+
+  /* -- Balance List (FR-HD-02: Top Balances) -- */
+  .balance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+
+  /* -- OBTFriendListTile / OBTGroupListTile -- */
+  .list-tile {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* elevation1 */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .dark .list-tile {
+    box-shadow: none;
+  }
+
+  /* -- OBTUserAvatar / OBTGroupAvatar -- */
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--avatarBg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .avatar__initials {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--avatarText);
+    letter-spacing: 0.1px;
+  }
+  .avatar--group {
+    border-radius: 8px; /* radiusSmall for group avatars */
+  }
+
+  .tile-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .tile-content__name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--textPrimary);
+    letter-spacing: 0.1px;
+    line-height: 1.38;
+  }
+  .tile-content__subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--textSecondary);
+    letter-spacing: 0.2px;
+    margin-top: 2px;
+  }
+
+  .tile-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* -- OBTBalancePill -- */
+  .balance-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 9999px; /* radiusFull: pill shape */
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+  }
+  .balance-pill--positive {
+    background: var(--successBg);
+    color: var(--balancePositive);
+  }
+  .balance-pill--negative {
+    background: var(--dangerBg);
+    color: var(--balanceNegative);
+  }
+
+  /* -- Settle Up text button -- */
+  /* Min tap target 48x48 dp (SRS 5.6), visual text smaller */
+  .settle-btn {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--settleText);
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    min-height: 28px;
+    font-family: inherit;
+  }
+
+  /* -- This Month Card (FR-HD-03 placeholder) -- */
+  .month-card {
+    background: var(--surfaceVariant);
+    border-radius: 24px;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .month-card__amount {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--textPrimary);
+    letter-spacing: 0;
+  }
+  .month-card__subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--textTertiary);
+    letter-spacing: 0.2px;
+  }
+
+  /* -- OBTFloatingActionButton (FR-HD-04) -- */
+  /* 56x56 dp, secondary colour, elevation3, spring motion */
+  .fab {
+    position: absolute;
+    bottom: 76px; /* above bottom nav */
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 9999px;
+    background: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--fabShadow);
+    cursor: pointer;
+    border: none;
+    /* motionSpring: spring physics on FAB */
+    transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10;
+  }
+  .fab:hover {
+    transform: scale(1.08);
+  }
+  .fab__icon {
+    font-size: 28px;
+    font-weight: 300;
+    color: #1A1A1A; /* onSecondary */
+    line-height: 1;
+  }
+
+  /* -- OBTBottomNav -- */
+  .bottom-nav {
+    height: 64px;
+    background: var(--navBg);
+    border-top: 1px solid var(--navBorder);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-shrink: 0;
+    padding: 0 8px;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 48px;
+    min-height: 48px;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .nav-item__icon {
+    font-size: 22px;
+    line-height: 1;
+    color: var(--disabled);
+  }
+  .nav-item__label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--disabled);
+    letter-spacing: 0.5px;
+  }
+  .nav-item--active .nav-item__icon {
+    color: var(--primary);
+  }
+  .nav-item--active .nav-item__label {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .nav-item--active .nav-indicator {
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    position: absolute;
+    top: 0;
+  }
+  .nav-item {
+    position: relative;
+  }
+
+  /* ============================================================
+     SIMPLE SVG NAV ICONS (inline, no framework)
+     ============================================================ */
+  .nav-icon {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--disabled);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nav-item--active .nav-icon {
+    stroke: var(--primary);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LIGHT MODE — iPhone 12 (390 x 844)
+     ============================================================ -->
+<div class="phone-wrapper">
+  <div class="mode-label">Light Mode</div>
+  <div class="phone light">
+    <!-- Status Bar -->
+    <div class="status-bar"></div>
+
+    <!-- App Bar -->
+    <div class="app-bar" role="banner" aria-label="App bar">
+      <span class="app-bar__title">One By Two</span>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="content" role="main">
+
+      <!-- Net Balance Header Card (FR-HD-01) -->
+      <div class="balance-card" role="region" aria-label="Overall balance: you are owed rupees 2,450.00">
+        <div class="balance-card__label">Overall, you are owed</div>
+        <div class="balance-card__amount">&#x20B9;2,450.00</div>
+      </div>
+
+      <!-- Top Balances Section (FR-HD-02) -->
+      <div class="section-header">Top Balances</div>
+      <div class="balance-list" role="list">
+
+        <!-- Friend: Rahul — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">RM</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Rahul Mehta</div>
+            <div class="tile-content__subtitle">you are owed</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 850.00">&#x20B9;850.00</span>
+            <button class="settle-btn" aria-label="Settle up with Rahul Mehta, rupees 850.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Friend: Priya — you owe -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">PS</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Priya Sharma</div>
+            <div class="tile-content__subtitle">you owe</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--negative" aria-label="You owe rupees 400.00">&#x20B9;400.00</span>
+            <button class="settle-btn" aria-label="Settle up with Priya Sharma, rupees 400.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Group: Goa Trip — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar avatar--group" aria-hidden="true">
+            <span class="avatar__initials">GT</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Goa Trip</div>
+            <div class="tile-content__subtitle">Trip &middot; 5 members</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 1,200.00">&#x20B9;1,200.00</span>
+            <button class="settle-btn" aria-label="Settle up with Goa Trip, rupees 1,200.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Friend: Amit — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">AK</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Amit Kumar</div>
+            <div class="tile-content__subtitle">you are owed</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 800.00">&#x20B9;800.00</span>
+            <button class="settle-btn" aria-label="Settle up with Amit Kumar, rupees 800.00">Settle Up</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- This Month Section (FR-HD-03 placeholder) -->
+      <div class="section-header">This Month</div>
+      <div class="month-card" role="region" aria-label="Monthly spending breakdown, coming soon">
+        <div class="month-card__amount">&#x20B9;12,450 spent</div>
+        <div class="month-card__subtitle">Spending breakdown coming soon</div>
+      </div>
+
+    </div>
+
+    <!-- FAB (FR-HD-04) -->
+    <button class="fab" aria-label="Add new expense">
+      <span class="fab__icon">+</span>
+    </button>
+
+    <!-- Bottom Navigation (OBTBottomNav) -->
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <div class="nav-item nav-item--active" aria-current="page">
+        <div class="nav-indicator"></div>
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+        <span class="nav-item__label">Home</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span class="nav-item__label">Friends</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>
+        <span class="nav-item__label">Groups</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="nav-item__label">Activity</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="nav-item__label">Profile</span>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- ============================================================
+     DARK MODE — iPhone 12 (390 x 844)
+     ============================================================ -->
+<div class="phone-wrapper">
+  <div class="mode-label">Dark Mode</div>
+  <div class="phone dark">
+    <!-- Status Bar -->
+    <div class="status-bar"></div>
+
+    <!-- App Bar -->
+    <div class="app-bar" role="banner" aria-label="App bar">
+      <span class="app-bar__title">One By Two</span>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="content" role="main">
+
+      <!-- Net Balance Header Card (FR-HD-01) -->
+      <div class="balance-card" role="region" aria-label="Overall balance: you are owed rupees 2,450.00">
+        <div class="balance-card__label">Overall, you are owed</div>
+        <div class="balance-card__amount">&#x20B9;2,450.00</div>
+      </div>
+
+      <!-- Top Balances Section (FR-HD-02) -->
+      <div class="section-header">Top Balances</div>
+      <div class="balance-list" role="list">
+
+        <!-- Friend: Rahul — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">RM</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Rahul Mehta</div>
+            <div class="tile-content__subtitle">you are owed</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 850.00">&#x20B9;850.00</span>
+            <button class="settle-btn" aria-label="Settle up with Rahul Mehta, rupees 850.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Friend: Priya — you owe -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">PS</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Priya Sharma</div>
+            <div class="tile-content__subtitle">you owe</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--negative" aria-label="You owe rupees 400.00">&#x20B9;400.00</span>
+            <button class="settle-btn" aria-label="Settle up with Priya Sharma, rupees 400.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Group: Goa Trip — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar avatar--group" aria-hidden="true">
+            <span class="avatar__initials">GT</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Goa Trip</div>
+            <div class="tile-content__subtitle">Trip &middot; 5 members</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 1,200.00">&#x20B9;1,200.00</span>
+            <button class="settle-btn" aria-label="Settle up with Goa Trip, rupees 1,200.00">Settle Up</button>
+          </div>
+        </div>
+
+        <!-- Friend: Amit — owed to you -->
+        <div class="list-tile" role="listitem">
+          <div class="avatar" aria-hidden="true">
+            <span class="avatar__initials">AK</span>
+          </div>
+          <div class="tile-content">
+            <div class="tile-content__name">Amit Kumar</div>
+            <div class="tile-content__subtitle">you are owed</div>
+          </div>
+          <div class="tile-right">
+            <span class="balance-pill balance-pill--positive" aria-label="You are owed rupees 800.00">&#x20B9;800.00</span>
+            <button class="settle-btn" aria-label="Settle up with Amit Kumar, rupees 800.00">Settle Up</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- This Month Section (FR-HD-03 placeholder) -->
+      <div class="section-header">This Month</div>
+      <div class="month-card" role="region" aria-label="Monthly spending breakdown, coming soon">
+        <div class="month-card__amount">&#x20B9;12,450 spent</div>
+        <div class="month-card__subtitle">Spending breakdown coming soon</div>
+      </div>
+
+    </div>
+
+    <!-- FAB (FR-HD-04) -->
+    <button class="fab" aria-label="Add new expense">
+      <span class="fab__icon">+</span>
+    </button>
+
+    <!-- Bottom Navigation (OBTBottomNav) -->
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <div class="nav-item nav-item--active" aria-current="page">
+        <div class="nav-indicator"></div>
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+        <span class="nav-item__label">Home</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <span class="nav-item__label">Friends</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>
+        <span class="nav-item__label">Groups</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="nav-item__label">Activity</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="nav-item__label">Profile</span>
+      </div>
+    </nav>
+  </div>
+</div>
+
+</body>
+</html>

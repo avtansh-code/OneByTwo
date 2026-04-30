@@ -1,0 +1,633 @@
+<!--
+  OneByTwo — Phone Entry & OTP Verification Mockup
+  =================================================
+  SRS Requirements:
+    FR-AU-01  Locked +91 country code prefix; phone-number-only authentication.
+    FR-AU-02  Client-side validation rejects non-10-digit and non-Indian-mobile prefixes.
+    FR-AU-03  Triggers Firebase Phone Auth OTP; 6-digit OTP entry and verification.
+    FR-AU-04  Auto-read via SMS Retriever on Android; manual entry on iOS.
+    FR-AU-05  30-second cooldown; 3-retry cap per 10-minute window.
+
+  Wireframe reference: docs/design/04-wireframes/auth-flow.md (sections 3 and 4)
+  Design tokens reference: docs/design/02-design-system/tokens.md
+
+  Design Tokens (Phase 2):
+    Primary:        #1F4E79
+    Accent:         #2E86AB
+    Secondary:      #F4A261
+    Success:        #2A9D8F
+    Error/Danger:   #E76F51
+    Surface:        #FFFFFF
+    Background:     #F8F9FB
+    SurfaceVariant: #F2F4F7
+    Text Primary:   #1A1A1A
+    Text Secondary: #4B5563
+    Text Tertiary:  #9CA3AF
+    Outline:        #C4C9D1
+    Disabled:       #B0B7C3
+    On Primary:     #FFFFFF
+
+    Corner Radii:
+      radiusSmall:  8dp  (chips, badges)
+      radiusMedium: 12dp (buttons, inputs)
+      radiusLarge:  16dp (cards, snackbars)
+      radiusXL:     24dp (bottom sheets)
+
+    Typography: Plus Jakarta Sans / Inter, weights 400/500/600/700
+    Spacing: 4-point grid (4, 8, 12, 16, 20, 24, 32, 48, 64 dp)
+    Tap targets: 48x48 dp minimum (SRS 5.6)
+    Motion: 200-300ms ease-in-out (SRS 6.2)
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OneByTwo — Phone Entry &amp; OTP Verification Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       RESET & FOUNDATION
+       ============================================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #E4E7EC;
+      color: #1A1A1A;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+      padding: 48px 24px;
+      min-height: 100vh;
+      flex-wrap: wrap;
+    }
+
+    /* ============================================================
+       DESIGN TOKEN CUSTOM PROPERTIES
+       Sourced from docs/design/02-design-system/tokens.md
+       ============================================================ */
+    :root {
+      /* Colour — Light Theme */
+      --primary:          #1F4E79;
+      --primary-variant:  #2E86AB;
+      --secondary:        #F4A261;
+      --success:          #2A9D8F;
+      --danger:           #E76F51;
+      --error:            #E76F51;
+      --surface:          #FFFFFF;
+      --surface-variant:  #F2F4F7;
+      --background:       #F8F9FB;
+      --on-primary:       #FFFFFF;
+      --on-surface:       #1A1A1A;
+      --outline:          #C4C9D1;
+      --divider:          #E4E7EC;
+      --disabled:         #B0B7C3;
+      --text-primary:     #1A1A1A;
+      --text-secondary:   #4B5563;
+      --text-tertiary:    #9CA3AF;
+
+      /* Corner Radii */
+      --radius-small:     8px;
+      --radius-medium:    12px;
+      --radius-large:     16px;
+      --radius-xl:        24px;
+
+      /* Spacing (4-point grid) */
+      --space-4:   4px;
+      --space-8:   8px;
+      --space-12:  12px;
+      --space-16:  16px;
+      --space-20:  20px;
+      --space-24:  24px;
+      --space-32:  32px;
+      --space-48:  48px;
+      --space-64:  64px;
+
+      /* Elevation — Level 1 (cards at rest) */
+      --elevation-1: 0px 1px 4px rgba(0, 0, 0, 0.04);
+      --elevation-2: 0px 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    /* ============================================================
+       SCREEN LABEL
+       ============================================================ */
+    .screen-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .screen-label {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+       PHONE FRAME — iPhone 12 viewport: 390 x 844
+       ============================================================ */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      background: var(--background);
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 2px #C4C9D1,
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.06);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================================
+       STATUS BAR
+       ============================================================ */
+    .status-bar {
+      height: 54px;
+      padding: 14px var(--space-24) 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--background);
+      flex-shrink: 0;
+    }
+
+    .status-bar-time {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+      letter-spacing: 0.2px;
+    }
+
+    .status-bar-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-bar-icons svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-primary);
+    }
+
+    /* ============================================================
+       SCREEN CONTENT AREA
+       ============================================================ */
+    .screen-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 var(--space-24);
+      overflow: hidden;
+    }
+
+    /* ============================================================
+       APP BAR (OTP screen back button)
+       ============================================================ */
+    .app-bar {
+      display: flex;
+      align-items: center;
+      height: var(--space-48);
+      margin-left: -8px;
+      flex-shrink: 0;
+    }
+
+    .back-button {
+      width: var(--space-48);
+      height: var(--space-48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-medium);
+      cursor: pointer;
+    }
+
+    .back-button svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--text-primary);
+    }
+
+    /* ============================================================
+       TYPOGRAPHY — per tokens.md scale
+       ============================================================ */
+    .heading {
+      font-weight: 600;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+      color: var(--primary);
+      /* headlineLarge: 24sp, SemiBold 600 */
+    }
+
+    .subtitle {
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.5;
+      letter-spacing: 0.15px;
+      color: var(--text-secondary);
+      /* bodyLarge: 16sp, Regular 400 */
+    }
+
+    .subtitle .bold {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
+       PHONE INPUT ROW (Screen 1)
+       ============================================================ */
+    .phone-input-row {
+      display: flex;
+      align-items: stretch;
+      border: 1.5px solid var(--outline);
+      border-radius: var(--radius-medium);
+      overflow: hidden;
+      background: var(--surface);
+      height: 56px;
+      transition: border-color 250ms ease-in-out;
+    }
+
+    .phone-input-row:focus-within {
+      border-color: var(--primary);
+    }
+
+    .country-code {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 var(--space-16);
+      background: var(--surface-variant);
+      border-right: 1.5px solid var(--outline);
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-primary);
+      letter-spacing: 0.1px;
+      flex-shrink: 0;
+      /* Locked prefix per FR-AU-01 */
+      user-select: none;
+      min-width: 64px;
+    }
+
+    .phone-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 0 var(--space-16);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.5;
+      letter-spacing: 1px;
+      color: var(--text-primary);
+      background: transparent;
+    }
+
+    .phone-input::placeholder {
+      color: var(--text-tertiary);
+      letter-spacing: 2px;
+    }
+
+    /* ============================================================
+       PRIMARY BUTTON
+       48dp height, radiusMedium (12dp), primary fill
+       ============================================================ */
+    .btn-primary {
+      width: 100%;
+      height: var(--space-48);
+      border: none;
+      border-radius: var(--radius-large);
+      background: var(--primary);
+      color: var(--on-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 1.43;
+      letter-spacing: 0.1px;
+      cursor: pointer;
+      /* labelLarge: 14sp, Medium 500 */
+      transition: background 250ms ease-in-out, box-shadow 250ms ease-in-out;
+    }
+
+    .btn-primary:hover {
+      background: #17405F;
+      box-shadow: var(--elevation-2);
+    }
+
+    .btn-primary:active {
+      background: #0F3350;
+    }
+
+    /* ============================================================
+       LEGAL TEXT (Screen 1 bottom)
+       ============================================================ */
+    .legal-text {
+      font-weight: 400;
+      font-size: 12px;
+      line-height: 1.33;
+      letter-spacing: 0.2px;
+      color: var(--text-tertiary);
+      text-align: center;
+      /* bodySmall: 12sp, Regular 400 */
+    }
+
+    .legal-text a {
+      color: var(--primary-variant);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .legal-text a:hover {
+      text-decoration: underline;
+    }
+
+    /* ============================================================
+       OTP CELLS (Screen 2)
+       48x48 dp per cell, per SRS 5.6 tap target minimum
+       ============================================================ */
+    .otp-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-12);
+    }
+
+    .otp-cell {
+      width: 48px;
+      height: 48px;
+      border: 1.5px solid var(--outline);
+      border-radius: var(--radius-small);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      line-height: 1;
+      color: var(--text-primary);
+      background: var(--surface);
+      transition: border-color 250ms ease-in-out;
+    }
+
+    .otp-cell.filled {
+      border-color: var(--primary);
+      background: var(--surface);
+    }
+
+    .otp-cell.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(31, 78, 121, 0.15);
+      position: relative;
+    }
+
+    /* Blinking cursor in active cell */
+    .otp-cell.active::after {
+      content: '';
+      display: block;
+      width: 2px;
+      height: 22px;
+      background: var(--primary);
+      border-radius: 1px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ============================================================
+       TIMER & RESEND (Screen 2)
+       ============================================================ */
+    .timer-text {
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.43;
+      letter-spacing: 0.15px;
+      color: var(--text-tertiary);
+      text-align: center;
+      /* bodyMedium: 14sp, Regular 400 */
+    }
+
+    .resend-row {
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 1.43;
+      letter-spacing: 0.15px;
+      color: var(--text-secondary);
+      text-align: center;
+      /* bodyMedium */
+    }
+
+    .resend-link {
+      font-weight: 500;
+      color: var(--disabled);
+      cursor: not-allowed;
+      /* Disabled state during cooldown per FR-AU-05 */
+    }
+
+    /* ============================================================
+       HOME INDICATOR
+       ============================================================ */
+    .home-indicator {
+      flex-shrink: 0;
+      height: 34px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+    }
+
+    .home-indicator-bar {
+      width: 134px;
+      height: 5px;
+      background: var(--text-primary);
+      border-radius: 100px;
+      opacity: 0.2;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       SCREEN 1: PHONE ENTRY
+       Route: /auth/phone
+       SRS: FR-AU-01, FR-AU-02, FR-AU-03
+       Wireframe ref: auth-flow.md section 3
+       State shown: Valid (10 digits entered, Continue active)
+       ============================================================ -->
+  <div class="screen-wrapper">
+    <span class="screen-label">Screen 1 — Phone Entry</span>
+    <div class="phone-frame" role="img" aria-label="Phone Entry screen mockup at iPhone 12 viewport 390 by 844 pixels">
+
+      <!-- Status Bar -->
+      <div class="status-bar" aria-hidden="true">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <!-- Signal -->
+          <svg viewBox="0 0 18 18"><rect x="1" y="12" width="3" height="5" rx="0.5"/><rect x="5.5" y="9" width="3" height="8" rx="0.5"/><rect x="10" y="5" width="3" height="12" rx="0.5"/><rect x="14.5" y="1" width="3" height="16" rx="0.5"/></svg>
+          <!-- Wi-Fi -->
+          <svg viewBox="0 0 18 18"><path d="M9 14a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm-3.89-2.45a5.5 5.5 0 017.78 0l-1.06 1.06a4 4 0 00-5.66 0l-1.06-1.06zm-2.83-2.83a9 9 0 0113.44 0l-1.06 1.06a7.5 7.5 0 00-11.32 0L2.28 8.72z"/></svg>
+          <!-- Battery -->
+          <svg viewBox="0 0 18 18"><rect x="1" y="4.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/><rect x="2.5" y="6" width="11" height="6" rx="0.5" fill="currentColor"/><rect x="15.5" y="7" width="1.5" height="4" rx="0.5"/></svg>
+        </div>
+      </div>
+
+      <!-- Screen Content -->
+      <div class="screen-content">
+
+        <!-- Spacer -->
+        <div style="height: var(--space-32);"></div>
+
+        <!-- Heading: headlineLarge per tokens.md -->
+        <h1 class="heading">Enter your mobile number</h1>
+
+        <div style="height: var(--space-12);"></div>
+
+        <!-- Subtitle: bodyLarge per tokens.md -->
+        <p class="subtitle">We'll send you a 6-digit code to verify.</p>
+
+        <div style="height: var(--space-32);"></div>
+
+        <!-- Phone Input: OBTPhoneInput component -->
+        <!-- FR-AU-01: locked +91 prefix -->
+        <div class="phone-input-row">
+          <div class="country-code" aria-label="India country code plus 91">+91</div>
+          <input
+            class="phone-input"
+            type="tel"
+            placeholder="00000 00000"
+            value=""
+            aria-label="Phone number"
+            maxlength="11"
+            readonly
+          >
+        </div>
+
+        <!-- Flex spacer pushes button to bottom -->
+        <div style="flex: 1;"></div>
+
+        <!-- Continue Button -->
+        <!-- 48dp height, radiusLarge 16dp, primary fill, labelLarge text -->
+        <button class="btn-primary" aria-label="Continue">Continue</button>
+
+        <div style="height: var(--space-16);"></div>
+
+        <!-- Legal text: bodySmall per tokens.md -->
+        <p class="legal-text">By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a></p>
+
+        <div style="height: var(--space-8);"></div>
+
+      </div>
+
+      <!-- Home Indicator -->
+      <div class="home-indicator" aria-hidden="true">
+        <div class="home-indicator-bar"></div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       SCREEN 2: OTP VERIFICATION
+       Route: /auth/otp
+       SRS: FR-AU-03, FR-AU-04, FR-AU-05
+       Wireframe ref: auth-flow.md section 4
+       State shown: Focused (typing) — 4 digits entered, cursor in cell 5
+       ============================================================ -->
+  <div class="screen-wrapper">
+    <span class="screen-label">Screen 2 — OTP Verification</span>
+    <div class="phone-frame" role="img" aria-label="OTP Verification screen mockup at iPhone 12 viewport 390 by 844 pixels">
+
+      <!-- Status Bar -->
+      <div class="status-bar" aria-hidden="true">
+        <span class="status-bar-time">9:41</span>
+        <div class="status-bar-icons">
+          <svg viewBox="0 0 18 18"><rect x="1" y="12" width="3" height="5" rx="0.5"/><rect x="5.5" y="9" width="3" height="8" rx="0.5"/><rect x="10" y="5" width="3" height="12" rx="0.5"/><rect x="14.5" y="1" width="3" height="16" rx="0.5"/></svg>
+          <svg viewBox="0 0 18 18"><path d="M9 14a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm-3.89-2.45a5.5 5.5 0 017.78 0l-1.06 1.06a4 4 0 00-5.66 0l-1.06-1.06zm-2.83-2.83a9 9 0 0113.44 0l-1.06 1.06a7.5 7.5 0 00-11.32 0L2.28 8.72z"/></svg>
+          <svg viewBox="0 0 18 18"><rect x="1" y="4.5" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1" fill="none"/><rect x="2.5" y="6" width="11" height="6" rx="0.5" fill="currentColor"/><rect x="15.5" y="7" width="1.5" height="4" rx="0.5"/></svg>
+        </div>
+      </div>
+
+      <!-- Screen Content -->
+      <div class="screen-content">
+
+        <!-- Back button: OBTAppBar with showBackButton: true -->
+        <div class="app-bar">
+          <div class="back-button" role="button" aria-label="Navigate back">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </div>
+        </div>
+
+        <div style="height: var(--space-8);"></div>
+
+        <!-- Heading: headlineLarge -->
+        <h1 class="heading">Verify your number</h1>
+
+        <div style="height: var(--space-12);"></div>
+
+        <!-- Subtitle: bodyLarge, phone number in bold -->
+        <p class="subtitle">Enter the 6-digit code sent to <span class="bold">+91 98765 43210</span></p>
+
+        <div style="height: var(--space-32);"></div>
+
+        <!-- OTP Cells: OBTOTPInput component -->
+        <!-- 6 cells, 48x48 dp each, per SRS 5.6 tap target -->
+        <!-- State: first 4 filled, cell 5 active with cursor, cell 6 empty -->
+        <div class="otp-row" role="group" aria-label="Enter 6-digit verification code">
+          <div class="otp-cell filled" aria-label="Digit 1 of 6, entered">1</div>
+          <div class="otp-cell filled" aria-label="Digit 2 of 6, entered">2</div>
+          <div class="otp-cell filled" aria-label="Digit 3 of 6, entered">3</div>
+          <div class="otp-cell filled" aria-label="Digit 4 of 6, entered">4</div>
+          <div class="otp-cell active" aria-label="Digit 5 of 6, current"></div>
+          <div class="otp-cell" aria-label="Digit 6 of 6, empty"></div>
+        </div>
+
+        <div style="height: var(--space-32);"></div>
+
+        <!-- Timer: bodyMedium, tertiary colour -->
+        <!-- FR-AU-05: 30-second cooldown timer -->
+        <p class="timer-text">Resend OTP in 0:26</p>
+
+        <div style="height: var(--space-16);"></div>
+
+        <!-- Resend row: bodyMedium -->
+        <!-- FR-AU-05: Resend disabled during cooldown -->
+        <p class="resend-row">Didn't receive the code? <span class="resend-link" role="button" aria-label="Resend OTP, disabled, 26 seconds remaining" aria-disabled="true">Resend</span></p>
+
+        <!-- Flex spacer -->
+        <div style="flex: 1;"></div>
+
+      </div>
+
+      <!-- Home Indicator -->
+      <div class="home-indicator" aria-hidden="true">
+        <div class="home-indicator-bar"></div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

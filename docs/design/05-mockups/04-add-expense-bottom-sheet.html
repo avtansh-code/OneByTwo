@@ -1,0 +1,860 @@
+<!--
+  OneByTwo — Add Expense Bottom Sheet Mockup
+  ===========================================================================
+  SRS References: FR-EX-01 (Amount, description, date, category, payer, split)
+                  FR-EX-02 (Expense within group context)
+                  FR-EX-03 (Split methods: Equal shown selected)
+                  FR-EX-04 (Splits sum to total validation)
+                  FR-EX-08 (8 predefined categories with icons)
+                  FR-EX-09 (Rupee symbol, Indian numbering system)
+                  FR-EX-05 (Receipt attachment — not shown in this step)
+                  FR-EX-06 (Edit expense — reuses same sheet)
+                  FR-EX-07 (Activity feed records — post-save)
+  Wireframe ref:  docs/design/04-wireframes/expense-flow.md
+  Design tokens:  docs/design/02-design-system/tokens.md
+  ===========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1.0">
+<title>OneByTwo — Add Expense Bottom Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===================================================================
+     DESIGN TOKENS (from docs/design/02-design-system/tokens.md)
+     =================================================================== */
+  :root {
+    /* Colour — Light Theme (Section 1.1) */
+    --primary:          #1F4E79;
+    --primaryVariant:   #2E86AB;
+    --secondary:        #F4A261;
+    --secondaryVariant: #E08C4A;
+    --success:          #2A9D8F;
+    --danger:           #E76F51;
+    --surface:          #FFFFFF;
+    --surfaceVariant:   #F2F4F7;
+    --background:       #F8F9FB;
+    --onPrimary:        #FFFFFF;
+    --onSecondary:      #1A1A1A;
+    --onSurface:        #1A1A1A;
+    --outline:          #C4C9D1;
+    --divider:          #E4E7EC;
+    --disabled:         #B0B7C3;
+    --textPrimary:      #1A1A1A;
+    --textSecondary:    #4B5563;
+    --textTertiary:     #9CA3AF;
+
+    /* Corner Radii (Section 4) */
+    --radiusSmall:  8px;
+    --radiusMedium: 12px;
+    --radiusLarge:  16px;
+    --radiusXL:     24px;
+    --radiusFull:   9999px;
+
+    /* Spacing (Section 3) */
+    --space-2:  2px;
+    --space-4:  4px;
+    --space-8:  8px;
+    --space-12: 12px;
+    --space-16: 16px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-32: 32px;
+    --space-48: 48px;
+
+    /* Typography — Inter as specified */
+    --fontFamily: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* ===================================================================
+     RESET & BASE
+     =================================================================== */
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--fontFamily);
+    background: #0D0D0D;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===================================================================
+     IPHONE 12 VIEWPORT FRAME (390 x 844)
+     =================================================================== */
+  .device-frame {
+    width: 390px;
+    height: 844px;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    background: var(--background);
+    box-shadow: 0 0 0 4px #1A1A1A, 0 24px 80px rgba(0,0,0,0.5);
+  }
+
+  /* ===================================================================
+     BACKGROUND: Blurred Group Detail screen suggestion
+     =================================================================== */
+  .bg-screen {
+    position: absolute;
+    inset: 0;
+    background: var(--background);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bg-status-bar {
+    height: 50px;
+    background: var(--primary);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 var(--space-20) 6px;
+  }
+
+  .bg-status-bar span {
+    color: var(--onPrimary);
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+
+  .bg-app-bar {
+    height: 56px;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-16);
+    gap: var(--space-12);
+  }
+
+  .bg-app-bar .back-arrow {
+    color: var(--onPrimary);
+    font-size: 20px;
+  }
+
+  .bg-app-bar .group-name {
+    color: var(--onPrimary);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .bg-app-bar .group-members {
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    font-weight: 400;
+    margin-left: auto;
+  }
+
+  .bg-content {
+    flex: 1;
+    padding: var(--space-16);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+  }
+
+  .bg-card {
+    background: var(--surface);
+    border-radius: var(--radiusLarge);
+    padding: var(--space-16);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .bg-card .balance-label {
+    font-size: 12px;
+    color: var(--textSecondary);
+    margin-bottom: 4px;
+  }
+
+  .bg-card .balance-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--success);
+  }
+
+  .bg-expense-row {
+    background: var(--surface);
+    border-radius: var(--radiusLarge);
+    padding: var(--space-12) var(--space-16);
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .bg-expense-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radiusSmall);
+    background: var(--surfaceVariant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .bg-expense-text {
+    flex: 1;
+  }
+
+  .bg-expense-text .title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--textPrimary);
+  }
+
+  .bg-expense-text .sub {
+    font-size: 12px;
+    color: var(--textTertiary);
+  }
+
+  .bg-expense-amount {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--danger);
+  }
+
+  .bg-fab {
+    position: absolute;
+    bottom: 180px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--primaryVariant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--onPrimary);
+    font-size: 28px;
+    font-weight: 300;
+    box-shadow: 0 4px 12px rgba(46,134,171,0.35);
+  }
+
+  /* ===================================================================
+     DIMMED OVERLAY (modal barrier — elevation4)
+     =================================================================== */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+
+  /* ===================================================================
+     BOTTOM SHEET
+     Tokens: surface #FFFFFF, radiusXL 24dp, elevation4
+     Motion: motionEmphasised 300ms ease-in-out-cubic
+     =================================================================== */
+  .bottom-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: var(--surface);
+    border-radius: var(--radiusXL) var(--radiusXL) 0 0;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.10);
+    padding-bottom: 34px; /* iPhone home indicator safe area */
+    max-height: 780px;
+    overflow-y: auto;
+  }
+
+  /* Drag handle — small grey pill */
+  .drag-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--disabled);
+    border-radius: var(--radiusFull);
+    margin: var(--space-8) auto var(--space-4);
+  }
+
+  /* Sheet header */
+  .sheet-header {
+    padding: var(--space-4) var(--space-20) var(--space-16);
+    text-align: center;
+  }
+
+  .sheet-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--textPrimary);
+    letter-spacing: 0;
+  }
+
+  /* Sheet body */
+  .sheet-body {
+    padding: 0 var(--space-20);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+  }
+
+  /* ===================================================================
+     AMOUNT INPUT — displayMedium: 28sp Bold
+     =================================================================== */
+  .amount-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .amount-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--textSecondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .amount-input-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    background: var(--surfaceVariant);
+    border-radius: var(--radiusMedium);
+    padding: var(--space-12) var(--space-16);
+    border: 1.5px solid var(--outline);
+    transition: border-color 200ms ease-in-out;
+  }
+
+  .amount-input-row:focus-within {
+    border-color: var(--primary);
+  }
+
+  .amount-prefix {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--textSecondary);
+    line-height: 1.21;
+  }
+
+  .amount-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--textPrimary);
+    line-height: 1.21;
+    letter-spacing: -0.15px;
+  }
+
+  /* ===================================================================
+     DESCRIPTION FIELD
+     =================================================================== */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--textSecondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .field-input {
+    background: var(--surfaceVariant);
+    border: 1.5px solid var(--outline);
+    border-radius: var(--radiusMedium);
+    padding: var(--space-12) var(--space-16);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--textPrimary);
+    font-family: var(--fontFamily);
+    line-height: 1.5;
+  }
+
+  /* ===================================================================
+     DATE ROW
+     =================================================================== */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    background: var(--surfaceVariant);
+    border: 1.5px solid var(--outline);
+    border-radius: var(--radiusMedium);
+    padding: var(--space-12) var(--space-16);
+    min-height: var(--space-48);
+    cursor: pointer;
+  }
+
+  .date-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .date-icon svg {
+    width: 20px;
+    height: 20px;
+    color: var(--textSecondary);
+  }
+
+  .date-text {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--textPrimary);
+    flex: 1;
+  }
+
+  /* ===================================================================
+     CATEGORY CHIPS — horizontally scrollable pills
+     Token: radiusSmall 8dp for chips, labelMedium 12sp Medium
+     FR-EX-08: 8 predefined categories
+     =================================================================== */
+  .category-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .chips-scroll {
+    display: flex;
+    gap: var(--space-8);
+    overflow-x: auto;
+    padding-bottom: var(--space-4);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin: 0 calc(-1 * var(--space-20));
+    padding-left: var(--space-20);
+    padding-right: var(--space-20);
+  }
+
+  .chips-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8) var(--space-12);
+    border-radius: var(--radiusFull);
+    border: 1.5px solid var(--outline);
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--textSecondary);
+    white-space: nowrap;
+    cursor: pointer;
+    min-height: 36px;
+    letter-spacing: 0.5px;
+    transition: all 200ms ease-in-out;
+    flex-shrink: 0;
+  }
+
+  .chip .chip-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .chip--selected {
+    background: var(--secondary);
+    border-color: var(--secondaryVariant);
+    color: var(--onSecondary);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.30);
+  }
+
+  /* ===================================================================
+     PAID BY ROW
+     =================================================================== */
+  .paid-by-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    background: var(--surfaceVariant);
+    border: 1.5px solid var(--outline);
+    border-radius: var(--radiusMedium);
+    padding: var(--space-12) var(--space-16);
+    min-height: var(--space-48);
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--onPrimary);
+    flex-shrink: 0;
+  }
+
+  .avatar--you {
+    background: var(--primary);
+  }
+
+  .avatar--rahul {
+    background: var(--primaryVariant);
+  }
+
+  .avatar--priya {
+    background: var(--success);
+  }
+
+  .paid-by-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--textPrimary);
+    flex: 1;
+  }
+
+  .paid-by-check {
+    color: var(--primary);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  /* ===================================================================
+     SPLIT OPTIONS ROW
+     =================================================================== */
+  .split-options-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .split-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--textSecondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .split-method-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    background: var(--surfaceVariant);
+    border: 1.5px solid var(--outline);
+    border-radius: var(--radiusFull);
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+  }
+
+  .split-method-btn .chevron {
+    font-size: 10px;
+    color: var(--textTertiary);
+  }
+
+  /* ===================================================================
+     SPLIT EQUALLY — member breakdown
+     =================================================================== */
+  .split-members {
+    display: flex;
+    gap: var(--space-12);
+    justify-content: center;
+    padding: var(--space-4) 0;
+  }
+
+  .split-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    min-width: 72px;
+  }
+
+  .split-member .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .split-member-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--textPrimary);
+  }
+
+  .split-member-amount {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primaryVariant);
+    letter-spacing: 0.2px;
+  }
+
+  /* ===================================================================
+     SAVE BUTTON — primary, full width
+     Tokens: primary #1F4E79, onPrimary #FFFFFF, radiusMedium 12dp
+     labelLarge: 14sp Medium
+     =================================================================== */
+  .save-btn-wrapper {
+    padding: var(--space-8) var(--space-20) 0;
+  }
+
+  .save-btn {
+    width: 100%;
+    padding: var(--space-16) var(--space-24);
+    background: var(--primary);
+    color: var(--onPrimary);
+    border: none;
+    border-radius: var(--radiusMedium);
+    font-family: var(--fontFamily);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    cursor: pointer;
+    min-height: var(--space-48);
+    box-shadow: 0 2px 8px rgba(31, 78, 121, 0.25);
+    transition: background 200ms ease-in-out, box-shadow 200ms ease-in-out;
+  }
+
+  .save-btn:hover {
+    background: #17405F;
+    box-shadow: 0 4px 16px rgba(31, 78, 121, 0.35);
+  }
+
+  .save-btn:active {
+    background: #0F3350;
+  }
+
+  /* ===================================================================
+     DIVIDER
+     =================================================================== */
+  .sheet-divider {
+    height: 1px;
+    background: var(--divider);
+    margin: 0;
+    border: none;
+  }
+
+  /* ===================================================================
+     SECTION ROW — label + inline content
+     =================================================================== */
+  .section-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+</style>
+</head>
+<body>
+
+<!-- ====================================================================
+     DEVICE FRAME — iPhone 12 (390 x 844)
+     ==================================================================== -->
+<div class="device-frame">
+
+  <!-- ================================================================
+       BACKGROUND: Blurred suggestion of Group Detail screen
+       ================================================================ -->
+  <div class="bg-screen">
+    <!-- Status bar -->
+    <div class="bg-status-bar">
+      <span>9:41</span>
+    </div>
+
+    <!-- App bar -->
+    <div class="bg-app-bar">
+      <span class="back-arrow">&#8592;</span>
+      <span class="group-name">Weekend Trip Goa</span>
+      <span class="group-members">3 members</span>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-content">
+      <div class="bg-card">
+        <div class="balance-label">Your balance</div>
+        <div class="balance-amount">+&#8377;2,340.00</div>
+      </div>
+
+      <div class="bg-expense-row">
+        <div class="bg-expense-icon">&#127828;</div>
+        <div class="bg-expense-text">
+          <div class="title">Lunch at Fisherman's Wharf</div>
+          <div class="sub">12 Jan 2026 &middot; Rahul paid</div>
+        </div>
+        <div class="bg-expense-amount">-&#8377;450</div>
+      </div>
+
+      <div class="bg-expense-row">
+        <div class="bg-expense-icon">&#128663;</div>
+        <div class="bg-expense-text">
+          <div class="title">Cab to airport</div>
+          <div class="sub">11 Jan 2026 &middot; You paid</div>
+        </div>
+        <div class="bg-expense-amount" style="color: var(--success);">+&#8377;800</div>
+      </div>
+
+      <div class="bg-expense-row">
+        <div class="bg-expense-icon">&#127968;</div>
+        <div class="bg-expense-text">
+          <div class="title">Hotel stay (2 nights)</div>
+          <div class="sub">10 Jan 2026 &middot; Priya paid</div>
+        </div>
+        <div class="bg-expense-amount">-&#8377;1,990</div>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="bg-fab">+</div>
+  </div>
+
+  <!-- ================================================================
+       DIMMED OVERLAY
+       ================================================================ -->
+  <div class="overlay" role="presentation" aria-hidden="true"></div>
+
+  <!-- ================================================================
+       BOTTOM SHEET: Add Expense
+       SRS: FR-EX-01 through FR-EX-09
+       Wireframe: docs/design/04-wireframes/expense-flow.md
+       Tokens: surface, radiusXL 24dp, elevation4
+       ================================================================ -->
+  <div class="bottom-sheet" role="dialog" aria-label="Add Expense">
+
+    <!-- Drag handle (small grey pill) -->
+    <div class="drag-handle" aria-hidden="true"></div>
+
+    <!-- Title -->
+    <div class="sheet-header">
+      <h2 class="sheet-title">Add Expense</h2>
+    </div>
+
+    <div class="sheet-body">
+
+      <!-- AMOUNT INPUT — FR-EX-01, FR-EX-09: Rupee symbol, Indian numbering -->
+      <div class="amount-section">
+        <label class="amount-label">Amount</label>
+        <div class="amount-input-row" role="textbox" aria-label="Enter amount in rupees">
+          <span class="amount-prefix">&#8377;</span>
+          <span class="amount-value">1,250</span>
+        </div>
+      </div>
+
+      <!-- DESCRIPTION — FR-EX-01 -->
+      <div class="field-group">
+        <label class="field-label">Description</label>
+        <div class="field-input">Dinner at Barbeque Nation</div>
+      </div>
+
+      <!-- DATE — FR-EX-01 -->
+      <div class="field-group">
+        <label class="field-label">Date</label>
+        <div class="date-row" role="button" aria-label="Select date, currently 15 January 2026">
+          <div class="date-icon">
+            <!-- Calendar icon (inline SVG) -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <span class="date-text">15 Jan 2026</span>
+        </div>
+      </div>
+
+      <!-- CATEGORY CHIPS — FR-EX-08: 8 predefined categories -->
+      <div class="category-section">
+        <label class="field-label">Category</label>
+        <div class="chips-scroll" role="listbox" aria-label="Select expense category">
+          <div class="chip chip--selected" role="option" aria-selected="true">
+            <span class="chip-icon">&#127860;</span> Food
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#9992;&#65039;</span> Travel
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#127968;</span> Rent
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#128161;</span> Utilities
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#128722;</span> Groceries
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#127916;</span> Entertainment
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#128092;</span> Shopping
+          </div>
+          <div class="chip" role="option" aria-selected="false">
+            <span class="chip-icon">&#128196;</span> Other
+          </div>
+        </div>
+      </div>
+
+      <hr class="sheet-divider">
+
+      <!-- PAID BY — FR-EX-01 payer selection, defaults to "You" -->
+      <div class="section-row">
+        <label class="field-label">Paid by</label>
+        <div class="paid-by-row" role="button" aria-label="Paid by You, tap to change">
+          <div class="avatar avatar--you" aria-hidden="true">Y</div>
+          <span class="paid-by-name">You</span>
+          <span class="paid-by-check" aria-hidden="true">&#10003;</span>
+        </div>
+      </div>
+
+      <hr class="sheet-divider">
+
+      <!-- SPLIT OPTIONS — FR-EX-03: split method selector -->
+      <div class="split-options-row">
+        <span class="split-label">Split equally</span>
+        <div class="split-method-btn" role="button" aria-label="Split options, currently Equal, tap to change">
+          Equal <span class="chevron">&#9662;</span>
+        </div>
+      </div>
+
+      <!-- SPLIT BREAKDOWN — FR-EX-04: members with per-person amount -->
+      <div class="split-members" aria-label="Split breakdown, 3 members, 416 rupees 67 paise each">
+        <div class="split-member">
+          <div class="avatar avatar--you">Y</div>
+          <span class="split-member-name">You</span>
+          <span class="split-member-amount">&#8377;416.67</span>
+        </div>
+        <div class="split-member">
+          <div class="avatar avatar--rahul">R</div>
+          <span class="split-member-name">Rahul</span>
+          <span class="split-member-amount">&#8377;416.67</span>
+        </div>
+        <div class="split-member">
+          <div class="avatar avatar--priya">P</div>
+          <span class="split-member-name">Priya</span>
+          <span class="split-member-amount">&#8377;416.67</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SAVE BUTTON — primary full width CTA -->
+    <div class="save-btn-wrapper">
+      <button class="save-btn" type="button" aria-label="Save Expense">
+        Save Expense
+      </button>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
