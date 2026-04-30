@@ -643,7 +643,7 @@ now manage service accounts via **Google Cloud Console** and grant access via
   6. Repeat for each developer machine that needs local testing.
 - **Expected result:** At least one debug token appears in the list per app.
 
-[ ] Done
+[x] Done
 
 ---
 

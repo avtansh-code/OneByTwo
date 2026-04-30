@@ -21,7 +21,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | The billing details page shows "Blaze plan" and a linked billing account. |
 | **Reference** | SRS section 3.4; docs/setup/00-decisions.md section 5 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.1.2 Configure budget alerts
 
@@ -32,7 +32,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | Three alert thresholds appear in the budget details page. |
 | **Reference** | docs/setup/00-decisions.md section 5 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.1.3 Confirm Owner role
 
@@ -43,7 +43,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | Your account appears with `roles/owner`. |
 | **Reference** | Pre-requisite for all subsequent steps |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -58,7 +58,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | Phone appears in the provider list with status "Enabled". All other providers show "Disabled". |
 | **Reference** | SRS section 3.4 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.2.2 Configure SMS region whitelist
 
@@ -69,7 +69,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | The SMS region policy shows "Allow" with only the `IN` (India) region listed. |
 | **Reference** | SRS section 3.4; docs/setup/00-decisions.md section 3 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.2.3 Enable reCAPTCHA Enterprise
 
@@ -80,7 +80,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | reCAPTCHA Enterprise shows as "Enabled" in the Authentication settings. |
 | **Reference** | SRS section 5.4; docs/setup/00-decisions.md section 3 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.2.4 Authorised domains
 
@@ -91,7 +91,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | Only default Firebase domains are present. |
 | **Reference** | N/A (defensive check) |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -108,7 +108,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 
 **Dependency:** Requires the DeviceCheck key from Phase 4 (section 4.3).
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.3.2 Register Android with Play Integrity
 
@@ -121,7 +121,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 
 **Dependency:** Requires the Play Console app record from Phase 4 (section 4.7).
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.3.3 Set enforcement policy
 
@@ -132,7 +132,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | All three APIs show "Allow with monitoring" (pre-launch) or "Enforced" (post-launch). |
 | **Reference** | SRS section 11.2; docs/setup/00-decisions.md section 4 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.3.4 Generate debug token
 
@@ -143,7 +143,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | At least one debug token appears in the list. The token value is stored in 1Password (team vault), NEVER in the repository. |
 | **Reference** | docs/setup/00-decisions.md section 4 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -158,7 +158,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 | **Done when** | "Firebase Cloud Messaging API (V1)" shows "Enabled". |
 | **Reference** | SRS section 4.10 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.4.2 Upload APNs Authentication Key (iOS)
 
@@ -171,7 +171,7 @@ Source of truth for all values: `docs/setup/00-decisions.md`.
 
 **Dependency:** Requires the APNs key from Phase 4 (section 4.2).
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.4.3 Android FCM — no manual step
 
@@ -192,7 +192,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | Crashlytics dashboard loads for both iOS and Android apps (even if showing "waiting for data"). |
 | **Reference** | SRS section 5.4; docs/setup/00-decisions.md section 6 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.5.2 Confirm dSYM upload setting (iOS)
 
@@ -203,7 +203,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | The Crashlytics settings page does not show any warnings about missing dSYMs. |
 | **Reference** | SRS section 5.4 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -218,7 +218,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | The Analytics dashboard loads and shows a linked property. |
 | **Reference** | docs/setup/00-decisions.md section 6 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.6.2 Set data retention to 14 months
 
@@ -229,7 +229,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | Data retention shows "14 months" with reset on new activity enabled. |
 | **Reference** | docs/setup/00-decisions.md section 6 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.6.3 Register custom dimensions
 
@@ -240,7 +240,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | All listed custom dimensions appear in the Custom Dimensions list. |
 | **Reference** | docs/design/07-technical/telemetry-plan.md section 4.3 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -255,7 +255,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | Performance dashboard loads for both apps (even if showing "waiting for data"). |
 | **Reference** | docs/setup/00-decisions.md section 6 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -279,7 +279,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | All three keys appear in Remote Config with the expected defaults. |
 | **Reference** | SRS section 9.4; docs/setup/00-decisions.md section 7 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.8.2 Confirm support email for production
 
@@ -290,7 +290,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | The support email value matches the stakeholder-confirmed production address. |
 | **Reference** | SRS section 3.5 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -305,7 +305,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | The Hosting dashboard shows the default site as created. No deploy is needed. |
 | **Reference** | docs/setup/00-decisions.md section 2 (deep link domains) |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -320,7 +320,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | The service account appears with all four roles visible in IAM. |
 | **Reference** | docs/setup/00-decisions.md section 8 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.10.2 Confirm human Owner
 
@@ -333,7 +333,7 @@ No manual action required for Android. FCM is automatically configured when the 
 
 **Owner:** avtanshgupta
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.10.3 Enable two-factor authentication
 
@@ -344,7 +344,7 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | 2-Step Verification shows as "On" for all Owner accounts. |
 | **Reference** | Operational hygiene |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ### 3.10.4 Review audit logs
 
@@ -355,4 +355,4 @@ No manual action required for Android. FCM is automatically configured when the 
 | **Done when** | Admin Read and Admin Write columns show enabled (checkmark) for all listed services. |
 | **Reference** | Operational hygiene |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`

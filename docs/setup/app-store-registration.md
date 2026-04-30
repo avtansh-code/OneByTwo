@@ -28,7 +28,7 @@ Source of truth for all identifiers: `docs/setup/00-decisions.md`.
 portal → Certificates, Identifiers & Profiles → Identifiers → App IDs before
 creating the App Store Connect record.
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -53,7 +53,7 @@ devices.
 | Key ID | 1Password alongside the `.p8` | Firebase Console APNs config |
 | Team ID | `S6ULATL6PT` (already known) | Firebase Console APNs config |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -82,7 +82,7 @@ genuine iOS device.
 keys, you can reuse an existing key that has both APNs and DeviceCheck services
 enabled. In that case, sections 4.2 and 4.3 can share a single key.
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -110,7 +110,7 @@ without interactive authentication.
 **Storage:** The raw `.p8` file goes in 1Password. The base64-encoded value goes
 into the GitHub secret.
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -133,7 +133,7 @@ management.
 | Match repo Git URL | `MATCH_GIT_URL` | `https://github.com/avtansh-code/onebytwo-match-certs.git` (or SSH URL) |
 | Match passphrase | `MATCH_PASSWORD` | Plain text |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -152,7 +152,7 @@ match repo and credentials (section 4.5) must exist now.
 configured. Both are created as part of the skeleton bootstrap PR, not this
 setup phase. Mark this item as deferred until then.
 
-`[ ] Deferred until skeleton PR — match repo and credentials ready`
+`[x] Deferred until skeleton PR — match repo and credentials ready`
 
 ---
 
@@ -175,7 +175,7 @@ setup phase. Mark this item as deferred until then.
 required by the Play Console. Use `support@onebytwo.app` for the support email
 (or the stakeholder-confirmed address).
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -188,7 +188,7 @@ required by the Play Console. Use `support@onebytwo.app` for the support email
 | **Done when** | Internal testing track exists with at least one tester email. |
 | **Reference** | SRS section 9.2.2 |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -213,7 +213,7 @@ Google manages the actual signing key via Play App Signing (section 4.11).
 | Key alias | `KEY_ALIAS` | `onebytwo-upload` |
 | Key password | `KEY_PASSWORD` | Plain text |
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -240,7 +240,7 @@ the Play Console from CI.
 **Storage:** The raw JSON key goes in 1Password. Upload to GitHub secrets
 using `scripts/stores/upload-github-secrets.sh` (Phase 5).
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
@@ -257,7 +257,7 @@ using `scripts/stores/upload-github-secrets.sh` (Phase 5).
 signing key and can re-sign the app if the upload key is compromised. The upload
 key is what CI uses; the signing key never leaves Google.
 
-`[ ] Done by __________ on __________`
+`[x] Done by avtanshgupta on 2026-05-01`
 
 ---
 
