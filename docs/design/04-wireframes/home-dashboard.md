@@ -1,6 +1,6 @@
 # Home Dashboard Wireframes
 
-This document specifies the wireframe layouts for the Home Dashboard screen (SRS section 6.3, Core Screen 5) across all required states. Each layout references components from the OneByTwo Component Catalogue (`docs/design/02-design-system/components.md`) and satisfies functional requirements FR-HD-01 through FR-HD-04 (SRS section 4.8).
+This document specifies the wireframe layouts for the Home Dashboard screen (SRS section 6.3, Core Screen 5) across all required states. Each layout references components from the One By Two Component Catalogue (`docs/design/02-design-system/components.md`) and satisfies functional requirements FR-HD-01 through FR-HD-04 (SRS section 4.8).
 
 All monetary values displayed are converted from integer paise at the UI layer (Invariant 1). Balance data is read from the `simplifiedBalances` field, which is server-maintained and client-read-only (Invariant 2).
 

@@ -1,6 +1,6 @@
 # v1.0 Product Backlog
 
-> Derived from the OneByTwo Software Requirements Specification v1.1, section 4.
+> Derived from the One By Two Software Requirements Specification v1.1, section 4.
 > Priorities (P0 / P1 / P2) are as stated in the SRS. Story-point estimates use a
 > Fibonacci scale (1, 2, 3, 5, 8) and reflect relative complexity including UI,
 > backend, and test effort.

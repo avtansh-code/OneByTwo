@@ -7,7 +7,7 @@
 > **Wireframe reference:** `docs/design/04-wireframes/groups-flow.md`
 > **Site map reference:** `docs/design/01-information-architecture/site-map.md`
 
-This document specifies six screens within the Groups feature of OneByTwo v1.0.
+This document specifies six screens within the Groups feature of One By Two v1.0.
 Each specification is self-contained and includes layout, components, states,
 validation, telemetry, accessibility, edge cases, and open questions. All content
 derives from the authoritative SRS (version 1.1), the Component Catalogue, and

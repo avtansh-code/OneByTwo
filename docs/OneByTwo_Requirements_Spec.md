@@ -145,7 +145,7 @@ One By Two is a self-contained mobile application backed by a single Firebase pr
 - Apple Developer and Google Play Console accounts exist and credentials will be supplied to the DevOps agent via GitHub secrets.
 - SMS quotas for Phone Auth are sufficient for the launch user base; if exceeded, the architect agent must propose a mitigation.
 - The brand name **One By Two** is locked for both app stores; trademark verification is the customer's responsibility and is considered closed for the purposes of engineering.
-- A dedicated support email address (e.g., `avtanshgupta@OneByTwo.app`) will be provisioned by the customer before GA and supplied to the DevOps agent via Firebase Remote Config.
+- A dedicated support email address (e.g., `avtanshgupta@One By Two.app`) will be provisioned by the customer before GA and supplied to the DevOps agent via Firebase Remote Config.
 
 ---
 

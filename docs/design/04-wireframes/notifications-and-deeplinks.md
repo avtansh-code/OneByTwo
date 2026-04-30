@@ -1,7 +1,7 @@
 # Notifications and Deep Links Wireframes
 
 This document specifies the visual layouts, interaction flows, and state definitions
-for all notification and deep-link surfaces in OneByTwo v1.0. It is authored by
+for all notification and deep-link surfaces in One By Two v1.0. It is authored by
 the UX/UI Designer and handed off to the Flutter Developer for implementation.
 
 **SRS version:** 1.1
@@ -183,7 +183,7 @@ system notification through the OS notification tray (FR-AC-03).
 |  SYSTEM NOTIFICATION TRAY                        |
 +--------------------------------------------------+
 |  +--------------------------------------------+  |
-|  |  [App Icon]  OneByTwo         now           |  |
+|  |  [App Icon]  One By Two         now           |  |
 |  |                                            |  |
 |  |  Title: "Rahul added an expense"           |  |
 |  |  Body:  "Dinner -- Rs.600. You owe Rs.200."  |  |
@@ -382,7 +382,7 @@ site-map.md section 3.3:
 
 ## 5. Share-Sheet Invite Link Resolution
 
-**When triggered:** A user taps a OneByTwo invite link received via SMS, WhatsApp,
+**When triggered:** A user taps a One By Two invite link received via SMS, WhatsApp,
 or any messaging app (FR-SH-02, FR-GR-02, FR-GR-03). The link is surfaced
 through the system share sheet only (Invariant 3).
 

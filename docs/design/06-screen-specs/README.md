@@ -1,4 +1,4 @@
-# Screen Specifications — OneByTwo v1.0
+# Screen Specifications — One By Two v1.0
 
 > **Document owner:** UX/UI Designer, PM, QA
 > **Status:** Draft
@@ -9,7 +9,7 @@
 ## Overview
 
 This directory contains detailed screen-level specifications for every screen in
-OneByTwo v1.0. Each specification includes: purpose, route, SRS requirements,
+One By Two v1.0. Each specification includes: purpose, route, SRS requirements,
 navigation context, components used, all states (default, loading, empty, error,
 populated, offline), inputs with validation rules and exact error messages,
 telemetry events, accessibility semantics, QA-identified edge cases, and open

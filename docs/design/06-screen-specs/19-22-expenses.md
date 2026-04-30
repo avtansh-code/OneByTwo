@@ -8,7 +8,7 @@
 > **Wireframe baseline:** `docs/design/04-wireframes/expense-flow.md` v1.0
 > **Component baseline:** `docs/design/02-design-system/components.md`
 
-This document specifies the four expense-flow screens for OneByTwo v1.0. Each screen is defined with its identifier, purpose, routing, requirements traceability, component usage, all six states, input validation, telemetry, accessibility, edge cases, and open questions.
+This document specifies the four expense-flow screens for One By Two v1.0. Each screen is defined with its identifier, purpose, routing, requirements traceability, component usage, all six states, input validation, telemetry, accessibility, edge cases, and open questions.
 
 All monetary values are **integer paise** (Invariant 1; SRS section 7.3). Conversion to rupees with the Indian numbering system occurs exclusively at the UI layer. Currency symbol is always `₹` (FR-EX-09; SRS section 5.9).
 

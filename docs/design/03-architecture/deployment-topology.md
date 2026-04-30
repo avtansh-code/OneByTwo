@@ -1,6 +1,6 @@
 # Deployment Topology
 
-This document describes the deployment topology for OneByTwo, covering the
+This document describes the deployment topology for One By Two, covering the
 single-project architecture, regional configuration, network security posture,
 environment strategy, deployment pipeline, and production safety controls.
 
@@ -12,7 +12,7 @@ All statements herein are derived from the Software Requirements Specification
 
 ## 1. Single-Project Architecture
 
-OneByTwo operates on exactly **one** Firebase project: production. No staging,
+One By Two operates on exactly **one** Firebase project: production. No staging,
 QA, or development Firebase projects exist (SRS section 9.1; invariant 4;
 ADR-0003).
 
@@ -170,7 +170,7 @@ pre-production environment is mitigated by:
 4. **Manual approval gates** — GitHub Environments require explicit approval
    before any deployment reaches production (SRS section 9.4).
 
-If OneByTwo's scale grows significantly beyond v1.0, a staging project may be
+If One By Two's scale grows significantly beyond v1.0, a staging project may be
 reconsidered in a future ADR (ADR-0003).
 
 ---

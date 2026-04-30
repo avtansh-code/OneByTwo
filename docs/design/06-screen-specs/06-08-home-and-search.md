@@ -5,7 +5,7 @@
 > **Audience:** Flutter Developer, QA Engineer, Solution Architect
 > **Screens covered:** SCR-06, SCR-07, SCR-08
 
-This document specifies three interconnected screens for OneByTwo v1.0: the Home Dashboard, the Search Overlay, and the Add Expense entry point (FAB action). Each specification includes layout, states, inputs, accessibility, telemetry, edge cases, and open questions.
+This document specifies three interconnected screens for One By Two v1.0: the Home Dashboard, the Search Overlay, and the Add Expense entry point (FAB action). Each specification includes layout, states, inputs, accessibility, telemetry, edge cases, and open questions.
 
 All monetary values are integer paise (Invariant 1, SRS section 7.3). Balance data is read from the `simplifiedBalances` field, which is server-maintained and client-read-only (Invariant 2, SRS sections 4.6, 7.3, 7.5). All outbound sharing uses the platform system share sheet only (Invariant 3, SRS sections 3.4, 4.11, 12.2).
 

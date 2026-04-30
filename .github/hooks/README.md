@@ -1,6 +1,6 @@
 # Hooks
 
-This directory contains lifecycle hook scripts for the OneByTwo agentic workspace.
+This directory contains lifecycle hook scripts for the One By Two agentic workspace.
 Hooks are registered in `hooks.json` and execute automatically at specific points
 in the agent lifecycle.
 

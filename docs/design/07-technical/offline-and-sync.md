@@ -36,7 +36,7 @@ release.
 ### 1.3 What Is Cached
 
 The Firestore SDK caches every document that the client has read through a
-snapshot listener or a one-shot `get()` call. For OneByTwo this includes:
+snapshot listener or a one-shot `get()` call. For One By Two this includes:
 
 - User profile documents.
 - Friendship documents (including their `simplifiedBalances` maps).
@@ -144,7 +144,7 @@ after every resolution.
 ### 4.1 Last-Write-Wins Semantics
 
 Firestore's default conflict resolution strategy is last-write-wins at the
-document level, keyed by server timestamp. This is the behaviour OneByTwo
+document level, keyed by server timestamp. This is the behaviour One By Two
 adopts; no custom conflict resolution logic is implemented.
 
 When two users edit the same document concurrently (one online, one offline),

@@ -1,6 +1,6 @@
-# OneByTwo v1.0 -- Component Catalogue
+# One By Two v1.0 -- Component Catalogue
 
-This document defines the reusable widget library for OneByTwo v1.0. Every component is specified with its visual description, data inputs, interactive states, accessibility behaviour, and the SRS requirements it satisfies. The Flutter Developer should consume this catalogue as the authoritative design contract when implementing the `lib/common/widgets/` and feature-specific widget directories.
+This document defines the reusable widget library for One By Two v1.0. Every component is specified with its visual description, data inputs, interactive states, accessibility behaviour, and the SRS requirements it satisfies. The Flutter Developer should consume this catalogue as the authoritative design contract when implementing the `lib/common/widgets/` and feature-specific widget directories.
 
 All monetary values arriving as props are **integer paise** (Invariant 1). Conversion to rupees with Indian numbering formatting is the responsibility of the UI layer -- specifically, the `OBTRupeeText` component or the formatter it wraps.
 
@@ -320,19 +320,19 @@ Amount `X` is formatted via `OBTRupeeText` logic (Indian numbering, two decimal 
 
 ## 9. OBTContactPicker
 
-**Visual description:** A full-screen overlay or bottom sheet presenting the device contact list with a search bar at the top, alphabetical section headers, and each row showing the contact name, phone number, and a trailing indicator if the contact is already a OneByTwo user.
+**Visual description:** A full-screen overlay or bottom sheet presenting the device contact list with a search bar at the top, alphabetical section headers, and each row showing the contact name, phone number, and a trailing indicator if the contact is already a One By Two user.
 
 | Property | Type | Required | Description |
 |---|---|---|---|
 | `onContactSelected` | `Function(Contact)` | Yes | Returns the selected contact (name, phone number). |
-| `existingUserIds` | `Set<String>` | No | Set of phone numbers already on OneByTwo, used to show the "on OneByTwo" badge. |
+| `existingUserIds` | `Set<String>` | No | Set of phone numbers already on One By Two, used to show the "on One By Two" badge. |
 | `excludeNumbers` | `Set<String>` | No | Numbers to hide (e.g., already in the group). |
 | `title` | `String` | No (default: `"Select contact"`) | Header text. |
 
 **Sub-components:**
 
 - `OBTSearchBar` (component 23) at the top for filtering.
-- Each contact row: avatar (initials fallback), name, phone number, optional `"on OneByTwo"` chip.
+- Each contact row: avatar (initials fallback), name, phone number, optional `"on One By Two"` chip.
 
 **States:**
 
@@ -347,7 +347,7 @@ Amount `X` is formatted via `OBTRupeeText` logic (Indian numbering, two decimal 
 **Accessibility:**
 
 - The search bar is labelled `"Search contacts"`.
-- Each contact row announces `"[Name], [phone number], [on OneByTwo / not on OneByTwo]"`.
+- Each contact row announces `"[Name], [phone number], [on One By Two / not on One By Two]"`.
 - Section headers announced as headings.
 - Role: `list` for the contact list; `listItem` for each row.
 

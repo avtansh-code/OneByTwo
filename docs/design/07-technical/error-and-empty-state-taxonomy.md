@@ -5,7 +5,7 @@
 > **SRS version:** 1.1
 > **Last updated:** 2025-01-27
 
-This document provides a comprehensive catalogue of every error, empty, and loading state across the OneByTwo application. It is the single reference for microcopy, telemetry event names, retry strategies, and component usage. All copy follows the friendly, concise, and lightly playful tone mandated by SRS section 6.5. All error states render using `OBTErrorState` and all empty states render using `OBTEmptyState`, as defined in `docs/design/02-design-system/components.md` (sections 18 and 19).
+This document provides a comprehensive catalogue of every error, empty, and loading state across the One By Two application. It is the single reference for microcopy, telemetry event names, retry strategies, and component usage. All copy follows the friendly, concise, and lightly playful tone mandated by SRS section 6.5. All error states render using `OBTErrorState` and all empty states render using `OBTEmptyState`, as defined in `docs/design/02-design-system/components.md` (sections 18 and 19).
 
 **Cross-references:**
 - SRS section 6.4 -- Empty, Error and Loading States

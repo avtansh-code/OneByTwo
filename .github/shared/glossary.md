@@ -1,6 +1,6 @@
 # Glossary
 
-Terms used throughout the OneByTwo codebase and documentation. Definitions are
+Terms used throughout the One By Two codebase and documentation. Definitions are
 consistent with the SRS (docs/OneByTwo_Requirements_Spec.md, section 1.4).
 
 | Term | Definition |
@@ -13,7 +13,7 @@ consistent with the SRS (docs/OneByTwo_Requirements_Spec.md, section 1.4).
 | Crashlytics | Firebase crash-reporting service integrated on both iOS and Android. |
 | Emulator Suite | Firebase Emulator Suite — local emulation of Auth, Firestore, Functions, and Storage for development and testing. |
 | FCM | Firebase Cloud Messaging — used for push notifications. |
-| Firestore | Cloud Firestore — Firebase's NoSQL document database and the primary data store for OneByTwo. |
+| Firestore | Cloud Firestore — Firebase's NoSQL document database and the primary data store for One By Two. |
 | Friendship | A one-to-one connection between two users, stored in the `friendships` collection. |
 | INR / Rupee | Indian Rupee — the only supported currency. Symbol: ₹. |
 | MAU | Monthly Active Users. |
@@ -24,7 +24,7 @@ consistent with the SRS (docs/OneByTwo_Requirements_Spec.md, section 1.4).
 | Riverpod | State management library for Flutter (version 2.x). |
 | S1–S4 | Bug severity levels: Critical / Major / Minor / Trivial (SRS section 10.5). |
 | Security Rules | Firestore Security Rules that enforce participant-scoped access and the `simplifiedBalances` write restriction. |
-| Simplified Debts | Algorithm that minimises the number of pairwise transactions needed to settle all balances. The sole debt mechanism in OneByTwo. |
+| Simplified Debts | Algorithm that minimises the number of pairwise transactions needed to settle all balances. The sole debt mechanism in One By Two. |
 | `simplifiedBalances` | Denormalised field on `friendships` and `groups` documents. Server-maintained, client-read-only. |
 | Split methods | Ways to divide an expense: Equally, Unequal, By Percentage, By Shares, By Exact Amounts. |
 | SRS | Software Requirements Specification — the single source of truth (`docs/OneByTwo_Requirements_Spec.md`). |

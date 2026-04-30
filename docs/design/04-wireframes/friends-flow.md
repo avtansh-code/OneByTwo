@@ -1,6 +1,6 @@
 # Friends Flow Wireframes
 
-> Visual specifications for the Friends feature flow in OneByTwo v1.0.
+> Visual specifications for the Friends feature flow in One By Two v1.0.
 > Covers SRS sections 4.3 (FR-FR-01 through FR-FR-05), 4.11 (FR-SH-01, FR-SH-02),
 > and 6.3 Core Screen 6 (Friends list and Friend detail).
 
@@ -34,9 +34,9 @@ graph TD
 
     %% Add Friend
     AddFriend -- "Select contact (existing user)" --> FriendDetail
-    AddFriend -- "Select contact (not on OneByTwo)" --> InviteShare["System Share Sheet\n(Invariant 3)"]
+    AddFriend -- "Select contact (not on One By Two)" --> InviteShare["System Share Sheet\n(Invariant 3)"]
     AddFriend -- "Manual +91 entry (existing user)" --> FriendDetail
-    AddFriend -- "Manual +91 entry (not on OneByTwo)" --> InviteShare
+    AddFriend -- "Manual +91 entry (not on One By Two)" --> InviteShare
     AddFriend -- "Back / Cancel" --> FriendsList
     InviteShare -- "Share completed / dismissed" --> FriendsList
 
@@ -202,14 +202,14 @@ fallback URL).
 |                                                  |
 |  --- A ---                                       |
 |  [Avatar] Aarav Patel                            |
-|           +91 98765 43210    [on OneByTwo]        |
+|           +91 98765 43210    [on One By Two]        |
 |                                                  |
 |  [Avatar] Aditi Gupta                            |
 |           +91 87654 32109                        |
 |                                                  |
 |  --- D ---                                       |
 |  [Avatar] Deepak Sharma                          |
-|           +91 76543 21098    [on OneByTwo]        |
+|           +91 76543 21098    [on One By Two]        |
 |                                                  |
 |                  ... scrollable ...              |
 |                                                  |
@@ -247,13 +247,13 @@ fallback URL).
 1. **Path A -- Contact Picker:**
    - User taps "From Contacts".
    - `OBTContactPicker` renders with alphabetical sections and search.
-   - Contacts whose phone numbers match existing OneByTwo users show an
-     "on OneByTwo" chip (component 9, `existingUserIds` prop).
+   - Contacts whose phone numbers match existing One By Two users show an
+     "on One By Two" chip (component 9, `existingUserIds` prop).
    - **Tap on an existing user:** Friendship document is created immediately; navigate
      to Friend Detail. Show `OBTSnackbar(type: success, message: "[Name] added as a
      friend")`.
    - **Tap on a non-user:** Show a confirmation prompt -- title: "Invite [Name]?",
-     body: "[Name] is not on OneByTwo yet. Send them an invite?", cancel: "Cancel",
+     body: "[Name] is not on One By Two yet. Send them an invite?", cancel: "Cancel",
      confirm: "Invite". On confirm, open the system share sheet (Invariant 3) with a
      pre-filled message containing the install deep link (FR-SH-02). The app must not
      import or target any specific messaging application.
@@ -279,14 +279,14 @@ fallback URL).
 | **Permission denied** | `OBTErrorState` with title: "Contact access needed". Subtitle: "To add friends from your contacts, grant contact permission in Settings." CTA: "Open Settings" (launches device settings). | Displayed when the user has denied the contacts permission. |
 | **Validation error (manual)** | `OBTPhoneInput` in error state with `errorText` below the field. | Inline error; "Add Friend" button remains enabled for retry. |
 | **Looking up number** | "Add Friend" button shows a loading indicator; input is disabled. | Brief state while the app queries Firestore for the phone number. |
-| **Invite share sheet** | System share sheet overlays the screen (Invariant 3). Pre-filled text: "Hey! I use OneByTwo to split expenses. Join me: [install link]" | The app does not control which sharing channel the user selects. FR-SH-01. |
+| **Invite share sheet** | System share sheet overlays the screen (Invariant 3). Pre-filled text: "Hey! I use One By Two to split expenses. Join me: [install link]" | The app does not control which sharing channel the user selects. FR-SH-01. |
 
 ### Accessibility
 
 - Screen title announced as heading: "Add Friend".
 - Segmented control announces "From Contacts, selected" or "Enter Number, selected".
-- Contact list items announce: "[Name], [phone number], [on OneByTwo / not on
-  OneByTwo]" (component 9 spec).
+- Contact list items announce: "[Name], [phone number], [on One By Two / not on
+  One By Two]" (component 9 spec).
 - `OBTPhoneInput` label: "Phone number, India country code plus 91" (component 8 spec).
 - "Add Friend" button label: "Add friend".
 - All interactive elements meet 48x48 dp tap target (section 5.6).
@@ -626,7 +626,7 @@ The following table maps each screen to the components from the component catalo
 ## Extension Points
 
 - **Suggested friends from contacts (v1.1):** The Friends List could include a
-  "Suggested" section above the main list, showing contacts who are already OneByTwo
+  "Suggested" section above the main list, showing contacts who are already One By Two
   users but not yet added as friends. This section would use the same
   `OBTFriendListTile` component with a trailing "Add" button instead of
   `OBTBalancePill`. The `existingUserIds` set from `OBTContactPicker` would be reused

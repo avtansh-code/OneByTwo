@@ -1,7 +1,7 @@
 # Data Flow Diagrams
 
 This document captures sequence diagrams for the four most critical data flows in
-OneByTwo. Each diagram is rendered via Mermaid and annotated with the invariants
+One By Two. Each diagram is rendered via Mermaid and annotated with the invariants
 and SRS sections it enforces.
 
 References:

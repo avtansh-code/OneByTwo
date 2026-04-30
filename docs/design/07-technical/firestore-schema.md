@@ -9,7 +9,7 @@
 
 ## Purpose
 
-This document specifies the complete Firestore data model for OneByTwo v1.0. It
+This document specifies the complete Firestore data model for One By Two v1.0. It
 expands the logical model defined in SRS section 7.2 into a field-level reference
 that the Flutter Developer and Cloud Functions Developer use when creating, reading,
 or validating documents. Every field includes its type, whether it is required, its

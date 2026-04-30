@@ -1,8 +1,8 @@
-# OneByTwo
+# One By Two
 
 > Split it. Settle it. Simple.
 
-OneByTwo is an India-focused expense-sharing mobile application for iOS and Android,
+One By Two is an India-focused expense-sharing mobile application for iOS and Android,
 built with Flutter and backed by Google Firebase. It helps friends, flatmates,
 families, and groups track shared expenses and settle balances using Simplified
 Debts as the sole debt mechanism.

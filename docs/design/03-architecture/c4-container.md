@@ -1,7 +1,7 @@
-# C4 Container Diagram -- OneByTwo
+# C4 Container Diagram -- One By Two
 
 > **Level:** Container (C4 Level 2)
-> **System:** OneByTwo -- Expense Sharing Mobile Application
+> **System:** One By Two -- Expense Sharing Mobile Application
 > **Author:** Solution Architect
 > **SRS baseline:** v1.1
 
@@ -9,7 +9,7 @@
 
 ## Purpose
 
-This document provides a C4 container-level view of the OneByTwo system. It
+This document provides a C4 container-level view of the One By Two system. It
 identifies every deployable unit (container), the technology each uses, and the
 communication protocols between them. The diagram is the authoritative
 reference for integration boundaries and data-flow direction.

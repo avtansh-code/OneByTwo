@@ -1,4 +1,4 @@
-# OneByTwo v1.0 — Design Package
+# One By Two v1.0 — Design Package
 
 > **Status:** Complete — ready for development handover
 > **SRS baseline:** v1.1 (`docs/OneByTwo_Requirements_Spec.md`)

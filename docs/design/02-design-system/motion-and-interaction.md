@@ -1,4 +1,4 @@
-# Motion and Interaction Specification -- OneByTwo v1.0
+# Motion and Interaction Specification -- One By Two v1.0
 
 ---
 

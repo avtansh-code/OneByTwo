@@ -1,12 +1,12 @@
-# C4 System-Context Diagram -- OneByTwo
+# C4 System-Context Diagram -- One By Two
 
 > **C4 Level:** 1 -- System Context
 > **Version:** 1.0
 > **Date:** 2025-01-27
 > **SRS baseline:** v1.1
 
-This document presents the C4 system-context diagram for OneByTwo. It identifies
-every actor (person) and external system with which the OneByTwo mobile application
+This document presents the C4 system-context diagram for One By Two. It identifies
+every actor (person) and external system with which the One By Two mobile application
 interacts at the highest level of abstraction.
 
 ---
@@ -26,7 +26,7 @@ graph TD
     SR["Support Reader\n[Person]\nReads inbound support\nemails sent from the app."]:::person
 
     %% ── System Under Design ─────────────────────────────────────
-    OBT(["OneByTwo\n[Software System]\nIndia-focused expense-sharing\nmobile app (iOS and Android)\nbuilt with Flutter."]):::system
+    OBT(["One By Two\n[Software System]\nIndia-focused expense-sharing\nmobile app (iOS and Android)\nbuilt with Flutter."]):::system
 
     %% ── External Systems ────────────────────────────────────────
     FBP["Firebase Platform\n[External System]\nAuth, Firestore, Cloud Functions,\nStorage, FCM, Crashlytics,\nAnalytics, Remote Config,\nApp Check"]:::external
@@ -59,8 +59,8 @@ graph TD
 | Colour / Shape | C4 Element | Meaning |
 |---|---|---|
 | Dark blue rectangle | Person | A human actor who interacts with the system. |
-| Mid-blue rounded rectangle | Software System | The system under design (OneByTwo). |
-| Grey rectangle | External System | A system outside the trust boundary that OneByTwo depends upon. |
+| Mid-blue rounded rectangle | Software System | The system under design (One By Two). |
+| Grey rectangle | External System | A system outside the trust boundary that One By Two depends upon. |
 
 Arrows indicate the direction of the primary interaction. Labels describe the
 nature of the communication and, where relevant, the protocol.
@@ -69,11 +69,11 @@ nature of the communication and, where relevant, the protocol.
 
 ## Explanatory Notes
 
-The diagram above captures every external boundary of the OneByTwo system as
+The diagram above captures every external boundary of the One By Two system as
 defined in the Software Requirements Specification v1.1.
 
 **Actors.** Three actor types are shown. The *End User* and *Group Member* are
-both holders of OneByTwo accounts authenticated via Firebase Phone Auth with a
+both holders of One By Two accounts authenticated via Firebase Phone Auth with a
 locked +91 country code (SRS section 3.4). They are distinguished at the context
 level because group-based interactions (expense sharing, simplified-debt
 settlement, group invites) create a distinct relationship pattern. The *Support
@@ -82,7 +82,7 @@ link pre-filled with diagnostic context (SRS sections 4.7 / FR-PR-05, 4.11 /
 FR-SH-03), and the support address is held in Firebase Remote Config so it can
 change without an app update (SRS section 3.5).
 
-**Firebase Platform.** OneByTwo uses a single Firebase project for production
+**Firebase Platform.** One By Two uses a single Firebase project for production
 (SRS section 3.4; Invariant 4). Local development and pre-merge testing run
 against the Firebase Emulator Suite -- no staging project exists. The Firebase
 Platform box aggregates Auth, Firestore, Cloud Functions (Node 20 / TypeScript,
@@ -107,4 +107,4 @@ Invariant 3).
 **Device Contacts and Mail Client.** The app reads the on-device address book to
 support friend and group invite flows (SRS section 3.1). The device default mail
 client is invoked via a `mailto:` link for the Contact Support feature (SRS
-section 3.4). Both are OS-level services outside the OneByTwo trust boundary.
+section 3.4). Both are OS-level services outside the One By Two trust boundary.

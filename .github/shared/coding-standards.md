@@ -1,6 +1,6 @@
 # Coding Standards
 
-These standards apply to all code in the OneByTwo repository. Every agent and every
+These standards apply to all code in the One By Two repository. Every agent and every
 skill must follow them. Reference: SRS section 5.7.
 
 ---

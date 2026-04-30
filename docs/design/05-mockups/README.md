@@ -1,4 +1,4 @@
-# Hi-Fi Mockups — OneByTwo v1.0
+# Hi-Fi Mockups — One By Two v1.0
 
 > **Document owner:** UX/UI Designer
 > **Status:** Draft
@@ -9,7 +9,7 @@
 ## Overview
 
 This directory contains eight self-contained HTML mockups for the hero screens
-of OneByTwo v1.0. Each file uses inline CSS, no JavaScript frameworks, and no
+of One By Two v1.0. Each file uses inline CSS, no JavaScript frameworks, and no
 external assets beyond Google Fonts (Inter). All design token values are taken
 verbatim from the Phase 2 design system specification.
 

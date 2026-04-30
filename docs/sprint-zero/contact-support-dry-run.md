@@ -88,7 +88,7 @@ The "Contact Support" feature (FR-PR-05, FR-SH-03, FR-SH-04) lives in
 the `url_launcher` package to open a `mailto:` URI whose recipient is the support
 email address fetched at app start-up from the Firebase Remote Config key
 `support_email_address` (a plain string parameter, e.g.
-`avtanshgupta@OneByTwo.app`). The mailto body is assembled from four diagnostic
+`avtanshgupta@One By Two.app`). The mailto body is assembled from four diagnostic
 fields: `userId` from `FirebaseAuth.instance.currentUser!.uid`, app version and
 build number from the `package_info_plus` package
 (`PackageInfo.fromPlatform()`), and OS version plus device model from the
@@ -191,8 +191,8 @@ Convention: `snake_case`, descriptive. Not a feature flag (which would use a
 
 | Property | Value |
 |---|---|
-| **Remote Config server default** | `avtanshgupta@OneByTwo.app` |
-| **In-app default (compiled into Flutter)** | `avtanshgupta@OneByTwo.app` |
+| **Remote Config server default** | `avtanshgupta@One By Two.app` |
+| **In-app default (compiled into Flutter)** | `avtanshgupta@One By Two.app` |
 
 The in-app default is required so the `mailto:` link still works if the device
 has never fetched Remote Config (first launch offline, fetch failure, etc.). The
@@ -210,12 +210,12 @@ Console, not injected through CI/CD pipelines.
 
 ### Setup Steps
 
-1. Open the Firebase Console and select the OneByTwo production project.
+1. Open the Firebase Console and select the One By Two production project.
 2. Navigate to **Engage > Remote Config**.
 3. Click **"Add parameter"**.
 4. Enter:
    - **Parameter key:** `support_email_address`
-   - **Default value:** `avtanshgupta@OneByTwo.app`
+   - **Default value:** `avtanshgupta@One By Two.app`
    - **Description:** Support email address used in the Contact Support mailto
      link on the Profile screen. Change here to update across all clients
      without a release. See ADR-0006.

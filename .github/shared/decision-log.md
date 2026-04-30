@@ -1,6 +1,6 @@
 # Decision Log
 
-Architecture Decision Records (ADRs) for the OneByTwo project.
+Architecture Decision Records (ADRs) for the One By Two project.
 
 Each ADR follows the standard format: Context, Decision, Consequences, Alternatives
 Considered.
@@ -19,7 +19,7 @@ complexity, creates confusion when users see different numbers on different scre
 and doubles the surface area for bugs — any error in the simplification algorithm
 would contradict the raw view.
 
-OneByTwo targets casual and power users in India who want a clear, single answer to
+One By Two targets casual and power users in India who want a clear, single answer to
 "who owes whom how much." Offering two views adds cognitive load without meaningful
 benefit for the v1.0 target audience.
 
@@ -86,7 +86,7 @@ layer via a shared formatter.
 ### Context
 
 Multi-environment setups (dev, staging, production) provide isolation but add
-operational complexity, cost, and configuration drift risk. OneByTwo is a v1.0
+operational complexity, cost, and configuration drift risk. One By Two is a v1.0
 product with a small team; the overhead of multiple Firebase projects is not
 justified.
 

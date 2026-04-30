@@ -6,7 +6,7 @@
 
 ## 1. WCAG 2.1 AA Requirements
 
-All user-facing surfaces in OneByTwo v1.0 shall conform to WCAG 2.1 Level AA. The following sub-sections codify each applicable criterion.
+All user-facing surfaces in One By Two v1.0 shall conform to WCAG 2.1 Level AA. The following sub-sections codify each applicable criterion.
 
 ### 1.1 Contrast Ratios
 
@@ -468,7 +468,7 @@ The following table summarises the canonical semantic label pattern for each com
 | `OBTOTPInput` (cell) | "Digit [N] of 6" | `textField` |
 | `OBTPhoneInput` | "Phone number, India country code plus 91" | `textField` |
 | `OBTContactPicker` search | "Search contacts" | `textField` |
-| `OBTContactPicker` row | "[Name], [phone number], [on OneByTwo / not on OneByTwo]" | `listItem` |
+| `OBTContactPicker` row | "[Name], [phone number], [on One By Two / not on One By Two]" | `listItem` |
 | `OBTGroupAvatar` | "[Group name] group photo" | `image` |
 | `OBTUserAvatar` | "[Display name] profile photo" | `image` |
 | `OBTCategoryChip` | "[Category name] category, [selected/not selected]" | `radio` |

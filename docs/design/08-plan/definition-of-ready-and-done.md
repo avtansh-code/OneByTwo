@@ -1,7 +1,7 @@
 # Definition of Ready and Definition of Done
 
 This document codifies the entry and exit criteria for every user story in the
-OneByTwo product backlog. It draws from the acceptance criteria template
+One By Two product backlog. It draws from the acceptance criteria template
 (SRS section 13.2), the shared invariants (`.github/shared/invariants.md`),
 the test strategy (`.github/shared/test-strategy.md`), the coding standards
 (`.github/shared/coding-standards.md`), and the handoff contracts

@@ -6,7 +6,7 @@
 > **Design system reference:** `docs/design/02-design-system/components.md`
 > **Information architecture reference:** `docs/design/01-information-architecture/site-map.md`
 
-This document provides screen-by-screen wireframe specifications for the OneByTwo authentication and onboarding flow. Each screen includes an ASCII layout diagram, all interactive states, the component catalogue entries consumed, and the SRS requirements satisfied.
+This document provides screen-by-screen wireframe specifications for the One By Two authentication and onboarding flow. Each screen includes an ASCII layout diagram, all interactive states, the component catalogue entries consumed, and the SRS requirements satisfied.
 
 ---
 

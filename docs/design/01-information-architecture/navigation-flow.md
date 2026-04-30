@@ -1,4 +1,4 @@
-# Navigation Flow — OneByTwo v1.0
+# Navigation Flow — One By Two v1.0
 
 > Information Architecture: complete navigation graph, entry/exit points,
 > auth guard logic, and deep-link resolution.
@@ -227,8 +227,8 @@ graph TD
 | **Cold start** | User taps the app icon. | App renders the splash screen, then the GoRouter `redirect` guard evaluates auth state (see section 4 below). | FR-AU-07 (auto-login) |
 | **Push notification — cold start** | User taps a notification while the app is terminated. | The OS launches the app with the notification payload. After the splash screen and auth guard pass, GoRouter resolves the deep-link target from the payload (expense, friend, group, or activity item). | FR-AC-05 |
 | **Push notification — warm start** | User taps a notification while the app is backgrounded or foregrounded. | The notification handler extracts the route from the payload and calls `GoRouter.go()` directly, bypassing the splash screen. The auth guard still validates before navigation. | FR-AC-05 |
-| **Share-sheet invite link** | User taps a OneByTwo link received via SMS, WhatsApp, or any messaging app. | The OS resolves the Universal Link (iOS) or App Link (Android). If the app is installed, GoRouter receives the URI; if not, the link falls back to the App Store or Play Store listing. | FR-SH-02, FR-GR-02, FR-GR-03, ADR-0015 |
-| **Universal/App Link from browser** | User taps a OneByTwo link in a mobile browser. | Identical resolution to the share-sheet invite link above. The `apple-app-site-association` (iOS) or `assetlinks.json` (Android) file routes the link to the app or to the store. | FR-SH-02, ADR-0015 |
+| **Share-sheet invite link** | User taps a One By Two link received via SMS, WhatsApp, or any messaging app. | The OS resolves the Universal Link (iOS) or App Link (Android). If the app is installed, GoRouter receives the URI; if not, the link falls back to the App Store or Play Store listing. | FR-SH-02, FR-GR-02, FR-GR-03, ADR-0015 |
+| **Universal/App Link from browser** | User taps a One By Two link in a mobile browser. | Identical resolution to the share-sheet invite link above. The `apple-app-site-association` (iOS) or `assetlinks.json` (Android) file routes the link to the app or to the store. | FR-SH-02, ADR-0015 |
 
 ---
 

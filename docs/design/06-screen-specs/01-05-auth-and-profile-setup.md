@@ -7,7 +7,7 @@
 > **Information architecture reference:** `docs/design/01-information-architecture/site-map.md`
 > **Wireframe reference:** `docs/design/04-wireframes/auth-flow.md`
 
-This document provides detailed screen specifications for the five unauthenticated screens in the OneByTwo authentication and profile setup flow. Each specification is intended to be consumed directly by the Flutter Developer during implementation and by the QA Engineer during test case authoring. All monetary values follow Invariant 1 (integer paise). All navigation follows the site-map routing contract (site-map sections 2.1 and 2.5).
+This document provides detailed screen specifications for the five unauthenticated screens in the One By Two authentication and profile setup flow. Each specification is intended to be consumed directly by the Flutter Developer during implementation and by the QA Engineer during test case authoring. All monetary values follow Invariant 1 (integer paise). All navigation follows the site-map routing contract (site-map sections 2.1 and 2.5).
 
 ---
 

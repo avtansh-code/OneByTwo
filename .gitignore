@@ -1,5 +1,5 @@
 # ────────────────────────────────────────
-# OneByTwo — .gitignore
+# One By Two — .gitignore
 # Covers: Flutter, Dart, Node.js, Firebase, macOS, Windows, IDEs
 # ────────────────────────────────────────
 
@@ -65,6 +65,11 @@ GoogleService-Info.plist
 firebase_app_id_file.json
 firebase_options.dart
 
+# ── Firebase setup scripts ─────────────
+scripts/firebase/config.env
+scripts/firebase/_artifacts/
+.secrets/
+
 # ── IDE / editor ────────────────────────
 .idea/
 *.iml
@@ -113,3 +118,7 @@ fastlane/test_output/
 
 # ── Lefthook ────────────────────────────
 lefthook-local.yml
+
+
+# ── Secrets / credentials ─────────────────────────────
+secrets/

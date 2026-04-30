@@ -1,6 +1,6 @@
 # Friends Flow -- Screen Specifications
 
-> Detailed screen-level specifications for the Friends feature flow in OneByTwo v1.0.
+> Detailed screen-level specifications for the Friends feature flow in One By Two v1.0.
 > Derived from SRS sections 4.3, 4.11, 5.6, 5.10, 6.3, 6.4, and 6.5.
 
 | Field | Value |
@@ -117,7 +117,7 @@
 |---|---|
 | Screen ID | SCR-10 |
 | Screen Name | Add Friend |
-| Purpose | Allow the user to add a friend by selecting a device contact or entering a +91 mobile number manually, linking existing OneByTwo users immediately or inviting non-users via the system share sheet. |
+| Purpose | Allow the user to add a friend by selecting a device contact or entering a +91 mobile number manually, linking existing One By Two users immediately or inviting non-users via the system share sheet. |
 | Route | `/friends/add` |
 | SRS Requirements | FR-FR-01 (add friend via contact picker or manual +91 entry); FR-FR-02 (link existing user or invite via system share sheet); FR-SH-01 (system share sheet only -- Invariant 3); FR-SH-02 (deep link with install fallback URL); section 5.6; section 6.4; section 6.5. |
 
@@ -133,11 +133,11 @@
 | Component | Catalogue Ref | Usage |
 |---|---|---|
 | `OBTAppBar` | 1 | Title "Add Friend"; leading back button. |
-| `OBTContactPicker` | 9 | Path A: device contact list with search and "on OneByTwo" badges. |
+| `OBTContactPicker` | 9 | Path A: device contact list with search and "on One By Two" badges. |
 | `OBTPhoneInput` | 8 | Path B: manual +91 number entry. |
 | `OBTSearchBar` | 23 | Within `OBTContactPicker` for filtering contacts. |
 | `OBTSnackbar` | 25 | Success confirmation on friend addition. |
-| `OBTConfirmationDialog` | 24 | Invite prompt for non-OneByTwo contacts. |
+| `OBTConfirmationDialog` | 24 | Invite prompt for non-One By Two contacts. |
 | `OBTEmptyState` | 18 | No contacts found (Path A). |
 | `OBTErrorState` | 19 | Contact permission denied. |
 | `OBTSkeletonLoader` | 20 | While device contacts are loading. |
@@ -147,7 +147,7 @@
 | # | State | Trigger | Visual | Behaviour |
 |---|---|---|---|---|
 | 1 | **Loading (contacts)** | Device contacts are being read. | `OBTSkeletonLoader(type: listTile, itemCount: 8)` in the contact list area. Segmented control and app bar remain visible. | Transitions to Populated or Empty on data arrival. |
-| 2 | **Populated (contacts)** | Device returns one or more contacts. | Full contact list with alphabetical section headers and `OBTSearchBar`. Contacts matching existing OneByTwo users show an "on OneByTwo" chip. | Tapping an existing user creates the friendship immediately and navigates to SCR-11. Tapping a non-user shows the invite confirmation dialog. |
+| 2 | **Populated (contacts)** | Device returns one or more contacts. | Full contact list with alphabetical section headers and `OBTSearchBar`. Contacts matching existing One By Two users show an "on One By Two" chip. | Tapping an existing user creates the friendship immediately and navigates to SCR-11. Tapping a non-user shows the invite confirmation dialog. |
 | 3 | **Empty (no contacts)** | Device returns zero contacts. | `OBTEmptyState` in the contact list area. Title: "No contacts found". Subtitle: "You can enter a number manually." No CTA button (the "Enter Number" tab is the alternative). | User must switch to the "Enter Number" path. |
 | 4 | **Permission denied** | User has denied the contacts permission. | `OBTErrorState`. Title: "Contact access needed". Subtitle: "To add friends from your contacts, grant contact permission in Settings." CTA: "Open Settings" (launches device settings). | CTA invokes the platform settings deep link. The "Enter Number" tab remains functional. |
 | 5 | **Validation error (manual)** | User submits an invalid phone number in Path B. | `OBTPhoneInput` in error state with `errorText` below the field. "Add Friend" button remains enabled for retry. | See Inputs and Validation table below. |
@@ -177,7 +177,7 @@
 |---|---|---|
 | Screen title | Announced as heading: "Add Friend". | Section 5.6 |
 | Segmented control | Announces "From Contacts, selected" or "Enter Number, selected" on focus/change. | Section 5.6 |
-| Contact list items | Each row announces: "[Name], [phone number], [on OneByTwo / not on OneByTwo]". | Section 5.6; component 9 spec |
+| Contact list items | Each row announces: "[Name], [phone number], [on One By Two / not on One By Two]". | Section 5.6; component 9 spec |
 | Phone input | Label: "Phone number, India country code plus 91". Error state announces the error text. | Section 5.6; component 8 spec |
 | "Add Friend" button | Label: "Add friend". | Section 5.6 |
 | Invite dialog | Modal announced: "Alert: Invite [Name]?". Body text read after title. Focus trapped within dialog. | Section 5.6; component 24 spec |

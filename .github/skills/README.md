@@ -1,6 +1,6 @@
 # Skills
 
-This directory contains reusable skill definitions for the OneByTwo agent team.
+This directory contains reusable skill definitions for the One By Two agent team.
 Each skill is a Claude Code skill with YAML front-matter and a structured markdown
 body in a `SKILL.md` file inside its own folder.
 

@@ -1,0 +1,32 @@
+{
+  "parameters": {
+    "support_email": {
+      "defaultValue": {
+        "value": "support@onebytwo.app"
+      },
+      "description": "Contact Support email address. Read by the client Profile screen. Can be changed without an app update.",
+      "valueType": "STRING"
+    },
+    "min_supported_app_version": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "description": "Minimum supported app version. Clients below this version see a force-upgrade screen.",
+      "valueType": "STRING"
+    }
+  },
+  "parameterGroups": {
+    "feature_flags": {
+      "description": "Feature flags for gradual rollout and kill switches.",
+      "parameters": {
+        "simplify_debts_recompute_v2": {
+          "defaultValue": {
+            "value": "false"
+          },
+          "description": "Kill switch for the v2 simplified-debts recomputation algorithm. When true, Cloud Functions use the v2 path.",
+          "valueType": "BOOLEAN"
+        }
+      }
+    }
+  }
+}

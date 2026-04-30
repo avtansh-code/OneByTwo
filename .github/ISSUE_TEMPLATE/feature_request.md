@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-description: Propose a new feature or enhancement for OneByTwo.
+description: Propose a new feature or enhancement for One By Two.
 labels: ["enhancement"]
 body:
   - type: textarea

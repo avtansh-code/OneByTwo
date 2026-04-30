@@ -1,8 +1,8 @@
-# Copilot Instructions — OneByTwo
+# Copilot Instructions — One By Two
 
 ## Product
 
-**OneByTwo** is an India-focused expense-sharing mobile application (iOS and Android)
+**One By Two** is an India-focused expense-sharing mobile application (iOS and Android)
 built with Flutter and backed by a single Firebase project. The Software Requirements
 Specification is the single source of truth:
 `docs/OneByTwo_Requirements_Spec.md` (version 1.1).

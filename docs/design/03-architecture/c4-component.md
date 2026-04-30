@@ -1,11 +1,11 @@
-# C4 Component Diagrams -- OneByTwo
+# C4 Component Diagrams -- One By Two
 
 **Document type:** Architecture design -- C4 Level 3 (Component)
 **Version:** 1.0
 **Last updated:** 2025-01-27
 
 This document provides C4 component-level views for the two primary containers
-in the OneByTwo system: the Flutter mobile application and the Cloud Functions
+in the One By Two system: the Flutter mobile application and the Cloud Functions
 backend. The diagrams use Mermaid syntax and follow the module boundaries
 defined in the SRS (sections 5.7, 7.1, 13.1).
 

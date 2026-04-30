@@ -11,8 +11,8 @@ INVARIANTS_PATH=".github/shared/invariants.md"
 GLOSSARY_PATH=".github/shared/glossary.md"
 
 cat <<EOF
---- OneByTwo Context ---
-Product: OneByTwo — India-focused expense-sharing app (Flutter + Firebase).
+--- One By Two Context ---
+Product: One By Two — India-focused expense-sharing app (Flutter + Firebase).
 SRS: ${SRS_PATH} (v1.1, approved baseline).
 
 Invariants (non-negotiable):

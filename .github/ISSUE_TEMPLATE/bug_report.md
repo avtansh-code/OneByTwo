@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-description: Report a bug in OneByTwo.
+description: Report a bug in One By Two.
 labels: ["bug"]
 body:
   - type: dropdown

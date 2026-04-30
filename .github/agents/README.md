@@ -1,6 +1,6 @@
 # Agents
 
-This directory contains the AI agent definitions for the OneByTwo project. Each
+This directory contains the AI agent definitions for the One By Two project. Each
 `.md` file is a Claude Code subagent with YAML front-matter and a system prompt
 body.
 

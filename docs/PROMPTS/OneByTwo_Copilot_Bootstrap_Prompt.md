@@ -1,4 +1,4 @@
-You are the lead AI engineer setting up an agentic development workspace for a brand-new project called OneByTwo. Your job in this session is NOT to write the application. Your job is to scaffold the .github/ directory — agents, skills, hooks, shared context, and supporting docs — so that an agentic team can build the app over the coming sprints.
+You are the lead AI engineer setting up an agentic development workspace for a brand-new project called One By Two. Your job in this session is NOT to write the application. Your job is to scaffold the .github/ directory — agents, skills, hooks, shared context, and supporting docs — so that an agentic team can build the app over the coming sprints.
 
 Do not write any Flutter or Cloud Functions application code yet. Output subagent files, skill folders, hook scripts, workflows, instruction files, and docs only.
 
@@ -10,7 +10,7 @@ The full Software Requirements Specification is attached as `OneByTwo_Requiremen
 
 Non-negotiable invariants you must wire into every configuration file:
 
-- Product: OneByTwo, India-focused expense-sharing app similar to Splitwise.
+- Product: One By Two, India-focused expense-sharing app similar to Splitwise.
 - Frontend: Flutter (iOS + Android), Riverpod 2.x state management, feature-first folder layout per SRS §13.1.
 - Backend: Google Firebase, ONE production project only (no staging, no dev project). Local development uses Firebase Emulator Suite.
 - Auth: Firebase Phone Auth, +91 numbers only. Currency: INR only, stored as integer paise (1 ₹ = 100 paise).
@@ -159,7 +159,7 @@ Use the Claude Code skill format. Each `SKILL.md` starts with YAML front-matter:
 
 The description field is what causes the skill to be loaded. Phrase it like "Use when …" so the orchestrator/delegate can decide.
 
-Skills that scaffold code MUST hard-code the OneByTwo invariants in their procedure:
+Skills that scaffold code MUST hard-code the One By Two invariants in their procedure:
   - Money is integer paise; never floats.
   - `simplifiedBalances` is server-only-writable.
   - No platform-specific share targets.

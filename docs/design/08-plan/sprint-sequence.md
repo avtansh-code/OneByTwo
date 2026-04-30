@@ -1,4 +1,4 @@
-# Sprint Sequence — OneByTwo v1.0
+# Sprint Sequence — One By Two v1.0
 
 ## Assumptions
 

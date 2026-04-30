@@ -1,6 +1,6 @@
 # Groups Flow Wireframes
 
-This document defines the screen-by-screen wireframes, states, component mappings, and navigation flow for the Groups feature of OneByTwo v1.0. All specifications derive from the Software Requirements Specification (SRS) sections 4.4 (FR-GR-01 through FR-GR-07), 4.11 (FR-SH-01, FR-SH-02), and 6.3 (Core Screen 7), and from the Component Catalogue (`docs/design/02-design-system/components.md`).
+This document defines the screen-by-screen wireframes, states, component mappings, and navigation flow for the Groups feature of One By Two v1.0. All specifications derive from the Software Requirements Specification (SRS) sections 4.4 (FR-GR-01 through FR-GR-07), 4.11 (FR-SH-01, FR-SH-02), and 6.3 (Core Screen 7), and from the Component Catalogue (`docs/design/02-design-system/components.md`).
 
 All monetary values are integer paise; conversion to rupees occurs at the UI layer (Invariant 1). The `simplifiedBalances` field is server-maintained and client-read-only (Invariant 2). All outbound sharing uses the system share sheet exclusively (Invariant 3).
 
@@ -367,7 +367,7 @@ flowchart TD
 
 - Tapping `"Select from contacts"` opens `OBTContactPicker` as a full-screen overlay.
 - `excludeNumbers` is populated with phone numbers of current group members.
-- On selection, the contact is invited. If the contact is an existing OneByTwo user, they are added directly. If not, an SMS/notification invite is sent.
+- On selection, the contact is invited. If the contact is an existing One By Two user, they are added directly. If not, an SMS/notification invite is sent.
 
 #### Path 2: Manual +91 Entry
 

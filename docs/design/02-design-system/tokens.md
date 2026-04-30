@@ -1,4 +1,4 @@
-# Design Tokens — OneByTwo v1.0
+# Design Tokens — One By Two v1.0
 
 > Canonical reference: `docs/OneByTwo_Requirements_Spec.md`, sections 5.6, 6.1, and 6.2.
 > All values below derive from SRS section 6.2 unless otherwise noted.

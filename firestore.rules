@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny — no reads or writes unless explicitly allowed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection — owner read/write only.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+  }
+}
