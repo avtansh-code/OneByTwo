@@ -7,9 +7,12 @@
 # ────────────────────────────────────────────────────────────────────────────────
 name: PR Pipeline
 
+# TODO: Re-enable once Flutter/Firebase code setup is complete.
+# on:
+#   pull_request:
+#     branches: [main]
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch: # manual-only until code setup is done
 
 concurrency:
   group: pr-${{ github.head_ref }}

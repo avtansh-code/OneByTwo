@@ -7,10 +7,12 @@
 # ────────────────────────────────────────────────────────────────────────────────
 name: Release Pipeline
 
+# TODO: Re-enable once Flutter/Firebase code setup is complete.
+# on:
+#   push:
+#     tags:
+#       - 'v*.*.*'
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag:
