@@ -2,10 +2,7 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: [
-    "<rootDir>/test/firestore-rules",
-    "<rootDir>/test/storage-rules",
-  ],
+  roots: ["<rootDir>/test/integration"],
   testMatch: ["**/*.test.ts"],
   moduleFileExtensions: ["ts", "js", "json"],
   globals: {
