@@ -5,12 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
-import 'package:onebytwo/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[OneByTwo] Initialising Firebase...');
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp();
   debugPrint('[OneByTwo] Firebase initialised.');
   if (kDebugMode) {
     debugPrint('[OneByTwo] Connecting to auth emulator localhost:9099...');
