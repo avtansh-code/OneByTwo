@@ -94,8 +94,10 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
           }
         },
         verificationFailed: (FirebaseAuthException e) {
-          debugPrint('[PhoneAuthRepo] verificationFailed: ${e.code} '
-              '${e.message}');
+          debugPrint(
+            '[PhoneAuthRepo] verificationFailed: ${e.code} '
+            '${e.message}',
+          );
           onError(_mapException(e));
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -117,8 +119,10 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
       );
       debugPrint('[PhoneAuthRepo] verifyPhoneNumber returned');
     } on FirebaseAuthException catch (e) {
-      debugPrint('[PhoneAuthRepo] FirebaseAuthException: ${e.code} '
-          '${e.message}');
+      debugPrint(
+        '[PhoneAuthRepo] FirebaseAuthException: ${e.code} '
+        '${e.message}',
+      );
       onError(_mapException(e));
       // ignore: avoid_catches_without_on_clauses
     } catch (e, st) {

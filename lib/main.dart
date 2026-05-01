@@ -10,9 +10,7 @@ import 'package:onebytwo/firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[OneByTwo] Initialising Firebase...');
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('[OneByTwo] Firebase initialised.');
   if (kDebugMode) {
     debugPrint('[OneByTwo] Connecting to auth emulator localhost:9099...');
