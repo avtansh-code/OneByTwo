@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
+import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
@@ -69,6 +73,8 @@ class _FakeUserRepository implements UserRepository {
 
 void main() {
   testWidgets('app boots and shows the phone entry screen', (tester) async {
+    // Override the auth state provider to skip Firebase initialisation.
+    // The auth gate renders PhoneEntryScreen for AuthUnauthenticated.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -77,6 +83,9 @@ void main() {
             _FakePhoneAuthRepository(),
           ),
           userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
+          authStateNotifierProvider.overrideWith(
+            (ref) => Stream.value(const AuthUnauthenticated()),
+          ),
         ],
         child: const MaterialApp(home: PhoneEntryScreen()),
       ),

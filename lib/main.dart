@@ -5,7 +5,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
+import 'package:onebytwo/features/auth/domain/auth_state.dart';
+import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
+import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
+import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
 
 /// Whether to use the Firebase Auth Emulator.
 ///
@@ -35,18 +40,50 @@ void main() async {
 }
 
 /// Root widget for the One By Two application.
-class OneBytwoApp extends StatelessWidget {
+///
+/// Watches the [authStateNotifierProvider] and rebuilds the
+/// [MaterialApp] with the appropriate home screen based on
+/// auth state. The [ValueKey] on [MaterialApp] ensures the
+/// Navigator stack is fully cleared on auth state transitions
+/// (no stale routes from previous states).
+class OneBytwoApp extends ConsumerWidget {
   /// Creates the root application widget.
   const OneBytwoApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateNotifierProvider);
+
+    final stateCategory = authState.when(
+      data: (state) => switch (state) {
+        AuthLoading() => 'loading',
+        AuthUnauthenticated() => 'unauthenticated',
+        AuthenticatedNoProfile() => 'no-profile',
+        AuthenticatedWithProfile() => 'authenticated',
+      },
+      loading: () => 'loading',
+      error: (_, __) => 'error',
+    );
+
+    final home = authState.when(
+      data: (state) => switch (state) {
+        AuthLoading() => const SplashScreen(),
+        AuthUnauthenticated() => const PhoneEntryScreen(),
+        AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
+          ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
+        AuthenticatedWithProfile() => const HomePlaceholderScreen(),
+      },
+      loading: () => const SplashScreen(),
+      error: (_, __) => const SplashScreen(),
+    );
+
     return MaterialApp(
+      key: ValueKey('app-$stateCategory'),
       title: 'OneByTwo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const PhoneEntryScreen(),
+      home: home,
     );
   }
 }

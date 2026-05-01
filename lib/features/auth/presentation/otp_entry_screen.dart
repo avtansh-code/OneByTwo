@@ -1,11 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/otp_entry_controller.dart';
-import 'package:onebytwo/features/auth/data/user_repository.dart';
-import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
-import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/otp_input.dart';
 
 /// OTP verification screen for FR-AU-03.
@@ -64,15 +59,12 @@ class OtpEntryScreen extends ConsumerWidget {
       otpEntryControllerProvider(_providerArgs).notifier,
     );
 
-    // Navigate post-auth: check if user doc exists.
-    ref.listen<OtpEntryState>(otpEntryControllerProvider(_providerArgs), (
-      previous,
-      next,
-    ) {
-      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
-        _navigatePostAuth(context, ref, next.authenticatedUser!.uid);
-      }
-    });
+    // Post-auth routing is handled reactively by the auth gate
+    // (OneBytwoApp) which observes authStateNotifierProvider. When
+    // OTP verification succeeds, Firebase Auth emits a new user,
+    // the auth state provider transitions, and the auth gate
+    // replaces the MaterialApp (clearing this screen from the stack).
+    // No imperative navigation is needed here.
 
     return Scaffold(
       appBar: AppBar(
@@ -204,51 +196,5 @@ class OtpEntryScreen extends ConsumerWidget {
     final mins = seconds ~/ 60;
     final secs = seconds % 60;
     return '$mins:${secs.toString().padLeft(2, '0')}';
-  }
-
-  /// Navigates to either home or profile setup based on
-  /// whether a user document already exists.
-  Future<void> _navigatePostAuth(
-    BuildContext context,
-    WidgetRef ref,
-    String uid,
-  ) async {
-    final userRepo = ref.read(userRepositoryProvider);
-    try {
-      final user = await userRepo.getUser(uid);
-      if (!context.mounted) return;
-      if (user != null && user.displayName.trim().isNotEmpty) {
-        unawaited(
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute<void>(
-              builder: (_) => const HomePlaceholderScreen(),
-            ),
-            (_) => false,
-          ),
-        );
-      } else {
-        unawaited(
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute<void>(
-              builder: (_) =>
-                  ProfileSetupScreen(uid: uid, phoneNumber: '+91$phoneNumber'),
-            ),
-            (_) => false,
-          ),
-        );
-      }
-    } catch (_) {
-      if (!context.mounted) return;
-      // On error, default to profile setup.
-      unawaited(
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                ProfileSetupScreen(uid: uid, phoneNumber: '+91$phoneNumber'),
-          ),
-          (_) => false,
-        ),
-      );
-    }
   }
 }

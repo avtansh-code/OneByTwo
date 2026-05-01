@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/profile_setup_controller.dart';
-import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 
 /// Profile setup screen for FR-AU-06 (SCR-05).
 ///
@@ -85,19 +84,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final state = ref.watch(profileSetupControllerProvider);
     final controller = ref.read(profileSetupControllerProvider.notifier);
 
-    // Navigate to home on successful save.
+    // Post-save routing is handled reactively by the auth gate.
+    // When the user doc is created, the Firestore snapshot listener
+    // in authStateNotifierProvider detects it and transitions to
+    // AuthenticatedWithProfile, causing the auth gate to show home.
     ref.listen<ProfileSetupState>(profileSetupControllerProvider, (
       previous,
       next,
     ) {
-      if (next.isSaved && !(previous?.isSaved ?? false)) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
-            builder: (_) => const HomePlaceholderScreen(),
-          ),
-          (_) => false,
-        );
-      }
       if (next.saveError != null && previous?.saveError == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
