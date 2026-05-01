@@ -1,6 +1,6 @@
 You are the One By Two orchestrator agent. The agentic workspace under .github/ is configured and smoke-tested. The SRS, sprint-zero artefacts, and design phase are all complete. We are now configuring the Firebase production project AND registering the iOS and Android apps with their respective stores. This must happen BEFORE the skeleton bootstrap PR.
 
-The output of this session is documentation and scripts only. You will produce no Flutter or Cloud Functions application code. The end state is a Firebase production project that the skeleton PR can immediately point at, plus app-store registrations that hold the bundle identifier `app.onebytwo` for both platforms.
+The output of this session is documentation and scripts only. You will produce no Flutter or Cloud Functions application code. The end state is a Firebase production project that the skeleton PR can immediately point at, plus app-store registrations that hold the bundle identifier `com.avtanshgupta.onebytwo` for both platforms.
 
 Re-read .github/copilot-instructions.md, .github/shared/invariants.md, the SRS sections §3.4, §5.4, §9.3, §9.4, §11.2, and the design docs at docs/design/03-architecture/deployment-topology.md and docs/design/07-technical/firestore-schema.md before starting. The four invariants apply: single Firebase project, +91 only, INR only, simplifiedBalances server-only-writable.
 
@@ -42,8 +42,8 @@ Produce `docs/setup/00-decisions.md` capturing every project-level decision need
   - Cloud Functions region (`asia-south1`, hard-coded everywhere).
 
   App identifiers
-  - iOS bundle identifier: `app.onebytwo`.
-  - Android application ID: `app.onebytwo`.
+  - iOS bundle identifier: `com.avtanshgupta.onebytwo`.
+  - Android application ID: `com.avtanshgupta.onebytwo`.
   - URL scheme for deep links: `onebytwo://`.
   - Universal link domain (iOS) and App Link domain (Android): `links.onebytwo.app` (placeholder — flag that DNS will need to point at Firebase Hosting or the marketing site, and AASA / assetlinks.json must be served from there before deep links work end-to-end).
 
@@ -120,8 +120,8 @@ Scripts to produce:
 
 2.8  `scripts/firebase/07-register-apps.sh`
      Registers iOS and Android apps with Firebase via `firebase apps:create`:
-        iOS: `--bundle-id app.onebytwo --display-name "One By Two iOS"`.
-        Android: `--package-name app.onebytwo --display-name "One By Two Android"`.
+        iOS: `--bundle-id com.avtanshgupta.onebytwo --display-name "One By Two iOS"`.
+        Android: `--package-name com.avtanshgupta.onebytwo --display-name "One By Two Android"`.
      Downloads the resulting `GoogleService-Info.plist` and `google-services.json` to `scripts/firebase/_artifacts/` (gitignored). Prints instructions for moving them to `ios/Runner/` and `android/app/` once the Flutter project exists (i.e., after the skeleton PR).
 
 2.9  `scripts/firebase/08-create-deployer-sa.sh`
@@ -208,7 +208,7 @@ Produce `docs/setup/app-store-registration.md` covering the registration steps t
 
 For Apple App Store Connect:
 
-4.1  Create the app record in App Store Connect with bundle ID `app.onebytwo`. Default name "One By Two" — confirm availability.
+4.1  Create the app record in App Store Connect with bundle ID `com.avtanshgupta.onebytwo`. Default name "One By Two" — confirm availability.
 4.2  Create an APNs Authentication Key (Apple Push). Document key ID, team ID, and the location where the .p8 key is stored (1Password, never the repo). This is what gets uploaded to Firebase in 3.4.
 4.3  Create a DeviceCheck key. Document key ID and team ID. This is what gets uploaded to Firebase in 3.3.
 4.4  Create an App Store Connect API Key with App Manager role. Download the .p8. The key ID, issuer ID, and base64-encoded .p8 become the GitHub secrets `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_KEY_ISSUER_ID`, `APP_STORE_CONNECT_API_KEY_BASE64`.
@@ -217,7 +217,7 @@ For Apple App Store Connect:
 
 For Google Play Console:
 
-4.7  Create the app record in Play Console with application ID `app.onebytwo`. Set the default language and the developer contact details.
+4.7  Create the app record in Play Console with application ID `com.avtanshgupta.onebytwo`. Set the default language and the developer contact details.
 4.8  Configure the Internal Testing track (closed list initially) — this is where CI uploads land per SRS §9.2.2.
 4.9  Generate the Android upload key (keystore). Store the .jks file in 1Password / vault — NEVER the repo. The base64 of this file becomes `ANDROID_KEYSTORE_BASE64`. Keystore password, key alias, and key password become `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 4.10 Create a Google Cloud service account for Play Console uploads. Grant it the "Release manager" role in Play Console. Download the JSON. This becomes `PLAY_SERVICE_ACCOUNT_JSON`.

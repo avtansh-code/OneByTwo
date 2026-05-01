@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: OneBytwoApp()));
@@ -18,27 +19,7 @@ class OneBytwoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const PlaceholderScreen(),
-    );
-  }
-}
-
-/// Temporary placeholder screen for the skeleton PR.
-///
-/// Replaced by the auth gate in the FR-AU-01 PR.
-class PlaceholderScreen extends StatelessWidget {
-  /// Creates the placeholder screen.
-  const PlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text(
-          'OneByTwo',
-          style: Theme.of(context).textTheme.displayMedium,
-        ),
-      ),
+      home: const PhoneEntryScreen(),
     );
   }
 }

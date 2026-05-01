@@ -1,4 +1,4 @@
-package app.onebytwo
+package com.avtanshgupta.onebytwo
 
 import io.flutter.embedding.android.FlutterActivity
 
