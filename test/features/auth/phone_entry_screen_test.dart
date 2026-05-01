@@ -6,10 +6,14 @@ import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
 class FakeAnalyticsService implements AnalyticsService {
+  /// Events logged during the test.
   final List<String> loggedEvents = [];
 
   @override
-  Future<void> logEvent({required String name}) async {
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {
     loggedEvents.add(name);
   }
 }

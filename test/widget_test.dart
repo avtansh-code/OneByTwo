@@ -7,7 +7,10 @@ import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 /// Fake [AnalyticsService] for the smoke test.
 class _FakeAnalyticsService implements AnalyticsService {
   @override
-  Future<void> logEvent({required String name}) async {}
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {}
 }
 
 void main() {
