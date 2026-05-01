@@ -115,14 +115,14 @@ are created.
 
 ## ADR-0004: Riverpod 2.x for State Management
 
-**Status:** Proposed — architect to confirm
+**Status:** Accepted
 
 ### Context
 
 Flutter offers several state management solutions. The SRS specifies "Riverpod 2.x
 (or BLoC if architect prefers)" (section 5.7). A decision must be recorded.
 
-### Decision (Proposed)
+### Decision
 
 Use Riverpod 2.x as the sole state management solution.
 
@@ -133,14 +133,14 @@ Use Riverpod 2.x as the sole state management solution.
 - Riverpod 2.x supports code generation (`riverpod_generator`) for reduced
   boilerplate.
 - The team is starting fresh with no legacy BLoC code to maintain.
+- PR #4 successfully used `StateNotifierProvider` for the phone entry controller,
+  confirming the pattern works well in practice.
 
 ### Consequences
 
 - All state lives in Riverpod providers, organised by feature folder.
 - Developers must follow the Riverpod documentation and conventions for
   `AsyncNotifier`, `StreamProvider`, and `FutureProvider`.
-- If the architect prefers BLoC, this ADR must be updated before any feature code is
-  written.
 
 ### Alternatives Considered
 
@@ -217,3 +217,50 @@ update.
 - Freshdesk / Zoho Desk integration: rejected for v1.0 scope and dependency weight.
 - In-app contact form: rejected; adds UI complexity without clear benefit over email.
 - No support channel: rejected; users must have a path to report issues.
+
+---
+
+## ADR-0007: `signup_started` Event Fires on Valid Phone Number Submission
+
+**Status:** Accepted
+
+### Context
+
+The telemetry plan (`docs/design/07-technical/telemetry-plan.md`, section 1.1) defines
+`signup_started` as firing "when the user reaches the phone-entry screen from
+onboarding." The user story (`docs/sprint-zero/first-story-FR-AU-01.md`, scenario 1)
+defines it as firing "when the user taps Continue with a valid number." These are
+different funnels: the former measures intent to sign up, the latter measures valid
+submission.
+
+PR #4 implemented the story file's definition. The contradiction was surfaced during
+the PR #4 retrospective.
+
+### Decision
+
+`signup_started` fires on valid phone number submission (user taps Continue with a
+valid 10-digit number), not on screen mount. This aligns with the user story and
+matches the implementation shipped in PR #4.
+
+A separate event, `phone_entry_viewed`, fires on screen mount and captures the
+"reached the signup screen" funnel. This event is specified in the screen spec
+(SCR-03) and will be implemented in PR #6 or PR #7.
+
+### Consequences
+
+- The telemetry plan (design document) must be updated to align with this decision.
+  **Escalated:** the telemetry plan is a design document and requires explicit
+  approval before modification.
+- The `signup_started` trigger in `docs/design/07-technical/telemetry-plan.md` section
+  1.1 should be changed from "User reaches the phone-entry screen from onboarding" to
+  "User taps Continue with a valid 10-digit number on the phone-entry screen."
+- `phone_entry_viewed` captures the screen-mount funnel and must be implemented
+  alongside the other SCR-03 events.
+
+### Alternatives Considered
+
+- Fire on screen mount (telemetry plan's original definition): rejected because it
+  conflates "opened the screen" with "started signing up." Users who open the screen
+  and navigate away have not meaningfully started signup.
+- Fire on both mount and submit with different event names: this is effectively the
+  chosen approach — `phone_entry_viewed` for mount, `signup_started` for submit.
