@@ -7,9 +7,10 @@
 #   ./scripts/dev/start-emulators.sh
 #   ./scripts/dev/start-emulators.sh --import=./firebase-export
 #
-# Emulators started: Auth (9099), Firestore (8080), Functions (5001),
+# Emulators started: Auth (9099), Firestore (8181), Functions (5001),
 #                    Storage (9199), UI (4000)
-# Project ID: demo-onebytwo (offline-only demo project — Invariant 4)
+# Project ID: onebytwo-avtanshgupta (matches the Flutter app's Firebase project
+#             so the Emulator UI displays documents correctly).
 # ────────────────────────────────────────────────────────────────────────────────
 set -e
 
@@ -45,9 +46,10 @@ if [ -f "functions/package.json" ]; then
   (cd functions && npm run build)
 fi
 
-# Start emulators with the demo project ID (no production credentials needed).
+# Start emulators with the production project ID so the Emulator UI aligns
+# with the Flutter app. All traffic stays local via useXxxEmulator() calls.
 # shellcheck disable=SC2086
 firebase emulators:start \
   --only auth,firestore,functions,storage \
-  --project demo-onebytwo \
+  --project onebytwo-avtanshgupta \
   $IMPORT_FLAG

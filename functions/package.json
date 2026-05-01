@@ -8,6 +8,7 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "jest --forceExit",
+    "test:rules": "jest --config jest.rules.config.js --forceExit",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "deploy": "firebase deploy --only functions",
@@ -22,6 +23,7 @@
     "firebase-functions": "^6.1.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@types/jest": "^29.5.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",

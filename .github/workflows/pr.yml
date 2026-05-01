@@ -157,7 +157,7 @@ jobs:
         run: |
           firebase emulators:exec \
             --only auth,firestore,functions,storage \
-            "flutter test test/integration/ --timeout 300s" \
+            "flutter test test/integration/ --timeout 300s && cd functions && npm run test:rules" \
             --project demo-onebytwo
 
       - name: Run simplified-debts canonical tests against emulator

@@ -25,6 +25,7 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.6.1 # State management (ADR-0004)
   google_fonts: ^6.2.1 # Plus Jakarta Sans + Inter (tokens.md)
+  image_picker: ^1.1.2 # Profile photo selection (FR-AU-06)
   intl: ^0.20.2 # Localisation (SRS 5.9)
   riverpod_annotation: ^2.6.1 # Code-gen annotations
   share_plus: ^10.1.4 # System share sheet (Invariant 3)

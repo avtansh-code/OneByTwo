@@ -7,11 +7,76 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Users collection — owner read/write only.
+    // Users collection — owner read/write only (ADR-0008).
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // Only the document owner may read.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Create: owner only, one-shot, with strict field validation.
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && isValidUserCreate();
+
+      // Update: owner only, immutable fields preserved, valid shape.
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && isValidUserUpdate();
+
+      // Never delete user docs from the client.
       allow delete: if false;
+
+      // --- User document validation functions ---
+
+      function isValidUserCreate() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'phoneNumber', 'displayName', 'photoUrl', 'fcmTokens',
+            'createdAt', 'updatedAt', 'notificationPrefs', 'locale'
+          ])
+          && data.keys().hasAll([
+            'phoneNumber', 'displayName', 'fcmTokens',
+            'createdAt', 'updatedAt', 'notificationPrefs', 'locale'
+          ])
+          && data.phoneNumber == request.auth.token.phone_number
+          && data.displayName is string
+          && data.displayName.size() >= 1
+          && data.displayName.size() <= 50
+          && (data.photoUrl == null || data.photoUrl is string)
+          && data.fcmTokens is list
+          && data.createdAt == request.time
+          && data.updatedAt == request.time
+          && isValidNotificationPrefs(data.notificationPrefs)
+          && data.locale == 'en-IN';
+      }
+
+      function isValidUserUpdate() {
+        let data = request.resource.data;
+        let prev = resource.data;
+        return data.keys().hasOnly([
+            'phoneNumber', 'displayName', 'photoUrl', 'fcmTokens',
+            'createdAt', 'updatedAt', 'notificationPrefs', 'locale'
+          ])
+          // Immutable fields must not change.
+          && data.phoneNumber == prev.phoneNumber
+          && data.createdAt == prev.createdAt
+          // Mutable fields must remain valid.
+          && data.displayName is string
+          && data.displayName.size() >= 1
+          && data.displayName.size() <= 50
+          && (data.photoUrl == null || data.photoUrl is string)
+          && data.fcmTokens is list
+          && data.updatedAt == request.time
+          && isValidNotificationPrefs(data.notificationPrefs)
+          && data.locale == 'en-IN';
+      }
+
+      function isValidNotificationPrefs(prefs) {
+        return prefs.keys().hasOnly(['newExpense', 'settlement', 'reminder'])
+          && prefs.keys().hasAll(['newExpense', 'settlement', 'reminder'])
+          && prefs.newExpense is bool
+          && prefs.settlement is bool
+          && prefs.reminder is bool;
+      }
     }
   }
 }

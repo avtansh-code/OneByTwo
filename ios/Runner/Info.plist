@@ -75,5 +75,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>One By Two needs camera access to take your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>One By Two needs access to your photos to set your profile picture.</string>
 </dict>
 </plist>
