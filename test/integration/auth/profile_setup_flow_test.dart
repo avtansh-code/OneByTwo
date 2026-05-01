@@ -16,7 +16,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/auth/application/profile_setup_controller.dart';
 import 'package:onebytwo/features/auth/data/image_picker_service.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
@@ -37,10 +36,8 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakeUserRepository implements UserRepository {
-  _FakeUserRepository({this.existingUser, this.shouldFail = false});
-
   UserModel? existingUser;
-  bool shouldFail;
+  bool shouldFail = false;
   Map<String, dynamic>? lastCreatedDoc;
 
   @override
@@ -65,10 +62,7 @@ class _FakeUserRepository implements UserRepository {
   }
 
   @override
-  Future<String> uploadAvatar(
-    String uid,
-    String filePath,
-  ) async {
+  Future<String> uploadAvatar(String uid, String filePath) async {
     return 'https://storage.example.com/avatars/$uid';
   }
 }
@@ -131,155 +125,119 @@ void main() {
       imagePicker = _FakeImagePickerService();
     });
 
-    testWidgets(
-      'first-time user enters name, skips photo, '
-      'sees home placeholder',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildApp(
-            analytics: analytics,
-            userRepo: userRepo,
-            imagePicker: imagePicker,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('first-time user enters name, skips photo, '
+        'sees home placeholder', (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          analytics: analytics,
+          userRepo: userRepo,
+          imagePicker: imagePicker,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Screen renders.
-        expect(find.text('Set up your profile'), findsOneWidget);
+      // Screen renders.
+      expect(find.text('Set up your profile'), findsOneWidget);
 
-        // Enter display name.
-        await tester.enterText(
-          find.byType(TextField),
-          'Avtansh',
-        );
-        await tester.pumpAndSettle();
+      // Enter display name.
+      await tester.enterText(find.byType(TextField), 'Avtansh');
+      await tester.pumpAndSettle();
 
-        // Continue button should be enabled.
-        final button = tester.widget<FilledButton>(
-          find.byType(FilledButton),
-        );
-        expect(button.onPressed, isNotNull);
+      // Continue button should be enabled.
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
 
-        // Tap Continue.
-        await tester.tap(find.byType(FilledButton));
-        await tester.pumpAndSettle();
+      // Tap Continue.
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
 
-        // User doc should be created.
-        expect(userRepo.lastCreatedDoc, isNotNull);
-        expect(
-          userRepo.lastCreatedDoc!['displayName'],
-          'Avtansh',
-        );
-        expect(
-          userRepo.lastCreatedDoc!['photoUrl'],
-          isNull,
-        );
+      // User doc should be created.
+      expect(userRepo.lastCreatedDoc, isNotNull);
+      expect(userRepo.lastCreatedDoc!['displayName'], 'Avtansh');
+      expect(userRepo.lastCreatedDoc!['photoUrl'], isNull);
 
-        // Navigate to home placeholder.
-        expect(find.text('Home'), findsOneWidget);
+      // Navigate to home placeholder.
+      expect(find.text('Home'), findsOneWidget);
 
-        // Telemetry events fired in order.
-        expect(
-          analytics.loggedEvents,
-          containsAll([
-            'profile_setup_viewed',
-            'profile_photo_skipped',
-            'profile_save_requested',
-            'profile_save_succeeded',
-          ]),
-        );
-      },
-    );
+      // Telemetry events fired in order.
+      expect(
+        analytics.loggedEvents,
+        containsAll([
+          'profile_setup_viewed',
+          'profile_photo_skipped',
+          'profile_save_requested',
+          'profile_save_succeeded',
+        ]),
+      );
+    });
 
-    testWidgets(
-      'save failure shows error snackbar and allows retry',
-      (tester) async {
-        userRepo.shouldFail = true;
+    testWidgets('save failure shows error snackbar and allows retry', (
+      tester,
+    ) async {
+      userRepo.shouldFail = true;
 
-        await tester.pumpWidget(
-          _buildApp(
-            analytics: analytics,
-            userRepo: userRepo,
-            imagePicker: imagePicker,
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildApp(
+          analytics: analytics,
+          userRepo: userRepo,
+          imagePicker: imagePicker,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Enter name and submit.
-        await tester.enterText(
-          find.byType(TextField),
-          'Avtansh',
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byType(FilledButton));
-        await tester.pumpAndSettle();
+      // Enter name and submit.
+      await tester.enterText(find.byType(TextField), 'Avtansh');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
 
-        // Error snackbar shown.
-        expect(
-          find.text(
-            'Could not save your profile. '
-            'Please try again.',
-          ),
-          findsOneWidget,
-        );
+      // Error snackbar shown.
+      expect(
+        find.text(
+          'Could not save your profile. '
+          'Please try again.',
+        ),
+        findsOneWidget,
+      );
 
-        // profile_save_failed event fired.
-        expect(
-          analytics.loggedEvents,
-          contains('profile_save_failed'),
-        );
+      // profile_save_failed event fired.
+      expect(analytics.loggedEvents, contains('profile_save_failed'));
 
-        // Button should be re-enabled for retry.
-        final button = tester.widget<FilledButton>(
-          find.byType(FilledButton),
-        );
-        expect(button.onPressed, isNotNull);
-      },
-    );
+      // Button should be re-enabled for retry.
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    });
 
-    testWidgets(
-      'empty name keeps Continue disabled',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildApp(
-            analytics: analytics,
-            userRepo: userRepo,
-            imagePicker: imagePicker,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('empty name keeps Continue disabled', (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          analytics: analytics,
+          userRepo: userRepo,
+          imagePicker: imagePicker,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Continue button should be disabled by default.
-        final button = tester.widget<FilledButton>(
-          find.byType(FilledButton),
-        );
-        expect(button.onPressed, isNull);
-      },
-    );
+      // Continue button should be disabled by default.
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+    });
 
-    testWidgets(
-      'whitespace-only name keeps Continue disabled',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildApp(
-            analytics: analytics,
-            userRepo: userRepo,
-            imagePicker: imagePicker,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('whitespace-only name keeps Continue disabled', (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          analytics: analytics,
+          userRepo: userRepo,
+          imagePicker: imagePicker,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.enterText(
-          find.byType(TextField),
-          '   ',
-        );
-        await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '   ');
+      await tester.pumpAndSettle();
 
-        final button = tester.widget<FilledButton>(
-          find.byType(FilledButton),
-        );
-        expect(button.onPressed, isNull);
-      },
-    );
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+    });
   });
 }

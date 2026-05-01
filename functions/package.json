@@ -8,6 +8,7 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "jest --forceExit",
+    "test:rules": "jest --config jest.rules.config.js --forceExit",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "deploy": "firebase deploy --only functions",
