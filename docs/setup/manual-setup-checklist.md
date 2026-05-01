@@ -706,10 +706,10 @@ now manage service accounts via **Google Cloud Console** and grant access via
 
 - **Where:** [Firebase Console → Project Settings → Your apps](https://console.firebase.google.com/project/onebytwo-avtanshgupta/settings/general)
 - **Steps:**
-  1. Find the old `OneByTwo iOS` app (bundle `app.onebytwo`, app ID
+  1. Find the old `OneByTwo iOS` app (bundle `com.avtanshgupta.onebytwo`, app ID
      `1:1013666369675:ios:899dbb29bf0b4e852d848e`).
   2. Click the overflow menu → **Remove this app**.
-  3. Find the old `OneByTwo Android` app (package `app.onebytwo`, app ID
+  3. Find the old `OneByTwo Android` app (package `com.avtanshgupta.onebytwo`, app ID
      `1:1013666369675:android:771bfe5cf8ac093a2d848e`).
   4. Click the overflow menu → **Remove this app**.
 - **Expected result:** Only two apps remain:
