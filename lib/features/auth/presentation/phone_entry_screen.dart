@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
-import 'package:onebytwo/features/auth/presentation/authenticated_screen.dart';
+import 'package:onebytwo/features/auth/data/user_repository.dart';
+import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
+import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/india_phone_input_formatter.dart';
 
 /// Phone number entry screen for FR-AU-01.
@@ -40,13 +44,13 @@ class PhoneEntryScreen extends ConsumerWidget {
           ),
         );
       }
-      // Navigate to authenticated screen on auto-verification.
+      // Navigate post-auth on auto-verification.
       if (next.autoVerifiedUser != null && previous?.autoVerifiedUser == null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                AuthenticatedScreen(uid: next.autoVerifiedUser!.uid),
-          ),
+        _navigatePostAuth(
+          context,
+          ref,
+          next.autoVerifiedUser!.uid,
+          next.phoneNumber,
         );
       }
     });
@@ -195,5 +199,51 @@ class PhoneEntryScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Navigates to home or profile setup based on whether
+  /// a user document already exists.
+  Future<void> _navigatePostAuth(
+    BuildContext context,
+    WidgetRef ref,
+    String uid,
+    String phoneDigits,
+  ) async {
+    final userRepo = ref.read(userRepositoryProvider);
+    try {
+      final user = await userRepo.getUser(uid);
+      if (!context.mounted) return;
+      if (user != null && user.displayName.trim().isNotEmpty) {
+        unawaited(
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute<void>(
+              builder: (_) => const HomePlaceholderScreen(),
+            ),
+            (_) => false,
+          ),
+        );
+      } else {
+        unawaited(
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  ProfileSetupScreen(uid: uid, phoneNumber: '+91$phoneDigits'),
+            ),
+            (_) => false,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      unawaited(
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                ProfileSetupScreen(uid: uid, phoneNumber: '+91$phoneDigits'),
+          ),
+          (_) => false,
+        ),
+      );
+    }
   }
 }
