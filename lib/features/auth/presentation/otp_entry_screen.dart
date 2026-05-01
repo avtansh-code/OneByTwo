@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/otp_entry_controller.dart';
+import 'package:onebytwo/features/auth/presentation/authenticated_screen.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/otp_input.dart';
 
 /// OTP verification screen for FR-AU-03.
@@ -12,12 +13,20 @@ class OtpEntryScreen extends ConsumerWidget {
   /// Creates an [OtpEntryScreen].
   const OtpEntryScreen({
     required this.phoneNumber,
+    required this.verificationId,
+    this.resendToken,
     this.initialCountdownSeconds = 30,
     super.key,
   });
 
   /// The raw 10-digit phone number (no prefix).
   final String phoneNumber;
+
+  /// The verification ID from the initial OTP request.
+  final String verificationId;
+
+  /// The resend token from the initial OTP request.
+  final int? resendToken;
 
   /// Initial countdown seconds before resend is allowed.
   final int initialCountdownSeconds;
@@ -30,8 +39,16 @@ class OtpEntryScreen extends ConsumerWidget {
   }
 
   /// Provider arguments derived from widget properties.
-  ({String phoneNumber, int initialCountdownSeconds}) get _providerArgs => (
+  ({
+    String phoneNumber,
+    String verificationId,
+    int? resendToken,
+    int initialCountdownSeconds,
+  })
+  get _providerArgs => (
     phoneNumber: phoneNumber,
+    verificationId: verificationId,
+    resendToken: resendToken,
     initialCountdownSeconds: initialCountdownSeconds,
   );
 
@@ -42,6 +59,22 @@ class OtpEntryScreen extends ConsumerWidget {
     final controller = ref.read(
       otpEntryControllerProvider(_providerArgs).notifier,
     );
+
+    // Navigate to authenticated screen on success.
+    ref.listen<OtpEntryState>(otpEntryControllerProvider(_providerArgs), (
+      previous,
+      next,
+    ) {
+      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                AuthenticatedScreen(uid: next.authenticatedUser?.uid ?? ''),
+          ),
+          (_) => false,
+        );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -88,7 +121,34 @@ class OtpEntryScreen extends ConsumerWidget {
                 onCompleted: (_) => controller.submit(),
                 onBackspace: controller.clearDigit,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+
+              // Error text.
+              if (state.validationError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    state.validationError!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+
+              // Loading indicator.
+              if (state.isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
               if (!state.canResend)
                 Semantics(
                   liveRegion: true,
@@ -106,7 +166,8 @@ class OtpEntryScreen extends ConsumerWidget {
                 label: state.canResend
                     ? 'Resend OTP'
                     : 'Resend OTP, disabled, '
-                          '${state.remainingSeconds} seconds remaining',
+                          '${state.remainingSeconds} '
+                          'seconds remaining',
                 excludeSemantics: true,
                 child: TextButton(
                   onPressed: state.canResend ? controller.resend : null,

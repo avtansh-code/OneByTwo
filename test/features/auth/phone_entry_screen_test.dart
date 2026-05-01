@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
+import 'package:onebytwo/features/auth/domain/auth_error.dart';
+import 'package:onebytwo/features/auth/domain/auth_user.dart';
+import 'package:onebytwo/features/auth/domain/verification_session.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
@@ -18,18 +23,66 @@ class FakeAnalyticsService implements AnalyticsService {
   }
 }
 
+/// Fake [PhoneAuthRepository] for screen tests.
+class FakePhoneAuthRepository implements PhoneAuthRepository {
+  /// When non-null, [requestOtp] invokes `onCodeSent`.
+  VerificationSession? requestOtpSession;
+
+  /// When non-null, [requestOtp] invokes `onError`.
+  AuthError? requestOtpError;
+
+  @override
+  Future<void> requestOtp({
+    required String phoneNumber,
+    required void Function(VerificationSession session) onCodeSent,
+    required void Function(AuthUser user) onAutoVerified,
+    required void Function(AuthError error) onError,
+    void Function()? onAutoRetrievalTimeout,
+  }) async {
+    if (requestOtpError != null) {
+      onError(requestOtpError!);
+      return;
+    }
+    if (requestOtpSession != null) {
+      onCodeSent(requestOtpSession!);
+    }
+  }
+
+  @override
+  Future<Result<AuthUser, AuthError>> verifyOtp({
+    required String verificationId,
+    required String code,
+  }) async => const Failure(AuthError.unknown);
+
+  @override
+  Future<void> resendOtp({
+    required String phoneNumber,
+    required void Function(VerificationSession session) onCodeSent,
+    required void Function(AuthError error) onError,
+    int? resendToken,
+  }) async {}
+
+  @override
+  Future<void> signOut() async {}
+}
+
 void main() {
   late FakeAnalyticsService fakeAnalytics;
+  late FakePhoneAuthRepository fakeRepository;
 
   Widget buildSubject() {
     return ProviderScope(
-      overrides: [analyticsServiceProvider.overrideWithValue(fakeAnalytics)],
+      overrides: [
+        analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+        phoneAuthRepositoryProvider.overrideWithValue(fakeRepository),
+      ],
       child: const MaterialApp(home: PhoneEntryScreen()),
     );
   }
 
   setUp(() {
     fakeAnalytics = FakeAnalyticsService();
+    fakeRepository = FakePhoneAuthRepository();
   });
 
   group('PhoneEntryScreen', () {
@@ -41,15 +94,12 @@ void main() {
     testWidgets('+91 prefix is visible and not editable', (tester) async {
       await tester.pumpWidget(buildSubject());
 
-      // The prefix text is present.
       expect(find.text('+91'), findsOneWidget);
 
-      // The prefix is NOT inside a TextField — it is a separate widget.
       final prefixFinder = find.text('+91');
       final prefixWidget = tester.widget<Text>(prefixFinder);
       expect(prefixWidget, isA<Text>());
 
-      // Verify no EditableText ancestor for the prefix.
       final prefixElement = tester.element(prefixFinder);
       var hasEditableAncestor = false;
       prefixElement.visitAncestorElements((element) {
@@ -107,7 +157,6 @@ void main() {
       await tester.enterText(find.byType(TextField), '5678901234');
       await tester.pump();
 
-      // Button should be enabled (10 digits entered).
       final button = find.widgetWithText(FilledButton, 'Continue');
       await tester.tap(button);
       await tester.pump();
@@ -118,20 +167,24 @@ void main() {
       );
     });
 
-    testWidgets(
-      'telemetry signup_started fires on Continue tap with valid input',
-      (tester) async {
-        await tester.pumpWidget(buildSubject());
+    testWidgets('telemetry signup_started fires on Continue tap '
+        'with valid input', (tester) async {
+      fakeRepository.requestOtpSession = VerificationSession(
+        verificationId: 'vid',
+        phoneNumber: '+919876543210',
+        requestedAt: DateTime(2025),
+      );
 
-        await tester.enterText(find.byType(TextField), '9876543210');
-        await tester.pump();
+      await tester.pumpWidget(buildSubject());
 
-        await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
-        await tester.pump();
+      await tester.enterText(find.byType(TextField), '9876543210');
+      await tester.pump();
 
-        expect(fakeAnalytics.loggedEvents, contains('signup_started'));
-      },
-    );
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.pump();
+
+      expect(fakeAnalytics.loggedEvents, contains('signup_started'));
+    });
 
     testWidgets('error message is hidden by default', (tester) async {
       await tester.pumpWidget(buildSubject());
@@ -159,6 +212,20 @@ void main() {
         find.bySemanticsLabel('Country code, India, plus 91'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('shows Firebase error when requestOtp fails', (tester) async {
+      fakeRepository.requestOtpError = AuthError.tooManyRequests;
+
+      await tester.pumpWidget(buildSubject());
+
+      await tester.enterText(find.byType(TextField), '9876543210');
+      await tester.pump();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.pump();
+
+      expect(find.text(AuthError.tooManyRequests.message), findsOneWidget);
     });
   });
 }
