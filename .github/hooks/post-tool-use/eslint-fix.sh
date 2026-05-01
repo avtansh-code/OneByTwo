@@ -11,6 +11,9 @@ INPUT="$(cat)"
 # Extract the file path.
 FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
 
+# Log invocation for audit trail.
+printf '[hook] eslint-fix: checking %s\n' "${FILE_PATH:-<unknown>}" >&2
+
 # Only lint TypeScript/JavaScript files under functions/.
 case "$FILE_PATH" in
   functions/*.ts|functions/*.js)

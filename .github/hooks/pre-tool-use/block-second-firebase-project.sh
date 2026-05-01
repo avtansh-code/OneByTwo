@@ -13,6 +13,9 @@ INPUT="$(cat)"
 # Extract the file path.
 FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
 
+# Log invocation for audit trail.
+printf '[hook] block-second-firebase-project: checking %s\n' "${FILE_PATH:-<unknown>}" >&2
+
 # Only check files where Firebase project IDs could be introduced.
 case "$FILE_PATH" in
   firebase.json|.firebaserc|*.yaml|*.yml|*.json)
