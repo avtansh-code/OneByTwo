@@ -264,3 +264,107 @@ A separate event, `phone_entry_viewed`, fires on screen mount and captures the
   and navigate away have not meaningfully started signup.
 - Fire on both mount and submit with different event names: this is effectively the
   chosen approach — `phone_entry_viewed` for mount, `signup_started` for submit.
+
+---
+
+## ADR-0008: User Document Creation — Client-Side Write at Profile Setup
+
+**Status:** Accepted
+
+### Context
+
+When a new user completes phone authentication for the first time and reaches the
+profile-setup screen (FR-AU-06), the system must create the `users/{userId}`
+Firestore document. Two approaches were evaluated: a client-side write performed by
+the Flutter app during profile setup, and a server-side write performed by a Cloud
+Function triggered by `auth.user().onCreate()`.
+
+The key question is whether the user document constitutes user-authored data (which
+the client may write, subject to Security Rules) or derived/protected data (which
+must be written exclusively by a Cloud Function).
+
+### Decision
+
+The Flutter app creates the `users/{userId}` document via a single Firestore `set()`
+call when the user submits the profile-setup form. The document is written with the
+typed shape defined in `docs/design/07-technical/firestore-schema.md`.
+
+Fields written at creation time:
+
+| Field | Source | Type |
+|---|---|---|
+| `phoneNumber` | `FirebaseAuth.currentUser.phoneNumber` | `string` |
+| `displayName` | Form input | `string` |
+| `photoUrl` | Storage upload result, or `null` | `string \| null` |
+| `fcmTokens` | Empty array `[]` | `array` |
+| `createdAt` | Server timestamp | `timestamp` |
+| `updatedAt` | Server timestamp | `timestamp` |
+| `notificationPrefs` | Default map `{ newExpense: true, settlement: true, reminder: true }` | `map` |
+| `locale` | `'en-IN'` (per ARCH-EXT-04) | `string` |
+
+Firestore Security Rules enforce that `request.auth.uid == userId` and that the
+document does not already exist (creation is one-shot).
+
+**Reasoning:**
+
+- The user document is user-authored data, not derived or protected state.
+- Invariant #2 mandates server-side writes only for `simplifiedBalances` (derived
+  state). The user document is not derived state; it does not fall under this
+  invariant.
+- Adding a Cloud Function on the critical first-signup path would introduce cold-start
+  latency and an eventual-consistency window between auth completion and user-document
+  availability, with no compensating benefit.
+- Firestore Security Rules can enforce field presence, types, and ownership at the
+  rules layer, providing adequate protection against malformed writes.
+
+### Consequences
+
+- The profile-setup screen is solely responsible for creating the user document. No
+  Cloud Function is involved in user-document creation.
+- Firestore Security Rules must validate field presence, field types, and the
+  ownership constraint (`request.auth.uid == userId`) for `create` operations on
+  `users/{userId}`. This is the primary line of defence against malformed documents.
+- There is no eventual-consistency window on signup: the user document is available
+  immediately after the `set()` call resolves, and subsequent screens can read it
+  without polling or retry logic.
+- If a future requirement demands server-derived fields on the user document (e.g., a
+  computed trust score), a Cloud Function can be added to update those specific fields
+  without changing the creation strategy. The creation remains client-side; the
+  server would perform a subsequent `update()`.
+- Integration tests must cover the one-shot creation constraint: a second `set()` call
+  for the same `userId` must be rejected by Security Rules.
+
+### Alternatives Considered
+
+**Option B — Cloud Function on `auth.user().onCreate()`:** A Cloud Function fires
+when Firebase Auth creates a new user and writes a minimal skeleton `users/{userId}`
+document containing `phoneNumber` and `createdAt`. The profile-setup screen then
+performs a separate `update()` to add `displayName` and optionally `photoUrl`.
+
+This option was rejected for the following reasons:
+
+- Cold-start latency on the critical first-signup path. The user would land on the
+  profile-setup screen before the Cloud Function has finished executing, requiring
+  polling or retry logic to wait for the skeleton document.
+- Two writes instead of one, increasing Firestore write costs and complexity.
+- The eventual-consistency window between auth completion and document availability
+  would require defensive client-side code (loading states, retries, error handling
+  for a missing document), adding complexity to the profile-setup screen with no
+  user-facing benefit.
+- The user document is not derived state. Server-side creation solves a security
+  problem that the project invariants do not define and that Security Rules already
+  address adequately.
+
+### Implication for PR #9
+
+1. The profile-setup screen writes the full `users/{userId}` document via a single
+   Firestore `set()` call, using the field shape specified above.
+2. Firestore Security Rules must enforce: (a) `request.auth.uid == userId`,
+   (b) the document must not already exist for `create` operations, (c) all required
+   fields are present and correctly typed.
+3. Storage Security Rules must allow authenticated users to write to
+   `avatars/{userId}` only when their UID matches `userId`.
+4. Integration tests must verify: (a) a first-time user successfully creates the
+   document, (b) a returning user skips profile setup and is not prompted to create
+   the document again, (c) a duplicate creation attempt is rejected by Security
+   Rules.
