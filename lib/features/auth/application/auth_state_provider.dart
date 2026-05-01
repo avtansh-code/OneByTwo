@@ -53,14 +53,31 @@ final authStateNotifierProvider = StreamProvider<AuthState>((ref) {
           .doc(user.uid)
           .snapshots()
           .listen(
-        (doc) {
-          if (doc.exists && doc.data() != null) {
-            try {
-              final userData = UserModel.fromFirestore(doc);
-              if (userData.displayName.trim().isNotEmpty) {
-                controller.add(
-                  AuthenticatedWithProfile(uid: user.uid, user: userData),
-                );
+            (doc) {
+              if (doc.exists && doc.data() != null) {
+                try {
+                  final userData = UserModel.fromFirestore(doc);
+                  if (userData.displayName.trim().isNotEmpty) {
+                    controller.add(
+                      AuthenticatedWithProfile(uid: user.uid, user: userData),
+                    );
+                  } else {
+                    controller.add(
+                      AuthenticatedNoProfile(
+                        uid: user.uid,
+                        phoneNumber: user.phoneNumber,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('[AuthState] Error parsing user doc: $e');
+                  controller.add(
+                    AuthenticatedNoProfile(
+                      uid: user.uid,
+                      phoneNumber: user.phoneNumber,
+                    ),
+                  );
+                }
               } else {
                 controller.add(
                   AuthenticatedNoProfile(
@@ -69,38 +86,21 @@ final authStateNotifierProvider = StreamProvider<AuthState>((ref) {
                   ),
                 );
               }
-            } catch (e) {
-              debugPrint('[AuthState] Error parsing user doc: $e');
+            },
+            onError: (Object error) {
+              debugPrint('[AuthState] Firestore user doc error: $error');
+              // On Firestore error, default to no-profile. The Firestore
+              // security rules prevent accidental doc overwrites (ADR-0008:
+              // creation is one-shot), so routing to profile-setup for a
+              // returning user would show a save error, not data loss.
               controller.add(
                 AuthenticatedNoProfile(
                   uid: user.uid,
                   phoneNumber: user.phoneNumber,
                 ),
               );
-            }
-          } else {
-            controller.add(
-              AuthenticatedNoProfile(
-                uid: user.uid,
-                phoneNumber: user.phoneNumber,
-              ),
-            );
-          }
-        },
-        onError: (Object error) {
-          debugPrint('[AuthState] Firestore user doc error: $error');
-          // On Firestore error, default to no-profile. The Firestore
-          // security rules prevent accidental doc overwrites (ADR-0008:
-          // creation is one-shot), so routing to profile-setup for a
-          // returning user would show a save error, not data loss.
-          controller.add(
-            AuthenticatedNoProfile(
-              uid: user.uid,
-              phoneNumber: user.phoneNumber,
-            ),
+            },
           );
-        },
-      );
     },
     onError: (Object error) {
       debugPrint('[AuthState] Auth stream error: $error');

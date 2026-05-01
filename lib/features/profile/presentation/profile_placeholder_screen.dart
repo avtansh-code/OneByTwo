@@ -37,10 +37,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        leading: const BackButton(),
-      ),
+      appBar: AppBar(title: const Text('Profile'), leading: const BackButton()),
       body: SafeArea(
         child: Column(
           children: [
@@ -80,8 +77,9 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
                         child: Text(
                           phoneNumber,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ),
@@ -134,9 +132,9 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
           OutlinedButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              ref.read(analyticsServiceProvider).logEvent(
-                name: 'sign_out_cancelled',
-              );
+              ref
+                  .read(analyticsServiceProvider)
+                  .logEvent(name: 'sign_out_cancelled');
             },
             child: Text(
               'Cancel',
@@ -150,9 +148,9 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
               Navigator.of(dialogContext).pop();
               try {
                 await ref.read(phoneAuthRepositoryProvider).signOut();
-                await ref.read(analyticsServiceProvider).logEvent(
-                  name: 'sign_out_completed',
-                );
+                await ref
+                    .read(analyticsServiceProvider)
+                    .logEvent(name: 'sign_out_completed');
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(

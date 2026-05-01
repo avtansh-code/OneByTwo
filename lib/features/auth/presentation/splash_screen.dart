@@ -42,14 +42,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
     // Fire app_launched telemetry.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(analyticsServiceProvider).logEvent(
-        name: 'app_launched',
-        parameters: {
-          'platform': Theme.of(context).platform == TargetPlatform.iOS
-              ? 'iOS'
-              : 'Android',
-        },
-      );
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'app_launched',
+            parameters: {
+              'platform': Theme.of(context).platform == TargetPlatform.iOS
+                  ? 'iOS'
+                  : 'Android',
+            },
+          );
     });
   }
 
@@ -113,8 +115,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       Text(
                         'Having trouble?',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
