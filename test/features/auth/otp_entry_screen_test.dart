@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
+import 'package:onebytwo/features/auth/domain/auth_error.dart';
+import 'package:onebytwo/features/auth/domain/auth_user.dart';
+import 'package:onebytwo/features/auth/domain/verification_session.dart';
 import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
@@ -19,17 +24,66 @@ class FakeAnalyticsService implements AnalyticsService {
   }
 }
 
+/// Fake [PhoneAuthRepository] for screen tests.
+class FakePhoneAuthRepository implements PhoneAuthRepository {
+  /// When non-null, [verifyOtp] returns this result.
+  Result<AuthUser, AuthError>? verifyOtpResult;
+
+  /// When non-null, [resendOtp] invokes `onCodeSent`.
+  VerificationSession? resendOtpSession;
+
+  @override
+  Future<void> requestOtp({
+    required String phoneNumber,
+    required void Function(VerificationSession session) onCodeSent,
+    required void Function(AuthUser user) onAutoVerified,
+    required void Function(AuthError error) onError,
+    void Function()? onAutoRetrievalTimeout,
+  }) async {}
+
+  @override
+  Future<Result<AuthUser, AuthError>> verifyOtp({
+    required String verificationId,
+    required String code,
+  }) async => verifyOtpResult ?? const Failure(AuthError.unknown);
+
+  @override
+  Future<void> resendOtp({
+    required String phoneNumber,
+    required void Function(VerificationSession session) onCodeSent,
+    required void Function(AuthError error) onError,
+    int? resendToken,
+  }) async {
+    if (resendOtpSession != null) {
+      onCodeSent(resendOtpSession!);
+    }
+  }
+
+  @override
+  Future<void> signOut() async {}
+}
+
 void main() {
   late FakeAnalyticsService fakeAnalytics;
+  late FakePhoneAuthRepository fakeRepository;
 
   setUp(() {
     fakeAnalytics = FakeAnalyticsService();
+    fakeRepository = FakePhoneAuthRepository();
   });
 
   Widget buildSubject({String phoneNumber = '9876543210'}) {
     return ProviderScope(
-      overrides: [analyticsServiceProvider.overrideWithValue(fakeAnalytics)],
-      child: MaterialApp(home: OtpEntryScreen(phoneNumber: phoneNumber)),
+      overrides: [
+        analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+        phoneAuthRepositoryProvider.overrideWithValue(fakeRepository),
+      ],
+      child: MaterialApp(
+        home: OtpEntryScreen(
+          phoneNumber: phoneNumber,
+          verificationId: 'vid-test',
+        ),
+      ),
     );
   }
 
@@ -49,53 +103,53 @@ void main() {
       expect(find.textContaining('0:30'), findsOneWidget);
     });
 
-    testWidgets('phone number in subtitle is masked (last 4 digits visible)', (
-      tester,
-    ) async {
+    testWidgets('phone number in subtitle is masked '
+        '(last 4 digits visible)', (tester) async {
       await tester.pumpWidget(buildSubject());
-      // Should show +91 XXXXXX3210, NOT +91 9876543210.
       expect(find.textContaining('XXXXXX3210'), findsOneWidget);
       expect(find.textContaining('9876543210'), findsNothing);
     });
 
     testWidgets('Resend OTP link is disabled during countdown', (tester) async {
       await tester.pumpWidget(buildSubject());
-      // Find the resend button (only TextButton on screen).
       final resendFinder = find.byType(TextButton);
       expect(resendFinder, findsOneWidget);
 
-      // Verify it is disabled.
       final button = tester.widget<TextButton>(resendFinder);
       expect(button.onPressed, isNull);
 
-      // Tapping should not fire any resend event.
       await tester.tap(resendFinder);
       await tester.pump();
       expect(
-        fakeAnalytics.loggedEvents.any(
-          (e) => e.name == 'signup_otp_resend_requested',
-        ),
+        fakeAnalytics.loggedEvents.any((e) => e.name == 'otp_resend_tapped'),
         isFalse,
       );
     });
 
     testWidgets('Resend OTP link becomes enabled at zero and fires '
         'resend callback', (tester) async {
+      fakeRepository.resendOtpSession = VerificationSession(
+        verificationId: 'vid-resend',
+        phoneNumber: '+919876543210',
+        requestedAt: DateTime(2025),
+      );
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+            phoneAuthRepositoryProvider.overrideWithValue(fakeRepository),
           ],
           child: const MaterialApp(
             home: OtpEntryScreen(
               phoneNumber: '9876543210',
+              verificationId: 'vid-test',
               initialCountdownSeconds: 1,
             ),
           ),
         ),
       );
 
-      // Wait for countdown to expire.
       await tester.pump(const Duration(seconds: 2));
 
       final resendFinder = find.byType(TextButton);
@@ -103,9 +157,7 @@ void main() {
       await tester.pump();
 
       expect(
-        fakeAnalytics.loggedEvents.any(
-          (e) => e.name == 'signup_otp_resend_requested',
-        ),
+        fakeAnalytics.loggedEvents.any((e) => e.name == 'otp_resend_tapped'),
         isTrue,
       );
     });
@@ -115,6 +167,7 @@ void main() {
         ProviderScope(
           overrides: [
             analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+            phoneAuthRepositoryProvider.overrideWithValue(fakeRepository),
           ],
           child: MaterialApp(
             home: Builder(
@@ -122,8 +175,10 @@ void main() {
                 onPressed: () {
                   Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) =>
-                          const OtpEntryScreen(phoneNumber: '9876543210'),
+                      builder: (_) => const OtpEntryScreen(
+                        phoneNumber: '9876543210',
+                        verificationId: 'vid-test',
+                      ),
                     ),
                   );
                 },
@@ -134,17 +189,14 @@ void main() {
         ),
       );
 
-      // Navigate to OTP screen.
       await tester.tap(find.text('Go'));
       await tester.pumpAndSettle();
 
-      // Tap the back button.
       final backButton = find.byTooltip('Navigate back');
       expect(backButton, findsOneWidget);
       await tester.tap(backButton);
       await tester.pumpAndSettle();
 
-      // Should be back on the first screen.
       expect(find.text('Go'), findsOneWidget);
       expect(find.byType(OtpEntryScreen), findsNothing);
     });

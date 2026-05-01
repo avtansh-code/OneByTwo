@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
+import 'package:onebytwo/features/auth/presentation/authenticated_screen.dart';
+import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/india_phone_input_formatter.dart';
 
 /// Phone number entry screen for FR-AU-01.
@@ -22,6 +24,32 @@ class PhoneEntryScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     final hasExactlyTenDigits = state.phoneNumber.length == 10;
+
+    // Navigate to OTP screen when verification session is set.
+    ref.listen<PhoneEntryState>(phoneEntryControllerProvider, (previous, next) {
+      if (next.verificationSession != null &&
+          previous?.verificationSession == null) {
+        final session = next.verificationSession!;
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => OtpEntryScreen(
+              phoneNumber: session.phoneNumber.replaceFirst('+91', ''),
+              verificationId: session.verificationId,
+              resendToken: session.resendToken,
+            ),
+          ),
+        );
+      }
+      // Navigate to authenticated screen on auto-verification.
+      if (next.autoVerifiedUser != null && previous?.autoVerifiedUser == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                AuthenticatedScreen(uid: next.autoVerifiedUser!.uid),
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -84,6 +112,7 @@ class PhoneEntryScreen extends ConsumerWidget {
                     child: SizedBox(
                       height: 56,
                       child: TextField(
+                        enabled: !state.isLoading,
                         decoration: InputDecoration(
                           hintText: 'Enter mobile number',
                           contentPadding: const EdgeInsets.symmetric(
@@ -147,8 +176,16 @@ class PhoneEntryScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 48,
                 child: FilledButton(
-                  onPressed: hasExactlyTenDigits ? controller.submit : null,
-                  child: const Text('Continue'),
+                  onPressed: hasExactlyTenDigits && !state.isLoading
+                      ? controller.submit
+                      : null,
+                  child: state.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Continue'),
                 ),
               ),
 
