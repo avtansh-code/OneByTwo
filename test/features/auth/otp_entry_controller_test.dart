@@ -604,7 +604,7 @@ void main() {
       final event = fakeAnalytics.loggedEvents.firstWhere(
         (e) => e.name == 'otp_verification_succeeded',
       );
-      expect(event.parameters, containsPair('is_new_user', true));
+      expect(event.parameters, containsPair('is_new_user', 1));
     });
   });
 }

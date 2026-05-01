@@ -1,9 +1,24 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
+import 'package:onebytwo/firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[OneByTwo] Initialising Firebase...');
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint('[OneByTwo] Firebase initialised.');
+  if (kDebugMode) {
+    debugPrint('[OneByTwo] Connecting to auth emulator localhost:9099...');
+    await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+    debugPrint('[OneByTwo] Auth emulator connected.');
+  }
   runApp(const ProviderScope(child: OneBytwoApp()));
 }
 

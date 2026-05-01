@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
@@ -73,9 +74,12 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
     void Function()? onAutoRetrievalTimeout,
   }) async {
     try {
+      debugPrint('[PhoneAuthRepo] requestOtp called for $phoneNumber');
+      debugPrint('[PhoneAuthRepo] Calling verifyPhoneNumber...');
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
+          debugPrint('[PhoneAuthRepo] verificationCompleted callback');
           try {
             final userCredential = await _auth.signInWithCredential(credential);
             final user = userCredential.user;
@@ -85,13 +89,17 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
               onError(AuthError.unknown);
             }
           } on FirebaseAuthException catch (e) {
+            debugPrint('[PhoneAuthRepo] signIn error: ${e.code}');
             onError(_mapException(e));
           }
         },
         verificationFailed: (FirebaseAuthException e) {
+          debugPrint('[PhoneAuthRepo] verificationFailed: ${e.code} '
+              '${e.message}');
           onError(_mapException(e));
         },
         codeSent: (String verificationId, int? resendToken) {
+          debugPrint('[PhoneAuthRepo] codeSent: vid=$verificationId');
           onCodeSent(
             VerificationSession(
               verificationId: verificationId,
@@ -107,8 +115,16 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
           onAutoRetrievalTimeout?.call();
         },
       );
+      debugPrint('[PhoneAuthRepo] verifyPhoneNumber returned');
     } on FirebaseAuthException catch (e) {
+      debugPrint('[PhoneAuthRepo] FirebaseAuthException: ${e.code} '
+          '${e.message}');
       onError(_mapException(e));
+      // ignore: avoid_catches_without_on_clauses
+    } catch (e, st) {
+      debugPrint('[PhoneAuthRepo] Unexpected error: $e');
+      debugPrint('[PhoneAuthRepo] Stack trace: $st');
+      onError(AuthError.unknown);
     }
   }
 

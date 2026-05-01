@@ -212,7 +212,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
             name: 'otp_verification_succeeded',
             parameters: {
               'duration_ms': stopwatch.elapsedMilliseconds,
-              'is_new_user': value.isNewUser,
+              'is_new_user': value.isNewUser ? 1 : 0,
             },
           ),
         );
