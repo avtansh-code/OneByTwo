@@ -127,11 +127,14 @@ so that **I can verify my identity and proceed with authentication**.
 
 ## Implementation Notes
 
-- This PR implements the UI shell only. `submit()` calls a stub callback that
-  logs telemetry and pops the route. Real Firebase Auth wiring is PR #7.
+- This PR implements the UI shell only. `submit()` sets `isSubmitted` state and
+  logs telemetry. The screen reacts via `ref.listen`. Real Firebase Auth wiring
+  is PR #7.
 - The controller follows the `StateNotifier` pattern used by `PhoneEntryController`.
-- The `AnalyticsService` interface needs to be extended to support event
-  parameters (for the hashed phone number).
+- The `AnalyticsService` interface was extended with an optional `parameters` map
+  (backward-compatible) for the hashed phone number.
+- Paste is handled through the standard text-input pipeline (`onChanged`), not
+  raw keyboard interception, for reliable cross-platform behaviour and testability.
 - Design artefacts: wireframe section 4 (`docs/design/04-wireframes/auth-flow.md`),
   screen spec SCR-04 (`docs/design/06-screen-specs/01-05-auth-and-profile-setup.md`),
   mockup (`docs/design/05-mockups/02-phone-and-otp.html`).

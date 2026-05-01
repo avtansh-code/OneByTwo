@@ -60,9 +60,13 @@ void main() {
 
     testWidgets('Resend OTP link is disabled during countdown', (tester) async {
       await tester.pumpWidget(buildSubject());
-      // Find the resend text/button and verify it is disabled.
-      final resendFinder = find.text('Resend');
+      // Find the resend button (only TextButton on screen).
+      final resendFinder = find.byType(TextButton);
       expect(resendFinder, findsOneWidget);
+
+      // Verify it is disabled.
+      final button = tester.widget<TextButton>(resendFinder);
+      expect(button.onPressed, isNull);
 
       // Tapping should not fire any resend event.
       await tester.tap(resendFinder);
@@ -94,7 +98,7 @@ void main() {
       // Wait for countdown to expire.
       await tester.pump(const Duration(seconds: 2));
 
-      final resendFinder = find.text('Resend');
+      final resendFinder = find.byType(TextButton);
       await tester.tap(resendFinder);
       await tester.pump();
 

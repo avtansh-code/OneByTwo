@@ -137,7 +137,7 @@ class _OtpInputState extends State<OtpInput> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(_cellCount, (index) {
           return Padding(
-            padding: EdgeInsets.only(right: index < _cellCount - 1 ? 8 : 0),
+            padding: EdgeInsets.only(right: index < _cellCount - 1 ? 12 : 0),
             child: SizedBox(
               width: 48,
               height: 48,

@@ -67,11 +67,19 @@ class OtpEntryScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Enter the 6-digit code sent to $_maskedPhone',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              const SizedBox(height: 12),
+              Text.rich(
+                TextSpan(
+                  text: 'Enter the 6-digit code sent to ',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  children: [
+                    TextSpan(
+                      text: _maskedPhone,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),
@@ -80,19 +88,51 @@ class OtpEntryScreen extends ConsumerWidget {
                 onCompleted: (_) => controller.submit(),
                 onBackspace: controller.clearDigit,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               if (!state.canResend)
-                Text(
-                  'Resend OTP in '
-                  '${_formatCountdown(state.remainingSeconds)}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    'Resend OTP in '
+                    '${_formatCountdown(state.remainingSeconds)}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: state.canResend ? controller.resend : null,
-                child: const Text('Resend'),
+              const SizedBox(height: 16),
+              Semantics(
+                button: true,
+                label: state.canResend
+                    ? 'Resend OTP'
+                    : 'Resend OTP, disabled, '
+                          '${state.remainingSeconds} seconds remaining',
+                excludeSemantics: true,
+                child: TextButton(
+                  onPressed: state.canResend ? controller.resend : null,
+                  child: Text.rich(
+                    TextSpan(
+                      text: "Didn't receive the code? ",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Resend',
+                          style: TextStyle(
+                            color: state.canResend
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.38,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
