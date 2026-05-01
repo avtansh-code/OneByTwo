@@ -25,7 +25,7 @@ void main() async {
     await FirebaseAuth.instance.useAuthEmulator(host, 9099);
     debugPrint('[OneByTwo] Auth emulator connected.');
     debugPrint('[OneByTwo] Connecting to Firestore emulator $host:8080...');
-    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+    FirebaseFirestore.instance.useFirestoreEmulator(host, 8181);
     debugPrint('[OneByTwo] Firestore emulator connected.');
     debugPrint('[OneByTwo] Connecting to Storage emulator $host:9199...');
     await FirebaseStorage.instance.useStorageEmulator(host, 9199);

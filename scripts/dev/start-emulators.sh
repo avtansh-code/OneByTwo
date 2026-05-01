@@ -7,7 +7,7 @@
 #   ./scripts/dev/start-emulators.sh
 #   ./scripts/dev/start-emulators.sh --import=./firebase-export
 #
-# Emulators started: Auth (9099), Firestore (8080), Functions (5001),
+# Emulators started: Auth (9099), Firestore (8181), Functions (5001),
 #                    Storage (9199), UI (4000)
 # Project ID: demo-onebytwo (offline-only demo project — Invariant 4)
 # ────────────────────────────────────────────────────────────────────────────────
