@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:onebytwo/features/profile/presentation/profile_placeholder_screen.dart';
 
 /// Placeholder home screen displayed after successful profile
 /// setup.
@@ -13,6 +14,24 @@ class HomePlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          Semantics(
+            label: 'Profile, button',
+            child: IconButton(
+              icon: const Icon(Icons.person_outline),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePlaceholderScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: Column(
