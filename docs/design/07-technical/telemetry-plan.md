@@ -19,7 +19,7 @@ These eight events are explicitly named in SRS section 5.10 as key funnel events
 
 | Event Name | Parameters | Parameter Types | Trigger | SRS / Screen Ref |
 |---|---|---|---|---|
-| `signup_started` | `source` | `string` (`skip` / `get_started`) | User reaches the phone-entry screen from onboarding | FR-AU-01; SCR-02 |
+| `signup_started` | -- | -- | User taps Continue with a valid 10-digit number on the phone-entry screen (ADR-0007) | FR-AU-01; SCR-03 |
 | `signup_completed` | `method` | `string` (`phone`) | OTP verified and session created for a first-time user | FR-AU-03; SCR-04 |
 | `expense_added` | `context_type`, `amount_range`, `category`, `split_method`, `participant_count`, `has_receipt`, `has_notes`, `is_offline` | `string`, `string`, `string`, `string`, `int`, `bool`, `bool`, `bool` | Expense successfully saved | FR-EX-01; SCR-21 |
 | `settlement_recorded` | `context_type`, `amount_range`, `is_partial` | `string`, `string`, `bool` | Settlement successfully written | FR-SE-05; SCR-23 |
