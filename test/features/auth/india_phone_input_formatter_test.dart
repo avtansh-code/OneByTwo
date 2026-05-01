@@ -27,7 +27,7 @@ void main() {
     });
 
     test('strips non-digit input (special characters)', () {
-      final result = applyFormatter('98-765+432!0');
+      final result = applyFormatter('98-765+4321!0');
       expect(result.text, equals('9876543210'));
     });
 
