@@ -42,6 +42,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
     // Fire app_launched telemetry.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref
           .read(analyticsServiceProvider)
           .logEvent(
