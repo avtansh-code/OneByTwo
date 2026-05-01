@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/domain/user_model.dart';
@@ -55,16 +56,15 @@ class UserRepository {
     required String phoneNumber,
     String? photoUrl,
   }) async {
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .set(
-          UserModel.toCreateMap(
-            phoneNumber: phoneNumber,
-            displayName: displayName,
-            photoUrl: photoUrl,
-          ),
-        );
+    final data = UserModel.toCreateMap(
+      phoneNumber: phoneNumber,
+      displayName: displayName,
+      photoUrl: photoUrl,
+    );
+    debugPrint('[UserRepo] createUser uid=$uid phone=$phoneNumber');
+    debugPrint('[UserRepo] data keys=${data.keys.toList()}');
+    await _firestore.collection('users').doc(uid).set(data);
+    debugPrint('[UserRepo] createUser SUCCESS');
   }
 
   /// Uploads an avatar image to `avatars/{uid}` and returns

@@ -151,7 +151,10 @@ class ProfileSetupController extends StateNotifier<ProfileSetupState> {
 
     await _analytics.logEvent(
       name: 'profile_save_requested',
-      parameters: {'has_photo': hasPhoto, 'name_length': trimmedName.length},
+      parameters: {
+        'has_photo': hasPhoto ? 1 : 0,
+        'name_length': trimmedName.length,
+      },
     );
 
     state = state.copyWith(isLoading: true, saveError: () => null);
@@ -198,7 +201,7 @@ class ProfileSetupController extends StateNotifier<ProfileSetupState> {
         name: 'profile_save_succeeded',
         parameters: {
           'duration_ms': stopwatch.elapsedMilliseconds,
-          'has_photo': photoUrl != null,
+          'has_photo': photoUrl != null ? 1 : 0,
         },
       );
     } catch (e) {

@@ -214,7 +214,7 @@ void main() {
       final event = fakeAnalytics.loggedEvents.firstWhere(
         (e) => e.name == 'profile_save_requested',
       );
-      expect(event.parameters?['has_photo'], false);
+      expect(event.parameters?['has_photo'], 0);
       expect(event.parameters?['name_length'], 7);
     });
 

@@ -73,7 +73,12 @@ class _OtpInputState extends State<OtpInput> {
         // Single digit entered normally.
         widget.onDigitEntered(index, value);
         if (index < _cellCount - 1) {
-          _focusNodes[index + 1].requestFocus();
+          // Defer focus change to prevent keyboard flicker.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _focusNodes[index + 1].requestFocus();
+            }
+          });
         }
         _checkCompleted();
       } else if (value.length > 1) {
