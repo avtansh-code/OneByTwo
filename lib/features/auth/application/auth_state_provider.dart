@@ -23,7 +23,8 @@ void _listenToUserDoc({
   required StreamController<AuthState> controller,
   required void Function(
     StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>,
-  ) onSubscription,
+  )
+  onSubscription,
 }) {
   // ignore: cancel_subscriptions — tracked via onSubscription callback.
   final sub = firestore
@@ -31,14 +32,31 @@ void _listenToUserDoc({
       .doc(user.uid)
       .snapshots()
       .listen(
-    (doc) {
-      if (doc.exists && doc.data() != null) {
-        try {
-          final userData = UserModel.fromFirestore(doc);
-          if (userData.displayName.trim().isNotEmpty) {
-            controller.add(
-              AuthenticatedWithProfile(uid: user.uid, user: userData),
-            );
+        (doc) {
+          if (doc.exists && doc.data() != null) {
+            try {
+              final userData = UserModel.fromFirestore(doc);
+              if (userData.displayName.trim().isNotEmpty) {
+                controller.add(
+                  AuthenticatedWithProfile(uid: user.uid, user: userData),
+                );
+              } else {
+                controller.add(
+                  AuthenticatedNoProfile(
+                    uid: user.uid,
+                    phoneNumber: user.phoneNumber,
+                  ),
+                );
+              }
+            } catch (e) {
+              debugPrint('[AuthState] Error parsing user doc: $e');
+              controller.add(
+                AuthenticatedNoProfile(
+                  uid: user.uid,
+                  phoneNumber: user.phoneNumber,
+                ),
+              );
+            }
           } else {
             controller.add(
               AuthenticatedNoProfile(
@@ -47,34 +65,17 @@ void _listenToUserDoc({
               ),
             );
           }
-        } catch (e) {
-          debugPrint('[AuthState] Error parsing user doc: $e');
+        },
+        onError: (Object error) {
+          debugPrint('[AuthState] Firestore user doc error: $error');
           controller.add(
             AuthenticatedNoProfile(
               uid: user.uid,
               phoneNumber: user.phoneNumber,
             ),
           );
-        }
-      } else {
-        controller.add(
-          AuthenticatedNoProfile(
-            uid: user.uid,
-            phoneNumber: user.phoneNumber,
-          ),
-        );
-      }
-    },
-    onError: (Object error) {
-      debugPrint('[AuthState] Firestore user doc error: $error');
-      controller.add(
-        AuthenticatedNoProfile(
-          uid: user.uid,
-          phoneNumber: user.phoneNumber,
-        ),
+        },
       );
-    },
-  );
   onSubscription(sub);
 }
 
@@ -118,19 +119,22 @@ final authStateNotifierProvider = StreamProvider<AuthState>((ref) {
       // (which persist across app reinstalls) and server-side
       // account deletions. If reload fails, sign out to clear
       // the stale local state.
-      user.reload().then((_) {
-        // Token is valid. Proceed to check user doc.
-        _listenToUserDoc(
-          firestore: firestore,
-          user: user,
-          controller: controller,
-          onSubscription: (sub) => userDocSub = sub,
-        );
-      }).catchError((Object error) {
-        debugPrint('[AuthState] Token reload failed: $error');
-        // Stale token — sign out to clear local cache.
-        auth.signOut();
-      });
+      user
+          .reload()
+          .then((_) {
+            // Token is valid. Proceed to check user doc.
+            _listenToUserDoc(
+              firestore: firestore,
+              user: user,
+              controller: controller,
+              onSubscription: (sub) => userDocSub = sub,
+            );
+          })
+          .catchError((Object error) {
+            debugPrint('[AuthState] Token reload failed: $error');
+            // Stale token — sign out to clear local cache.
+            auth.signOut();
+          });
     },
     onError: (Object error) {
       debugPrint('[AuthState] Auth stream error: $error');
