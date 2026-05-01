@@ -120,13 +120,11 @@ jobs:
         run: npm test
 
   # ── Integration tests against Firebase Emulator Suite ───────────────────────
-  # Skipped until integration_test/ directory and test:canonical script exist.
-  # Re-enabled in the first feature PR that adds integration tests.
+  # Enabled in PR #7 (phone-auth feature) which added integration_test/.
   integration-tests:
     name: Integration Tests (Emulator Suite)
     runs-on: ubuntu-latest
     needs: [flutter-checks, functions-checks]
-    if: false # No integration tests yet — re-enable in first feature PR
     steps:
       - uses: actions/checkout@v4
 
