@@ -15,6 +15,9 @@ INPUT="$(cat)"
 # Extract the file path from the input if available.
 FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
 
+# Log invocation for audit trail.
+printf '[hook] block-simplified-balances-write: checking %s\n' "${FILE_PATH:-<unknown>}" >&2
+
 # Only check files under lib/ (client code).
 case "$FILE_PATH" in
   lib/*)

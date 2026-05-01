@@ -377,3 +377,25 @@ a proven, tested base.
    function signature, test matrix) so that sprint 2 expense and settlement
    stories can depend on it. The algorithm implementation may be naive;
    performance optimisation is deferred.
+
+---
+
+## Progress
+
+| PR | Title | Stories | Status | Merged |
+|---|---|---|---|---|
+| #1 | Agentic configuration bootstrap | -- | Merged | 2026-04-30 |
+| #2 | Sprint-zero + design phase artefacts | -- | Merged | 2026-04-30 |
+| #3 | Bootstrap project skeleton | INFRA-01 (partial) | Merged | 2026-05-01 |
+| #4 | Phone-number entry screen (FR-AU-01) | FR-AU-01, FR-AU-02 | Merged | [2026-05-01](https://github.com/avtansh-code/OneByTwo/pull/4) |
+| #5 | PR-#4 retrospective and ratified patterns | -- (chore) | In flight | -- |
+
+### Velocity observation
+
+- **FR-AU-01 + FR-AU-02 (5 SP):** ~10.5 hours elapsed (PR #4 created to merged).
+  Approximately half the commit effort was CI/platform fixups rather than feature
+  work. With the CI improvements landed in PR #5, future feature PRs should see
+  less CI friction.
+- **No sequencing changes required.** The retro did not uncover blockers that alter
+  the story order. The auth flow continues as planned: OTP screen next, then Firebase
+  Phone Auth wiring, then profile setup.

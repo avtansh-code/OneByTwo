@@ -13,6 +13,9 @@ INPUT="$(cat)"
 # Extract the file path.
 FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
 
+# Log invocation for audit trail.
+printf '[hook] block-second-firebase-project: checking %s\n' "${FILE_PATH:-<unknown>}" >&2
+
 # Only check files where Firebase project IDs could be introduced.
 case "$FILE_PATH" in
   firebase.json|.firebaserc|*.yaml|*.yml|*.json)
@@ -31,7 +34,8 @@ fi
 
 # Check for patterns that suggest a second Firebase project.
 # Look for staging/dev project patterns in Firebase config files.
-STAGING_PATTERNS='staging\|development\|dev-project\|stg-project\|"dev"\|"staging"\|"test-project"'
+# NOTE: Uses ERE (-E) so alternation is | not \|.
+STAGING_PATTERNS='staging|development|dev-project|stg-project|"dev"|"staging"|"test-project"'
 
 case "$FILE_PATH" in
   .firebaserc)
@@ -55,7 +59,7 @@ case "$FILE_PATH" in
     ;;
   *.yaml|*.yml)
     # In workflow files, check for multiple Firebase project references.
-    if printf '%s' "$CONTENT" | grep -qiE 'FIREBASE.*PROJECT.*ID.*staging\|firebase.*deploy.*--project.*staging\|firebase.*use.*staging'; then
+    if printf '%s' "$CONTENT" | grep -qiE 'FIREBASE.*PROJECT.*ID.*staging|firebase.*deploy.*--project.*staging|firebase.*use.*staging'; then
       printf 'BLOCKED: Second Firebase project reference detected in %s.\n' "$FILE_PATH" >&2
       printf 'Invariant 4 (SRS sections 3.4, 9.1): There is exactly one Firebase\n' >&2
       printf 'project (production). No staging or development projects are permitted.\n' >&2
