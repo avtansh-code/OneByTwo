@@ -1,19 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
+/// Whether to use the Firebase Auth Emulator.
+///
+/// Pass `--dart-define=USE_EMULATOR=true` to `flutter run` to enable:
+///   flutter run --dart-define=USE_EMULATOR=true
+const _useEmulator = bool.fromEnvironment('USE_EMULATOR');
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[OneByTwo] Initialising Firebase...');
   await Firebase.initializeApp();
-  debugPrint('[OneByTwo] Firebase initialised.');
-  if (kDebugMode) {
-    debugPrint('[OneByTwo] Connecting to auth emulator localhost:9099...');
-    await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+  if (_useEmulator) {
+    const host = String.fromEnvironment(
+      'EMULATOR_HOST',
+      defaultValue: 'localhost',
+    );
+    debugPrint('[OneByTwo] Connecting to auth emulator $host:9099...');
+    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
     debugPrint('[OneByTwo] Auth emulator connected.');
   }
   runApp(const ProviderScope(child: OneBytwoApp()));
