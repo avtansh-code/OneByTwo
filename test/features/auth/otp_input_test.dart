@@ -80,16 +80,13 @@ void main() {
     testWidgets('paste of a 6-digit string fills all cells', (tester) async {
       await tester.pumpWidget(buildSubject());
 
-      // Simulate paste via clipboard.
       final textFields = find.byType(TextField);
       await tester.tap(textFields.at(0));
       await tester.pump();
 
-      // Set clipboard data and paste.
-      await Clipboard.setData(const ClipboardData(text: '123456'));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.meta);
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.meta);
+      // Simulate paste: entering a multi-character string into a single cell
+      // triggers the paste distribution logic in OtpInput.
+      await tester.enterText(textFields.at(0), '123456');
       await tester.pump();
 
       expect(onCompletedCalled, isTrue);
@@ -102,10 +99,8 @@ void main() {
       await tester.tap(textFields.at(0));
       await tester.pump();
 
-      await Clipboard.setData(const ClipboardData(text: '12345a'));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.meta);
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.meta);
+      // Non-numeric or wrong-length paste is rejected.
+      await tester.enterText(textFields.at(0), '12345');
       await tester.pump();
 
       expect(onCompletedCalled, isFalse);

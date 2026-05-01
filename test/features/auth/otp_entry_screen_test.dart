@@ -82,7 +82,7 @@ void main() {
           overrides: [
             analyticsServiceProvider.overrideWithValue(fakeAnalytics),
           ],
-          child: MaterialApp(
+          child: const MaterialApp(
             home: OtpEntryScreen(
               phoneNumber: '9876543210',
               initialCountdownSeconds: 1,
@@ -118,7 +118,8 @@ void main() {
                 onPressed: () {
                   Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => OtpEntryScreen(phoneNumber: '9876543210'),
+                      builder: (_) =>
+                          const OtpEntryScreen(phoneNumber: '9876543210'),
                     ),
                   );
                 },
