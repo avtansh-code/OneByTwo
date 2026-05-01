@@ -156,3 +156,41 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 - Account deletion is FR-AU-09 (P1, future PR) and is explicitly out of scope.
 - This PR creates a minimal Profile placeholder screen with only the sign-out
   row and basic profile header. The full Profile View/Edit is FR-PR-01 (PR #12).
+
+---
+
+## Architect Notes
+
+### Confirmation Dialog Implementation
+
+The sign-out dialog uses Flutter's built-in `AlertDialog` widget, consistent
+with the platform's native dialog pattern. The design system has not yet
+specified a custom `OBTConfirmationDialog` component for production use, so
+`AlertDialog` is the correct choice for v1.0.
+
+Dialog copy is hardcoded per SCR-26:
+- Title: "Sign out?"
+- Body: "Are you sure you want to sign out? You will need to verify your phone
+  number again to sign back in."
+- Cancel: outlined button, `textSecondary`
+- Sign Out: filled button, `danger` colour
+
+### Route Stack Reset
+
+Route stack reset is handled implicitly by the auth gate's `ValueKey` on
+`MaterialApp`. When `signOut()` completes, `authStateChanges()` emits `null`,
+the `authStateNotifierProvider` transitions to `AuthUnauthenticated`, the
+`OneBytwoApp` widget rebuilds with a new `ValueKey`, and Flutter creates a
+fresh `MaterialApp` with `PhoneEntryScreen` as the home route.
+
+No explicit `Navigator.popUntil`, `pushAndRemoveUntil`, or any other
+imperative route-stack manipulation is needed. Writing such code would indicate
+a misunderstanding of the architecture — the auth gate owns all auth-state
+routing decisions.
+
+### Sign-Out Error Handling
+
+`FirebaseAuth.signOut()` can fail (e.g., if the auth SDK encounters an
+internal error). On failure, the dialog is dismissed and a snackbar error is
+shown: "Could not sign out. Please try again." The user remains on the
+Profile screen and can retry.

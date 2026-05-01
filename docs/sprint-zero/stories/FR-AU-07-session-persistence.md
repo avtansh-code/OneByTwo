@@ -156,3 +156,62 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
   to ensure the Navigator stack is fully cleared on state transitions.
 - This PR pairs with FR-AU-08 (sign-out) to validate the full loop:
   sign in, auto-login on relaunch, sign out, cold start after sign-out.
+
+---
+
+## Architect Notes
+
+### Auth State Provider Shape
+
+The auth state is modelled as a Dart sealed union with four variants:
+
+```
+AuthState
+  |-- AuthLoading        (cold-start, before SDK resolves)
+  |-- AuthUnauthenticated (no Firebase user)
+  |-- AuthenticatedNoProfile (user exists, no/incomplete Firestore doc)
+  |-- AuthenticatedWithProfile (user exists, complete Firestore doc)
+```
+
+This sealed union scales cleanly when future states are needed (e.g.,
+`AccountDeletionPending`, `AccountSuspended` for FR-AU-09).
+
+### Router Integration
+
+The auth gate is implemented directly in `OneBytwoApp` (a `ConsumerWidget`)
+rather than via `go_router`, since `go_router` is not in the current
+dependency set. The `MaterialApp` receives a `ValueKey('app-$stateCategory')`
+that changes when the auth state category transitions. This forces Flutter to
+unmount the old `MaterialApp` (and its entire Navigator stack) and create a
+fresh one — ensuring no stale authenticated routes persist after sign-out, and
+no stale unauthenticated routes persist after sign-in.
+
+### Cold-Start Loading and 3-Second Escape Hatch
+
+The `authStateNotifierProvider` is a `StreamProvider<AuthState>`. Before the
+stream emits its first value, Riverpod wraps it in `AsyncLoading`, which
+maps to `SplashScreen`. The 3-second "Having trouble?" recovery option is
+implemented as a widget-level `Timer` in `SplashScreen`, NOT in the provider.
+This keeps the provider purely data-driven and the timeout purely
+presentational.
+
+### Two-Step State Derivation (ADR-0007 Interaction)
+
+The state derivation is a two-step process:
+
+1. `FirebaseAuth.authStateChanges()` emits a `User?` — this tells us whether
+   any authenticated user exists. This is local-disk-backed and resolves
+   instantly on cold start (no network needed).
+2. `FirebaseFirestore.collection('users').doc(uid).snapshots()` tells us
+   whether the user has a complete profile. This uses the Firestore offline
+   cache for fast resolution, with server-side fallback.
+
+The provider uses switchMap semantics (manual `StreamSubscription` cancellation)
+to ensure that when the auth user changes (sign-in, sign-out), the previous
+Firestore doc listener is cancelled before a new one is established.
+
+### No New ADR Required
+
+No cold-start race condition or architectural subtlety has been surfaced that
+warrants a new ADR. The design follows established patterns from PR #9
+(ADR-0007, ADR-0008).
