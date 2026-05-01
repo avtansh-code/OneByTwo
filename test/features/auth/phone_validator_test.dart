@@ -82,7 +82,7 @@ void main() {
       );
     });
 
-    test('matches valid Indian mobile regex ^[6-9]\\d{9}\$', () {
+    test(r'matches valid Indian mobile regex ^[6-9]\d{9}$', () {
       // Boundary: first valid digit is 6, last is 9.
       expect(validateIndianMobile('6000000000'), isNull);
       expect(validateIndianMobile('9999999999'), isNull);

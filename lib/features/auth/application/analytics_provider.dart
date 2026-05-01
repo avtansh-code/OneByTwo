@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Abstraction over analytics logging to allow easy testing
 /// without Firebase initialisation.
+// ignore: one_member_abstracts
 abstract class AnalyticsService {
   /// Logs a named event.
   Future<void> logEvent({required String name});

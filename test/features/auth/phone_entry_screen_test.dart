@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
@@ -20,12 +19,8 @@ void main() {
 
   Widget buildSubject() {
     return ProviderScope(
-      overrides: [
-        analyticsServiceProvider.overrideWithValue(fakeAnalytics),
-      ],
-      child: const MaterialApp(
-        home: PhoneEntryScreen(),
-      ),
+      overrides: [analyticsServiceProvider.overrideWithValue(fakeAnalytics)],
+      child: const MaterialApp(home: PhoneEntryScreen()),
     );
   }
 
@@ -63,8 +58,9 @@ void main() {
       expect(hasEditableAncestor, isFalse);
     });
 
-    testWidgets('Continue button is disabled when input is empty',
-        (tester) async {
+    testWidgets('Continue button is disabled when input is empty', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject());
 
       final button = tester.widget<FilledButton>(
@@ -73,8 +69,9 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
-    testWidgets('Continue button is disabled when input is 9 digits',
-        (tester) async {
+    testWidgets('Continue button is disabled when input is 9 digits', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject());
 
       await tester.enterText(find.byType(TextField), '987654321');
@@ -86,8 +83,7 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
-    testWidgets(
-        'Continue button enables when input is 10 valid digits '
+    testWidgets('Continue button enables when input is 10 valid digits '
         '(starting with 6-9)', (tester) async {
       await tester.pumpWidget(buildSubject());
 
@@ -100,8 +96,7 @@ void main() {
       expect(button.onPressed, isNotNull);
     });
 
-    testWidgets(
-        'tapping Continue with invalid prefix (starts with 5) '
+    testWidgets('tapping Continue with invalid prefix (starts with 5) '
         'shows error message', (tester) async {
       await tester.pumpWidget(buildSubject());
 
@@ -120,18 +115,19 @@ void main() {
     });
 
     testWidgets(
-        'telemetry signup_started fires on Continue tap with valid input',
-        (tester) async {
-      await tester.pumpWidget(buildSubject());
+      'telemetry signup_started fires on Continue tap with valid input',
+      (tester) async {
+        await tester.pumpWidget(buildSubject());
 
-      await tester.enterText(find.byType(TextField), '9876543210');
-      await tester.pump();
+        await tester.enterText(find.byType(TextField), '9876543210');
+        await tester.pump();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
-      await tester.pump();
+        await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+        await tester.pump();
 
-      expect(fakeAnalytics.loggedEvents, contains('signup_started'));
-    });
+        expect(fakeAnalytics.loggedEvents, contains('signup_started'));
+      },
+    );
 
     testWidgets('error message is hidden by default', (tester) async {
       await tester.pumpWidget(buildSubject());

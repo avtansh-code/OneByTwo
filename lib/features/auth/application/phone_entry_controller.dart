@@ -43,17 +43,14 @@ class PhoneEntryState {
 class PhoneEntryController extends StateNotifier<PhoneEntryState> {
   /// Creates a [PhoneEntryController].
   PhoneEntryController({required AnalyticsService analytics})
-      : _analytics = analytics,
-        super(const PhoneEntryState());
+    : _analytics = analytics,
+      super(const PhoneEntryState());
 
   final AnalyticsService _analytics;
 
   /// Updates the phone number digits and clears any prior validation error.
   void updatePhoneNumber(String digits) {
-    state = state.copyWith(
-      phoneNumber: digits,
-      validationError: () => null,
-    );
+    state = state.copyWith(phoneNumber: digits, validationError: () => null);
   }
 
   /// Validates and submits the current phone number.
@@ -69,18 +66,13 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
     }
 
     await _analytics.logEvent(name: 'signup_started');
-    state = state.copyWith(
-      isSubmitted: true,
-      validationError: () => null,
-    );
+    state = state.copyWith(isSubmitted: true, validationError: () => null);
   }
 }
 
 /// Riverpod provider for [PhoneEntryController].
 final phoneEntryControllerProvider =
-    StateNotifierProvider<PhoneEntryController, PhoneEntryState>(
-  (ref) {
-    final analytics = ref.watch(analyticsServiceProvider);
-    return PhoneEntryController(analytics: analytics);
-  },
-);
+    StateNotifierProvider<PhoneEntryController, PhoneEntryState>((ref) {
+      final analytics = ref.watch(analyticsServiceProvider);
+      return PhoneEntryController(analytics: analytics);
+    });
