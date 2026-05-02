@@ -201,9 +201,7 @@ void main() {
       expect(find.byType(OtpEntryScreen), findsNothing);
     });
 
-    testWidgets('telemetry: otp_screen_viewed fires on mount', (
-      tester,
-    ) async {
+    testWidgets('telemetry: otp_screen_viewed fires on mount', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pump();
 
