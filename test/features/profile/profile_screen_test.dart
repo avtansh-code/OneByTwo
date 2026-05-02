@@ -150,6 +150,37 @@ void main() {
     );
   }
 
+  Widget buildSubjectWithLoading() {
+    return ProviderScope(
+      overrides: [
+        analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+        phoneAuthRepositoryProvider.overrideWithValue(fakeAuthRepo),
+        userRepositoryProvider.overrideWithValue(fakeUserRepo),
+        imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
+        authStateNotifierProvider.overrideWith(
+          // Stream that never emits keeps state as AsyncLoading.
+          (ref) => const Stream<AuthState>.empty(),
+        ),
+      ],
+      child: const MaterialApp(home: ProfileScreen()),
+    );
+  }
+
+  Widget buildSubjectWithError() {
+    return ProviderScope(
+      overrides: [
+        analyticsServiceProvider.overrideWithValue(fakeAnalytics),
+        phoneAuthRepositoryProvider.overrideWithValue(fakeAuthRepo),
+        userRepositoryProvider.overrideWithValue(fakeUserRepo),
+        imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
+        authStateNotifierProvider.overrideWith(
+          (ref) => Stream<AuthState>.error(Exception('Network error')),
+        ),
+      ],
+      child: const MaterialApp(home: ProfileScreen()),
+    );
+  }
+
   group('ProfileScreen', () {
     testWidgets('renders display name and phone number '
         'from user state', (tester) async {
@@ -229,6 +260,24 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Contact Support'), findsOneWidget);
+    });
+
+    testWidgets('loading state shows skeleton placeholders', (tester) async {
+      await tester.pumpWidget(buildSubjectWithLoading());
+      // Pump a single frame so loading state is rendered.
+      await tester.pump();
+
+      // Skeleton placeholders should be present (ShaderMask from shimmer).
+      expect(find.byType(ShaderMask), findsOneWidget);
+    });
+
+    testWidgets('error state shows error message and retry', (tester) async {
+      await tester.pumpWidget(buildSubjectWithError());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Still stuck? Contact Support'), findsOneWidget);
     });
   });
 }

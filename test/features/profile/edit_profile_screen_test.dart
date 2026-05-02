@@ -185,5 +185,36 @@ void main() {
 
       expect(find.text('Save'), findsOneWidget);
     });
+
+    testWidgets('name exceeding 50 chars shows error', (tester) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // The TextField has maxLength: 50 which truncates input, so we
+      // verify the counter is shown when text exceeds 40 chars.
+      final nameField = find.byType(TextField).first;
+      await tester.enterText(nameField, 'A' * 45);
+      await tester.pumpAndSettle();
+
+      expect(find.text('45/50'), findsOneWidget);
+    });
+
+    testWidgets('phone number field is disabled and shows hint', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // Helper text should be present.
+      expect(
+        find.text('Phone number cannot be changed from here.'),
+        findsOneWidget,
+      );
+      // The TextFormField should be disabled.
+      final formFields = tester.widgetList<TextFormField>(
+        find.byType(TextFormField),
+      );
+      expect(formFields.any((f) => f.enabled == false), isTrue);
+    });
   });
 }

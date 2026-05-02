@@ -34,79 +34,96 @@ class PhotoPickerSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Change Profile Photo',
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Semantics(
-              button: true,
-              label: 'Take Photo, button',
-              child: ListTile(
-                leading: Icon(
-                  Icons.camera_alt,
-                  color: theme.colorScheme.primary,
+        child: Semantics(
+          label: 'Change Profile Photo, action sheet',
+          container: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                title: const Text('Take Photo'),
-                minVerticalPadding: 12,
-                onTap: () =>
-                    Navigator.of(context).pop(PhotoPickerAction.takePhoto),
-              ),
-            ),
-            Semantics(
-              button: true,
-              label: 'Choose from Gallery, button',
-              child: ListTile(
-                leading: Icon(
-                  Icons.photo_library,
-                  color: theme.colorScheme.primary,
+                child: Text(
+                  'Change Profile Photo',
+                  style: theme.textTheme.titleSmall,
                 ),
-                title: const Text('Choose from Gallery'),
-                minVerticalPadding: 12,
-                onTap: () => Navigator.of(
-                  context,
-                ).pop(PhotoPickerAction.chooseFromGallery),
               ),
-            ),
-            if (hasExistingPhoto)
+              const SizedBox(height: 8),
               Semantics(
                 button: true,
-                label: 'Remove Photo, button',
-                child: ListTile(
-                  leading: Icon(
-                    Icons.delete_outline,
-                    color: theme.colorScheme.error,
-                  ),
-                  title: Text(
-                    'Remove Photo',
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                  minVerticalPadding: 12,
-                  onTap: () =>
-                      Navigator.of(context).pop(PhotoPickerAction.removePhoto),
-                ),
-              ),
-            const SizedBox(height: 8),
-            Semantics(
-              button: true,
-              label: 'Cancel, button',
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                label: 'Take Photo, button',
+                child: SizedBox(
+                  height: 56,
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.camera_alt,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: const Text('Take Photo'),
+                    minVerticalPadding: 12,
+                    onTap: () =>
+                        Navigator.of(context).pop(PhotoPickerAction.takePhoto),
                   ),
                 ),
               ),
-            ),
-          ],
+              Semantics(
+                button: true,
+                label: 'Choose from Gallery, button',
+                child: SizedBox(
+                  height: 56,
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.photo_library,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: const Text('Choose from Gallery'),
+                    minVerticalPadding: 12,
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pop(PhotoPickerAction.chooseFromGallery),
+                  ),
+                ),
+              ),
+              if (hasExistingPhoto)
+                Semantics(
+                  button: true,
+                  label: 'Remove Photo, destructive, button',
+                  child: SizedBox(
+                    height: 56,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.delete_outline,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(
+                        'Remove Photo',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                      minVerticalPadding: 12,
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(PhotoPickerAction.removePhoto),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Semantics(
+                button: true,
+                label: 'Cancel, button',
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

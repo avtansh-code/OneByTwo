@@ -24,6 +24,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  int _retryCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -65,44 +67,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildLoadingState(ThemeData theme) {
     return SafeArea(
       child: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            // Avatar shimmer.
-            _SkeletonCircle(
-              size: 96,
-              colour: theme.colorScheme.surfaceContainerHighest,
-            ),
-            const SizedBox(height: 12),
-            // Name shimmer.
-            _SkeletonBar(
-              width: 160,
-              height: 20,
-              colour: theme.colorScheme.surfaceContainerHighest,
-            ),
-            const SizedBox(height: 8),
-            // Phone shimmer.
-            _SkeletonBar(
-              width: 120,
-              height: 16,
-              colour: theme.colorScheme.surfaceContainerHighest,
-            ),
-            const SizedBox(height: 24),
-            const Divider(height: 1),
-            // Row shimmers.
-            for (var i = 0; i < 3; i++)
-              _SkeletonBar(
-                width: double.infinity,
-                height: 56,
+        child: _ShimmerEffect(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              // Avatar shimmer.
+              _SkeletonCircle(
+                size: 96,
                 colour: theme.colorScheme.surfaceContainerHighest,
               ),
-          ],
+              const SizedBox(height: 12),
+              // Name shimmer.
+              _SkeletonBar(
+                width: 160,
+                height: 20,
+                colour: theme.colorScheme.surfaceContainerHighest,
+              ),
+              const SizedBox(height: 8),
+              // Phone shimmer.
+              _SkeletonBar(
+                width: 120,
+                height: 16,
+                colour: theme.colorScheme.surfaceContainerHighest,
+              ),
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              // Row shimmers.
+              for (var i = 0; i < 3; i++)
+                _SkeletonBar(
+                  width: double.infinity,
+                  height: 56,
+                  colour: theme.colorScheme.surfaceContainerHighest,
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildErrorState(ThemeData theme, WidgetRef ref) {
+    final subtitle = _retryCount > 0
+        ? 'Still not working. Try again or contact support.'
+        : 'We could not load your profile. '
+              'Check your connection and try again.';
+
     return SafeArea(
       child: Center(
         child: Padding(
@@ -126,16 +135,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'We could not load your profile. '
-                'Check your connection and try again.',
+                subtitle,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () {
+                  setState(() {
+                    _retryCount++;
+                  });
                   // ignore: unused_result
                   ref.refresh(authStateNotifierProvider);
                 },
@@ -207,11 +218,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Semantics(
-                  label: 'Phone number: ${user.phoneNumber}',
+                  label:
+                      'Phone number: ${_formatPhoneForA11y(user.phoneNumber)}',
                   child: Text(
                     user.phoneNumber,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -234,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     '0',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -263,7 +275,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     '0',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -323,7 +335,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             button: true,
             label: 'Contact Support, button',
             child: _ProfileRow(
-              icon: Icons.support_agent,
+              icon: Icons.mail,
               label: 'Contact Support',
               trailing: Icon(
                 Icons.chevron_right,
@@ -345,6 +357,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: _ProfileRow(
               icon: Icons.logout,
               label: 'Sign Out',
+              iconColour: theme.colorScheme.onSurface,
               onTap: () => _showSignOutDialog(context, ref),
             ),
           ),
@@ -514,8 +527,76 @@ class _SkeletonBar extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: colour,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
       ),
+    );
+  }
+}
+
+/// Formats a phone number for accessible screen reader output.
+///
+/// Converts "+919876543210" to "plus 91 98765 43210".
+String _formatPhoneForA11y(String phone) {
+  if (phone.startsWith('+91') && phone.length == 13) {
+    final digits = phone.substring(3);
+    return 'plus 91 ${digits.substring(0, 5)} ${digits.substring(5)}';
+  }
+  return phone;
+}
+
+/// Animated shimmer overlay for skeleton loading placeholders.
+class _ShimmerEffect extends StatefulWidget {
+  const _ShimmerEffect({required this.child});
+  final Widget child;
+
+  @override
+  State<_ShimmerEffect> createState() => _ShimmerEffectState();
+}
+
+class _ShimmerEffectState extends State<_ShimmerEffect>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              colors: const [
+                Color(0xFFE0E0E0),
+                Color(0xFFF5F5F5),
+                Color(0xFFE0E0E0),
+              ],
+              stops: [
+                _controller.value - 0.3,
+                _controller.value,
+                _controller.value + 0.3,
+              ],
+            ).createShader(bounds);
+          },
+          blendMode: BlendMode.srcATop,
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }

@@ -96,7 +96,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
                 // Display name text field.
                 Semantics(
-                  label: 'Display name, text field, required',
+                  label: state.nameError != null
+                      ? 'Display name, text field, required, '
+                            'error: ${state.nameError}'
+                      : 'Display name, text field, required',
                   textField: true,
                   child: TextField(
                     controller: _nameController,
@@ -110,7 +113,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           : '',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          AppTheme.radiusMedium,
+                          AppTheme.radiusLarge,
                         ),
                       ),
                       suffixIcon:
@@ -136,10 +139,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
                 // Phone number field (read-only).
                 Semantics(
-                  label: 'Phone number, $phoneNumber, read-only',
-                  child: TextField(
+                  label:
+                      'Phone number: '
+                      '${_formatPhoneForA11y(phoneNumber)}, '
+                      'read-only',
+                  child: TextFormField(
+                    initialValue: phoneNumber,
                     enabled: false,
-                    controller: TextEditingController(text: phoneNumber),
                     decoration: InputDecoration(
                       labelText: 'Phone number',
                       helperText:
@@ -147,7 +153,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           'from here.',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          AppTheme.radiusMedium,
+                          AppTheme.radiusLarge,
                         ),
                       ),
                     ),
@@ -161,15 +167,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   height: 48,
                   child: Semantics(
                     button: true,
-                    label: state.canSave
-                        ? 'Save, button'
-                        : 'Save, button, disabled',
+                    label: state.isSaving
+                        ? 'Saving profile'
+                        : (state.canSave
+                              ? 'Save, button'
+                              : 'Save, button, disabled'),
                     child: FilledButton(
                       onPressed: state.canSave ? controller.save : null,
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
-                            AppTheme.radiusMedium,
+                            AppTheme.radiusLarge,
                           ),
                         ),
                       ),
@@ -306,4 +314,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
     return parts[0][0].toUpperCase();
   }
+}
+
+/// Formats a phone number for accessible screen reader output.
+///
+/// Converts "+919876543210" to "plus 91 98765 43210".
+String _formatPhoneForA11y(String phone) {
+  if (phone.startsWith('+91') && phone.length == 13) {
+    final digits = phone.substring(3);
+    return 'plus 91 ${digits.substring(0, 5)} ${digits.substring(5)}';
+  }
+  return phone;
 }

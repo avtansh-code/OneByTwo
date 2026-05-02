@@ -199,6 +199,12 @@ void main() {
       expect(controller.state.canSave, isFalse);
     });
 
+    test('updateName with exactly 50 characters is accepted', () {
+      controller.updateName('A' * 50);
+      expect(controller.state.nameError, isNull);
+      expect(controller.state.canSave, isTrue);
+    });
+
     test('selectPhoto sets selectedPhotoPath and '
         'enables save', () {
       controller.selectPhoto('/fake/photo.jpg');

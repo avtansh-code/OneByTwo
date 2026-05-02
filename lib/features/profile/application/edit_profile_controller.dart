@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -255,13 +255,24 @@ class EditProfileController extends StateNotifier<EditProfileState> {
     if (state.selectedPhotoPath != null) {
       try {
         state = state.copyWith(isUploadingPhoto: true);
-        newPhotoUrl = await _repository.uploadAvatar(
-          _uid,
-          state.selectedPhotoPath!,
-        );
+        newPhotoUrl = await _repository
+            .uploadAvatar(_uid, state.selectedPhotoPath!)
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () => throw TimeoutException('Upload timed out'),
+            );
         state = state.copyWith(isUploadingPhoto: false);
+      } on TimeoutException {
+        if (!mounted) return;
+        state = state.copyWith(
+          isUploadingPhoto: false,
+          isSaving: false,
+          error: () =>
+              'Photo upload timed out. '
+              'Please try again on a better connection.',
+        );
+        return;
       } catch (e) {
-        debugPrint('[EditProfile] Photo upload failed: $e');
         if (!mounted) return;
         state = state.copyWith(
           isUploadingPhoto: false,
@@ -277,7 +288,6 @@ class EditProfileController extends StateNotifier<EditProfileState> {
       try {
         await _repository.deleteAvatar(_uid);
       } catch (e) {
-        debugPrint('[EditProfile] Avatar delete failed: $e');
         // Non-blocking; continue with the update.
       }
     }
@@ -309,7 +319,6 @@ class EditProfileController extends StateNotifier<EditProfileState> {
         parameters: {'fields_changed': fieldsChanged.join(',')},
       );
     } catch (e) {
-      debugPrint('[EditProfile] Firestore update failed: $e');
       if (!mounted) return;
 
       state = state.copyWith(
