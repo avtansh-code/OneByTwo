@@ -467,7 +467,7 @@ void main() {
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>
-              e.name == 'signup_otp_screen_viewed' &&
+              e.name == 'otp_screen_viewed' &&
               e.parameters != null &&
               e.parameters!.containsKey('phone_hash') &&
               e.parameters!['phone_hash'] != '9876543210',
