@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,12 @@ import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/image_picker_service.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
+
+/// Maximum allowed photo file size in bytes (5 MB).
+const int maxPhotoSizeBytes = 5 * 1024 * 1024;
+
+/// Accepted photo MIME extensions.
+const Set<String> acceptedPhotoExtensions = {'.jpg', '.jpeg', '.png'};
 
 /// Immutable state for the edit profile form (SCR-26).
 class EditProfileState {
@@ -161,6 +169,11 @@ class EditProfileController extends StateNotifier<EditProfileState> {
   Future<void> pickFromCamera() async {
     final file = await _imagePicker.pickFromCamera();
     if (file != null) {
+      final validationError = await _validatePhoto(file.path);
+      if (validationError != null) {
+        state = state.copyWith(error: () => validationError);
+        return;
+      }
       selectPhoto(file.path);
       await _analytics.logEvent(
         name: 'profile_photo_changed',
@@ -173,12 +186,34 @@ class EditProfileController extends StateNotifier<EditProfileState> {
   Future<void> pickFromGallery() async {
     final file = await _imagePicker.pickFromGallery();
     if (file != null) {
+      final validationError = await _validatePhoto(file.path);
+      if (validationError != null) {
+        state = state.copyWith(error: () => validationError);
+        return;
+      }
       selectPhoto(file.path);
       await _analytics.logEvent(
         name: 'profile_photo_changed',
         parameters: {'action': 'choose'},
       );
     }
+  }
+
+  /// Validates photo file size (<= 5 MB) and format (JPEG/PNG).
+  ///
+  /// Returns an error message string if validation fails, or
+  /// `null` if the file is acceptable.
+  Future<String?> _validatePhoto(String path) async {
+    final file = File(path);
+    final extension = path.toLowerCase().split('.').last;
+    if (!acceptedPhotoExtensions.contains('.$extension')) {
+      return 'Unsupported image format.';
+    }
+    final size = await file.length();
+    if (size > maxPhotoSizeBytes) {
+      return 'Photo must be under 5 MB.';
+    }
+    return null;
   }
 
   /// Removes the profile photo and fires telemetry.
@@ -231,7 +266,7 @@ class EditProfileController extends StateNotifier<EditProfileState> {
         state = state.copyWith(
           isUploadingPhoto: false,
           isSaving: false,
-          error: () => 'Could not upload photo. Try again.',
+          error: () => 'Photo upload failed. Try again.',
         );
         return;
       }

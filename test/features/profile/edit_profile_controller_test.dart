@@ -1,4 +1,6 @@
 // ignore_for_file: cascade_invocations
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -287,10 +289,14 @@ void main() {
 
     test('pickFromCamera fires profile_photo_changed '
         'with action "take"', () async {
-      fakeImagePicker.cameraResult = XFile('/fake/cam.jpg');
+      final tempFile = File('${Directory.systemTemp.path}/test_cam.jpg');
+      tempFile.writeAsBytesSync([0xFF, 0xD8]); // minimal JPEG header
+      addTearDown(tempFile.deleteSync);
+
+      fakeImagePicker.cameraResult = XFile(tempFile.path);
       await controller.pickFromCamera();
 
-      expect(controller.state.selectedPhotoPath, '/fake/cam.jpg');
+      expect(controller.state.selectedPhotoPath, tempFile.path);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>
@@ -303,10 +309,14 @@ void main() {
 
     test('pickFromGallery fires profile_photo_changed '
         'with action "choose"', () async {
-      fakeImagePicker.galleryResult = XFile('/fake/gallery.jpg');
+      final tempFile = File('${Directory.systemTemp.path}/test_gallery.jpg');
+      tempFile.writeAsBytesSync([0xFF, 0xD8]); // minimal JPEG header
+      addTearDown(tempFile.deleteSync);
+
+      fakeImagePicker.galleryResult = XFile(tempFile.path);
       await controller.pickFromGallery();
 
-      expect(controller.state.selectedPhotoPath, '/fake/gallery.jpg');
+      expect(controller.state.selectedPhotoPath, tempFile.path);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>

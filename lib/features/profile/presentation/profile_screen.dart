@@ -141,6 +141,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 },
                 child: const Text('Retry'),
               ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(
+                    ref.context,
+                  ).showSnackBar(const SnackBar(content: Text('Coming soon')));
+                },
+                child: Text(
+                  'Still stuck? Contact Support',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

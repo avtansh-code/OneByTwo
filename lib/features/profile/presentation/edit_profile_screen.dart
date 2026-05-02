@@ -243,6 +243,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           alignment: Alignment.bottomRight,
           children: [
             avatarChild,
+            // Upload progress overlay.
+            if (state.isUploadingPhoto)
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3,
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
