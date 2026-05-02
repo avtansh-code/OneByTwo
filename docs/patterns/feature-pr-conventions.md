@@ -97,6 +97,32 @@ test/features/<feature>/
   - Accessibility: semantic labels present.
 - Overall project coverage >= 50%; non-UI code >= 70%.
 
+### Cloud Functions Testing Layers
+
+Use a five-layer test pyramid for Cloud Functions, mirroring the boundary split ratified in PR #12 (`FUNC-01`, simplified-debts):
+
+| Layer | Purpose | File Location | Tool | Required? |
+|---|---|---|---|---|
+| Algorithm unit | Pure logic, no Firebase | `functions/test/<name>/algorithm.test.ts` | Jest | Yes |
+| Algorithm property | Invariant verification with random inputs | `functions/test/<name>/algorithm.property.test.ts` | Jest + fast-check | Recommended for algorithmic functions |
+| Function boundary | Handler with mocked Firestore | `functions/test/<name>/function.test.ts` | Jest + mocks | Yes |
+| Security rules | Firestore/Storage rules against emulator | `functions/test/firestore-rules/`, `functions/test/storage-rules/` | Jest + `@firebase/rules-unit-testing` | Yes for any rule change |
+| Integration | Full emulator suite end-to-end | `functions/test/integration/` | Jest + Firebase Emulators | Yes for callable/trigger functions |
+
+Jest configs are separated by layer: `jest.config.js` (unit, parallel), `jest.rules.config.js` (rules, serial — `maxWorkers: 1` to avoid emulator race conditions), and `jest.integration.config.js` (integration).
+
+### Field-Level Security Rules Pattern
+
+When a Firestore rule must allow writes to some fields but deny writes to others (for example, allow `displayName` updates but block `simplifiedBalances` writes), use the `diff().affectedKeys()` pattern:
+
+```rules
+allow update: if
+  !request.resource.data.diff(resource.data).affectedKeys().hasAny(['simplifiedBalances'])
+  && <other conditions>;
+```
+
+This pattern is critical for Invariant 2 enforcement. Every collection with mixed user-authored and server-managed fields must use it in its `allow update` rule. Reference: ADR-0010, `firestore.rules` lines 117-123 and 163-170.
+
 ### Fake pattern
 
 - Abstract service interfaces (e.g., `AnalyticsService`) with production

@@ -106,7 +106,7 @@ class OtpEntryState {
 class OtpEntryController extends StateNotifier<OtpEntryState> {
   /// Creates an [OtpEntryController].
   ///
-  /// Immediately logs `signup_otp_screen_viewed` with a SHA-256 hash
+  /// Immediately logs `otp_screen_viewed` with a SHA-256 hash
   /// of the [phoneNumber].
   OtpEntryController({
     required AnalyticsService analytics,
@@ -130,7 +130,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
        ) {
     final phoneHash = sha256.convert(utf8.encode(phoneNumber)).toString();
     _analytics.logEvent(
-      name: 'signup_otp_screen_viewed',
+      name: 'otp_screen_viewed',
       parameters: {'phone_hash': phoneHash},
     );
     _otpScreenStopwatch.start();
@@ -216,6 +216,14 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
             },
           ),
         );
+        if (value.isNewUser) {
+          unawaited(
+            _analytics.logEvent(
+              name: 'signup_completed',
+              parameters: {'method': 'phone'},
+            ),
+          );
+        }
       case Failure(:final error):
         state = state.copyWith(
           isLoading: false,

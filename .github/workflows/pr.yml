@@ -58,6 +58,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify single Firebase project (Invariant 4)
+        run: |
+          PROJECT_COUNT=$(cat .firebaserc | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('projects',{})))")
+          if [ "$PROJECT_COUNT" != "1" ]; then
+            echo "::error::Invariant 4 violation: .firebaserc contains $PROJECT_COUNT projects (expected exactly 1)"
+            exit 1
+          fi
+          echo "Invariant 4: Single Firebase project verified (.firebaserc has 1 project)"
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

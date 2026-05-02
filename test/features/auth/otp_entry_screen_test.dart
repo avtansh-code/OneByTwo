@@ -201,16 +201,14 @@ void main() {
       expect(find.byType(OtpEntryScreen), findsNothing);
     });
 
-    testWidgets('telemetry: signup_otp_screen_viewed fires on mount', (
-      tester,
-    ) async {
+    testWidgets('telemetry: otp_screen_viewed fires on mount', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pump();
 
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>
-              e.name == 'signup_otp_screen_viewed' &&
+              e.name == 'otp_screen_viewed' &&
               e.parameters != null &&
               e.parameters!.containsKey('phone_hash'),
         ),
@@ -225,7 +223,7 @@ void main() {
       await tester.pump();
 
       final viewedEvent = fakeAnalytics.loggedEvents.firstWhere(
-        (e) => e.name == 'signup_otp_screen_viewed',
+        (e) => e.name == 'otp_screen_viewed',
       );
       expect(viewedEvent.parameters?['phone_hash'], isNot('9876543210'));
       expect(viewedEvent.parameters?['phone_hash'], isA<String>());

@@ -45,17 +45,22 @@ an HTTP callable, or a scheduled function.
    f. **Money as paise:** all monetary values are `number` representing integer
       paise. Add a comment reinforcing this.
    g. **JSDoc:** document the trigger, input, output, and error conditions.
-6. Create a test file:
-   ```
-   functions/src/__tests__/<functionName>.test.ts
-   ```
-   With a placeholder test using `firebase-functions-test`.
+6. Create a test structure matching the five-layer pyramid:
+   1. Algorithm unit tests — `functions/test/<functionName>/algorithm.test.ts` (pure logic, no Firebase)
+   2. Algorithm property tests — `functions/test/<functionName>/algorithm.property.test.ts` (fast-check invariant verification)
+   3. Function boundary tests — `functions/test/<functionName>/function.test.ts` (mocked Firestore)
+   4. Security rules tests — `functions/test/firestore-rules/<collection>.test.ts` (emulator-based)
+   5. Integration tests — `functions/test/integration/<functionName>.integration.test.ts` (full emulator suite)
+
+   For non-algorithm functions, adapt the structure: layers 1-2 may collapse into a
+   single unit test file. Reference: PR #12 (simplified-debts) as the exemplar.
 7. If the function writes `simplifiedBalances`, it must do so inside a Firestore
    transaction.
 
 ## Output format
 
-Two files: the function source and its test stub, both compilable TypeScript.
+The function source plus its test structure scaffolding, all as compilable TypeScript
+and Jest files.
 
 ## Validation checks
 
@@ -63,7 +68,7 @@ Two files: the function source and its test stub, both compilable TypeScript.
 - [ ] All money values are integer paise (no floats).
 - [ ] `simplifiedBalances` writes happen inside a transaction.
 - [ ] JSDoc on the exported function.
-- [ ] Test stub exists with at least one placeholder test.
+- [ ] Test structure matches the five-layer pyramid, with non-algorithm adaptations documented where needed.
 - [ ] Error handling with structured logging.
 - [ ] Idempotency guard for trigger functions.
 

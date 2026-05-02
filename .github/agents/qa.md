@@ -43,6 +43,8 @@ Also reference:
 - PR review comments identifying correctness issues, missing tests, or invariant
   violations.
 - Release sign-off comment on the release issue.
+- Integration test design specifications that include emulator seeding strategy
+  and teardown guarantees for reproducibility from clean emulator state.
 
 ## Skills
 

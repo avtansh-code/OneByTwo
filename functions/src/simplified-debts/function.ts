@@ -131,13 +131,13 @@ function computeNetBalances(
 
   for (const snap of expenseSnapshots) {
     const data = snap.data();
-    const paidBy: string = data.paidBy;
+    const payerId: string = data.payerId;
     const amountPaise: number = data.amountPaise;
     const splits: Array<{userId: string; sharePaise: number}> =
       data.splits ?? [];
 
     // Credit the payer
-    netBalances.set(paidBy, (netBalances.get(paidBy) ?? 0) + amountPaise);
+    netBalances.set(payerId, (netBalances.get(payerId) ?? 0) + amountPaise);
 
     // Debit each split member
     for (const split of splits) {

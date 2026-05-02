@@ -48,6 +48,10 @@ Also reference:
 - Local git hook configuration (`lefthook.yml`).
 - Deployment logs and release artifacts.
 - GitHub Releases with auto-generated notes.
+- Jest configuration separation for Cloud Functions: unit tests run in parallel
+  (`jest.config.js`), rules tests run serially on a single emulator
+  (`jest.rules.config.js` with `maxWorkers: 1`), integration tests use
+  `jest.integration.config.js`.
 
 ## Skills
 

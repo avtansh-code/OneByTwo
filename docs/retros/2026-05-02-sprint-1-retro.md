@@ -95,3 +95,20 @@
    as a temporary navigation target before the full `ProfileScreen` existed. Now
    that FR-PR-01 has shipped a complete profile view and edit screen, the
    placeholder may be dead code. Confirm and remove if so.
+
+---
+
+## Audit Confirmations (Sprint 1 Boundary Audit, 2026-05-02)
+
+The following items were verified during the Sprint 1 boundary audit and require
+no action:
+
+- Feature folder layout and commit messages are fully compliant with ratified
+  conventions (finding P3).
+- `maxWorkers: 1` for rules tests is working correctly and documented
+  (finding FL2).
+- All 14 skills in the catalogue are justified with no dead weight
+  (finding SK1).
+- Firebase SDK packages are at their latest compatible versions
+  (finding D3).
+- No new secrets are needed for Sprint 2 (finding S1_sec).

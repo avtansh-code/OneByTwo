@@ -104,6 +104,8 @@ Source: `docs/design/06-screen-specs/09-12-friends.md`
 | `add_friend_screen_viewed` | `entry_path` | `string` (`contacts` / `manual`) | Add-friend screen becomes visible | SCR-10 |
 | `friend_invite_sent` | `method` | `string` (`contacts` / `manual`) | System share sheet opened for a non-user invite | SCR-10 |
 | `contact_permission_denied` | — | — | Contact permission denied or revoked | SCR-10 |
+| `friend_search_started` | — | — | User taps search field on add-friend screen | SCR-10 |
+| `contact_permission_granted` | — | — | User grants contact access on add-friend screen | SCR-10 |
 | `friend_detail_viewed` | `balance_state` | `string` (`owed` / `owes` / `settled`) | Friend detail screen becomes visible | SCR-11 |
 | `settle_up_tapped` | `source` | `string` (`friend_detail`) | User taps the Settle Up CTA | SCR-11 |
 | `friend_history_tapped` | — | — | User taps View full history | SCR-11 |

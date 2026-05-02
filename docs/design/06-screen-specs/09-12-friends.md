@@ -139,7 +139,6 @@
 | `OBTSnackbar` | 25 | Success confirmation on friend addition. |
 | `OBTConfirmationDialog` | 24 | Invite prompt for non-One By Two contacts. |
 | `OBTEmptyState` | 18 | No contacts found (Path A). |
-| `OBTErrorState` | 19 | Contact permission denied. |
 | `OBTSkeletonLoader` | 20 | While device contacts are loading. |
 
 ### States
@@ -149,7 +148,7 @@
 | 1 | **Loading (contacts)** | Device contacts are being read. | `OBTSkeletonLoader(type: listTile, itemCount: 8)` in the contact list area. Segmented control and app bar remain visible. | Transitions to Populated or Empty on data arrival. |
 | 2 | **Populated (contacts)** | Device returns one or more contacts. | Full contact list with alphabetical section headers and `OBTSearchBar`. Contacts matching existing One By Two users show an "on One By Two" chip. | Tapping an existing user creates the friendship immediately and navigates to SCR-11. Tapping a non-user shows the invite confirmation dialog. |
 | 3 | **Empty (no contacts)** | Device returns zero contacts. | `OBTEmptyState` in the contact list area. Title: "No contacts found". Subtitle: "You can enter a number manually." No CTA button (the "Enter Number" tab is the alternative). | User must switch to the "Enter Number" path. |
-| 4 | **Permission denied** | User has denied the contacts permission. | `OBTErrorState`. Title: "Contact access needed". Subtitle: "To add friends from your contacts, grant contact permission in Settings." CTA: "Open Settings" (launches device settings). | CTA invokes the platform settings deep link. The "Enter Number" tab remains functional. |
+| 4 | **Contact Permission Denied** | User denies contact access. | The contact picker is hidden. The screen shows a fallback UI with a text field for manual phone number entry (`+91` prefix, same validation as the phone-entry screen), a "Try Again" button that re-requests contact permission, and a brief explanation: "Contact access helps you find friends already on One By Two." | The manual-entry fallback remains usable whilst the user decides whether to retry permission. Telemetry: `contact_permission_denied` fires on denial. |
 | 5 | **Validation error (manual)** | User submits an invalid phone number in Path B. | `OBTPhoneInput` in error state with `errorText` below the field. "Add Friend" button remains enabled for retry. | See Inputs and Validation table below. |
 | 6 | **Looking up number** | User taps "Add Friend" in Path B with a valid number. | "Add Friend" button shows a loading indicator. Input field is disabled. | Brief state while the app queries Firestore for the phone number. Transitions to friend creation or invite prompt. |
 
@@ -169,7 +168,7 @@
 | `add_friend_screen_viewed` | Screen becomes visible. | `entry_path: "contacts" or "manual"` (initial tab) | Section 5.10 |
 | `friend_added` | Friendship document is successfully created. | `method: "contacts" or "manual"`, `target_is_existing_user: bool` | Section 5.10 |
 | `friend_invite_sent` | System share sheet is opened for a non-user invite. | `method: "contacts" or "manual"` | Section 5.10 |
-| `contact_permission_denied` | Contact permission is denied or revoked. | None | Section 5.10 |
+| `contact_permission_denied` | User denies contact permission. | None | Section 5.10 |
 
 ### Accessibility
 
@@ -188,7 +187,7 @@
 ### Edge Cases
 
 1. **User selects a contact with multiple phone numbers.** The app should display all +91 numbers for that contact and allow the user to choose which one to use. Non-Indian numbers should be filtered out silently.
-2. **Contact permission revoked mid-session.** If the user navigates to device settings and revokes permission while the Add Friend screen is still mounted, the app should detect the change on resume and transition to the Permission Denied state.
+2. **Contact permission revoked mid-session.** If the user navigates to device settings and revokes permission while the Add Friend screen is still mounted, the app should detect the change on resume and transition to the Contact Permission Denied state.
 3. **Duplicate friendship attempt.** If the user tries to add someone who is already a friend (via either path), the app must show the inline error "You are already friends with [Display name]" and must not create a duplicate friendship document.
 4. **Share sheet dismissed without sharing.** If the user opens the system share sheet for an invite but dismisses it without selecting a channel, the app should return to the Add Friend screen with no snackbar or confirmation. The non-user is not marked as invited.
 

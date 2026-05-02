@@ -108,7 +108,7 @@ describe("recomputeSimplifiedBalances handler", () => {
         {
           id: "exp1",
           data: {
-            paidBy: "userA",
+            payerId: "userA",
             amountPaise: 10000,
             deleted: false,
             splits: [
@@ -231,7 +231,7 @@ describe("recomputeSimplifiedBalances handler", () => {
         {
           id: "exp1",
           data: {
-            paidBy: "userA",
+            payerId: "userA",
             amountPaise: 6000,
             deleted: false,
             splits: [
@@ -361,7 +361,7 @@ describe("recomputeSimplifiedBalances handler", () => {
         {
           id: "exp1",
           data: {
-            paidBy: "userA",
+            payerId: "userA",
             amountPaise: 10000,
             deleted: false,
             splits: [

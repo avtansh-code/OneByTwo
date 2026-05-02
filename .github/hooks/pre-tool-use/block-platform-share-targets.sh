@@ -11,7 +11,12 @@ set -eu
 INPUT="$(cat)"
 
 # Extract the file path.
-FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
+# Use jq for reliable JSON parsing; fall back to regex if jq is unavailable.
+if command -v jq >/dev/null 2>&1; then
+  FILE_PATH="$(printf '%s' "$INPUT" | jq -r '.file_path // .path // empty' 2>/dev/null || true)"
+else
+  FILE_PATH="$(printf '%s' "$INPUT" | grep -oE '"(file_path|path)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
+fi
 
 # Log invocation for audit trail.
 printf '[hook] block-platform-share-targets: checking %s\n' "${FILE_PATH:-<unknown>}" >&2
@@ -26,7 +31,12 @@ case "$FILE_PATH" in
 esac
 
 # Extract the content being written.
-CONTENT="$(printf '%s' "$INPUT" | grep -oE '"(new_str|content|file_text)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
+# Use jq for reliable JSON parsing; fall back to regex if jq is unavailable.
+if command -v jq >/dev/null 2>&1; then
+  CONTENT="$(printf '%s' "$INPUT" | jq -r '.new_str // .content // .file_text // empty' 2>/dev/null || true)"
+else
+  CONTENT="$(printf '%s' "$INPUT" | grep -oE '"(new_str|content|file_text)"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//' || true)"
+fi
 
 if [ -z "$CONTENT" ]; then
   CONTENT="$INPUT"

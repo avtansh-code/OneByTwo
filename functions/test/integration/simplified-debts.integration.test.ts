@@ -87,14 +87,14 @@ async function seedDoc(
  * Creates a standard expense document shape.
  */
 function makeExpense(opts: {
-  paidBy: string;
+  payerId: string;
   amountPaise: number;
   splits: Array<{userId: string; sharePaise: number}>;
   deleted?: boolean;
   description?: string;
 }): Record<string, unknown> {
   return {
-    paidBy: opts.paidBy,
+    payerId: opts.payerId,
     amountPaise: opts.amountPaise,
     splits: opts.splits,
     deleted: opts.deleted ?? false,
@@ -102,7 +102,7 @@ function makeExpense(opts: {
     category: "general",
     date: Timestamp.now(),
     splitMethod: "equal",
-    createdBy: opts.paidBy,
+    createdBy: opts.payerId,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -130,7 +130,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         expPath,
         makeExpense({
-          paidBy: "A",
+          payerId: "A",
           amountPaise: 60000,
           splits: [
             {userId: "A", sharePaise: 20000},
@@ -222,7 +222,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp-rent`,
         makeExpense({
-          paidBy: "A",
+          payerId: "A",
           amountPaise: 5000000,
           splits: [
             {userId: "A", sharePaise: 1000000},
@@ -239,7 +239,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp-groceries`,
         makeExpense({
-          paidBy: "B",
+          payerId: "B",
           amountPaise: 300000,
           splits: [
             {userId: "A", sharePaise: 60000},
@@ -256,7 +256,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp-electricity`,
         makeExpense({
-          paidBy: "C",
+          payerId: "C",
           amountPaise: 200000,
           splits: [
             {userId: "A", sharePaise: 40000},
@@ -387,7 +387,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp1`,
         makeExpense({
-          paidBy: "X",
+          payerId: "X",
           amountPaise: 50000,
           splits: [
             {userId: "X", sharePaise: 25000},
@@ -483,7 +483,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp-active`,
         makeExpense({
-          paidBy: "P",
+          payerId: "P",
           amountPaise: 40000,
           splits: [
             {userId: "P", sharePaise: 20000},
@@ -498,7 +498,7 @@ describe("recomputeSimplifiedBalances — integration", () => {
       await seedDoc(
         `${contextPath}/expenses/exp-deleted`,
         makeExpense({
-          paidBy: "Q",
+          payerId: "Q",
           amountPaise: 100000,
           splits: [
             {userId: "P", sharePaise: 50000},

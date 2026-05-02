@@ -64,9 +64,9 @@ File location: `lib/features/auth/`
 | Provider | Type | Scope | Notes |
 |---|---|---|---|
 | `authRepositoryProvider` | `Provider<AuthRepository>` | Feature | Wraps `FirebaseAuth` sign-in, OTP send/verify, sign-out, account deletion trigger. Depends on `firebaseAuthProvider`. |
-| `phoneEntryNotifierProvider` | `@riverpod AsyncNotifier` | Screen | Manages phone number input validation (`+91` prefix locked, 10-digit regex — ADR-0016), submission state, and error feedback. Auto-disposes when the phone entry screen is popped. |
-| `otpNotifierProvider` | `@riverpod AsyncNotifier` | Screen | Manages the 6-digit OTP field, auto-read (Android SMS Retriever), retry cooldown timer (30 s, max 3 per 10 min — FR-AU-05), and verification state. Auto-disposes on navigation away. |
-| `profileSetupNotifierProvider` | `@riverpod AsyncNotifier` | Screen | Manages display name input and optional photo upload for first-login onboarding (FR-AU-06). Auto-disposes when setup completes. |
+| `phoneEntryControllerProvider` | `@riverpod AsyncNotifier` | Screen | Manages phone number input validation (`+91` prefix locked, 10-digit regex — ADR-0016), submission state, and error feedback. Auto-disposes when the phone entry screen is popped. |
+| `otpEntryControllerProvider` | `@riverpod AsyncNotifier` | Screen | Manages the 6-digit OTP field, auto-read (Android SMS Retriever), retry cooldown timer (30 s, max 3 per 10 min — FR-AU-05), and verification state. Auto-disposes on navigation away. |
+| `profileSetupControllerProvider` | `@riverpod AsyncNotifier` | Screen | Manages display name input and optional photo upload for first-login onboarding (FR-AU-06). Auto-disposes when setup completes. |
 
 ### 2.3 Friends Feature
 
@@ -380,7 +380,7 @@ separate test DI configuration (ADR-0013).
 
 | SRS Requirement | Provider(s) |
 |---|---|
-| FR-AU-01 .. FR-AU-09 | `authStateProvider`, `phoneEntryNotifierProvider`, `otpNotifierProvider`, `profileSetupNotifierProvider`, `authRepositoryProvider` |
+| FR-AU-01 .. FR-AU-09 | `authStateProvider`, `phoneEntryControllerProvider`, `otpEntryControllerProvider`, `profileSetupControllerProvider`, `authRepositoryProvider` |
 | FR-PR-01 .. FR-PR-05 | `currentUserProvider`, `editProfileNotifierProvider`, `changePhoneNotifierProvider`, `notificationPrefsNotifierProvider`, `contactSupportProvider` |
 | FR-FR-01 .. FR-FR-05 | `friendsListProvider`, `friendDetailProvider`, `friendExpensesProvider`, `friendSettlementsProvider`, `addFriendNotifierProvider` |
 | FR-GR-01 .. FR-GR-07 | `groupsListProvider`, `groupDetailProvider`, `groupExpensesProvider`, `groupSettlementsProvider`, `createGroupNotifierProvider`, `inviteMemberNotifierProvider`, `groupSettingsNotifierProvider` |
