@@ -368,3 +368,127 @@ This option was rejected for the following reasons:
    document, (b) a returning user skips profile setup and is not prompted to create
    the document again, (c) a duplicate creation attempt is rejected by Security
    Rules.
+
+---
+
+## ADR-0009: Sealed-Union Auth State Pattern for Cold-Start Race Handling
+
+**Status:** Accepted
+
+### Context
+
+When the app launches, Firebase Auth state resolves asynchronously. The profile-
+setup and home screens depend on knowing both (a) whether the user is
+authenticated and (b) whether they have a complete profile document. A simple
+boolean `isLoggedIn` is insufficient — there are four distinct states during
+cold start: loading, unauthenticated, authenticated but no profile, and
+authenticated with profile.
+
+### Decision
+
+Use a Dart sealed class `AuthState` with four subtypes: `AuthLoading`,
+`AuthUnauthenticated`, `AuthenticatedNoProfile`, `AuthenticatedWithProfile`.
+The `authStateProvider` (`StreamProvider`) emits these states by combining
+`FirebaseAuth.authStateChanges()` with a Firestore document existence check.
+The app's root widget pattern-matches on the sealed type to determine the
+correct route.
+
+### Consequences
+
+- All auth-gated navigation uses exhaustive pattern matching on the sealed type,
+  eliminating impossible states.
+- Future state machines (e.g., onboarding, payment) should follow the same
+  sealed-union pattern.
+- The pattern was established in PR #10 (FR-AU-06) and refined in PR #11
+  (FR-AU-07/08).
+
+### Alternatives Considered
+
+- Boolean flags (`isLoggedIn`, `hasProfile`): rejected because combinations
+  create impossible states.
+- Enum without data: rejected because some states carry associated data (e.g.,
+  `AuthenticatedWithProfile` carries the `UserModel`).
+
+---
+
+## ADR-0010: Field-Level Firestore Security Rules Using affectedKeys()
+
+**Status:** Accepted
+
+### Context
+
+Firestore documents may contain a mix of user-editable fields (e.g.,
+`displayName`) and server-managed fields (e.g., `simplifiedBalances`).
+Invariant 2 requires that `simplifiedBalances` is never written by clients. A
+blanket deny on update would prevent users from editing their own fields. The
+rules must selectively allow updates to some fields while denying writes to
+protected fields.
+
+### Decision
+
+Use `request.resource.data.diff(resource.data).affectedKeys()` in Firestore
+Security Rules to inspect which fields a client write attempts to modify. Deny
+any write that includes a protected field in the affected set. Example:
+`!request.resource.data.diff(resource.data).affectedKeys().hasAny(['simplifiedBalances'])`.
+
+### Consequences
+
+- Every Firestore collection with mixed user-authored and server-managed fields
+  must use this pattern in its update rule.
+- Protected fields are enumerated explicitly in the rule — adding a new
+  protected field requires a rule update.
+- The pattern was established in PR #12 (FUNC-01/Firestore rules) for both
+  `friendships` and `groups` collections.
+- Negative tests must verify that writes to protected fields are rejected.
+
+### Alternatives Considered
+
+- Separate subcollections for server-managed data: rejected for query complexity
+  and cost.
+- Field masks in client SDK: rejected because Security Rules are the
+  enforcement boundary, not client-side conventions.
+
+---
+
+## ADR-0011: Cloud Function Module Layout — Pure Algorithm Plus Function Boundary
+
+**Status:** Accepted
+
+### Context
+
+Cloud Functions that perform complex business logic (e.g., simplified-debts
+computation) benefit from separating the pure algorithm from the Firebase-
+dependent boundary code. This enables algorithm testing without the Firebase
+SDK, clearer responsibility boundaries, and reuse of the algorithm in different
+trigger contexts.
+
+### Decision
+
+Every Cloud Function follows a three-module layout:
+
+- `algorithm.ts` — pure business logic with no Firebase imports. Input and
+  output are plain TypeScript types. Fully testable with standard Jest.
+- `function.ts` — function boundary: input validation, Firestore reads/writes,
+  error mapping, logging. Imports the algorithm module. Testable with mocked
+  Firestore.
+- `index.ts` — wiring: exports the callable/trigger function, injects
+  dependencies, pins the region to `asia-south1`.
+
+### Consequences
+
+- Algorithm unit tests achieve 100% coverage without Firebase emulators.
+- Function boundary tests mock Firestore for speed and isolation.
+- Integration tests run against the full emulator suite.
+- The five-layer test pyramid (algorithm unit, algorithm property, boundary,
+  rules, integration) follows from this separation.
+- The pattern was established in PR #12 (FUNC-01) with
+  `simplified-debts/algorithm.ts`, `function.ts`, and `index.ts`.
+
+### Alternatives Considered
+
+- Single-file function: rejected for testability and clarity. Mixing Firestore
+  calls with algorithm logic creates tight coupling.
+- Two-file split (algorithm + handler): rejected because the wiring (region
+  pinning, export) deserves its own file to keep the boundary clean.
+
+---
