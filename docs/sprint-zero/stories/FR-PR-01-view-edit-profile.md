@@ -257,3 +257,146 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 | PR #11 — Sign out (FR-AU-08) | Merged |
 | Firestore Security Rules for `users/{userId}` update restrictions | Required (Architect) |
 | Firebase Storage rules for `avatars/{userId}` | Required (Architect) |
+
+---
+
+## Architect Notes
+
+### 3.1 Field-Level Update Rules
+
+The Firestore UPDATE rule for `users/{userId}` uses whole-document validation via
+the `isValidUserUpdate()` function (see `firestore.rules`, lines 52-71). On every
+update, the rule validates the complete resulting document shape: allowed keys,
+type constraints, length bounds, and immutability of `phoneNumber` and `createdAt`.
+
+**Field classification:**
+
+| Category | Fields | Rule behaviour |
+|---|---|---|
+| Server-managed (immutable after creation) | `phoneNumber`, `createdAt` | `data.phoneNumber == prev.phoneNumber` and `data.createdAt == prev.createdAt` — any change is rejected. |
+| Server-managed (auto-updated) | `updatedAt` | Must equal `request.time` on every update. |
+| User-authored (client may change) | `displayName` | String, 1-50 characters, validated on every update. |
+| User-authored (client may change) | `photoUrl` | String or `null`, validated on every update. |
+| Controlled (client may update within constraints) | `fcmTokens` | List, max entries not enforced in rules (validated application-side). |
+| Controlled (client may update within constraints) | `notificationPrefs` | Map with exactly three boolean keys: `newExpense`, `settlement`, `reminder`. |
+| Controlled (client may update within constraints) | `locale` | String, must be `'en-IN'` in v1.0. |
+
+**`diff().affectedKeys()` versus direct comparison:**
+
+The friendships and groups collections (PR #12) use
+`request.resource.data.diff(resource.data).affectedKeys()` to detect which fields
+changed, then reject writes that touch immutable fields. The users collection
+instead uses direct equality comparison (`data.phoneNumber == prev.phoneNumber`).
+
+Both approaches are correct for their respective collections. The users rule
+additionally validates the complete resulting document shape on every update
+(display name length, photoUrl type, notification prefs structure, etc.), which is
+arguably more secure — it guarantees the document is always in a valid state
+regardless of which fields the client touched. The direct-comparison approach has
+been tested and working since PR #10. The architect recommends keeping it as-is
+and only migrating to `diff().affectedKeys()` if a test failure surfaces. No ADR
+is needed; this is a tactical implementation choice.
+
+### 3.2 Photo Replacement Strategy
+
+**Decision: Overwrite at stable path `avatars/{userId}`.**
+
+Rationale:
+
+- Simple, produces no orphaned files, requires no storage cleanup job.
+- The existing `storage.rules` (lines 13-18) already allows authenticated writes
+  at `avatars/{userId}` with size (< 5 MB) and content-type (`image/jpeg` or
+  `image/png`) constraints. No Storage rules changes are needed.
+- The existing `UserRepository.uploadAvatar()` (line 72-76 of
+  `user_repository.dart`) already implements this overwrite pattern.
+- Cache-busting is handled automatically: `getDownloadURL()` returns a URL with a
+  token parameter that changes on each upload, so the client fetches the new image
+  without any manual cache invalidation.
+
+### 3.3 Provider Shape
+
+The `currentUserProvider` described in `state-management.md` section 2.1 is
+already implemented as `authStateNotifierProvider` in `auth_state_provider.dart`.
+It maintains a real-time Firestore snapshot listener on `users/{userId}` and emits
+`AuthenticatedWithProfile(user: UserModel)` whenever the document changes.
+
+**Profile View screen:**
+
+- Subscribe to `authStateNotifierProvider` (app-scoped, already listening).
+- Extract the `UserModel` from the `AuthenticatedWithProfile` state.
+- The screen re-renders automatically when the user document changes (display
+  name, photo URL) — no manual refresh is required.
+
+**Edit Profile screen:**
+
+- Create a screen-scoped `editProfileControllerProvider`
+  (`AutoDisposeAsyncNotifierProvider` or equivalent) that:
+  - Initialises with the current `UserModel` values (display name, photo URL).
+  - Manages local form state (edited display name, selected photo file).
+  - Validates display name: non-empty after trim, at most 50 characters.
+  - Exposes a `save()` method that calls `UserRepository.updateProfile()`.
+  - On save success: the Firestore real-time listener on
+    `authStateNotifierProvider` automatically picks up the change and updates the
+    Profile View. No manual state synchronisation is needed.
+  - On save failure: emits an error state; form fields remain editable with their
+    current values so the user can retry.
+
+### 3.4 Optimistic UI
+
+**Decision: Pessimistic for display name, semi-optimistic for photo.**
+
+- **Display name:** The Save button shows a loading indicator while the Firestore
+  write is in progress. The new name is not shown on the Profile View until the
+  write succeeds and the real-time listener picks up the change. Rationale: the
+  write is fast (sub-second on reasonable connectivity), and showing optimistic
+  text that might revert creates a worse user experience than a brief loading
+  state.
+- **Photo:** The locally-selected image is shown as an immediate preview on the
+  Edit Profile screen before the upload completes. This provides instant feedback
+  that the photo was selected. If the upload fails, the preview reverts to the
+  previous photo. The Profile View (previous screen in the navigation stack) only
+  shows the new photo after the Firestore write succeeds and the listener emits
+  the updated `UserModel`.
+
+### 3.5 UserRepository Extension
+
+Add to `UserRepository` (`lib/features/auth/data/user_repository.dart`):
+
+```dart
+Future<void> updateProfile({
+  required String uid,
+  String? displayName,
+  String? photoUrl,
+  bool removePhoto = false,
+}) async {
+  final updates = <String, dynamic>{
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
+  if (displayName != null) updates['displayName'] = displayName;
+  if (removePhoto) {
+    updates['photoUrl'] = null;
+  } else if (photoUrl != null) {
+    updates['photoUrl'] = photoUrl;
+  }
+  await _firestore.collection('users').doc(uid).update(updates);
+}
+```
+
+Key points:
+
+- Uses Firestore `update()` (partial update) rather than `set()` (full document
+  write). This sends only the changed fields plus `updatedAt`, which is the
+  pattern established by ADR-0008 for client-side user document writes.
+- The `updatedAt` field is always included as `FieldValue.serverTimestamp()` per
+  the schema requirement. The security rules enforce
+  `data.updatedAt == request.time`.
+- The `removePhoto` flag allows the client to explicitly set `photoUrl` to `null`
+  (the "Remove Photo" action in the photo picker bottom sheet), which is distinct
+  from omitting `photoUrl` from the update entirely.
+
+### 3.6 No New ADR Required
+
+The field-level rules approach is a tactical implementation detail, not an
+architectural decision. The photo replacement strategy (overwrite at stable path)
+is consistent with the existing `uploadAvatar()` implementation from PR #10. No
+new ADR is warranted.
