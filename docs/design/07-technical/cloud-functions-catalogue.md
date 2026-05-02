@@ -43,10 +43,10 @@ FR-SE-03, FR-SE-04; Invariant 2.)
 
 ### Trigger type
 
-**Internal module** — not an independently deployed Cloud Function. Exported as an
-async helper invoked within a Firestore transaction by `onExpenseWrite` and
-`onSettlementWrite`. It is separated here because it encapsulates the core algorithm
-and is independently unit-testable.
+**HTTPS Callable** (`onCall`) — currently deployed as a standalone callable function
+for Sprint 1 development and testing. The pure algorithm is independently
+unit-testable (ADR-0011). Integration with trigger functions (`onExpenseWrite`,
+`onSettlementWrite`) is planned for Sprint 2 (FR-SE-03, FR-SE-04).
 
 ### Input contract
 
@@ -119,17 +119,18 @@ are produced by this module.
 
 ### Error semantics
 
-- If the Firestore transaction fails (contention, deadline), the calling trigger
-  function retries (see `onExpenseWrite` / `onSettlementWrite` retry policies).
+- If the Firestore transaction fails (contention, deadline), the callable returns
+  an error to the caller.
 - If the algorithm detects that the sum of all net balances is non-zero (invariant
   violation), it logs an error via `functions.logger.error` with the context ID and
-  the residual, then throws. The calling trigger will retry.
+  the residual, then throws. The caller receives the failure and may retry.
 - No partial writes: the transaction is atomic.
 
 ### Retry policy
 
-Not applicable directly (module, not a deployed function). Retry behaviour is
-governed by the calling trigger.
+No automatic retry. Because this is currently deployed as an HTTPS Callable
+function (`onCall`), retry behaviour is controlled by the caller. Automatic
+trigger integration is planned for Sprint 2 (FR-SE-03, FR-SE-04).
 
 ### Region
 
@@ -673,15 +674,16 @@ subject to the rate limit.
 
 ## Appendix A: Deployment Summary
 
-| Function name | Trigger | Auto-retry | Region |
-|---|---|---|---|
-| `onExpenseWriteFriendship` | Firestore onWrite `friendships/{id}/expenses/{id}` | Yes | `asia-south1` |
-| `onExpenseWriteGroup` | Firestore onWrite `groups/{id}/expenses/{id}` | Yes | `asia-south1` |
-| `onSettlementWrite` | Firestore onCreate `settlements/{id}` | Yes | `asia-south1` |
-| `onUserDelete` | Callable | No | `asia-south1` |
-| `acceptGroupInvite` | Callable | No | `asia-south1` |
-| `revokeGroupInvite` | Callable | No | `asia-south1` |
-| `sendReminderNotification` | Callable | No | `asia-south1` |
+| Function name | Trigger | Auto-retry | Region | Status |
+|---|---|---|---|---|
+| `recomputeSimplifiedBalances` | Callable | No | `asia-south1` | shipped |
+| `onExpenseWriteFriendship` | Firestore onWrite `friendships/{id}/expenses/{id}` | Yes | `asia-south1` | planned |
+| `onExpenseWriteGroup` | Firestore onWrite `groups/{id}/expenses/{id}` | Yes | `asia-south1` | planned |
+| `onSettlementWrite` | Firestore onCreate `settlements/{id}` | Yes | `asia-south1` | planned |
+| `onUserDelete` | Callable | No | `asia-south1` | planned |
+| `acceptGroupInvite` | Callable | No | `asia-south1` | planned |
+| `revokeGroupInvite` | Callable | No | `asia-south1` | planned |
+| `sendReminderNotification` | Callable | No | `asia-south1` | planned |
 
 ---
 
