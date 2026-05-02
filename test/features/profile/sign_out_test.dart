@@ -1,6 +1,6 @@
 // Sign-out Flow Tests
 //
-// Widget tests for the sign-out flow on ProfilePlaceholderScreen,
+// Widget tests for the sign-out flow on ProfileScreen,
 // covering the confirmation dialog, cancellation, successful
 // sign-out, and error handling (FR-AU-07 + FR-AU-08).
 
@@ -11,12 +11,13 @@ import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
+import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
-import 'package:onebytwo/features/profile/presentation/profile_placeholder_screen.dart';
+import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
 
 // -- Fakes -------------------------------------------------------
 
@@ -68,6 +69,34 @@ class _FakePhoneAuthRepository implements PhoneAuthRepository {
   }
 }
 
+class _FakeUserRepository implements UserRepository {
+  @override
+  Future<UserModel?> getUser(String uid) async => null;
+
+  @override
+  Future<void> createUser({
+    required String uid,
+    required String displayName,
+    required String phoneNumber,
+    String? photoUrl,
+  }) async {}
+
+  @override
+  Future<String> uploadAvatar(String uid, String filePath) async =>
+      'https://example.com/avatar.jpg';
+
+  @override
+  Future<void> updateProfile({
+    required String uid,
+    String? displayName,
+    String? photoUrl,
+    bool removePhoto = false,
+  }) async {}
+
+  @override
+  Future<void> deleteAvatar(String uid) async {}
+}
+
 // -- Helpers -----------------------------------------------------
 
 final _testUser = UserModel(
@@ -85,20 +114,21 @@ Widget _buildProfile({
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
       phoneAuthRepositoryProvider.overrideWithValue(authRepo),
+      userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
       authStateNotifierProvider.overrideWith(
         (ref) => Stream.value(
           AuthenticatedWithProfile(uid: 'uid-123', user: _testUser),
         ),
       ),
     ],
-    child: const MaterialApp(home: ProfilePlaceholderScreen()),
+    child: const MaterialApp(home: ProfileScreen()),
   );
 }
 
 // -- Tests -------------------------------------------------------
 
 void main() {
-  group('ProfilePlaceholderScreen sign-out flow', () {
+  group('ProfileScreen sign-out flow', () {
     late _FakeAnalyticsService analytics;
     late _FakePhoneAuthRepository authRepo;
 

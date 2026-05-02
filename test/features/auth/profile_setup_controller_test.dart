@@ -64,6 +64,17 @@ class FakeUserRepository implements UserRepository {
     }
     return 'https://example.com/avatar.jpg';
   }
+
+  @override
+  Future<void> updateProfile({
+    required String uid,
+    String? displayName,
+    String? photoUrl,
+    bool removePhoto = false,
+  }) async {}
+
+  @override
+  Future<void> deleteAvatar(String uid) async {}
 }
 
 /// Fake [ImagePickerService] with configurable
