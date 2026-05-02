@@ -109,6 +109,8 @@ This screen has no user inputs. All logic is automated (auth state check against
 
 ## SCR-02: Onboarding
 
+> **Deferral Note:** SCR-02 (Onboarding) is deferred to a future sprint. In Sprint 1, the app routes directly from splash to phone entry. This screen will be implemented when the onboarding flow is prioritised.
+
 ### Screen Name
 
 Onboarding
