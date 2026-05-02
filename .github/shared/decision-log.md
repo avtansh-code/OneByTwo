@@ -492,3 +492,48 @@ Every Cloud Function follows a three-module layout:
   pinning, export) deserves its own file to keep the boundary clean.
 
 ---
+
+## ADR-0012: Sprint 1 Boundary Audit — Accepted Trade-Offs
+
+**Status:** Accepted
+
+### Context
+
+The Sprint 1 boundary audit (2026-05-02) identified several items that are
+intentional trade-offs or acceptable current states of the codebase. They are
+documented here so future audits do not re-open them as defects.
+
+### Accepted Items
+
+- Dart models currently exist only for `UserModel`; expense, settlement,
+  friendship, and group models are deferred until their corresponding Sprint 2+
+  features are implemented — Phase 1.2, finding F3.
+- The provider tree documents the full v1.0 target state, but only the auth and
+  profile slices were implemented in Sprint 1. Roughly 5 of about 90 documented
+  providers exist today; the remainder will be built sprint-by-sprint —
+  Phase 1.4, finding M3.
+- The Cloud Functions test pyramid is intentionally security-heavy, with rules
+  tests accounting for roughly 48% of coverage effort rather than a more typical
+  ~20%. This is justified by Invariant 2, which requires strong enforcement that
+  `simplifiedBalances` remains server-maintained and client-read-only —
+  Phase 2.4, finding PY2.
+- The field-level `affectedKeys()` diff pattern has not been promoted to a fifth
+  invariant. ADR-0010 captures the pattern adequately today, and promotion would
+  be premature until more collections, including groups, rely on it —
+  Phase 3.4, finding INV4.
+
+### Consequences
+
+These items are accepted as-is. They should not be flagged in future audits
+unless circumstances change; for example, if a deferred model becomes necessary
+for an in-scope feature and still does not exist, that would become a new
+finding rather than a known acceptance.
+
+### Alternatives Considered
+
+- Recording the items only in the audit summary: rejected because accepted
+  trade-offs should live in the durable decision log.
+- Creating one ADR per finding: rejected because the findings share the same
+  acceptance rationale and are easier to maintain as a single note.
+
+---
