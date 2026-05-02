@@ -8,6 +8,9 @@ module.exports = {
   ],
   testMatch: ["**/*.test.ts"],
   moduleFileExtensions: ["ts", "js", "json"],
+  // Run serially — all suites share a single emulator and clearFirestore()
+  // in one suite can race with seeds in another.
+  maxWorkers: 1,
   globals: {
     "ts-jest": {
       tsconfig: "tsconfig.test.json",

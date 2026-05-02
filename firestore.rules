@@ -114,12 +114,11 @@ service cloud.firestore {
       }
 
       function isValidFriendshipUpdate() {
-        let data = request.resource.data;
-        let prev = resource.data;
+        let dominated = request.resource.data.diff(resource.data).affectedKeys();
         // simplifiedBalances must not change (Invariant 2).
         // memberIds is immutable after creation.
-        return data.simplifiedBalances == prev.simplifiedBalances
-          && data.memberIds == prev.memberIds;
+        return !dominated.hasAny(['simplifiedBalances'])
+          && !dominated.hasAny(['memberIds']);
       }
     }
 
@@ -161,15 +160,14 @@ service cloud.firestore {
       }
 
       function isValidGroupUpdate() {
-        let data = request.resource.data;
-        let prev = resource.data;
+        let dominated = request.resource.data.diff(resource.data).affectedKeys();
         // simplifiedBalances must not change (Invariant 2).
         // createdAt is immutable.
         // adminId may only be changed by the current admin.
-        return data.simplifiedBalances == prev.simplifiedBalances
-          && data.createdAt == prev.createdAt
-          && (data.adminId == prev.adminId
-              || request.auth.uid == prev.adminId);
+        return !dominated.hasAny(['simplifiedBalances'])
+          && !dominated.hasAny(['createdAt'])
+          && (!dominated.hasAny(['adminId'])
+              || request.auth.uid == resource.data.adminId);
       }
     }
   }

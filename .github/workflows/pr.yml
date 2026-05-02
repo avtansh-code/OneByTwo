@@ -214,7 +214,7 @@ jobs:
 
   build-ios:
     name: Build iOS (no signing)
-    runs-on: macos-latest
+    runs-on: macos-14
     needs: [flutter-checks]
     steps:
       - uses: actions/checkout@v4
