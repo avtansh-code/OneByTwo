@@ -10,7 +10,7 @@ design phase has strengthened or weakened the original mitigation, identifies ne
 information that changes the likelihood or impact, and cites specific design
 artefacts that address the risk.
 
-Four new risks identified during the design phase are appended at the end.
+Five new risks identified during the design phase are appended at the end.
 
 ---
 
@@ -30,6 +30,7 @@ Four new risks identified during the design phase are appended at the end.
 | R-10 | Riverpod 2.x breaking changes | OPEN | OPEN -- mitigation unchanged | See detailed assessment below. |
 | R-11 | App Check enforcement blocking emulator traffic | OPEN | OPEN -- mitigation unchanged | See detailed assessment below. |
 | R-12 | CI pipeline flakiness from emulator startup timing | OPEN | OPEN -- mitigation unchanged | See detailed assessment below. |
+| R-17 | Contact permission platform fragility | NEW | NEW | See detailed assessment below. |
 
 ---
 
@@ -440,6 +441,40 @@ test script.
 
 ---
 
+### R-17: Contact Permission Platform Fragility
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Description:** FR-FR-01 requires device contact access. iOS 14+ shows a native
+permission dialog on first use with no customisation. Android 12+ requires
+runtime permission requests with `READ_CONTACTS`. Users who deny permission see
+no contacts; if they later change their mind, they must navigate to Settings.
+Permission revocation during app use can cause crashes if not handled.
+
+**Mitigation:**
+- Show a pre-permission rationale screen explaining why contacts are needed
+  before triggering the system dialog.
+- Implement graceful degradation: if permission denied, show manual phone-
+  number entry fallback.
+- Handle permission revocation gracefully (check permission state on each
+  contact-picker access).
+- Add telemetry events `contact_permission_granted` and
+  `contact_permission_denied` to monitor grant rates.
+
+**Owner:** Architect + Flutter Dev
+
+**Sprint:** 2
+
+---
+
+### Privacy Note — Contact Data Handling
+
+Contact data is processed client-side only. Phone numbers from the device
+contact book are matched against existing users documents via Firestore query
+but are never stored in a contacts collection or transmitted to analytics.
+
 ## Mitigation Confidence Summary
 
 | Risk ID | Risk (short) | Mitigation Confidence | Next Action |
@@ -460,6 +495,7 @@ test script.
 | R-14 | Deep-link resolution complexity | Low | Add negative test cases to CUJ-6: expired auth, concurrent sign-in, malformed payload. |
 | R-15 | Telemetry volume | Medium | Review event utility after first month of production data. Document BigQuery export cost baseline. |
 | R-16 | Accessibility compliance gap | Low | Add manual screen-reader testing (VoiceOver + TalkBack) to the release readiness checklist. Execute walkthroughs before launch. |
+| R-17 | Contact permission platform fragility | Medium | Implement pre-permission rationale screen, manual-entry fallback, and permission-state checks in Sprint 2. Monitor grant rates via telemetry. |
 
 ---
 
@@ -479,6 +515,7 @@ One risk (R-04, hot documents) has gained new information from the offline-and-s
 design that slightly increases its likelihood, warranting closer monitoring during
 performance testing.
 
-Four new risks (R-13 through R-16) have been identified. Of these, R-16
-(accessibility compliance gap) has the highest likelihood and should be prioritised
-for action before the v1.0 launch.
+Five new risks (R-13 through R-17) have been identified. Of these, R-16
+(accessibility compliance gap) and R-17 (contact permission platform fragility)
+have the highest likelihood and should be prioritised for action before the v1.0
+launch.
