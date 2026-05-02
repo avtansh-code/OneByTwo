@@ -65,6 +65,17 @@ class _FakeUserRepository implements UserRepository {
   Future<String> uploadAvatar(String uid, String filePath) async {
     return 'https://storage.example.com/avatars/$uid';
   }
+
+  @override
+  Future<void> updateProfile({
+    required String uid,
+    String? displayName,
+    String? photoUrl,
+    bool removePhoto = false,
+  }) async {}
+
+  @override
+  Future<void> deleteAvatar(String uid) async {}
 }
 
 class _FakeImagePickerService implements ImagePickerService {

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/domain/user_model.dart';
@@ -61,10 +60,7 @@ class UserRepository {
       displayName: displayName,
       photoUrl: photoUrl,
     );
-    debugPrint('[UserRepo] createUser uid=$uid phone=$phoneNumber');
-    debugPrint('[UserRepo] data keys=${data.keys.toList()}');
     await _firestore.collection('users').doc(uid).set(data);
-    debugPrint('[UserRepo] createUser SUCCESS');
   }
 
   /// Uploads an avatar image to `avatars/{uid}` and returns
@@ -73,6 +69,44 @@ class UserRepository {
     final ref = _storage.ref('avatars/$uid');
     await ref.putFile(File(filePath));
     return ref.getDownloadURL();
+  }
+
+  /// Updates the profile fields for the user document at
+  /// `users/{uid}`.
+  ///
+  /// Only non-null fields are written. If [removePhoto] is true,
+  /// the `photoUrl` field is set to `null` in Firestore.
+  /// Always sets `updatedAt` to the server timestamp.
+  Future<void> updateProfile({
+    required String uid,
+    String? displayName,
+    String? photoUrl,
+    bool removePhoto = false,
+  }) async {
+    final updates = <String, dynamic>{
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (displayName != null) updates['displayName'] = displayName;
+    if (removePhoto) {
+      updates['photoUrl'] = null;
+    } else if (photoUrl != null) {
+      updates['photoUrl'] = photoUrl;
+    }
+    await _firestore.collection('users').doc(uid).update(updates);
+  }
+
+  /// Deletes the avatar file at `avatars/{uid}` from
+  /// Firebase Storage.
+  ///
+  /// Ignores `object-not-found` errors, as the avatar may not
+  /// exist (e.g., user never uploaded one).
+  Future<void> deleteAvatar(String uid) async {
+    try {
+      await _storage.ref('avatars/$uid').delete();
+    } on FirebaseException catch (e) {
+      // Ignore "object-not-found" — avatar may not exist.
+      if (e.code != 'object-not-found') rethrow;
+    }
   }
 }
 
