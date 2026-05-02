@@ -1,55 +1,39 @@
 # Next Three PRs
 
-> Rolling roadmap. Updated after PR #9 (FR-AU-06).
-> Last updated: 2026-05-01.
+> Rolling roadmap. Updated after PR #11 (FR-AU-07/08 merged).
+> Last updated: 2026-05-02.
 
 ---
 
-## PR #10 — Session Persistence (FR-AU-07) and Sign-Out (FR-AU-08)
+## PR #12 — Simplified-Debts Cloud Function (FUNC-01)
 
-**Scope:** Persist the authenticated session so returning users skip the auth
-flow. Implement sign-out from the profile screen. Splash screen routes correctly
-based on session state and user document existence.
+**Status:** In flight.
 
-**User story:** `docs/sprint-zero/sprint-1-plan.md` (FR-AU-07, FR-AU-08).
+**Scope:** Full implementation of the `recomputeSimplifiedBalances` Cloud
+Function deployed as an HTTPS callable to `asia-south1`. Pure algorithm,
+function boundary, Firestore rules for `simplifiedBalances` write-deny, and
+the canonical six-case test matrix. Not yet wired as a Firestore trigger —
+that arrives with the first expenses PR.
 
-**Design artefacts:**
-- Screen spec: `docs/design/06-screen-specs/01-05-auth-and-profile-setup.md`
-  (SCR-01 Splash routing).
-- State management: `docs/design/07-technical/state-management.md`
-  (`authStateProvider`, `currentUserProvider`).
-
-**Agents involved:** flutter-dev, qa.
-
-**Key deliverables:**
-- Splash screen with auth state check and user doc check.
-- Sign-out button and flow.
-- Session persistence via `FirebaseAuth.authStateChanges()`.
-
----
-
-## PR #11 — Simplified Debts Stub and Canonical Test Suite (FUNC-01)
-
-**Scope:** Implement the `recomputeSimplifiedBalances` Cloud Function stub with
-the canonical test matrix. This de-risks the critical path for Sprint 2
-(expenses and settlements).
-
-**User story:** `docs/sprint-zero/sprint-1-plan.md` (FUNC-01).
+**User story:** `docs/sprint-zero/stories/FUNC-01-simplified-debts-stub.md`.
 
 **Design artefacts:**
+- Algorithm spec: `docs/design/07-technical/simplified-debts-algorithm.md`.
 - Cloud Functions catalogue:
-  `docs/design/07-technical/cloud-functions-catalogue.md`.
-- Test strategy: `.github/shared/test-strategy.md` (canonical test matrix).
+  `docs/design/07-technical/cloud-functions-catalogue.md` (section 1).
+- Error codes: `docs/design/07-technical/cloud-functions-error-codes.md`.
 
-**Agents involved:** functions-dev, architect, qa.
+**Agents involved:** functions-dev, architect, qa, devops.
 
 ---
 
-## PR #12 — Profile View and Edit (FR-PR-01)
+## PR #13 — Profile View and Edit (FR-PR-01)
+
+**Status:** Next up (closes Sprint 1).
 
 **Scope:** Profile view/edit screen. Users can view their display name and
 photo, change their display name, upload a new photo, and access the "Contact
-Support" mailto link. Reads the `users/{userId}` document created in PR #9.
+Support" mailto link. Reads the `users/{userId}` document created in PR #10.
 
 **User story:** `docs/sprint-zero/sprint-1-plan.md` (FR-PR-01).
 
@@ -59,3 +43,17 @@ Support" mailto link. Reads the `users/{userId}` document created in PR #9.
 - Mockup: `docs/design/05-mockups/08-profile-with-support.html`.
 
 **Agents involved:** flutter-dev, qa.
+
+---
+
+## PR #14 — Sprint 2 Opener: Friend-Add via Contact Picker (FR-FR-01)
+
+**Status:** Planned (Sprint 2).
+
+**Scope:** Add-friend flow using the device contact picker. The user selects a
+contact, the app resolves the +91 phone number, and either links to an existing
+user or creates a pending friendship. Opens the social graph vertical.
+
+**User story:** To be written (FR-FR-01 story refinement needed before PR opens).
+
+**Agents involved:** flutter-dev, architect (friendship schema), qa.

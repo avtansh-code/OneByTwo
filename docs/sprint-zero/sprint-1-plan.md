@@ -388,14 +388,23 @@ a proven, tested base.
 | #2 | Sprint-zero + design phase artefacts | -- | Merged | 2026-04-30 |
 | #3 | Bootstrap project skeleton | INFRA-01 (partial) | Merged | 2026-05-01 |
 | #4 | Phone-number entry screen (FR-AU-01) | FR-AU-01, FR-AU-02 | Merged | [2026-05-01](https://github.com/avtansh-code/OneByTwo/pull/4) |
-| #5 | PR-#4 retrospective and ratified patterns | -- (chore) | In flight | -- |
+| #5 | PR-#4 retrospective and ratified patterns | -- (chore) | Merged | 2026-05-01 |
+| #6 | OTP entry screen UI (FR-AU-03/04) | FR-AU-03, FR-AU-04 | Merged | 2026-05-01 |
+| #7 | Firebase Phone Auth wiring (FR-AU-03/04/05) | FR-AU-03, FR-AU-04, FR-AU-05 | Merged | 2026-05-01 |
+| #9 | iOS Phone Auth crash fix | -- (fix) | Merged | 2026-05-01 |
+| #10 | Profile setup on first login (FR-AU-06) | FR-AU-06 | Merged | 2026-05-01 |
+| #11 | Session persistence and sign-out (FR-AU-07/08) | FR-AU-07, FR-AU-08 | Merged | 2026-05-02 |
+| #12 | Simplified-debts cloud function (FUNC-01) | FUNC-01 | In flight | -- |
 
-### Velocity observation
+### Velocity to date
 
-- **FR-AU-01 + FR-AU-02 (5 SP):** ~10.5 hours elapsed (PR #4 created to merged).
-  Approximately half the commit effort was CI/platform fixups rather than feature
-  work. With the CI improvements landed in PR #5, future feature PRs should see
-  less CI friction.
-- **No sequencing changes required.** The retro did not uncover blockers that alter
-  the story order. The auth flow continues as planned: OTP screen next, then Firebase
-  Phone Auth wiring, then profile setup.
+- **Auth stories complete (FR-AU-01 through FR-AU-08, 25 SP):** all merged across
+  PRs #4 through #11. The auth vertical is fully shipped.
+- **FUNC-01 (8 SP):** in flight as PR #12. Pure algorithm implemented and tested,
+  function boundary wired, Firestore rules deployed with simplifiedBalances
+  write-deny enforcement.
+- **Total shipped:** 25 SP across 11 merged PRs. Remaining Sprint 1 scope:
+  FUNC-01 (in flight, 8 SP) and FR-PR-01 (5 SP).
+- **Critical path cleared for Sprint 2:** FUNC-01 contract (types, pure function,
+  canonical test matrix) is locked. Sprint 2 expense and settlement stories
+  (FR-EX-xx, FR-SE-xx) can build on the stable `simplifyDebts` interface.

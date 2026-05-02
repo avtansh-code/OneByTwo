@@ -7,7 +7,11 @@
  * @module index
  */
 
+import {initializeApp} from "firebase-admin/app";
 import {onRequest} from "firebase-functions/v2/https";
+
+// Initialise Firebase Admin SDK (idempotent — safe to call once at module load).
+initializeApp();
 
 const REGION = "asia-south1";
 
@@ -23,3 +27,6 @@ const REGION = "asia-south1";
 export const healthcheck = onRequest({region: REGION}, (_req, res) => {
   res.status(200).json({ok: true, region: REGION});
 });
+
+// Simplified debts recomputation callable
+export {recomputeSimplifiedBalances} from "./simplified-debts/index";
