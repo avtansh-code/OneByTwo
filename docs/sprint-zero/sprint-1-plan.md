@@ -408,3 +408,62 @@ a proven, tested base.
 - **Critical path cleared for Sprint 2:** FUNC-01 contract (types, pure function,
   canonical test matrix) is locked. Sprint 2 expense and settlement stories
   (FR-EX-xx, FR-SE-xx) can build on the stable `simplifyDebts` interface.
+
+---
+
+## Sprint 1 — Final Status
+
+**Sprint status: CLOSED.**
+
+### Story Delivery Log
+
+| Story | SP | PR | Status |
+|---|---|---|---|
+| INFRA-01 | 8 | #4 | Done |
+| FR-AU-01 | 3 | #6 | Done |
+| FR-AU-02 | 2 | #6 | Done |
+| FR-AU-03 | 5 | #7 | Done |
+| FR-AU-04 | 3 | #7 | Done |
+| FR-AU-05 | 3 | #7 | Done |
+| FR-AU-06 | 5 | #10 | Done |
+| FR-AU-07 | 3 | #11 | Done |
+| FR-AU-08 | 3 | #11 | Done |
+| FUNC-01 | 3 | #12 | Done |
+| FR-PR-01 | 5 | #13 | Done |
+| **Total** | **43** | | **All shipped** |
+
+### PR Log
+
+| PR | Type | Scope |
+|---|---|---|
+| #4 | Feature | INFRA-01: Firebase project configuration, emulator suite, CI pipeline |
+| #5 | Setup | Post-PR-4 cleanup: ratified patterns and conventions |
+| #6 | Feature | FR-AU-01, FR-AU-02: Phone number entry screen with +91 validation |
+| #7 | Feature | FR-AU-03, FR-AU-04, FR-AU-05: OTP flow and Firebase Phone Auth wiring |
+| #8 | Fix-up | iOS Phone Auth crash fix (superseded by #9) |
+| #9 | Fix-up | iOS Phone Auth crash and analytics type error resolution |
+| #10 | Feature | FR-AU-06: Profile setup on first login |
+| #11 | Feature | FR-AU-07, FR-AU-08: Session persistence and sign-out |
+| #12 | Feature | FUNC-01: Simplified-debts cloud function |
+| #13 | Feature | FR-PR-01: View and edit profile (this PR; closes Sprint 1) |
+
+### Final Velocity
+
+- **43 story points** shipped across 7 feature PRs (#4, #6, #7, #10, #11, #12,
+  #13), 1 setup PR (#5), and 2 fix-up PRs (#8, #9).
+- 10 PRs total. First sprint — this is data point one; Sprint 2 will establish
+  whether this velocity is sustainable.
+
+### FUNC-01 Resequencing Note
+
+FUNC-01 was originally positioned towards the end of the sprint plan but was
+delivered as PR #12 (before FR-PR-01 in PR #13). This was done to de-risk Sprint 2's
+expense and settlement features, which depend on the simplified-debts algorithm
+contract (see dependency DAG: `FUNC-01 --> FR-SE-02 --> FR-SE-03 --> FR-SE-01`).
+
+This was the correct call. Nothing in Sprint 1 was blocked by FUNC-01 landing
+earlier — FR-PR-01 has no dependency on FUNC-01, and the resequencing meant the
+`simplifyDebts` function signature, types, and canonical test matrix were locked
+before Sprint 2 planning began. Sprint 2 expense stories (FR-EX-01) and settlement
+stories (FR-SE-02, FR-SE-03) can now build on a stable, tested interface without
+waiting for the contract to be established.
