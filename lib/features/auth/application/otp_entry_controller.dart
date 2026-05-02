@@ -216,6 +216,14 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
             },
           ),
         );
+        if (value.isNewUser) {
+          unawaited(
+            _analytics.logEvent(
+              name: 'signup_completed',
+              parameters: {'method': 'phone'},
+            ),
+          );
+        }
       case Failure(:final error):
         state = state.copyWith(
           isLoading: false,
