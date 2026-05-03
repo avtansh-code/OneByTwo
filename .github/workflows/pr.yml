@@ -260,3 +260,213 @@ jobs:
 
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
+
+  # ── Coverage Gate — authoritative SRS 5.7 enforcement ────────────────────
+  # Runs after test jobs complete. Checks per-feature/per-module thresholds
+  # (>= 70%), overall thresholds (>= 50%), and simplified-debts 100% branch
+  # coverage. This is a required status check on main.
+  coverage-gate:
+    name: Coverage Gate (SRS 5.7)
+    runs-on: ubuntu-latest
+    needs: [flutter-checks, functions-checks]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install Functions dependencies
+        run: cd functions && npm ci
+
+      - name: Run Flutter tests with coverage
+        run: flutter test --coverage
+
+      - name: Run Functions tests with coverage
+        run: cd functions && npx jest --coverage --coverageReporters=json-summary --coverageReporters=text
+
+      - name: Install lcov
+        run: |
+          if ! command -v lcov >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y lcov
+          fi
+
+      - name: Enforce coverage thresholds
+        run: |
+          python3 << 'COVERAGE_SCRIPT'
+          import json, os, re, sys
+
+          failed = False
+          results = []
+
+          # ── Flutter coverage from coverage/lcov.info ──
+          lcov_path = "coverage/lcov.info"
+          if not os.path.exists(lcov_path):
+              print("::error::coverage/lcov.info not found — Flutter tests may have failed.")
+              sys.exit(1)
+
+          # Parse lcov.info into per-file (hit, total) counts
+          file_coverage = {}  # filepath -> (lines_hit, lines_found)
+          current_file = None
+          lh = 0
+          lf = 0
+          with open(lcov_path) as f:
+              for line in f:
+                  line = line.strip()
+                  if line.startswith("SF:"):
+                      current_file = line[3:]
+                  elif line.startswith("LH:"):
+                      lh = int(line.split(":")[1])
+                  elif line.startswith("LF:"):
+                      lf = int(line.split(":")[1])
+                  elif line == "end_of_record":
+                      if current_file:
+                          file_coverage[current_file] = (lh, lf)
+                      current_file = None
+                      lh = 0
+                      lf = 0
+
+          # Discover Flutter feature folders from lcov data
+          flutter_features = set()
+          for fp in file_coverage:
+              m = re.search(r"lib/features/([^/]+)/", fp)
+              if m:
+                  flutter_features.add(m.group(1))
+
+          # Per-feature checks (>= 70%)
+          total_hit_all = 0
+          total_found_all = 0
+          for feature in sorted(flutter_features):
+              hit = 0
+              found = 0
+              for fp, (h, f) in file_coverage.items():
+                  if f"lib/features/{feature}/" in fp:
+                      hit += h
+                      found += f
+              pct = (hit * 100.0 / found) if found > 0 else 0.0
+              status = "PASS" if pct >= 70.0 else "FAIL"
+              results.append(("lib/features/" + feature + "/", f"{pct:.1f}%", ">= 70%", status))
+              if pct < 70.0:
+                  print(f"::error::lib/features/{feature}/ coverage is {pct:.1f}% (required >= 70%)")
+                  failed = True
+
+          # Overall Flutter coverage (>= 50%)
+          for fp, (h, f) in file_coverage.items():
+              total_hit_all += h
+              total_found_all += f
+          overall_flutter = (total_hit_all * 100.0 / total_found_all) if total_found_all > 0 else 0.0
+          status = "PASS" if overall_flutter >= 50.0 else "FAIL"
+          results.append(("Overall Flutter", f"{overall_flutter:.1f}%", ">= 50%", status))
+          if overall_flutter < 50.0:
+              print(f"::error::Overall Flutter coverage is {overall_flutter:.1f}% (required >= 50%)")
+              failed = True
+
+          # ── Functions coverage from functions/coverage/coverage-summary.json ──
+          fn_summary_path = "functions/coverage/coverage-summary.json"
+          if not os.path.exists(fn_summary_path):
+              print("::error::functions/coverage/coverage-summary.json not found — Functions tests may have failed.")
+              sys.exit(1)
+
+          with open(fn_summary_path) as f:
+              fn_data = json.load(f)
+
+          # Discover modules from keys like "functions/src/<module>/..."
+          fn_modules = {}  # module -> {hit, total}
+          fn_total_hit = 0
+          fn_total_found = 0
+          sd_branch_pct = None  # simplified-debts branch coverage
+
+          for filepath, metrics in fn_data.items():
+              if filepath == "total":
+                  continue
+              m = re.search(r"src/([^/]+)/", filepath)
+              if m:
+                  module = m.group(1)
+                  lines = metrics.get("lines", {})
+                  h = lines.get("covered", 0)
+                  t = lines.get("total", 0)
+                  if module not in fn_modules:
+                      fn_modules[module] = {"hit": 0, "total": 0, "branch_covered": 0, "branch_total": 0}
+                  fn_modules[module]["hit"] += h
+                  fn_modules[module]["total"] += t
+                  # Track branch coverage for simplified-debts
+                  branches = metrics.get("branches", {})
+                  fn_modules[module]["branch_covered"] += branches.get("covered", 0)
+                  fn_modules[module]["branch_total"] += branches.get("total", 0)
+                  fn_total_hit += h
+                  fn_total_found += t
+
+          # Per-module checks (>= 70%)
+          for module in sorted(fn_modules):
+              data = fn_modules[module]
+              pct = (data["hit"] * 100.0 / data["total"]) if data["total"] > 0 else 0.0
+              status = "PASS" if pct >= 70.0 else "FAIL"
+              results.append((f"functions/src/{module}/", f"{pct:.1f}%", ">= 70%", status))
+              if pct < 70.0:
+                  print(f"::error::functions/src/{module}/ coverage is {pct:.1f}% (required >= 70%)")
+                  failed = True
+
+              # Special check: simplified-debts must have 100% branch coverage
+              if module == "simplified-debts":
+                  bt = data["branch_total"]
+                  bc = data["branch_covered"]
+                  bpct = (bc * 100.0 / bt) if bt > 0 else 0.0
+                  bstatus = "PASS" if bpct >= 100.0 else "FAIL"
+                  results.append((f"functions/src/{module}/ (branches)", f"{bpct:.1f}%", "= 100%", bstatus))
+                  if bpct < 100.0:
+                      print(f"::error::functions/src/{module}/ branch coverage is {bpct:.1f}% (required 100%)")
+                      failed = True
+
+          # Overall Functions coverage (>= 50%)
+          overall_fn = (fn_total_hit * 100.0 / fn_total_found) if fn_total_found > 0 else 0.0
+          status = "PASS" if overall_fn >= 50.0 else "FAIL"
+          results.append(("Overall Functions", f"{overall_fn:.1f}%", ">= 50%", status))
+          if overall_fn < 50.0:
+              print(f"::error::Overall Functions coverage is {overall_fn:.1f}% (required >= 50%)")
+              failed = True
+
+          # ── Summary table ──
+          print("")
+          print("Coverage Gate Results (SRS section 5.7)")
+          print("=" * 70)
+          print(f"{'Scope':<40} {'Actual':<10} {'Required':<10} {'Status'}")
+          print("-" * 70)
+          for scope, actual, required, st in results:
+              marker = "PASS" if st == "PASS" else "FAIL"
+              print(f"{scope:<40} {actual:<10} {required:<10} {marker}")
+          print("=" * 70)
+
+          if failed:
+              print("")
+              print("Coverage gate FAILED. Fix coverage before merging.")
+              sys.exit(1)
+          else:
+              print("")
+              print("Coverage gate PASSED. All thresholds met.")
+          COVERAGE_SCRIPT
+
+      - name: Upload Flutter coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flutter-coverage-report
+          path: coverage/lcov.info
+          retention-days: 14
+
+      - name: Upload Functions coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: functions-coverage-report
+          path: functions/coverage/
+          retention-days: 14
