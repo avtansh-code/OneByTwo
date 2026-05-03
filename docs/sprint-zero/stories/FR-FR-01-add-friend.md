@@ -1,3 +1,14 @@
+> **Split notice:** This parent story has been split into two sub-stories for
+> implementation purposes:
+>
+> - **FR-FR-01 (UI):** `FR-FR-01-contact-picker-ui.md` — Contact picker UI (PR #31)
+> - **FR-FR-01 (Matching):** `FR-FR-01-matching-and-friendship.md` — User lookup and friendship creation (PR #32)
+>
+> This file is retained as the parent story for traceability. The sub-stories
+> are the implementation-ready artefacts.
+
+---
+
 # FR-FR-01: Add Friend by Contact Picker or +91 Number
 
 > Implementation-ready user story for starting the add-friend flow from either
