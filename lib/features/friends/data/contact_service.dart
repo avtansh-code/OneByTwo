@@ -5,10 +5,7 @@ import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
 /// Raw contact data from the device.
 class DeviceContact {
   /// Creates a [DeviceContact].
-  const DeviceContact({
-    required this.displayName,
-    required this.phoneNumbers,
-  });
+  const DeviceContact({required this.displayName, required this.phoneNumbers});
 
   /// The contact's display name.
   final String displayName;
@@ -63,9 +60,7 @@ class FlutterContactService implements ContactService {
 
   @override
   Future<List<DeviceContact>> getContacts() async {
-    final contacts = await fc.FlutterContacts.getContacts(
-      withProperties: true,
-    );
+    final contacts = await fc.FlutterContacts.getContacts(withProperties: true);
     return contacts
         .map(
           (c) => DeviceContact(

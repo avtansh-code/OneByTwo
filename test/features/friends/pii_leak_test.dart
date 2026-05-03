@@ -12,12 +12,7 @@ import 'package:onebytwo/features/friends/data/contact_service.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
 
 /// PII strings that must never appear in telemetry or logs.
-const _piiStrings = [
-  'Priya',
-  'Sharma',
-  '9876543210',
-  '+919876543210',
-];
+const _piiStrings = ['Priya', 'Sharma', '9876543210', '+919876543210'];
 
 /// Fake [AnalyticsService] that records all events with parameters.
 class FakeAnalyticsService implements AnalyticsService {
@@ -91,15 +86,15 @@ class FakeContactService implements ContactService {
 
   @override
   Future<List<DeviceContact>> getContacts() async => [
-        const DeviceContact(
-          displayName: 'Priya Sharma',
-          phoneNumbers: ['9876543210'],
-        ),
-        const DeviceContact(
-          displayName: 'Amit Kumar',
-          phoneNumbers: ['8765432109'],
-        ),
-      ];
+    const DeviceContact(
+      displayName: 'Priya Sharma',
+      phoneNumbers: ['9876543210'],
+    ),
+    const DeviceContact(
+      displayName: 'Amit Kumar',
+      phoneNumbers: ['8765432109'],
+    ),
+  ];
 
   @override
   Future<void> openSettings() async {}
@@ -117,9 +112,7 @@ void main() {
     fakeCrashlytics = FakeCrashlyticsService();
     fakeLogger = FakeLogger();
     fakeContactService = FakeContactService();
-    controller = ContactPickerController(
-      contactService: fakeContactService,
-    );
+    controller = ContactPickerController(contactService: fakeContactService);
   });
 
   tearDown(() {

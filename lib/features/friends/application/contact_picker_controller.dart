@@ -68,8 +68,8 @@ class ContactPickerState {
 class ContactPickerController extends StateNotifier<ContactPickerState> {
   /// Creates a [ContactPickerController].
   ContactPickerController({required ContactService contactService})
-      : _contactService = contactService,
-        super(const ContactPickerState());
+    : _contactService = contactService,
+      super(const ContactPickerState());
 
   final ContactService _contactService;
 
@@ -168,6 +168,6 @@ class ContactPickerController extends StateNotifier<ContactPickerState> {
 /// Riverpod provider for [ContactPickerController].
 final contactPickerControllerProvider =
     StateNotifierProvider<ContactPickerController, ContactPickerState>((ref) {
-  final contactService = ref.watch(contactServiceProvider);
-  return ContactPickerController(contactService: contactService);
-});
+      final contactService = ref.watch(contactServiceProvider);
+      return ContactPickerController(contactService: contactService);
+    });

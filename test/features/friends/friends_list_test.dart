@@ -120,10 +120,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
 
-      expect(
-        fakeAnalytics.loggedEvents,
-        contains('friend_add_button_tapped'),
-      );
+      expect(fakeAnalytics.loggedEvents, contains('friend_add_button_tapped'));
     });
   });
 }

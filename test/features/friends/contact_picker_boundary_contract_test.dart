@@ -84,10 +84,7 @@ void main() {
     });
 
     test('returns empty list when all numbers are non-Indian', () {
-      final result = normalisePhoneNumbers([
-        '+447911123456',
-        '+12025551234',
-      ]);
+      final result = normalisePhoneNumbers(['+447911123456', '+12025551234']);
 
       expect(result, isEmpty);
     });

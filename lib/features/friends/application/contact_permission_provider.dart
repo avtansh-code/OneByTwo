@@ -11,8 +11,8 @@ class ContactPermissionController
     extends StateNotifier<ContactPermissionState> {
   /// Creates a [ContactPermissionController].
   ContactPermissionController({required ContactService contactService})
-      : _contactService = contactService,
-        super(ContactPermissionState.notDetermined);
+    : _contactService = contactService,
+      super(ContactPermissionState.notDetermined);
 
   final ContactService _contactService;
 
@@ -37,8 +37,10 @@ class ContactPermissionController
 }
 
 /// Riverpod provider for [ContactPermissionController].
-final contactPermissionControllerProvider = StateNotifierProvider<
-    ContactPermissionController, ContactPermissionState>((ref) {
-  final contactService = ref.watch(contactServiceProvider);
-  return ContactPermissionController(contactService: contactService);
-});
+final contactPermissionControllerProvider =
+    StateNotifierProvider<ContactPermissionController, ContactPermissionState>((
+      ref,
+    ) {
+      final contactService = ref.watch(contactServiceProvider);
+      return ContactPermissionController(contactService: contactService);
+    });

@@ -96,10 +96,7 @@ void main() {
       controller.updateSearch('amit');
 
       expect(controller.state.filteredContacts, hasLength(1));
-      expect(
-        controller.state.filteredContacts.first.displayName,
-        'Amit Kumar',
-      );
+      expect(controller.state.filteredContacts.first.displayName, 'Amit Kumar');
     });
 
     test('search filter matches phone number', () async {
@@ -118,10 +115,7 @@ void main() {
       controller.updateSearch('9876');
 
       expect(controller.state.filteredContacts, hasLength(1));
-      expect(
-        controller.state.filteredContacts.first.displayName,
-        'Amit Kumar',
-      );
+      expect(controller.state.filteredContacts.first.displayName, 'Amit Kumar');
     });
 
     test('search with empty query shows all contacts', () async {
@@ -154,10 +148,7 @@ void main() {
 
       expect(controller.state.selectedContact, isNotNull);
       expect(controller.state.selectedContact!.displayName, 'Amit Kumar');
-      expect(
-        controller.state.selectedContact!.phoneNumbers,
-        ['+919876543210'],
-      );
+      expect(controller.state.selectedContact!.phoneNumbers, ['+919876543210']);
       expect(controller.state.pendingMultiPhone, isNull);
     });
 
@@ -187,10 +178,7 @@ void main() {
 
       expect(controller.state.selectedContact, isNotNull);
       expect(controller.state.selectedContact!.displayName, 'Priya Sharma');
-      expect(
-        controller.state.selectedContact!.phoneNumbers,
-        ['+918765432109'],
-      );
+      expect(controller.state.selectedContact!.phoneNumbers, ['+918765432109']);
       expect(controller.state.pendingMultiPhone, isNull);
     });
 

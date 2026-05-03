@@ -38,8 +38,7 @@ class FriendsListScreen extends ConsumerWidget {
               Icon(
                 Icons.people_outline,
                 size: 64,
-                color:
-                    theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 16),
               Text(
@@ -51,8 +50,7 @@ class FriendsListScreen extends ConsumerWidget {
               Text(
                 'Add a friend and start sharing expenses.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: 0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -70,9 +68,7 @@ class FriendsListScreen extends ConsumerWidget {
           .logEvent(name: 'friend_add_button_tapped'),
     );
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const ContactPickerScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const ContactPickerScreen()),
     );
   }
 }

@@ -25,15 +25,12 @@ class ContactListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final initial =
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
 
     return Semantics(
       label: '$displayName, $phoneNumber',
       child: ListTile(
-        leading: CircleAvatar(
-          child: Text(initial),
-        ),
+        leading: CircleAvatar(child: Text(initial)),
         title: Text(
           displayName,
           style: theme.textTheme.bodyLarge?.copyWith(

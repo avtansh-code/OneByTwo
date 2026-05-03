@@ -47,8 +47,9 @@ class PermissionDeniedView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed:
-                  isDeniedPermanently ? onOpenSettings : onGrantPermission,
+              onPressed: isDeniedPermanently
+                  ? onOpenSettings
+                  : onGrantPermission,
               child: Text(
                 isDeniedPermanently ? 'Open Settings' : 'Grant Permission',
               ),

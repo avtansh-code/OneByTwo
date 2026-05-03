@@ -96,10 +96,7 @@ void main() {
   ///
   /// When [pushAsRoute] is true, the screen is pushed as a route from
   /// a landing page so that pop behaviour can be tested.
-  Widget buildSubject({
-    bool pushAsRoute = false,
-    NavigatorObserver? observer,
-  }) {
+  Widget buildSubject({bool pushAsRoute = false, NavigatorObserver? observer}) {
     final overrides = <Override>[
       analyticsServiceProvider.overrideWithValue(fakeAnalytics),
       contactServiceProvider.overrideWithValue(fakeContactService),
@@ -143,8 +140,7 @@ void main() {
     testWidgets('renders loading state when contacts are loading', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       // Make getContacts never complete during the test frame.
       fakeContactService.contactsResult = [];
 
@@ -171,36 +167,31 @@ void main() {
       expect(find.text('Grant Contact Access'), findsOneWidget);
     });
 
-    testWidgets(
-      'renders contact list when permission is granted '
-      'and contacts loaded',
-      (tester) async {
-        fakeContactService.checkPermissionResult =
-            ContactPermissionState.granted;
-        fakeContactService.contactsResult = [
-          const DeviceContact(
-            displayName: 'Amit Kumar',
-            phoneNumbers: ['9876543210'],
-          ),
-          const DeviceContact(
-            displayName: 'Priya Sharma',
-            phoneNumbers: ['8765432109'],
-          ),
-        ];
+    testWidgets('renders contact list when permission is granted '
+        'and contacts loaded', (tester) async {
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
+      fakeContactService.contactsResult = [
+        const DeviceContact(
+          displayName: 'Amit Kumar',
+          phoneNumbers: ['9876543210'],
+        ),
+        const DeviceContact(
+          displayName: 'Priya Sharma',
+          phoneNumbers: ['8765432109'],
+        ),
+      ];
 
-        await tester.pumpWidget(buildSubject());
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
 
-        expect(find.text('Amit Kumar'), findsOneWidget);
-        expect(find.text('Priya Sharma'), findsOneWidget);
-      },
-    );
+      expect(find.text('Amit Kumar'), findsOneWidget);
+      expect(find.text('Priya Sharma'), findsOneWidget);
+    });
 
     testWidgets('renders denied screen with Grant Permission when denied', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.denied;
+      fakeContactService.checkPermissionResult = ContactPermissionState.denied;
 
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
@@ -215,44 +206,38 @@ void main() {
       expect(find.text('Grant Permission'), findsOneWidget);
     });
 
-    testWidgets(
-      'renders deniedPermanently screen with Open Settings',
-      (tester) async {
-        fakeContactService.checkPermissionResult =
-            ContactPermissionState.deniedPermanently;
+    testWidgets('renders deniedPermanently screen with Open Settings', (
+      tester,
+    ) async {
+      fakeContactService.checkPermissionResult =
+          ContactPermissionState.deniedPermanently;
 
-        await tester.pumpWidget(buildSubject());
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
 
-        expect(
-          find.text(
-            'Contact access helps you find friends '
-            'already on One By Two.',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Open Settings'), findsOneWidget);
-      },
-    );
+      expect(
+        find.text(
+          'Contact access helps you find friends '
+          'already on One By Two.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Open Settings'), findsOneWidget);
+    });
 
     testWidgets('empty state shows appropriate message', (tester) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [];
 
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
       expect(find.text('No contacts found'), findsOneWidget);
-      expect(
-        find.text('You can enter a number manually.'),
-        findsOneWidget,
-      );
+      expect(find.text('You can enter a number manually.'), findsOneWidget);
     });
 
     testWidgets('search field filters the visible list', (tester) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Amit Kumar',
@@ -306,18 +291,14 @@ void main() {
 
         // The screen should have popped.
         expect(find.text('Open Picker'), findsOneWidget);
-        expect(
-          fakeAnalytics.loggedEvents,
-          contains('friend_contact_selected'),
-        );
+        expect(fakeAnalytics.loggedEvents, contains('friend_contact_selected'));
       },
     );
 
     testWidgets('tapping a multi-phone contact opens phone selector', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Priya Sharma',
@@ -341,8 +322,7 @@ void main() {
     testWidgets('selecting a phone in selector completes the selection', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Priya Sharma',
@@ -369,17 +349,13 @@ void main() {
 
       // Should have popped back to the landing page.
       expect(find.text('Open Picker'), findsOneWidget);
-      expect(
-        fakeAnalytics.loggedEvents,
-        contains('friend_contact_selected'),
-      );
+      expect(fakeAnalytics.loggedEvents, contains('friend_contact_selected'));
     });
 
     testWidgets('telemetry friend_contact_picker_opened fires on open', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Amit Kumar',
@@ -399,8 +375,7 @@ void main() {
     testWidgets('telemetry friend_contact_search_used fires on search', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Amit Kumar',
@@ -423,8 +398,7 @@ void main() {
     testWidgets('telemetry friend_contact_selected fires on selection', (
       tester,
     ) async {
-      fakeContactService.checkPermissionResult =
-          ContactPermissionState.granted;
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
       fakeContactService.contactsResult = [
         const DeviceContact(
           displayName: 'Amit Kumar',
@@ -443,44 +417,37 @@ void main() {
       await tester.tap(find.text('Amit Kumar'));
       await tester.pumpAndSettle();
 
-      expect(
-        fakeAnalytics.loggedEvents,
-        contains('friend_contact_selected'),
-      );
+      expect(fakeAnalytics.loggedEvents, contains('friend_contact_selected'));
     });
 
-    testWidgets(
-      'telemetry friend_contact_picker_dismissed_without_selection '
-      'fires on dismiss',
-      (tester) async {
-        fakeContactService.checkPermissionResult =
-            ContactPermissionState.granted;
-        fakeContactService.contactsResult = [
-          const DeviceContact(
-            displayName: 'Amit Kumar',
-            phoneNumbers: ['9876543210'],
-          ),
-        ];
+    testWidgets('telemetry friend_contact_picker_dismissed_without_selection '
+        'fires on dismiss', (tester) async {
+      fakeContactService.checkPermissionResult = ContactPermissionState.granted;
+      fakeContactService.contactsResult = [
+        const DeviceContact(
+          displayName: 'Amit Kumar',
+          phoneNumbers: ['9876543210'],
+        ),
+      ];
 
-        await tester.pumpWidget(
-          buildSubject(pushAsRoute: true, observer: mockObserver),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        buildSubject(pushAsRoute: true, observer: mockObserver),
+      );
+      await tester.pumpAndSettle();
 
-        // Navigate to the picker.
-        await tester.tap(find.text('Open Picker'));
-        await tester.pumpAndSettle();
+      // Navigate to the picker.
+      await tester.tap(find.text('Open Picker'));
+      await tester.pumpAndSettle();
 
-        // Go back without selecting.
-        final backButton = find.byTooltip('Back');
-        await tester.tap(backButton);
-        await tester.pumpAndSettle();
+      // Go back without selecting.
+      final backButton = find.byTooltip('Back');
+      await tester.tap(backButton);
+      await tester.pumpAndSettle();
 
-        expect(
-          fakeAnalytics.loggedEvents,
-          contains('friend_contact_picker_dismissed_without_selection'),
-        );
-      },
-    );
+      expect(
+        fakeAnalytics.loggedEvents,
+        contains('friend_contact_picker_dismissed_without_selection'),
+      );
+    });
   });
 }

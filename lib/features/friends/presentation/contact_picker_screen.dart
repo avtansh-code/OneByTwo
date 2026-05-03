@@ -43,8 +43,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
   }
 
   Future<void> _checkAndLoad() async {
-    final permNotifier =
-        ref.read(contactPermissionControllerProvider.notifier);
+    final permNotifier = ref.read(contactPermissionControllerProvider.notifier);
     await permNotifier.checkPermission();
     if (!mounted) return;
 
@@ -55,8 +54,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
   }
 
   Future<void> _loadContacts() async {
-    final pickerNotifier =
-        ref.read(contactPickerControllerProvider.notifier);
+    final pickerNotifier = ref.read(contactPickerControllerProvider.notifier);
     await pickerNotifier.loadContacts();
     if (!mounted) return;
 
@@ -71,8 +69,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
   }
 
   Future<void> _requestPermission() async {
-    final permNotifier =
-        ref.read(contactPermissionControllerProvider.notifier);
+    final permNotifier = ref.read(contactPermissionControllerProvider.notifier);
     await permNotifier.requestPermission();
     if (!mounted) return;
 
@@ -96,10 +93,10 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
   }
 
   void _onContactTapped(int index) {
-    final pickerNotifier =
-        ref.read(contactPickerControllerProvider.notifier);
-    final contact =
-        ref.read(contactPickerControllerProvider).filteredContacts[index];
+    final pickerNotifier = ref.read(contactPickerControllerProvider.notifier);
+    final contact = ref
+        .read(contactPickerControllerProvider)
+        .filteredContacts[index];
     pickerNotifier.selectContact(contact);
   }
 
@@ -142,18 +139,18 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
     final pickerState = ref.watch(contactPickerControllerProvider);
 
     // React to selection or multi-phone changes.
-    ref.listen<ContactPickerState>(
-      contactPickerControllerProvider,
-      (previous, next) {
-        if (next.selectedContact != null &&
-            previous?.selectedContact != next.selectedContact) {
-          _handleSelection();
-        } else if (next.pendingMultiPhone != null &&
-            previous?.pendingMultiPhone != next.pendingMultiPhone) {
-          _handleSelection();
-        }
-      },
-    );
+    ref.listen<ContactPickerState>(contactPickerControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (next.selectedContact != null &&
+          previous?.selectedContact != next.selectedContact) {
+        _handleSelection();
+      } else if (next.pendingMultiPhone != null &&
+          previous?.pendingMultiPhone != next.pendingMultiPhone) {
+        _handleSelection();
+      }
+    });
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -161,18 +158,17 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
           final state = ref.read(contactPickerControllerProvider);
           if (state.selectedContact == null) {
             unawaited(
-              ref.read(analyticsServiceProvider).logEvent(
-                    name:
-                        'friend_contact_picker_dismissed_without_selection',
+              ref
+                  .read(analyticsServiceProvider)
+                  .logEvent(
+                    name: 'friend_contact_picker_dismissed_without_selection',
                   ),
             );
           }
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Add Friend'),
-        ),
+        appBar: AppBar(title: const Text('Add Friend')),
         body: _buildBody(permState, pickerState),
       ),
     );
@@ -215,9 +211,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
 
       case ContactPermissionState.granted:
         if (pickerState.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         return Column(
@@ -240,8 +234,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
                   : ListView.builder(
                       itemCount: pickerState.filteredContacts.length,
                       itemBuilder: (context, index) {
-                        final contact =
-                            pickerState.filteredContacts[index];
+                        final contact = pickerState.filteredContacts[index];
                         final phone = contact.phoneNumbers.isNotEmpty
                             ? contact.phoneNumbers.first
                             : '';

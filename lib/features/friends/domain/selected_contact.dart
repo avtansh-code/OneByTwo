@@ -20,9 +20,9 @@ class SelectedContact {
 
   /// Converts to a map for boundary-contract assertions.
   Map<String, Object> toMap() => {
-        'displayName': displayName,
-        'phoneNumbers': phoneNumbers,
-      };
+    'displayName': displayName,
+    'phoneNumbers': phoneNumbers,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -35,6 +35,7 @@ class SelectedContact {
   int get hashCode => Object.hash(displayName, Object.hashAll(phoneNumbers));
 
   @override
-  String toString() => 'SelectedContact(displayName: $displayName, '
+  String toString() =>
+      'SelectedContact(displayName: $displayName, '
       'phoneNumbers: $phoneNumbers)';
 }
