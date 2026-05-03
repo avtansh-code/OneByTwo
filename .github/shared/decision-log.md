@@ -537,3 +537,92 @@ finding rather than a known acceptance.
   acceptance rationale and are easier to maintain as a single note.
 
 ---
+
+## ADR-0013: Contact Matching Strategy — Local Intersection vs Server-Side Matching
+
+**Status:** Accepted
+
+### Context
+
+PR #31 introduces a contact picker for the Add Friend flow (FR-FR-01). When the
+user selects a contact, the app must determine whether that person is already a
+One By Two user. Two broad strategies exist for performing this match:
+
+1. **Local matching:** contacts remain on-device; lookup is performed by querying
+   Firestore for the selected phone number.
+2. **Server-side matching:** the device uploads phone numbers (raw or hashed) to
+   a Cloud Function that returns the intersection with registered users.
+
+The choice has significant privacy, complexity, and scalability implications.
+
+### Decision
+
+**Option A — Local matching** is adopted.
+
+Device contacts are loaded into memory via the platform contact-picker API and
+are never uploaded to any server. When the user selects a contact, the app
+queries Firestore by `phoneNumber` (a single document read per selection) to
+determine whether the contact is a registered One By Two user. For "show me
+which of my contacts are already on One By Two" views, the app loads the
+user's own friends list (which is small) and intersects it locally against
+contacts in memory. Broad-stroke "discover all One By Two users in my entire
+address book" is explicitly out of scope for v1.0.
+
+The Firestore `users` collection is already queryable by `phoneNumber` (per the
+schema established in PR #9), so no additional indexes or schema changes are
+required.
+
+### Consequences
+
+- **Privacy-preserving by default.** Contact data never leaves the device. No
+  PII is batched, transmitted, or stored server-side for matching purposes.
+- **No Cloud Function dependency.** The matching path is a direct Firestore
+  query, removing a potential latency and failure point.
+- **Scaling trade-off accepted.** Intersecting a friends list against a large
+  on-device contact list could become slow on cold devices when contact counts
+  exceed roughly 1,000. This is an acceptable trade-off; the v1.0 user base is
+  well below this threshold, and the operation is infrequent.
+- **Hand-off contract from the contact picker.** When the user selects a
+  contact, the picker exposes only the selected contact's data to the calling
+  controller:
+
+  ```
+  selectedContact: { displayName: String, phoneNumbers: List<String> }
+  ```
+
+  Phone numbers are E.164 normalised (e.g. `+91XXXXXXXXXX`). The full contact
+  list never crosses the picker boundary; only the single selected contact does.
+  The boundary-contract test (Phase 5, item 6) will assert this contract.
+- **PII handling posture.** The commitment that PII stays on-device is
+  documented in `docs/design/07-technical/pii-handling.md` and enforced by
+  PII-leak tests. This posture is not promoted to a fifth formal invariant at
+  this time. Consistent with the reasoning applied in ADR-0012 (where
+  `affectedKeys()` was not promoted to a fifth invariant because promotion
+  would be premature), the PII handling pattern should prove stable across at
+  least two to three PII-touching features before elevation is considered.
+
+### Alternatives Considered
+
+- **Server-side matching (Option B):** phone numbers (or hashed phone numbers)
+  are batched and sent to a Cloud Function that performs the intersection and
+  returns matching user IDs. This approach scales better at large contact-list
+  sizes and can implement privacy-preserving variants such as hashing,
+  k-anonymity, or Bloom filters. However, it was rejected for v1.0 because:
+  (a) PII transits to the server even when hashed, making the privacy posture
+  harder to walk back later; (b) it adds Cloud Function complexity (deployment,
+  monitoring, error handling) that is not justified at current scale; and
+  (c) the local matching approach is sufficient for the v1.0 user base.
+- **Hybrid approach (local with server fallback):** rejected for unnecessary
+  complexity when local matching alone meets v1.0 requirements.
+
+### Implication for PR #31
+
+- The controller receives `selectedContact` as
+  `{ displayName: String, phoneNumbers: List<String> }` with E.164 normalised
+  phone numbers.
+- The full contact list is never exposed beyond the picker boundary.
+- The boundary-contract test (Phase 5, item 6) will mock the contact-picker
+  return value and assert that only the single selected contact's
+  `displayName` and `phoneNumbers` are visible to downstream code.
+
+---
