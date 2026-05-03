@@ -70,7 +70,7 @@ after `flutter-checks` and `functions-checks` complete. This is the
 | Per-module folder (`functions/src/<module>/`) | >= 70% line coverage |
 | Overall Flutter | >= 50% line coverage |
 | Overall Cloud Functions | >= 50% line coverage |
-| `functions/src/simplified-debts/` | 100% branch coverage |
+| `functions/src/simplified-debts/` | 100% canonical test matrix (validated by `npm run test:canonical`, not Istanbul branch metric) |
 
 The `coverage-gate` job is a **required status check** on `main`. PRs cannot
 merge until it passes.

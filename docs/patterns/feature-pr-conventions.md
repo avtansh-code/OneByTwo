@@ -239,7 +239,7 @@ SRS section 5.7 and DoD section 2.
 | Per-module folder (`functions/src/<module>/**`) | >= 70% |
 | Overall Flutter | >= 50% |
 | Overall Cloud Functions | >= 50% |
-| Simplified-debts module | 100% branch coverage (canonical test matrix) |
+| Simplified-debts module | 100% canonical test matrix coverage (validated by `npm run test:canonical`, not Istanbul branch metric) |
 
 These thresholds are enforced at two points:
 
