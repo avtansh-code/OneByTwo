@@ -21,6 +21,7 @@ dependencies:
   firebase_storage: ^13.3.0 # Receipt and avatar uploads
   flutter:
     sdk: flutter
+  flutter_contacts: ^1.1.9+2 # Device contacts for add-friend flow (ADR-0013)
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^2.6.1 # State management (ADR-0004)
