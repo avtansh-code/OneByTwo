@@ -130,6 +130,142 @@ This pattern is critical for Invariant 2 enforcement. Every collection with mixe
 - Override providers in `ProviderScope.overrides` in test `setUp`.
 - Assert against the fake's recorded state (e.g., `fakeAnalytics.loggedEvents`).
 
+### Boundary-contract tests
+
+State-transition tests verify that calling a method transitions the controller from
+state X to state Y. They are necessary but not sufficient. A controller can perform
+every state transition correctly while still passing the *wrong data* across an
+architectural boundary — and every state-transition test will pass, because the
+states themselves were fine.
+
+**Boundary-contract tests** verify that the *arguments passed across a boundary* have
+the correct format, shape, or structure. They are required whenever a function accepts
+a loosely-typed parameter (`String`, `Map<String, dynamic>`, or similar) that carries
+implicit structural constraints — for example, an E.164 phone number, a Firestore
+document path, or a JSON payload with expected keys.
+
+The OTP resend bug (PR #29) illustrates why this matters. All state-transition tests
+passed, because the controller moved through the correct loading/success/error states.
+The defect was that the controller passed raw digits (`'9876543210'`) to
+`PhoneAuthRepository.resendOtp` instead of the E.164-formatted string
+(`'+919876543210'`). No existing test inspected the argument at the boundary.
+
+**The rule:** every controller-to-repository boundary and every repository-to-Firebase
+SDK boundary must have at least one test that asserts the format or shape of the
+arguments crossing that boundary. This applies wherever loosely-typed parameters carry
+implicit structure. It does not apply to every function call — only to boundary
+crossings with structural contracts.
+
+**Worked example — auth controller to repository boundary:**
+
+The `FakePhoneAuthRepository` in
+`test/features/auth/otp_entry_controller_test.dart` must expose a
+`lastResendPhoneNumber` field so tests can inspect the value passed at the boundary.
+Add the field to the fake:
+
+```dart
+/// Last phone number passed to [resendOtp].
+String? lastResendPhoneNumber;
+```
+
+Then record it inside the fake's `resendOtp` override:
+
+```dart
+@override
+Future<void> resendOtp({
+  required String phoneNumber,
+  required void Function(VerificationSession session) onCodeSent,
+  required void Function(AuthError error) onError,
+  int? resendToken,
+}) async {
+  resendOtpCallCount++;
+  lastResendPhoneNumber = phoneNumber; // <-- record the boundary argument
+  if (resendOtpError != null) {
+    onError(resendOtpError!);
+    return;
+  }
+  if (resendOtpSession != null) {
+    onCodeSent(resendOtpSession!);
+  }
+}
+```
+
+The boundary-contract test itself:
+
+```dart
+test('resend passes E.164-formatted phone number to repository', () async {
+  // Arrange — 10-digit raw number as the controller receives it.
+  final fakeRepo = FakePhoneAuthRepository();
+  fakeRepo.resendOtpSession = VerificationSession(
+    verificationId: 'new-vid',
+    resendToken: 42,
+  );
+  final controller = OtpEntryController(
+    phoneNumber: '9876543210',
+    verificationId: 'initial-vid',
+    repository: fakeRepo,
+    analytics: FakeAnalyticsService(),
+  );
+
+  // Tick past the resend cooldown so canResend is true.
+  await Future<void>.delayed(Duration.zero);
+  controller.startResendTimer();
+  // ... advance timer to enable resend ...
+
+  // Act
+  await controller.resend();
+
+  // Assert — the repository must receive E.164 format, not raw digits.
+  expect(fakeRepo.lastResendPhoneNumber, equals('+919876543210'));
+  // This test would have FAILED before PR #29's fix, because the
+  // controller was passing '9876543210' instead of '+919876543210'.
+
+  controller.dispose();
+});
+```
+
+This test does not check state transitions — other tests already cover those. It
+checks that the *value crossing the boundary* conforms to the structural contract
+(E.164 format). That is what makes it a boundary-contract test.
+
+### Enforced coverage thresholds
+
+The following coverage thresholds are enforced automatically. They are drawn from
+SRS section 5.7 and DoD section 2.
+
+| Scope | Threshold |
+|---|---|
+| Per-feature folder (`lib/features/<feature>/**`) | >= 70% |
+| Per-module folder (`functions/src/<module>/**`) | >= 70% |
+| Overall Flutter | >= 50% |
+| Overall Cloud Functions | >= 50% |
+| Simplified-debts module | 100% canonical test matrix coverage (validated by `npm run test:canonical`, not Istanbul branch metric) |
+
+These thresholds are enforced at two points:
+
+1. **lefthook pre-push (scoped gate).** Runs coverage only on feature folders
+   touched by the push. Fails the push if any touched feature folder is below 70%.
+   Skips gracefully for docs-only pushes. Escape hatch: `git push --no-verify`.
+
+2. **GitHub Actions PR pipeline (authoritative gate).** The `coverage-gate` job
+   runs after the test jobs complete. It checks ALL feature folders and overall
+   thresholds. Any breach fails the PR check. `coverage-gate` is a required status
+   check on `main` — PRs cannot merge until it passes.
+
+Cross-references: SRS section 5.7, DoD section 2.
+
+### Coverage quality note
+
+Coverage as a number is gameable. Tests that execute code without asserting
+meaningful behaviour add coverage percentage but not confidence in correctness.
+The boundary-contract pattern described above is one defence against this: it
+forces tests to inspect values at architectural boundaries, not merely trigger
+code paths. The discipline is to write tests that actually constrain behaviour,
+not just touch lines. Mutation testing is a more rigorous anti-gaming technique
+but is not enforced for v1.0 due to its overhead and tooling weight. Reviewers
+should assess whether tests in a PR are assertion-rich — verifying return values,
+state fields, and boundary arguments — not merely line-covering.
+
 ---
 
 ## 4. Telemetry

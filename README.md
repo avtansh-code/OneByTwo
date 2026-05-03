@@ -66,8 +66,8 @@ flutter pub get
 # Install Cloud Functions dependencies
 cd functions && npm ci && cd ..
 
-# Start Firebase Emulator Suite
-firebase emulators:start
+# Start Firebase Emulator Suite (reads project ID from .firebaserc)
+./scripts/dev/start-emulators.sh
 
 # Run the app (pointing to emulators in debug mode)
 flutter run
@@ -75,6 +75,9 @@ flutter run
 # Install git hooks
 lefthook install
 ```
+
+> **Note:** The wrapper reads the project ID from `.firebaserc` and enforces
+> Invariant #4 (single Firebase project). See `scripts/dev/README.md` for details.
 
 ### Running Tests
 
