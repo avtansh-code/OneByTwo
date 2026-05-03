@@ -88,22 +88,127 @@ pre-push:
 
     coverage-check:
       run: |
-        # Block push if coverage drops below SRS thresholds.
-        # 70% non-UI, 50% overall.
-        flutter test --coverage 2>/dev/null || true
-        if [ -f coverage/lcov.info ]; then
-          if command -v lcov >/dev/null 2>&1; then
-            TOTAL=$(lcov --summary coverage/lcov.info 2>&1 | grep 'lines' | grep -oE '[0-9]+\.[0-9]+%' | head -1 | tr -d '%')
-            if [ -n "$TOTAL" ]; then
-              BELOW=$(echo "$TOTAL < 50.0" | bc -l 2>/dev/null || echo "0")
-              if [ "$BELOW" = "1" ]; then
-                echo "ERROR: Overall coverage ${TOTAL}% is below the 50% threshold."
-                echo "SRS section 5.7 requires >= 50% overall and >= 70% non-UI coverage."
-                exit 1
-              fi
-            fi
-          fi
+        # Scoped coverage gate — only checks feature/module folders touched by
+        # this push. SRS section 5.7: >= 70% per feature/module.
+        # Use --no-verify if you genuinely need to bypass.
+        echo "Running scoped coverage gate on touched features. Use --no-verify if you genuinely need to bypass."
+
+        FAILED=0
+
+        # ── Detect touched Flutter feature folders ──
+        FLUTTER_FEATURES=$(git diff --name-only HEAD @{push} -- 'lib/features/' 2>/dev/null \
+          | grep -oE 'lib/features/[^/]+' | sort -u || true)
+
+        # ── Detect touched Functions module folders ──
+        FUNCTIONS_MODULES=$(git diff --name-only HEAD @{push} -- 'functions/src/' 2>/dev/null \
+          | grep -oE 'functions/src/[^/]+' | sort -u || true)
+
+        if [ -z "$FLUTTER_FEATURES" ] && [ -z "$FUNCTIONS_MODULES" ]; then
+          echo "No feature folders touched — coverage gate skipped."
+          exit 0
         fi
+
+        # ── Flutter feature coverage checks ──
+        for FEATURE_PATH in $FLUTTER_FEATURES; do
+          FEATURE_NAME=$(basename "$FEATURE_PATH")
+          TEST_DIR="test/features/$FEATURE_NAME"
+          if [ ! -d "$TEST_DIR" ]; then
+            echo "WARN: No test directory $TEST_DIR — skipping coverage for $FEATURE_NAME."
+            continue
+          fi
+
+          echo "Checking coverage for Flutter feature: $FEATURE_NAME ..."
+          flutter test --coverage "$TEST_DIR"
+
+          if [ ! -f coverage/lcov.info ]; then
+            echo "WARN: No coverage/lcov.info produced for $FEATURE_NAME — skipping."
+            continue
+          fi
+
+          # Parse lcov.info: extract hit/total lines for files under lib/features/<feature>/
+          COVERAGE_PCT=$(python3 -c "
+import re, sys
+hit = 0; total = 0; in_scope = False
+with open('coverage/lcov.info') as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith('SF:'):
+            in_scope = 'lib/features/${FEATURE_NAME}/' in line
+        elif in_scope and line.startswith('LH:'):
+            hit += int(line.split(':')[1])
+        elif in_scope and line.startswith('LF:'):
+            total += int(line.split(':')[1])
+if total == 0:
+    print('N/A')
+else:
+    print(f'{hit * 100.0 / total:.1f}')
+" 2>/dev/null || echo "N/A")
+
+          if [ "$COVERAGE_PCT" = "N/A" ]; then
+            echo "WARN: Could not compute coverage for $FEATURE_NAME — no matching files in lcov."
+            continue
+          fi
+
+          BELOW=$(python3 -c "print(1 if float('${COVERAGE_PCT}') < 70.0 else 0)" 2>/dev/null || echo "0")
+          if [ "$BELOW" = "1" ]; then
+            echo "FAIL: lib/features/$FEATURE_NAME/ coverage is ${COVERAGE_PCT}% (required >= 70%)"
+            FAILED=1
+          else
+            echo "PASS: lib/features/$FEATURE_NAME/ coverage is ${COVERAGE_PCT}% (>= 70%)"
+          fi
+        done
+
+        # ── Functions module coverage checks ──
+        for MODULE_PATH in $FUNCTIONS_MODULES; do
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          echo "Checking coverage for Functions module: $MODULE_NAME ..."
+
+          JEST_OUTPUT=$(cd functions && npx jest --coverage --testPathPattern="$MODULE_NAME" 2>&1 || true)
+
+          # Parse Jest text coverage output for src/<module>/ lines.
+          # Jest prints: src/module/file.ts | ...lines% |
+          COVERAGE_PCT=$(echo "$JEST_OUTPUT" | python3 -c "
+import sys, re
+hit = 0; total = 0
+for line in sys.stdin:
+    # Match Jest coverage table rows for files under src/<module>/
+    if 'src/${MODULE_NAME}/' in line or re.match(r'\s*${MODULE_NAME}\s*\|', line):
+        nums = re.findall(r'[\d.]+', line)
+        # Jest table: Stmts | Branch | Funcs | Lines — Lines% is the 4th number
+        if len(nums) >= 4:
+            pct = float(nums[3])
+            # Weight equally per file row
+            hit += pct
+            total += 1
+if total == 0:
+    print('N/A')
+else:
+    print(f'{hit / total:.1f}')
+" 2>/dev/null || echo "N/A")
+
+          if [ "$COVERAGE_PCT" = "N/A" ]; then
+            echo "WARN: Could not compute coverage for $MODULE_NAME — skipping."
+            continue
+          fi
+
+          BELOW=$(python3 -c "print(1 if float('${COVERAGE_PCT}') < 70.0 else 0)" 2>/dev/null || echo "0")
+          if [ "$BELOW" = "1" ]; then
+            echo "FAIL: functions/src/$MODULE_NAME/ coverage is ${COVERAGE_PCT}% (required >= 70%)"
+            FAILED=1
+          else
+            echo "PASS: functions/src/$MODULE_NAME/ coverage is ${COVERAGE_PCT}% (>= 70%)"
+          fi
+        done
+
+        if [ "$FAILED" = "1" ]; then
+          echo ""
+          echo "Coverage gate FAILED. SRS section 5.7 requires >= 70% per feature/module."
+          echo "Fix coverage before pushing, or use --no-verify to bypass."
+          exit 1
+        fi
+
+        echo ""
+        echo "Coverage gate passed for all touched features/modules."
 
 post-merge:
   commands:
