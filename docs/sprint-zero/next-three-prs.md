@@ -1,63 +1,62 @@
 # Next Three PRs
 
-> Rolling roadmap. Updated after PR #14 (Sprint 1 boundary cleanup merged).
-> Last updated: 2026-05-02.
+> Rolling roadmap. Updated at the end of every PR.
+> Last updated: PR #31.
 
 ---
 
-## PR #15 — Sprint 2 Opener: Friend-Add via Contact Picker (FR-FR-01)
+## PR #32 — User Lookup and Friendship Creation (FR-FR-01 Matching)
 
-**Status:** Next up. Unblocked by PR #14.
+**Status:** Next up. Unblocked once PR #31 merges.
 
-**Scope:** Add-friend flow using the device contact picker. The user selects a
-contact, the app resolves the +91 phone number, and either links to an existing
-`users` document or creates a pending friendship document in the `friendships`
-collection. Opens the social graph vertical.
+**Scope:** Consumes the hand-off contract established by PR #31's contact picker
+UI. Performs a Firestore query against the `users` collection to determine whether
+the selected contact's phone number matches an existing One By Two user. If yes,
+creates a `friendships` document linking the two users. If no, opens an invite
+flow via the system share sheet (Invariant 3). Handles negative cases: self-add
+rejection and duplicate friendship rejection.
 
-**Dependencies (from DAG):** FR-AU-07 (session persistence) — shipped in PR #11.
-Contact picker permissions — added in PR #14.
+**Dependencies (from DAG):** PR #31 (contact picker UI) — in flight.
 
-**User story:** `docs/sprint-zero/stories/FR-FR-01-add-friend.md` (written in
-PR #14). DoR-compliant.
+**User story:** `docs/sprint-zero/stories/FR-FR-01-matching-and-friendship.md`.
+DoR-compliant. 2 SP.
 
 **Design artefacts:**
-- Friendship schema: complete in `docs/design/07-technical/firestore-schema.md`.
-- Screen spec: `docs/design/06-screen-specs/09-12-friends.md` (includes
-  contact permission denial UX, added in PR #14).
-- Wireframe: `docs/design/04-wireframes/friends-flow.md`.
-- Components: `OBTContactPicker`, `OBTFriendListTile`, `OBTBalancePill` catalogued.
-- Risk: R-17 (contact permission fragility) documented in PR #14.
+- Friendship schema: `docs/design/07-technical/firestore-schema.md`
+  (`friendships/{friendshipId}`).
+- Screen spec: `docs/design/06-screen-specs/09-12-friends.md` (SCR-10, SCR-11).
+- Architecture: ADR-0013 (Contact Matching Strategy — Local Intersection).
+- PII handling: `docs/design/07-technical/pii-handling.md`.
 
-**Agents involved:** Flutter Dev, Architect (friendship Firestore rules), QA.
+**Agents involved:** Flutter Dev, Architect (friendship Firestore security rules),
+QA.
+
+**Bucket-B items likely addressed:** R1-R3 (friendship rules create/update/delete
+tests).
 
 ---
 
-## PR #16 — Link Existing User or Invite (FR-FR-02)
+## PR #33 — TBD per Sprint 2 Plan
 
-**Status:** Planned. Depends on FR-FR-01.
+**Status:** Planned. Depends on PR #31 (and possibly PR #32).
 
-**Scope:** After selecting a contact, determine whether the phone number matches
-an existing OneByTwo user. If yes, create a confirmed friendship. If no, send an
-invite via the system share sheet (invariant 3). Contacts are matched client-side
-only — never uploaded to Firestore (privacy note in PR #14).
+**Scope:** Likely FR-FR-02 (link existing user or invite via system share sheet)
+or FR-FR-03 (friends list with simplified net balance). Final determination at
+PR #33 kickoff based on Sprint 2 progress and any blockers surfaced by PR #32.
 
-**User story:** `docs/sprint-zero/stories/FR-FR-02-link-or-invite-friend.md`
-(written in PR #14). DoR-compliant.
+**Candidate stories:**
+- `docs/sprint-zero/stories/FR-FR-02-link-or-invite-friend.md` (3 SP, DoR-compliant).
+- `docs/sprint-zero/stories/FR-FR-03-friends-list.md` (3 SP, DoR-compliant).
 
 **Agents involved:** Flutter Dev, QA.
 
 ---
 
-## PR #17 — Friends List with Net Balance (FR-FR-03)
+## PR #34 — TBD per Sprint 2 Plan
 
-**Status:** Planned. Depends on FR-FR-01.
+**Status:** Planned.
 
-**Scope:** Friends list screen showing all friendships with the authenticated
-user. Each row displays the friend's display name, avatar, and simplified net
-balance (read from `simplifiedBalances` — invariant 2, client-read-only). Sorted
-by `lastActivityAt` descending. Empty state for zero friends.
+**Scope:** To be determined at PR #34 kickoff. Will cover whichever of FR-FR-02,
+FR-FR-03, or FR-FR-04 remains after PR #33's scope is finalised.
 
-**User story:** `docs/sprint-zero/stories/FR-FR-03-friends-list.md` (written in
-PR #14). DoR-compliant.
-
-**Agents involved:** Flutter Dev, QA.
+**Agents involved:** TBD.
