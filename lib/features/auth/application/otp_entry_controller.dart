@@ -313,7 +313,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
     );
 
     await _repository.resendOtp(
-      phoneNumber: _phoneNumber,
+      phoneNumber: '+91$_phoneNumber',
       onCodeSent: (session) {
         if (!mounted) return;
         _resendToken = session.resendToken;
