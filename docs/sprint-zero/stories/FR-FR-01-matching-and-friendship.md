@@ -206,3 +206,71 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 | Flutter Dev | Matching repository, friendship repository, controller, UI, telemetry |
 | Architect | Security rules updates, schema review, invariant compliance |
 | QA | All matching scenarios, rules tests, PII-leak tests |
+
+---
+
+## Architect Notes
+
+### 3.1 Cloud Function shape (per ADR-0014 Option C)
+
+- **Name:** `lookupUserByPhoneNumber`
+- **Region:** `asia-south1`
+- **Input:** `{ phoneNumber: string }` — E.164, validated via regex. Reject
+  `INVALID_INPUT` for malformed.
+- **Output:** `{ matched: false }` OR
+  `{ matched: true, displayName: string, photoUrl: string | null, otherUserId: string }`
+- **Rate-limit:** 100 lookups per user per hour at
+  `_rateLimits/{userId}/lookups`. Returns `RATE_LIMITED` if exceeded.
+- **Error envelope:** Typed per `cloud-functions-error-codes.md`. New codes:
+  `INVALID_INPUT`, `RATE_LIMITED`, `INTERNAL`.
+- **Audit log:** Hashed phoneNumber + timestamp + caller userId +
+  matched/unmatched. Retention 30 days.
+
+### 3.2 Matching repository shape on the client
+
+- `MatchingRepository.lookupUser(phoneNumber: String) -> Future<MatchResult>`
+- `MatchResult` is a sealed union:
+  - `Matched(displayName, photoUrl, otherUserId)`
+  - `Unmatched`
+  - `Failed(error)`
+  - `RateLimited`
+- Calls Cloud Function via Firebase Functions SDK.
+- Maps function-side error codes to domain-level errors.
+- Boundary-contract test: assert phoneNumber argument is E.164 before the
+  function call.
+
+### 3.3 Friendship creation
+
+- Client-side direct Firestore write (per ADR-0007/ADR-0008).
+- Deterministic document ID: sort both userIds lexicographically, join with
+  underscore.
+- Document fields: `memberIds` (sorted array of two userIds), `createdBy`,
+  `lastActivityAt`.
+- `simplifiedBalances` is NOT written by the client on creation — the Cloud
+  Function initialises it.
+- Idempotency: `set` with `merge:false` fails if doc exists, allowing detection
+  of duplicates.
+
+### 3.4 Firestore Security Rules updates
+
+- **Users read:** owner OR friendship/group member.
+- **Friendships create:** caller in `memberIds`, `memberIds.size() == 2`,
+  sorted, no `simplifiedBalances`, `createdBy == auth.uid`.
+- **Friendships read:** caller in `memberIds`.
+- **Friendships update:** caller in `memberIds`, field-level diff blocking
+  `simplifiedBalances` and `memberIds` changes.
+- **Friendships delete:** default-deny for now.
+- **_rateLimits:** deny all client access.
+
+### 3.5 Self-add and duplicate-friendship guards
+
+- Client-side: check if phoneNumber matches current user's phoneNumber before
+  lookup.
+- After matching: compute deterministic friendship ID, check existence, navigate
+  to existing if found.
+
+### 3.6 Coverage gate posture
+
+- `lib/features/friends/**` >= 70% (inherited from PR #31).
+- `functions/src/lookup-user-by-phone-number/**` >= 70% (new module).
+- Overall thresholds unchanged.
