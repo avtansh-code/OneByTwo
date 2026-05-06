@@ -30,8 +30,13 @@ do not exist; everything is participant-scoped").
 
 ### Read
 
-- Allowed only when `request.auth.uid == userId`.
-- A user may read only their own profile document.
+- Allowed when `request.auth.uid == userId` (own document).
+- Allowed when `request.auth.uid` is present in a `friendships` document's
+  `memberIds` AND the target `userId` is also in that friendship's `memberIds` —
+  i.e., you can read the profile of someone you are friends with.
+- Note: phone-number queries are NOT permitted from clients. The Cloud Function
+  `lookupUserByPhoneNumber` performs phone-number lookups server-side with
+  elevated permissions (Admin SDK). See ADR-0014.
 
 ### Create
 
@@ -73,6 +78,11 @@ do not exist; everything is participant-scoped").
   derivation; SRS section 7.2).
 - The `simplifiedBalances` field must not be present in the incoming data (it is
   initialised by the Cloud Function).
+- `createdBy` must equal `request.auth.uid`.
+- The friendship document ID must be the deterministic composite of the two
+  sorted `memberIds` joined with an underscore (e.g., if `memberIds` is
+  `['aaa', 'bbb']`, the document ID must be `aaa_bbb`). This is validated as
+  `request.resource.id == memberIds[0] + '_' + memberIds[1]`.
 
 ### Update
 
@@ -243,6 +253,20 @@ do not exist; everything is participant-scoped").
 
 ---
 
+## _rateLimits/{userId}/{document}
+
+### Read
+
+- Denied to all clients. This collection is internal infrastructure managed
+  exclusively by Cloud Functions.
+
+### Write (create, update, delete)
+
+- Denied to all clients. Only Cloud Functions (via the Admin SDK) may read or
+  write rate-limit counters.
+
+---
+
 ## Negative Test Cases
 
 The following test cases must be included in the security rules test suite
@@ -323,6 +347,28 @@ that a disallowed operation is rejected.
 
 > **Setup:** Authenticated user updating their own user document.
 > **Action:** Change the `phoneNumber` field to a different value.
+> **Expected:** Write is denied.
+
+### 11. Client attempts to read or write `_rateLimits` — DENIED
+
+> **Setup:** Authenticated user.
+> **Action:** Attempt to read or write any document under `_rateLimits/{userId}/`.
+> **Expected:** Read and write are both denied.
+> **Rationale:** The `_rateLimits` collection is internal infrastructure managed
+> exclusively by Cloud Functions via the Admin SDK.
+
+### 12. Friendship created with `createdBy` not matching auth UID — DENIED
+
+> **Setup:** Authenticated user creating a friendship document.
+> **Action:** Create a friendship where `createdBy` is set to a different user's
+> UID.
+> **Expected:** Write is denied.
+
+### 13. Friendship created with non-deterministic document ID — DENIED
+
+> **Setup:** Authenticated user creating a friendship document.
+> **Action:** Create a friendship where the document ID does not match the
+> deterministic composite of the two sorted `memberIds` joined with underscore.
 > **Expected:** Write is denied.
 
 ---

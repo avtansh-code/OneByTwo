@@ -17,6 +17,7 @@
 5. [acceptGroupInvite](#5-acceptgroupinvite)
 6. [revokeGroupInvite](#6-revokegroupinvite)
 7. [sendReminderNotification](#7-sendremindernotification)
+8. [lookupUserByPhoneNumber](#8-lookupuserbyphonenumber)
 
 ---
 
@@ -672,6 +673,111 @@ subject to the rate limit.
 
 ---
 
+## 8. lookupUserByPhoneNumber
+
+### Purpose
+
+Accepts an E.164 phone number from an authenticated caller, queries the `users`
+collection for a matching `phoneNumber` field, and returns a minimal response to
+confirm whether the phone number belongs to a registered user. (ADR-0014.)
+
+### Trigger type
+
+**HTTPS Callable** (`onCall`), region `asia-south1`.
+
+### Input contract
+
+```typescript
+interface LookupRequest {
+  phoneNumber: string; // E.164 format, e.g. "+919876543210"
+}
+```
+
+### Output contract
+
+```typescript
+type LookupResponse =
+  | { matched: false }
+  | { matched: true; displayName: string; photoUrl: string | null; otherUserId: string };
+```
+
+**Firestore paths read:**
+
+| Collection | Query |
+|---|---|
+| `users` | `where('phoneNumber', '==', phoneNumber)`, `limit(1)` |
+
+**Firestore paths written:**
+
+| Target | Path | Description |
+|---|---|---|
+| Rate-limit counter | `_rateLimits/{userId}/lookups` | Increments `count` and updates `windowStart` if the current window has expired. |
+
+### Rate limiting
+
+100 lookups per user per hour. The counter is stored at
+`_rateLimits/{userId}/lookups` with the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `count` | number | Number of lookups in the current window. |
+| `windowStart` | timestamp | Start of the current rate-limit window. |
+
+If the current window has expired (more than 1 hour since `windowStart`), the
+counter resets to 1 and `windowStart` is set to the current time. If the counter
+reaches 100 within the window, the function returns a `RATE_LIMITED` error.
+
+### Privacy
+
+The function NEVER returns `phoneNumber`, `fcmTokens`, `notificationPrefs`,
+`locale`, `createdAt`, or `updatedAt`. Only the minimum fields needed for the UI
+(`displayName`, `photoUrl`) and for friendship creation (`otherUserId`) are
+included in the response. A "not found" phone number is not an error — it returns
+`{ matched: false }` as a success response.
+
+### Logging
+
+Each invocation logs a structured event with:
+
+- SHA-256 hashed phone number (raw phone numbers are NEVER logged).
+- Caller `userId`.
+- Matched or unmatched result.
+
+This is consistent with the PII handling principles in
+`docs/design/07-technical/pii-handling.md` (sections 2.1 and 2.2).
+
+### Idempotency strategy
+
+The function is a pure read (plus rate-limit counter update). Repeated calls with
+the same phone number return the same result (subject to user registration state
+changes). The rate-limit counter is incremented on each call.
+
+### Error semantics
+
+See `docs/design/07-technical/cloud-functions-error-codes.md` for the full error
+code catalogue. Summary:
+
+| Condition | Error Code |
+|---|---|
+| Missing or malformed phone number | `INVALID_INPUT` (`invalid-argument`) |
+| Rate limit exceeded | `RATE_LIMITED` (`resource-exhausted`) |
+| Unexpected error | `INTERNAL` (`internal`) |
+
+### Retry policy
+
+**Not auto-retried** (callable). The client may re-invoke on transient failure,
+subject to the rate limit.
+
+### Region
+
+`asia-south1`
+
+### ADR Reference
+
+ADR-0014 — Phone Number Lookup via Cloud Function.
+
+---
+
 ## Appendix A: Deployment Summary
 
 | Function name | Trigger | Auto-retry | Region | Status |
@@ -684,6 +790,7 @@ subject to the rate limit.
 | `acceptGroupInvite` | Callable | No | `asia-south1` | planned |
 | `revokeGroupInvite` | Callable | No | `asia-south1` | planned |
 | `sendReminderNotification` | Callable | No | `asia-south1` | planned |
+| `lookupUserByPhoneNumber` | Callable | No | `asia-south1` | planned |
 
 ---
 
@@ -702,6 +809,7 @@ functions/
       acceptGroupInvite.ts           — Invite acceptance callable
       revokeGroupInvite.ts           — Invite revocation callable
       sendReminderNotification.ts    — Reminder callable
+      lookupUserByPhoneNumber.ts     — Phone number lookup callable
     utils/
       recomputeSimplifiedBalances.ts — Transaction-based recomputation
       activityFeed.ts                — Activity-feed write helpers
@@ -720,6 +828,7 @@ functions/
       acceptGroupInvite.test.ts
       revokeGroupInvite.test.ts
       sendReminderNotification.test.ts
+      lookupUserByPhoneNumber.test.ts
 ```
 
 ---
@@ -735,6 +844,7 @@ functions/
 | FR-AC-01, FR-AC-03, FR-AC-04 | `onExpenseWrite`, `onSettlementWrite`, `sendReminderNotification` |
 | FR-AU-09 | `onUserDelete` |
 | FR-GR-02, FR-GR-03 | `acceptGroupInvite`, `revokeGroupInvite` |
+| FR-FR-01 | `lookupUserByPhoneNumber` |
 | SRS section 7.3 (Invariant 1) | All functions (integer paise) |
 | SRS section 7.3 (Invariant 2) | `recomputeSimplifiedBalances` |
 | SRS section 7.4 | `simplifiedDebts.ts` (pure algorithm) |

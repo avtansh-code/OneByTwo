@@ -98,10 +98,39 @@ promotion would be premature), the PII handling pattern should prove stable
 across at least two to three PII-touching features before elevation to an
 invariant is considered. See ADR-0013 for the full rationale.
 
+## 5. Audit Log Retention
+
+The `lookupUserByPhoneNumber` Cloud Function logs each invocation with the
+following structured fields:
+
+- **Hashed phone number:** SHA-256 hash of the queried phone number. Raw phone
+  numbers are NEVER stored in logs.
+- **Caller userId:** The authenticated user who invoked the function.
+- **Result:** Whether the lookup matched or did not match a registered user.
+
+### Retention policy
+
+Audit logs are retained for **30 days** for abuse detection (e.g., identifying
+users performing excessive lookups or enumeration attempts). After 30 days, logs
+are automatically purged via a Cloud Logging sink configuration (to be set up in
+a future DevOps task).
+
+### Consistency with PII principles
+
+This approach is consistent with the PII handling principles defined in this
+document:
+
+- **Section 2.1 (PII stays on-device):** Raw phone numbers are not persisted in
+  logs. Only SHA-256 hashes are stored, which cannot be reversed to recover the
+  original phone number.
+- **Section 2.2 (PII excluded from telemetry and persistent stores):** The audit
+  log contains no raw PII. Hashed identifiers are used exclusively.
+
 ---
 
-## 5. Revision History
+## 6. Revision History
 
 | Version | Date       | Change                                |
 |---------|------------|---------------------------------------|
 | 1.0     | 2025-06-26 | Initial version (PR #31, ADR-0013).   |
+| 1.1     | 2025-06-28 | Add audit log retention section for lookupUserByPhoneNumber (PR #32, ADR-0014). |

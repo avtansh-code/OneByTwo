@@ -48,6 +48,17 @@ with:
 | `BALANCE_INVARIANT_VIOLATED` | `internal` | 500 | The sum of all net balances is non-zero after computation. This indicates data corruption in the expenses/settlements log. Logged as a critical error. | Yes (after data investigation) |
 | `INTERNAL` | `internal` | 500 | An unexpected error occurred during computation. All caught exceptions that do not match a specific code are mapped here. | Yes |
 
+### lookupUserByPhoneNumber
+
+| Code | Firebase Code | HTTP Equiv | Description | Retryable |
+|------|---------------|------------|-------------|-----------|
+| `INVALID_INPUT` | `invalid-argument` | 400 | Missing or malformed phone number. Must be E.164 format with `+91` prefix. | No |
+| `RATE_LIMITED` | `resource-exhausted` | 429 | User has exceeded 100 lookups per hour. | Yes (after window expires) |
+| `INTERNAL` | `internal` | 500 | Unexpected error during lookup. | Yes |
+
+Note: A "not found" phone number is NOT an error — it returns
+`{ matched: false }` as a success response.
+
 ### Shared Codes (all functions)
 
 | Code | Firebase Code | HTTP Equiv | Description | Retryable |
