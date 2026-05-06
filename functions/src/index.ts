@@ -30,3 +30,6 @@ export const healthcheck = onRequest({region: REGION}, (_req, res) => {
 
 // Simplified debts recomputation callable
 export {recomputeSimplifiedBalances} from "./simplified-debts/index";
+
+// Lookup user by phone number callable
+export {lookupUserByPhoneNumber} from "./lookup-user-by-phone-number/index";
