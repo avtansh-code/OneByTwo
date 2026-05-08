@@ -22,6 +22,7 @@ const RULES_PATH = resolve(__dirname, "../../../firestore.rules");
 function validFriendshipDoc(overrides: Record<string, unknown> = {}) {
   return {
     memberIds: ["user-a", "user-b"],
+    createdBy: "user-a",
     lastActivityAt: serverTimestamp(),
     ...overrides,
   };
