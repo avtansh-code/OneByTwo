@@ -63,17 +63,10 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
       _validationError = null;
     });
 
-    widget.analyticsService.logEvent(
-      name: 'friend_manual_entry_submitted',
-    );
+    widget.analyticsService.logEvent(name: 'friend_manual_entry_submitted');
 
     final e164 = '+91$digits';
-    widget.onSubmit(
-      SelectedContact(
-        displayName: e164,
-        phoneNumbers: [e164],
-      ),
-    );
+    widget.onSubmit(SelectedContact(displayName: e164, phoneNumbers: [e164]));
   }
 
   @override

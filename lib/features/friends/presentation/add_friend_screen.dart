@@ -43,10 +43,12 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
 
   void _fireScreenViewed() {
     unawaited(
-      ref.read(analyticsServiceProvider).logEvent(
-        name: 'add_friend_screen_viewed',
-        parameters: {'entry_path': 'contacts'},
-      ),
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_screen_viewed',
+            parameters: {'entry_path': 'contacts'},
+          ),
     );
   }
 
@@ -150,10 +152,12 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
     });
 
     unawaited(
-      ref.read(analyticsServiceProvider).logEvent(
-        name: 'add_friend_tab_switched',
-        parameters: {'tab': newTab},
-      ),
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_tab_switched',
+            parameters: {'tab': newTab},
+          ),
     );
   }
 
@@ -197,10 +201,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
                     value: 'contacts',
                     label: Text('From Contacts'),
                   ),
-                  ButtonSegment(
-                    value: 'manual',
-                    label: Text('Enter Number'),
-                  ),
+                  ButtonSegment(value: 'manual', label: Text('Enter Number')),
                 ],
                 selected: {_selectedTab},
                 onSelectionChanged: _onTabChanged,
