@@ -625,6 +625,31 @@ required.
   return value and assert that only the single selected contact's
   `displayName` and `phoneNumbers` are visible to downstream code.
 
+### Relationship to ADR-0014
+
+ADR-0013 governs **bulk PII handling**: device contacts are never uploaded to
+any server, matching is performed locally, and the contact picker exposes only
+the single selected contact to downstream code.
+
+ADR-0014 governs the **individual user lookup mechanism**: once a single phone
+number has been selected on-device, how does the app determine whether that
+number belongs to a registered One By Two user? ADR-0014 answers this
+sub-question by routing the lookup through a Cloud Function gateway
+(`lookupUserByPhoneNumber`) rather than a direct client-side Firestore query.
+This preserves the restrictive `users` read rule while still enabling contact
+matching.
+
+The two decisions sit at different layers of the same problem. ADR-0013's
+constraint that contacts never leave the device as bulk data remains binding.
+ADR-0014's Cloud Function accepts only a single phone number per invocation,
+which is consistent with that constraint.
+
+Note: the "No Cloud Function dependency" consequence listed above was written
+before the Security Rules analysis (PR #32) revealed that cross-user reads are
+blocked for clients. ADR-0014's Cloud Function gateway is a conscious
+refinement of the lookup mechanism, not a contradiction of the local-matching
+strategy.
+
 ---
 
 ## ADR-0014: Cross-User Lookup for Contact Matching — Cloud Function Gateway
@@ -741,5 +766,20 @@ and unusable for contact matching. Rejected as non-functional.
    documents of users they share a friendship or group with. Direct
    phone-number queries against the `users` collection remain blocked for
    clients.
+
+### Relationship to ADR-0013
+
+ADR-0013 establishes the higher-level contact-matching strategy: contacts
+remain on-device, no bulk upload occurs, and matching is scoped to individual
+selections. ADR-0014 refines the implementation mechanism for that individual
+lookup. Where ADR-0013 described "queries Firestore by `phoneNumber`",
+ADR-0014 specifies that this query is routed through a Cloud Function
+gateway — not executed as a direct client-side Firestore read — because the
+`users` Security Rules restrict cross-user reads.
+
+Together, the two ADRs form the complete contact-matching architecture:
+ADR-0013 defines what data stays on-device (bulk contacts) and what may be
+looked up (a single selected phone number); ADR-0014 defines how that lookup
+is performed (Cloud Function, rate-limited, with minimal response shape).
 
 ---

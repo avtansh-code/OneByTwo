@@ -6,7 +6,7 @@
 | Status           | Active             |
 | Author           | Solution Architect |
 | SRS Baseline     | v1.1               |
-| ADR Reference    | ADR-0013           |
+| ADR Reference    | ADR-0013, ADR-0014 |
 
 ---
 
@@ -24,8 +24,11 @@ future pull request that touches PII.
 ### 2.1 PII stays on-device
 
 PII remains on the device unless explicitly required for a server-side
-operation. Querying Firestore by `phoneNumber` to look up a single user is
-acceptable; batch-uploading contact lists is not.
+operation. Looking up a single user by phone number is acceptable;
+batch-uploading contact lists is not. In practice, individual lookups are
+routed through the `lookupUserByPhoneNumber` Cloud Function (ADR-0014)
+rather than as direct client-side Firestore queries, preserving restrictive
+client-side read rules.
 
 ### 2.2 PII is excluded from telemetry and persistent stores
 
