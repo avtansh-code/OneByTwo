@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/friends/presentation/contact_picker_screen.dart';
+import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
 
 /// Placeholder friends list screen (FR-FR-03).
 ///
@@ -68,7 +68,7 @@ class FriendsListScreen extends ConsumerWidget {
           .logEvent(name: 'friend_add_button_tapped'),
     );
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const ContactPickerScreen()),
+      MaterialPageRoute<void>(builder: (_) => const AddFriendScreen()),
     );
   }
 }
