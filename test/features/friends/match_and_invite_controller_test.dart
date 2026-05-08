@@ -62,10 +62,7 @@ class FakeFriendshipRepository {
     String otherUserId,
   ) async {
     createFriendshipCalled = true;
-    createArgs = (
-      currentUserId: currentUserId,
-      otherUserId: otherUserId,
-    );
+    createArgs = (currentUserId: currentUserId, otherUserId: otherUserId);
     if (createThrows) throw Exception('Create failed');
     final sorted = [currentUserId, otherUserId]..sort();
     createdFriendshipId = '${sorted[0]}_${sorted[1]}';
@@ -73,10 +70,7 @@ class FakeFriendshipRepository {
   }
 
   /// Simulates [FriendshipRepository.friendshipExists].
-  Future<bool> friendshipExists(
-    String userId1,
-    String userId2,
-  ) async {
+  Future<bool> friendshipExists(String userId1, String userId2) async {
     return friendshipExistsResult;
   }
 }
@@ -256,24 +250,27 @@ void main() {
   });
 
   group('MatchAndInviteController self-add blocking', () {
-    test('emits SelfAddBlocked when contact phone matches current user',
-        () async {
-      await controller.performLookup(_selfContact);
+    test(
+      'emits SelfAddBlocked when contact phone matches current user',
+      () async {
+        await controller.performLookup(_selfContact);
 
-      expect(controller.state, isA<MatchAndInviteSelfAddBlocked>());
-    });
+        expect(controller.state, isA<MatchAndInviteSelfAddBlocked>());
+      },
+    );
 
-    test('does NOT call matching repository when self-add is detected',
-        () async {
-      await controller.performLookup(_selfContact);
+    test(
+      'does NOT call matching repository when self-add is detected',
+      () async {
+        await controller.performLookup(_selfContact);
 
-      expect(fakeMatchingRepo.wasCalled, isFalse);
-    });
+        expect(fakeMatchingRepo.wasCalled, isFalse);
+      },
+    );
   });
 
   group('MatchAndInviteController duplicate friendship', () {
-    test('emits DuplicateFriendship when friendship already exists',
-        () async {
+    test('emits DuplicateFriendship when friendship already exists', () async {
       fakeMatchingRepo.lookupResult = const Matched(
         displayName: 'Priya Sharma',
         photoUrl: null,
@@ -290,27 +287,23 @@ void main() {
   });
 
   group('MatchAndInviteController.addFriend', () {
-    test('calls createFriendship with current user and matched user IDs',
-        () async {
-      fakeMatchingRepo.lookupResult = const Matched(
-        displayName: 'Priya Sharma',
-        photoUrl: null,
-        otherUserId: 'uid-xyz',
-      );
+    test(
+      'calls createFriendship with current user and matched user IDs',
+      () async {
+        fakeMatchingRepo.lookupResult = const Matched(
+          displayName: 'Priya Sharma',
+          photoUrl: null,
+          otherUserId: 'uid-xyz',
+        );
 
-      await controller.performLookup(_testContact);
-      await controller.addFriend();
+        await controller.performLookup(_testContact);
+        await controller.addFriend();
 
-      expect(fakeFriendshipRepo.createFriendshipCalled, isTrue);
-      expect(
-        fakeFriendshipRepo.createArgs?.currentUserId,
-        'current-uid',
-      );
-      expect(
-        fakeFriendshipRepo.createArgs?.otherUserId,
-        'uid-xyz',
-      );
-    });
+        expect(fakeFriendshipRepo.createFriendshipCalled, isTrue);
+        expect(fakeFriendshipRepo.createArgs?.currentUserId, 'current-uid');
+        expect(fakeFriendshipRepo.createArgs?.otherUserId, 'uid-xyz');
+      },
+    );
 
     test('logs analytics event on successful friendship creation', () async {
       fakeMatchingRepo.lookupResult = const Matched(

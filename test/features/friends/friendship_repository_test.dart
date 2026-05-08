@@ -100,9 +100,13 @@ void main() {
       await repository.createFriendship('uid-bbb', 'uid-aaa');
 
       final doc = fakeStore.documents['uid-aaa_uid-bbb']!;
-      expect(doc.containsKey('simplifiedBalances'), isFalse,
-        reason: 'simplifiedBalances is server-maintained and '
-            'must never be written by client code (invariant 2)');
+      expect(
+        doc.containsKey('simplifiedBalances'),
+        isFalse,
+        reason:
+            'simplifiedBalances is server-maintained and '
+            'must never be written by client code (invariant 2)',
+      );
     });
 
     test('document has exactly memberIds, createdBy, and '

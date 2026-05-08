@@ -205,7 +205,8 @@ void main() {
         expect(
           fakeAnalytics.containsPii(pii),
           isFalse,
-          reason: 'Analytics should not contain PII after '
+          reason:
+              'Analytics should not contain PII after '
               'addFriend: $pii',
         );
       }
@@ -253,7 +254,8 @@ void main() {
         expect(
           fakeAnalytics.containsPii(pii),
           isFalse,
-          reason: 'PII should not leak beyond the matching repo '
+          reason:
+              'PII should not leak beyond the matching repo '
               'boundary: $pii',
         );
       }
@@ -268,7 +270,8 @@ void main() {
           expect(
             event.name.contains(pii),
             isFalse,
-            reason: 'Event name "${event.name}" should not '
+            reason:
+                'Event name "${event.name}" should not '
                 'contain PII: $pii',
           );
         }
@@ -286,7 +289,8 @@ void main() {
             expect(
               key.contains(pii),
               isFalse,
-              reason: 'Event parameter key "$key" should not '
+              reason:
+                  'Event parameter key "$key" should not '
                   'contain PII: $pii',
             );
           }

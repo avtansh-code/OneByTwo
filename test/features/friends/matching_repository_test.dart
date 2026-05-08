@@ -54,14 +54,10 @@ void main() {
 
       expect(fakeCallable.wasCalled, isTrue);
       expect(fakeCallable.capturedData, isNotNull);
-      expect(
-        fakeCallable.capturedData!['phoneNumber'],
-        '+919876543210',
-      );
+      expect(fakeCallable.capturedData!['phoneNumber'], '+919876543210');
     });
 
-    test('maps matched response without photoUrl to Matched variant',
-        () async {
+    test('maps matched response without photoUrl to Matched variant', () async {
       fakeCallable.responseData = {
         'matched': true,
         'displayName': 'Test User',

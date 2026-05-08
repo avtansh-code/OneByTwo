@@ -58,25 +58,26 @@ void main() {
       expect(callable.capturedData!.keys, equals(['phoneNumber']));
     });
 
-    test('phoneNumber value is E.164 format (+91 followed by 10 digits)',
-        () async {
-      final callable = BoundaryCapturingCallable();
-      final repo = MatchingRepository(lookupCallable: callable.call);
+    test(
+      'phoneNumber value is E.164 format (+91 followed by 10 digits)',
+      () async {
+        final callable = BoundaryCapturingCallable();
+        final repo = MatchingRepository(lookupCallable: callable.call);
 
-      await repo.lookupUser('+919876543210');
+        await repo.lookupUser('+919876543210');
 
-      final phone = callable.capturedData!['phoneNumber'] as String;
-      expect(phone, startsWith('+91'));
-      expect(phone.length, 13); // +91 + 10 digits
-      expect(
-        RegExp(r'^\+91[6-9]\d{9}$').hasMatch(phone),
-        isTrue,
-        reason: 'Phone must be E.164 Indian mobile: $phone',
-      );
-    });
+        final phone = callable.capturedData!['phoneNumber'] as String;
+        expect(phone, startsWith('+91'));
+        expect(phone.length, 13); // +91 + 10 digits
+        expect(
+          RegExp(r'^\+91[6-9]\d{9}$').hasMatch(phone),
+          isTrue,
+          reason: 'Phone must be E.164 Indian mobile: $phone',
+        );
+      },
+    );
 
-    test('phoneNumber value is a String, not a num or other type',
-        () async {
+    test('phoneNumber value is a String, not a num or other type', () async {
       final callable = BoundaryCapturingCallable();
       final repo = MatchingRepository(lookupCallable: callable.call);
 
@@ -141,7 +142,8 @@ void main() {
       expect(
         store.capturedData!.containsKey('simplifiedBalances'),
         isFalse,
-        reason: 'simplifiedBalances is server-maintained and must '
+        reason:
+            'simplifiedBalances is server-maintained and must '
             'never be written by client code (invariant 2)',
       );
     });

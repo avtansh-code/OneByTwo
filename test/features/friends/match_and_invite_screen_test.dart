@@ -20,8 +20,7 @@ import 'package:onebytwo/features/friends/presentation/match_and_invite_screen.d
 // ---------------------------------------------------------------------------
 
 /// Fake controller that allows setting state directly for widget tests.
-class FakeMatchAndInviteController
-    extends StateNotifier<MatchAndInviteState>
+class FakeMatchAndInviteController extends StateNotifier<MatchAndInviteState>
     implements MatchAndInviteController {
   /// Creates a fake controller with the given initial state.
   FakeMatchAndInviteController(super.initialState);
@@ -62,18 +61,12 @@ class FakeMatchAndInviteController
 // ---------------------------------------------------------------------------
 
 /// Wraps [child] in a [MaterialApp] with [ProviderScope] overrides.
-Widget _buildTestApp({
-  required FakeMatchAndInviteController fakeController,
-}) {
+Widget _buildTestApp({required FakeMatchAndInviteController fakeController}) {
   return ProviderScope(
     overrides: [
-      matchAndInviteControllerProvider.overrideWith(
-        (_) => fakeController,
-      ),
+      matchAndInviteControllerProvider.overrideWith((_) => fakeController),
     ],
-    child: const MaterialApp(
-      home: MatchAndInviteScreen(),
-    ),
+    child: const MaterialApp(home: MatchAndInviteScreen()),
   );
 }
 
@@ -83,8 +76,7 @@ Widget _buildTestApp({
 
 void main() {
   group('MatchAndInviteScreen', () {
-    testWidgets('Loading state renders a loading indicator',
-        (tester) async {
+    testWidgets('Loading state renders a loading indicator', (tester) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteLoading(),
       );
@@ -149,8 +141,9 @@ void main() {
       );
     });
 
-    testWidgets('Error state renders error message with retry button',
-        (tester) async {
+    testWidgets('Error state renders error message with retry button', (
+      tester,
+    ) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteError(message: 'Something went wrong'),
       );
@@ -159,14 +152,12 @@ void main() {
       await tester.pump();
 
       expect(find.text('Something went wrong'), findsOneWidget);
-      expect(
-        find.widgetWithText(TextButton, 'Retry'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
     });
 
-    testWidgets('RateLimited state renders try-again-later message',
-        (tester) async {
+    testWidgets('RateLimited state renders try-again-later message', (
+      tester,
+    ) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteRateLimited(),
       );
@@ -174,14 +165,12 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      expect(
-        find.textContaining('try again later'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('try again later'), findsOneWidget);
     });
 
-    testWidgets('SelfAddBlocked state renders cannot-add-yourself message',
-        (tester) async {
+    testWidgets('SelfAddBlocked state renders cannot-add-yourself message', (
+      tester,
+    ) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteSelfAddBlocked(),
       );
@@ -189,14 +178,12 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      expect(
-        find.textContaining('cannot add yourself'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('cannot add yourself'), findsOneWidget);
     });
 
-    testWidgets('DuplicateFriendship state renders appropriate message',
-        (tester) async {
+    testWidgets('DuplicateFriendship state renders appropriate message', (
+      tester,
+    ) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteDuplicateFriendship(
           existingFriendshipId: 'uid-aaa_uid-bbb',
@@ -206,14 +193,12 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      expect(
-        find.textContaining('already friends'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('already friends'), findsOneWidget);
     });
 
-    testWidgets('tapping Add as friend calls controller.addFriend',
-        (tester) async {
+    testWidgets('tapping Add as friend calls controller.addFriend', (
+      tester,
+    ) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteMatchFound(
           displayName: 'Priya Sharma',
@@ -246,8 +231,7 @@ void main() {
       expect(controller.openInviteShareSheetCalled, isTrue);
     });
 
-    testWidgets('tapping Retry calls controller.performLookup',
-        (tester) async {
+    testWidgets('tapping Retry calls controller.performLookup', (tester) async {
       final controller = FakeMatchAndInviteController(
         const MatchAndInviteError(message: 'Something went wrong'),
       );
