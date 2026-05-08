@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #31.
+> Last updated: PR #32.
 
 ---
 
@@ -17,9 +17,9 @@
 | Code chores | 12 | 0 | 12 |
 | Documentation chores | 8 | 0 | 8 |
 | Dependency upgrades | 6 | 0 | 6 |
-| Test coverage gaps | 8 | 0 | 8 |
+| Test coverage gaps | 8 | 3 | 5 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **0** | **37** |
+| **Total** | **37** | **3** | **34** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
@@ -52,6 +52,21 @@ upcoming chore PR once a reviewer confirms the Bucket A work fully subsumes them
 
 PR #31 is feature work on the Friends epic. **No bucket-B items are expected to
 be resolved by this PR.**
+
+### PR #32 (matching and friendship creation — FR-FR-01)
+
+PR #32 implements friendship matching via a callable Cloud Function, Firestore
+security rules for the `friendships` collection, and invite flow via the system
+share sheet. This PR resolves the following bucket-B items:
+
+| Bucket-B ID | Item | Resolution | Status |
+|---|---|---|---|
+| R1 | Friendship rules create validation tests | PR #32 includes Firestore rules tests covering friendship document creation (valid create, missing fields, wrong caller). | **Resolved** |
+| R2 | Friendship rules update validation tests | PR #32 includes Firestore rules tests covering friendship document update scenarios. | **Resolved** |
+| R3 | Friendship delete deny test | PR #32 includes a Firestore rules test verifying that friendship documents cannot be deleted by clients. | **Resolved** |
+| INV2 | Share-sheet verification tests | PR #32's invite flow tests exercise the system share sheet path (Invariant 3 compliance). Partially addressed — full share-sheet content verification deferred to FR-FR-02. | Open (partially addressed) |
+
+**Net result:** 3 items resolved (R1, R2, R3). 1 item partially addressed (INV2).
 
 ---
 

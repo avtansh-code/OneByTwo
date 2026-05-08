@@ -1,7 +1,7 @@
 # FR-FR-01 (Matching): User Lookup and Friendship Creation
 
-> Sub-story of FR-FR-01. Covers user lookup and friendship creation delivered in
-> PR #32. This story will be refined at PR #32 kickoff.
+> Sub-story of FR-FR-01. Covers user lookup via Cloud Function gateway and
+> friendship creation delivered in PR #32.
 
 ---
 
@@ -20,15 +20,23 @@ FR-FR-01 (SRS section 4.3)
 
 ## Architecture Decision Reference
 
-ADR-0013 — Contact Matching Strategy (Local Intersection). This story consumes
-the hand-off contract established by the UI half (PR #31):
+- **ADR-0013** — Contact Matching Strategy (Local Intersection). Establishes that
+  contacts are intersected locally; no bulk upload of phone numbers to the server.
+- **ADR-0014** — Cloud Function Gateway (`lookupUserByPhoneNumber`). Matching is
+  performed via a callable Cloud Function `lookupUserByPhoneNumber` rather than a
+  direct Firestore query against the `users` collection. The function accepts a
+  single E.164 phone number and returns either the matched user's public profile
+  or a not-found result.
+
+This story consumes the handoff contract established by the UI half (PR #31):
 
 ```
 selectedContact: { displayName: String, phoneNumbers: List<String> }
 ```
 
-Matching is performed by a single Firestore read against the `users` collection,
-querying by `phoneNumber`. Contact data never leaves the device in bulk.
+Phone numbers are E.164 normalised by the contact picker controller. Contact data
+never leaves the device in bulk; only the selected contact's phone number is sent
+to the Cloud Function for lookup.
 
 ## Priority
 
@@ -36,59 +44,85 @@ querying by `phoneNumber`. Contact data never leaves the device in bulk.
 
 ## Story Points
 
-2
+3
 
 ## User Story
 
 As a **signed-in user**,
-I want **the app to look up the selected contact and either create a friendship
-or let me invite them**,
+I want **the app to look up the selected contact via a Cloud Function and either
+create a friendship or let me invite them**,
 so that **I can add friends regardless of whether they already use One By Two**.
 
 ## Preconditions
 
 1. User is authenticated and has completed profile setup.
-2. The contact picker (PR #31) is merged and the hand-off callback is available.
-3. The `users` collection is queryable by `phoneNumber` (established in PR #9).
+2. The contact picker (PR #31) is merged and the handoff callback is available.
+3. The callable Cloud Function `lookupUserByPhoneNumber` is deployed and accessible
+   (ADR-0014).
 4. The `friendships/{friendshipId}` schema is defined per the Firestore schema doc.
 
 ---
 
 ## Acceptance Criteria
 
-### AC-1 — Existing user matched and friendship created (happy path)
+### AC-1 — Lookup and loading indicator
 
-> Given the user selects a contact whose phone number matches a registered
-> One By Two user
-> When the matching query completes
-> Then a `friendships` document is created linking the two users
-> And the user is navigated to SCR-11 (Friend Detail)
-> And `friend_added` fires with `target_is_existing_user: true`
+> Given the user has selected a contact via the picker (PR #31 flow)
+> When the matching flow runs
+> Then the app calls the `lookupUserByPhoneNumber` Cloud Function (per ADR-0014)
+> And a loading indicator is displayed until the function returns
 
-### AC-2 — Non-user contact triggers invite flow
+### AC-2 — Existing user matched, friendship created (happy path)
 
-> Given the user selects a contact whose phone number does not match any
-> registered user
-> When the matching query completes
-> Then an invite confirmation dialog appears (per SCR-10 state 2)
-> And on confirmation, the system share sheet opens (Invariant 3)
-> And `friend_invite_sent` fires
+> Given the contact is matched as an existing One By Two user
+> When the lookup function returns the matched user's profile
+> Then the app shows a confirmation card with the matched user's display name and
+> photo, and an "Add as friend" CTA
+> When the user taps "Add as friend"
+> Then a `friendships/{friendshipId}` document is created with both users in
+> `memberIds` and the friendship balance initialised to zero (integer paise)
+> And the screen navigates to SCR-11 (Friend Detail)
 
-### AC-3 (Negative) — Self-add rejected
+### AC-3 — Non-user contact triggers invite flow
 
-> Given the user selects a contact whose phone number is their own
-> When the matching query completes
-> Then an inline error "You cannot add yourself as a friend." appears
-> And no friendship document is created
+> Given the contact is NOT a One By Two user
+> When the lookup function returns a not-found result
+> Then the app shows an "invite" card with the contact's display name and a
+> "Send invite" CTA
+> When the user taps "Send invite"
+> Then the system share sheet opens (Invariant 3)
 
-### AC-4 (Negative) — Duplicate friendship rejected
+### AC-4 (Negative) — Self-add rejected
 
-> Given the user selects a contact who is already a friend
-> When the matching query completes
-> Then an inline error "You are already friends with [Display name]." appears
-> And no duplicate friendship document is created
+> Given the user selects a contact whose phone number matches their own
+> authenticated phone number
+> When the matching flow begins
+> Then the app blocks the action with an inline error "You cannot add yourself
+> as a friend." BEFORE calling the lookup function
+> And no network request is made
 
-### AC-5 (Negative) — Share sheet dismissed without sharing
+### AC-5 (Negative) — Duplicate friendship rejected
+
+> Given the user selects a contact with whom they already have a friendship
+> When the match is returned
+> Then the app does NOT create a duplicate friendship document
+> And the app navigates to the existing friendship on SCR-11
+
+### AC-6 (Negative) — Lookup failure
+
+> Given the lookup function fails due to a network error or function error
+> When the error response is received
+> Then the app shows an error state with a "Retry" option
+> And friendship creation does NOT proceed
+
+### AC-7 (Negative) — Rate-limited
+
+> Given the lookup function rate-limits the user (HTTP 429 or equivalent)
+> When the rate-limit response is received
+> Then the app shows a "Please try again later" message
+> And no retry is automatically attempted
+
+### AC-8 (Negative) — Share sheet dismissed without sharing
 
 > Given the invite share sheet is open
 > When the user dismisses it without selecting a channel
@@ -101,10 +135,14 @@ so that **I can add friends regardless of whether they already use One By Two**.
 
 | # | Invariant | Applicability |
 |---|---|---|
-| 1 | Money is integer paise | N/A. No money in this story. |
-| 2 | `simplifiedBalances` server-maintained | N/A. Friendship creation does not write to `simplifiedBalances`. |
-| 3 | System share sheet only | **Applicable.** The invite flow must use the system share sheet exclusively. |
-| 4 | Single Firebase project | Applicable. Integration tests use the emulator wrapper. |
+| 1 | Money is integer paise | N/A. No money writes in this story. Friendship balance is initialised to zero (integer paise). |
+| 2 | `simplifiedBalances` server-maintained | PARTIAL. The `friendships` document contains a `simplifiedBalances` field, initialised by the Cloud Function (not written by the client). Verify server-set on creation and client-read-only thereafter. |
+| 3 | System share sheet only | **APPLIES.** The invite path must use the system share sheet exclusively. No app-specific share targets. |
+| 4 | Single Firebase project | APPLIES. Integration tests use the emulator wrapper. |
+
+**PII handling:** APPLIES. Phone numbers cross the network ONLY to the Cloud
+Function, ONLY in E.164 form, and are never stored server-side except in hashed
+audit logs.
 
 ---
 
@@ -112,10 +150,15 @@ so that **I can add friends regardless of whether they already use One By Two**.
 
 | Event Name | Parameters | Trigger |
 |---|---|---|
-| `friend_added` | `method: "contacts"`, `target_is_existing_user: bool` | Friendship document created |
-| `friend_invite_sent` | `method: "contacts"` | System share sheet opened for invite |
-| `friend_add_self_rejected` | none | Self-add attempt blocked |
-| `friend_add_duplicate_rejected` | none | Duplicate friendship attempt blocked |
+| `friend_lookup_started` | hashed phone number identifier (NOT raw) | Lookup function called |
+| `friend_lookup_matched` | matched userId hash (NOT raw display name or phone) | Match found |
+| `friend_lookup_unmatched` | none | No match found |
+| `friend_lookup_failed` | error code | Lookup function error |
+| `friend_lookup_rate_limited` | none | Rate limit hit |
+| `friend_invite_share_sheet_opened` | none | Share sheet opened for invite |
+| `friend_added` | friendshipId hash | Friendship document created |
+| `friend_add_blocked_self` | none | Self-add attempt blocked |
+| `friend_add_blocked_duplicate` | none | Duplicate friendship blocked |
 
 ---
 
@@ -136,8 +179,9 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 - [ ] Code merged to `main` via approved PR.
 - [ ] Unit and widget tests written and passing.
 - [ ] Integration tests passing against Firebase Emulator Suite.
-- [ ] QA reviewed and verified acceptance criteria (including negative cases).
-- [ ] Telemetry events in place and firing correctly.
+- [ ] QA reviewed and verified acceptance criteria (including all negative cases).
+- [ ] Telemetry events in place and firing correctly (no raw PII in event parameters).
+- [ ] Invariant 2 compliance verified (`simplifiedBalances` server-set, client-read-only).
 - [ ] Invariant 3 compliance verified (system share sheet only).
 - [ ] Accessibility verified.
 - [ ] Documentation updated (if applicable).
@@ -147,10 +191,10 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 
 ## Invariant Compliance
 
-- [ ] Money values are integer paise (invariant 1) -- N/A, no monetary values.
-- [ ] No client writes to `simplifiedBalances` (invariant 2) -- N/A.
-- [ ] Uses system share sheet only (invariant 3) -- compliant, invite uses system share sheet.
-- [ ] Single Firebase project (invariant 4) -- compliant, production only.
+- [ ] Money values are integer paise (invariant 1) — N/A, balance initialised to zero paise.
+- [ ] No client writes to `simplifiedBalances` (invariant 2) — compliant, field initialised by Cloud Function.
+- [ ] Uses system share sheet only (invariant 3) — compliant, invite uses system share sheet.
+- [ ] Single Firebase project (invariant 4) — compliant, tests use emulator suite.
 
 ---
 
@@ -158,19 +202,75 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 
 | Agent | Responsibility |
 |---|---|
-| Flutter Dev | Matching logic, friendship document creation, invite flow, Riverpod wiring |
-| Functions Dev | Review of any Cloud Function implications (friendship triggers) |
-| Architect | Schema review, security rules for `friendships`, invariant compliance |
-| QA | Matching scenarios, duplicate/self-add rejection, share sheet testing |
+| Functions Dev | Cloud Function `lookupUserByPhoneNumber` implementation and tests |
+| Flutter Dev | Matching repository, friendship repository, controller, UI, telemetry |
+| Architect | Security rules updates, schema review, invariant compliance |
+| QA | All matching scenarios, rules tests, PII-leak tests |
 
 ---
 
-## Refinement Note
+## Architect Notes
 
-This story is intentionally lighter than the UI half. It will be refined at
-PR #32 kickoff with:
+### 3.1 Cloud Function shape (per ADR-0014 Option C)
 
-- Detailed Firestore security rules for `friendships` document creation.
-- Manual +91 entry path ACs (currently in the parent story but not yet split).
-- Edge cases around network failures during the matching query.
-- Invite message template copy from the screen spec.
+- **Name:** `lookupUserByPhoneNumber`
+- **Region:** `asia-south1`
+- **Input:** `{ phoneNumber: string }` — E.164, validated via regex. Reject
+  `INVALID_INPUT` for malformed.
+- **Output:** `{ matched: false }` OR
+  `{ matched: true, displayName: string, photoUrl: string | null, otherUserId: string }`
+- **Rate-limit:** 100 lookups per user per hour at
+  `_rateLimits/{userId}/lookups`. Returns `RATE_LIMITED` if exceeded.
+- **Error envelope:** Typed per `cloud-functions-error-codes.md`. New codes:
+  `INVALID_INPUT`, `RATE_LIMITED`, `INTERNAL`.
+- **Audit log:** Hashed phoneNumber + timestamp + caller userId +
+  matched/unmatched. Retention 30 days.
+
+### 3.2 Matching repository shape on the client
+
+- `MatchingRepository.lookupUser(phoneNumber: String) -> Future<MatchResult>`
+- `MatchResult` is a sealed union:
+  - `Matched(displayName, photoUrl, otherUserId)`
+  - `Unmatched`
+  - `Failed(error)`
+  - `RateLimited`
+- Calls Cloud Function via Firebase Functions SDK.
+- Maps function-side error codes to domain-level errors.
+- Boundary-contract test: assert phoneNumber argument is E.164 before the
+  function call.
+
+### 3.3 Friendship creation
+
+- Client-side direct Firestore write (per ADR-0007/ADR-0008).
+- Deterministic document ID: sort both userIds lexicographically, join with
+  underscore.
+- Document fields: `memberIds` (sorted array of two userIds), `createdBy`,
+  `lastActivityAt`.
+- `simplifiedBalances` is NOT written by the client on creation — the Cloud
+  Function initialises it.
+- Idempotency: `set` with `merge:false` fails if doc exists, allowing detection
+  of duplicates.
+
+### 3.4 Firestore Security Rules updates
+
+- **Users read:** owner OR friendship/group member.
+- **Friendships create:** caller in `memberIds`, `memberIds.size() == 2`,
+  sorted, no `simplifiedBalances`, `createdBy == auth.uid`.
+- **Friendships read:** caller in `memberIds`.
+- **Friendships update:** caller in `memberIds`, field-level diff blocking
+  `simplifiedBalances` and `memberIds` changes.
+- **Friendships delete:** default-deny for now.
+- **_rateLimits:** deny all client access.
+
+### 3.5 Self-add and duplicate-friendship guards
+
+- Client-side: check if phoneNumber matches current user's phoneNumber before
+  lookup.
+- After matching: compute deterministic friendship ID, check existence, navigate
+  to existing if found.
+
+### 3.6 Coverage gate posture
+
+- `lib/features/friends/**` >= 70% (inherited from PR #31).
+- `functions/src/lookup-user-by-phone-number/**` >= 70% (new module).
+- Overall thresholds unchanged.

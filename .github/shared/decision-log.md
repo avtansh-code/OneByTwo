@@ -626,3 +626,120 @@ required.
   `displayName` and `phoneNumbers` are visible to downstream code.
 
 ---
+
+## ADR-0014: Cross-User Lookup for Contact Matching — Cloud Function Gateway
+
+**Status:** Accepted
+
+### Context
+
+ADR-0013 chose local matching: contacts stay on-device, and the app queries
+Firestore by phone number to determine whether a selected contact is a
+registered One By Two user. PR #31 (contact picker UI) is merged; PR #32
+implements matching and friendship creation.
+
+The current `users` read rule in `firestore.rules` (line 13) is:
+
+```
+allow read: if request.auth != null && request.auth.uid == userId;
+```
+
+This means clients can only read their own document. To perform a phone-number
+lookup against another user's document, the read rule must be relaxed or the
+query must be routed through a trusted server component. The choice has direct
+security and privacy implications because One By Two uses phone-only
+authentication — confirming that a phone number is registered on the platform
+is inherently sensitive.
+
+Three approaches were evaluated.
+
+### Decision
+
+**Option C — Cloud Function gateway** is adopted.
+
+A new callable Cloud Function `lookupUserByPhoneNumber` accepts a single E.164
+phone number and returns a minimal response shape:
+
+```
+Input:  { phoneNumber: string }       // E.164 format, e.g. "+91XXXXXXXXXX"
+Output: { matched: false }
+     or { matched: true, displayName: string, photoUrl: string | null, otherUserId: string }
+```
+
+The function **never** returns `phoneNumber`, `fcmTokens`, `notificationPrefs`,
+`locale`, `createdAt`, `updatedAt`, or any field beyond `matched`,
+`displayName`, `photoUrl`, and `otherUserId`. The `otherUserId` is included
+because the calling user needs it to create the friendship document.
+
+**Rate limiting:** each authenticated user is limited to 100 lookups per hour.
+The rate-limit counter is stored in Firestore at
+`_rateLimits/{userId}/lookups`. If the limit is exceeded, the function returns
+a `RATE_LIMITED` error. This prevents bulk enumeration of the user base.
+
+**Logging:** each lookup is logged with a hashed phone number (never raw) for
+abuse detection and audit purposes.
+
+**Firestore rules:** the `users` collection read rule remains restrictive for
+client queries. Clients may read only their own document or documents of users
+they share a friendship or group with. The Cloud Function's service account
+bypasses Security Rules (as all Admin SDK calls do), so the function can
+perform the phone-number lookup without relaxing client-facing rules.
+
+### Consequences
+
+- A new Cloud Function `lookupUserByPhoneNumber` is added, following the
+  three-module layout established in ADR-0011 (`algorithm.ts`, `function.ts`,
+  `index.ts`).
+- The function is deployed to `asia-south1` (Mumbai), consistent with all
+  existing Cloud Functions.
+- The matching repository on the client wraps the Cloud Function call via
+  `FirebaseFunctions.httpsCallable('lookupUserByPhoneNumber')`, abstracting
+  the network boundary from the UI layer.
+- Cold-start latency (~200-400ms) and warm latency (~50-100ms) are acceptable
+  for a user-initiated action (tapping a contact to check membership).
+- The `_rateLimits` collection is internal infrastructure. Security Rules deny
+  all client reads and writes to `_rateLimits/{document=**}`.
+- The `users` read rule is tightened from "owner only" to "owner OR users who
+  share a friendship or group." This supports displaying friend/group-member
+  names and avatars in the UI without additional Cloud Function calls, while
+  still preventing arbitrary cross-user reads.
+
+### Alternatives Considered
+
+**Option A — Open phone-number query against users collection:** allow any
+authenticated user to query `users` where `phoneNumber == X`. This is the
+simplest approach — a single Firestore round-trip with no Cloud Function
+dependency. Splitwise and most expense-share apps use this pattern. However,
+it makes the user base trivially enumerable: any authenticated user with a
+list of phone numbers can confirm which numbers are registered on One By Two.
+For a phone-only-auth app, this is a meaningful privacy risk. The query is
+trivially scriptable and cannot be rate-limited at the Firestore rules layer.
+Rejected for insufficient privacy protection.
+
+**Option B — Restricted query (only existing friendships/group members):**
+allow reading user documents only for people the caller already shares a
+friendship or group with. This provides strong privacy but is functionally
+broken for the matching use case: you cannot find someone to friend if the
+rule requires you to already be friends. The approach is logically circular
+and unusable for contact matching. Rejected as non-functional.
+
+### Implication for PR #32
+
+1. A Cloud Function `lookupUserByPhoneNumber` is added in PR #32. It follows
+   the three-module layout (ADR-0011) and is deployed to `asia-south1`.
+2. The function accepts `{ phoneNumber: string }` (E.164) and returns either
+   `{ matched: false }` or
+   `{ matched: true, displayName: string, photoUrl: string | null, otherUserId: string }`.
+   No other user fields are ever returned.
+3. The matching repository on the client wraps the Cloud Function call,
+   exposing a typed `Future<MatchResult>` to the controller layer. The UI
+   layer does not interact with `FirebaseFunctions` directly.
+4. Rate-limit policy: 100 lookups per user per hour, enforced by the Cloud
+   Function using a counter at `_rateLimits/{userId}/lookups`. Exceeding the
+   limit returns a `RATE_LIMITED` error.
+5. The `users` read rule is updated: clients may read their own document OR
+   documents of users they share a friendship or group with. Direct
+   phone-number queries against the `users` collection remain blocked for
+   clients.
+
+---

@@ -7,10 +7,30 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Users collection — owner read/write only (ADR-0008).
+    // Users collection — owner or relationship-based read, owner-only write
+    // (ADR-0008, ADR-0014).
     match /users/{userId} {
-      // Only the document owner may read.
-      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Helper: check if a friendship exists between the caller and otherUserId.
+      // The friendship document ID is deterministic: sorted UIDs joined with '_'.
+      function isInFriendshipWith(otherUserId) {
+        let sortedIds = request.auth.uid < otherUserId
+          ? [request.auth.uid, otherUserId]
+          : [otherUserId, request.auth.uid];
+        let friendshipId = sortedIds[0] + '_' + sortedIds[1];
+        return exists(/databases/$(database)/documents/friendships/$(friendshipId));
+      }
+
+      // Placeholder for group-based reads — Sprint 3 (ADR-0014).
+      function isInGroupWith(otherUserId) {
+        return false;
+      }
+
+      // Owner, friendship member, or group member may read (ADR-0014).
+      allow read: if request.auth != null
+        && (request.auth.uid == userId
+            || isInFriendshipWith(userId)
+            || isInGroupWith(userId));
 
       // Create: owner only, one-shot, with strict field validation.
       allow create: if request.auth != null
@@ -110,15 +130,19 @@ service cloud.firestore {
           && data.memberIds.size() == 2
           && data.memberIds[0] is string
           && data.memberIds[1] is string
-          && data.lastActivityAt == request.time;
+          && data.memberIds[0] < data.memberIds[1]  // Sorted ascending (deterministic ID)
+          && data.createdBy == request.auth.uid       // Creator must be the caller
+          && data.lastActivityAt == request.time;     // Server timestamp
       }
 
       function isValidFriendshipUpdate() {
         let dominated = request.resource.data.diff(resource.data).affectedKeys();
         // simplifiedBalances must not change (Invariant 2).
         // memberIds is immutable after creation.
+        // createdBy is immutable after creation.
         return !dominated.hasAny(['simplifiedBalances'])
-          && !dominated.hasAny(['memberIds']);
+          && !dominated.hasAny(['memberIds'])
+          && !dominated.hasAny(['createdBy']);
       }
     }
 
@@ -169,6 +193,12 @@ service cloud.firestore {
           && (!dominated.hasAny(['adminId'])
               || request.auth.uid == resource.data.adminId);
       }
+    }
+
+    // Rate-limit counters — internal infrastructure, no client access.
+    // Written and read exclusively by Cloud Functions (ADR-0014).
+    match /_rateLimits/{document=**} {
+      allow read, write: if false;
     }
   }
 }
