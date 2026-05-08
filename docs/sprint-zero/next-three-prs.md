@@ -1,35 +1,22 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #32.
+> Last updated: PR #33.
 
 ---
 
-## PR #33 — TBD per Sprint 2 Plan
+## PR #34 — FR-FR-03 Friends List Rendering
 
-**Status:** Next up. Unblocked once PR #32 merges.
+**Status:** Next up. Unblocked.
 
-**Scope:** Likely FR-FR-02 (manual phone number entry and invite via system share
-sheet) or FR-FR-03 (friends list rendering with simplified net balance). Final
-determination at PR #33 kickoff based on Sprint 2 progress and any blockers
-surfaced by PR #32.
+**Scope:** Friends list rendering with simplified net balance display.
+Empty state, populated state with friend rows showing name, avatar,
+and net balance (using `simplifiedBalances` read-only field). Sort order,
+navigation to friend detail on tap.
 
-**Candidate stories:**
-- `docs/sprint-zero/stories/FR-FR-02-link-or-invite-friend.md` (3 SP, DoR-compliant).
-- `docs/sprint-zero/stories/FR-FR-03-friends-list.md` (3 SP, DoR-compliant).
+**Story:** `docs/sprint-zero/stories/FR-FR-03-friends-list.md` (3 SP, DoR-compliant).
 
-**Agents involved:** Flutter Dev, QA.
-
----
-
-## PR #34 — TBD per Sprint 2 Plan
-
-**Status:** Planned.
-
-**Scope:** To be determined at PR #34 kickoff. Will cover whichever of FR-FR-02,
-FR-FR-03, or FR-FR-04 remains after PR #33's scope is finalised.
-
-**Agents involved:** TBD.
+**Agents involved:** Flutter Dev, Designer, QA.
 
 ---
 
@@ -37,8 +24,19 @@ FR-FR-03, or FR-FR-04 remains after PR #33's scope is finalised.
 
 **Status:** Planned.
 
-**Scope:** To be determined at PR #35 kickoff. May cover remaining Friends epic
-items (FR-FR-04) or begin the Expenses epic (FR-EX-01) depending on Sprint 2
-velocity and remaining Friends work.
+**Scope:** Likely FR-FR-04 (per-friend transaction history) if FR-EX-01
+(expense creation) is ready, or an Expenses epic PR if Friends epic is
+complete. Final determination at PR #35 kickoff.
+
+**Agents involved:** TBD.
+
+---
+
+## PR #36 — TBD per Sprint 2 Plan
+
+**Status:** Planned.
+
+**Scope:** To be determined based on Sprint 2 velocity and remaining
+work after PR #35.
 
 **Agents involved:** TBD.
