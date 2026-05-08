@@ -187,7 +187,7 @@ void main() {
       );
 
       final states = <MatchAndInviteState>[];
-      controller.addListener((state) => states.add(state));
+      controller.addListener(states.add);
 
       await controller.performLookup(_testContact);
 

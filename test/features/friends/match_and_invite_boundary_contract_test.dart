@@ -119,7 +119,7 @@ void main() {
       await repo.createFriendship('uid-bbb', 'uid-aaa');
 
       final memberIds = store.capturedData!['memberIds'];
-      expect(memberIds, isA<List>());
+      expect(memberIds, isA<List<String>>());
       expect(memberIds, hasLength(2));
       expect(memberIds, ['uid-aaa', 'uid-bbb']);
     });

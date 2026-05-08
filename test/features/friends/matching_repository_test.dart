@@ -100,7 +100,7 @@ void main() {
     });
 
     test('maps INVALID_INPUT function error to Failed variant', () async {
-      fakeCallable.throwError = CloudFunctionException(
+      fakeCallable.throwError = const CloudFunctionException(
         code: 'invalid-argument',
         details: 'INVALID_INPUT',
       );
@@ -112,7 +112,7 @@ void main() {
     });
 
     test('maps RATE_LIMITED function error to RateLimited variant', () async {
-      fakeCallable.throwError = CloudFunctionException(
+      fakeCallable.throwError = const CloudFunctionException(
         code: 'resource-exhausted',
         details: 'RATE_LIMITED',
       );
@@ -123,7 +123,7 @@ void main() {
     });
 
     test('maps INTERNAL function error to Failed variant', () async {
-      fakeCallable.throwError = CloudFunctionException(
+      fakeCallable.throwError = const CloudFunctionException(
         code: 'internal',
         details: 'INTERNAL',
       );

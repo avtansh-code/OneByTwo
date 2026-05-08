@@ -60,7 +60,7 @@ class FakeMatchAndInviteController extends StateNotifier<MatchAndInviteState>
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/// Wraps [child] in a [MaterialApp] with [ProviderScope] overrides.
+/// Wraps the given widget in a [MaterialApp] with [ProviderScope] overrides.
 Widget _buildTestApp({required FakeMatchAndInviteController fakeController}) {
   return ProviderScope(
     overrides: [

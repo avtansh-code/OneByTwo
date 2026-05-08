@@ -11,6 +11,7 @@
 
 import {HttpsError} from "firebase-functions/v2/https";
 import {createHash} from "crypto";
+import {FieldValue} from "firebase-admin/firestore";
 import {lookupUserByPhoneNumber, LookupResult} from "./algorithm";
 
 // ---------------------------------------------------------------------------
@@ -126,8 +127,8 @@ export function createLookupHandler(
             {errorCode: "RATE_LIMITED"},
           );
         }
-        // Within window, under limit — increment.
-        await rateLimitDocRef.update({count: rlData.count + 1});
+        // Within window, under limit — atomic increment to avoid race.
+        await rateLimitDocRef.update({count: FieldValue.increment(1)});
       } else {
         // Window expired — reset.
         await rateLimitDocRef.set({count: 1, windowStart: Date.now()});

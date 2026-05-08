@@ -82,7 +82,7 @@ class FriendshipRepository {
     await _store.set(friendshipId, {
       'memberIds': sorted,
       'createdBy': currentUserId,
-      'lastActivityAt': DateTime.now().toIso8601String(),
+      'lastActivityAt': FieldValue.serverTimestamp(),
     });
 
     return friendshipId;
