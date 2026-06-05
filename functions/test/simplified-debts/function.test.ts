@@ -384,3 +384,35 @@ describe("recomputeSimplifiedBalances handler", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// recomputeAndWrite shared core — defence-in-depth around alsoSet
+// ---------------------------------------------------------------------------
+
+describe("recomputeAndWrite — alsoSet reserved-key guard", () => {
+  it("throws when alsoSet contains a reserved key (simplifiedBalances)", async () => {
+    const {recomputeAndWrite} = await import("../../src/simplified-debts/function");
+    const {deps} = createDeps({contextExists: true, expenses: []});
+
+    await expect(
+      recomputeAndWrite(deps, {
+        contextType: "friendship",
+        contextId: "ctx1",
+        alsoSet: {simplifiedBalances: {malicious: {override: 1}}},
+      }),
+    ).rejects.toThrow(/reserved key 'simplifiedBalances'/);
+  });
+
+  it("throws when alsoSet.lastActivityAt is not a Firestore Timestamp", async () => {
+    const {recomputeAndWrite} = await import("../../src/simplified-debts/function");
+    const {deps} = createDeps({contextExists: true, expenses: []});
+
+    await expect(
+      recomputeAndWrite(deps, {
+        contextType: "friendship",
+        contextId: "ctx1",
+        alsoSet: {lastActivityAt: "2026-01-01T00:00:00.000Z"},
+      }),
+    ).rejects.toThrow(/lastActivityAt must be a Firestore Timestamp/);
+  });
+});

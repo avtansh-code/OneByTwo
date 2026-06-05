@@ -543,4 +543,55 @@ describe("recomputeSimplifiedBalances — integration", () => {
       });
     });
   });
+
+  // -------------------------------------------------------------------------
+  // 7. Callable smoke regression — confirms PR #36 variant 2.3(b) refactor
+  //    (extraction of recomputeAndWrite) did not change callable behaviour.
+  //
+  //    The callable wrapper now delegates to a shared core that the trigger
+  //    also consumes. This test asserts the callable contract is unchanged:
+  //    valid input returns the expected response shape and persists the
+  //    expected simplifiedBalances to Firestore.
+  // -------------------------------------------------------------------------
+  describe("callable smoke regression (post-refactor)", () => {
+    const contextPath = "friendships/int-test-smoke-regression";
+
+    beforeEach(async () => {
+      await seedDoc(contextPath, {
+        memberIds: ["S", "T"],
+        simplifiedBalances: {},
+        lastActivityAt: Timestamp.now(),
+      });
+
+      await seedDoc(
+        `${contextPath}/expenses/exp1`,
+        makeExpense({
+          payerId: "S",
+          amountPaise: 100000,
+          splits: [
+            {userId: "S", sharePaise: 50000},
+            {userId: "T", sharePaise: 50000},
+          ],
+          description: "Smoke test expense",
+        }),
+      );
+    });
+
+    it("returns same response shape and persists simplifiedBalances", async () => {
+      const result = await handler({
+        contextType: "friendship",
+        contextId: "int-test-smoke-regression",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.transfers).toEqual([
+        {from: "T", to: "S", amountPaise: 50000},
+      ]);
+      expect(result.simplifiedBalances).toEqual({T: {S: 50000}});
+      expect(typeof result.computedAt).toBe("string");
+
+      const snap = await db.doc(contextPath).get();
+      expect(snap.data()!.simplifiedBalances).toEqual({T: {S: 50000}});
+    });
+  });
 });

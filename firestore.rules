@@ -146,6 +146,161 @@ service cloud.firestore {
       }
     }
 
+    // Expenses subcollection under a friendship — member-only read/write
+    // with strict invariant-1 enforcement at the write boundary
+    // (FR-EX-04: splits[*].sharePaise must sum to amountPaise).
+    // First subcollection rules for the friendships graph (PR #36 / FR-SE-03/04).
+    match /friendships/{friendshipId}/expenses/{expenseId} {
+
+      // Loaders for cross-doc checks (parent friendship membership)
+      function friendshipMemberIds() {
+        return get(/databases/$(database)/documents/friendships/$(friendshipId))
+          .data.memberIds;
+      }
+
+      function isCallerFriendshipMember() {
+        return request.auth != null
+          && request.auth.uid in friendshipMemberIds();
+      }
+
+      // Permitted top-level keys on every write
+      function hasOnlyKnownKeys(data) {
+        return data.keys().hasOnly([
+          'amountPaise', 'description', 'category', 'date', 'payerId',
+          'splits', 'splitMethod', 'receiptUrl', 'createdBy',
+          'createdAt', 'updatedAt', 'deleted',
+          'source', 'currency', 'recurringRule'
+        ]);
+      }
+
+      function hasAllRequiredKeys(data) {
+        return data.keys().hasAll([
+          'amountPaise', 'description', 'category', 'date', 'payerId',
+          'splits', 'splitMethod', 'createdBy',
+          'createdAt', 'updatedAt', 'deleted',
+          'source', 'currency'
+        ]);
+      }
+
+      function isValidExtensionPointLocks(data) {
+        // v1.0 invariants per extension-points-register.md:
+        // currency = 'INR'; source = 'manual'; recurringRule = null.
+        return data.currency == 'INR'
+          && data.source == 'manual'
+          && (!('recurringRule' in data) || data.recurringRule == null);
+      }
+
+      function isValidShape(data) {
+        return data.amountPaise is int
+          && data.amountPaise > 0
+          && data.description is string
+          && data.description.size() <= 200
+          && data.category is string
+          && data.date is timestamp
+          && data.payerId is string
+          && data.splits is list
+          && data.splits.size() >= 1
+          && data.splits.size() <= 2
+          && data.splitMethod in ['equal', 'unequal', 'percentage', 'shares', 'exact']
+          && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
+          && data.createdBy is string
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp
+          && data.deleted is bool;
+      }
+
+      // Per-element shape: every present split must be a map with a
+      // string userId and an integer sharePaise >= 0. Capped at 2 splits
+      // for the friendship subcollection (a friendship has exactly 2
+      // members; every split.userId must be in memberIds, so splits
+      // beyond 2 cannot add value and would only inflate the rules
+      // evaluation cost). The groups subcollection (Sprint 3) will
+      // declare its own bounded enumeration matching the group-member
+      // cap. Index access is guarded by size() to avoid out-of-bounds
+      // evaluation errors.
+      function isValidSplitElement(splits, i) {
+        return splits.size() <= i
+          || (splits[i].userId is string
+              && splits[i].sharePaise is int
+              && splits[i].sharePaise >= 0);
+      }
+
+      function areValidSplitElements(splits) {
+        return isValidSplitElement(splits, 0)
+          && isValidSplitElement(splits, 1);
+      }
+
+      // Member check on a single split element (guarded by index).
+      function isSplitMember(splits, i, members) {
+        return splits.size() <= i
+          || splits[i].userId in members;
+      }
+
+      function areSplitMembers(splits, members) {
+        return isSplitMember(splits, 0, members)
+          && isSplitMember(splits, 1, members);
+      }
+
+      // Bounded sum enumeration — invariant 1 / FR-EX-04 sum check.
+      // Each guarded access yields 0 when the index is out of bounds.
+      function shareAt(splits, i) {
+        return splits.size() > i ? splits[i].sharePaise : 0;
+      }
+
+      function sumOfSharesEquals(splits, amount) {
+        return shareAt(splits, 0) + shareAt(splits, 1) == amount;
+      }
+
+      function isValidExpenseShared(data, members) {
+        return hasOnlyKnownKeys(data)
+          && hasAllRequiredKeys(data)
+          && isValidShape(data)
+          && isValidExtensionPointLocks(data)
+          && data.payerId in members
+          && areValidSplitElements(data.splits)
+          && areSplitMembers(data.splits, members)
+          && sumOfSharesEquals(data.splits, data.amountPaise);
+      }
+
+      function isValidExpenseCreate() {
+        let data = request.resource.data;
+        let members = friendshipMemberIds();
+        return isValidExpenseShared(data, members)
+          && data.deleted == false
+          && data.createdBy == request.auth.uid
+          && data.createdAt == request.time
+          && data.updatedAt == request.time;
+      }
+
+      function isValidExpenseUpdate() {
+        let data = request.resource.data;
+        let prev = resource.data;
+        let members = friendshipMemberIds();
+        return isValidExpenseShared(data, members)
+          // Immutable fields preserved.
+          && data.createdBy == prev.createdBy
+          && data.createdAt == prev.createdAt
+          && data.updatedAt == request.time;
+      }
+
+      // Read: any member of the parent friendship.
+      allow read: if isCallerFriendshipMember();
+
+      // Create: caller is a member AND the document is shape- and
+      // invariant-valid (sum check, member checks, extension-point locks).
+      allow create: if isCallerFriendshipMember()
+        && isValidExpenseCreate();
+
+      // Update: caller is a member AND the post-update document is valid
+      // AND immutable fields (createdBy, createdAt) are preserved. Soft-
+      // delete (setting deleted: true) flows through this path.
+      allow update: if isCallerFriendshipMember()
+        && isValidExpenseUpdate();
+
+      // Hard delete is admin-only; clients soft-delete via update.
+      allow delete: if false;
+    }
+
     // Groups collection — participant read/write, simplifiedBalances is
     // client-read-only (Invariant 2, ADR-0001).
     match /groups/{groupId} {
