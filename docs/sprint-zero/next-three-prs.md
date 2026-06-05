@@ -49,6 +49,21 @@ Architect, QA.
   (expense creation UI).
 - If PR #37 = Option B (FR-EX-01), PR #38 likely = `onSettlementWrite`.
 
+> ### ⚠ Mandatory bundle when PR #38 = FR-EX-01
+>
+> Per **Critical Constraint C-1** in `docs/sprint-zero/sprint-2-plan.md`,
+> chore [#25](https://github.com/avtansh-code/OneByTwo/issues/25)
+> (expense event naming convention decision) MUST be resolved in the
+> SAME PR as FR-EX-01. PR #38 cannot ship without:
+> 1. The naming decision recorded in
+>    `docs/design/07-technical/telemetry-plan.md`.
+> 2. All expense events in `lib/features/expenses/**` using the chosen
+>    names.
+> 3. Issue #25 closed in the PR body (`Closes #25`).
+>
+> The orchestrator MUST refuse to start FR-EX-01 implementation work
+> until the decision is recorded in the story file's Architect Notes.
+
 **Agents involved:** TBD.
 
 ---
