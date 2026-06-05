@@ -236,6 +236,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Disable Swift Package Manager (Firebase iOS SDK workaround)
+        # Flutter 3.44 enabled SwiftPM by default for iOS plugins, but
+        # FlutterFire CLI's `upload-crashlytics-symbols` build phase still
+        # looks for the Crashlytics `run` script at the CocoaPods location
+        # (`Pods/FirebaseCrashlytics/...`). Under SwiftPM the script moves
+        # to `SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run`,
+        # so the build phase fails with `ProcessException: No such file
+        # or directory`. Reverting to CocoaPods is the documented workaround
+        # until FlutterFire 2.x ships full SwiftPM support.
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Install FlutterFire CLI
         run: dart pub global activate flutterfire_cli
 
