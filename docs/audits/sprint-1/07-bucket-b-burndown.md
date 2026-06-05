@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #32.
+> Last updated: PR #34.
 
 ---
 
@@ -67,6 +67,20 @@ share sheet. This PR resolves the following bucket-B items:
 | INV2 | Share-sheet verification tests | PR #32's invite flow tests exercise the system share sheet path (Invariant 3 compliance). Partially addressed — full share-sheet content verification deferred to FR-FR-02. | Open (partially addressed) |
 
 **Net result:** 3 items resolved (R1, R2, R3). 1 item partially addressed (INV2).
+
+### PR #34 (manual phone entry — FR-FR-01 Path B)
+
+PR #34 adds the manual phone-number entry path to the Add Friend screen
+(segmented control, second tab). The work is a pure UI extension that
+reuses the validator from PR #4, the `MatchAndInviteController` from
+PR #32, and the Cloud Function lookup gateway from PR #32 — no new
+backend surface, no rules changes, no new repository code.
+
+**No bucket-B items are closed by this PR.** The INV2 item ("share-sheet
+verification tests") was partially addressed by PR #32; PR #34 does not
+exercise any new share-sheet path of its own (the share-sheet flow is
+reached identically from both Path A and Path B via the shared controller),
+so INV2 remains partially addressed pending the dedicated chore.
 
 ---
 
@@ -143,9 +157,12 @@ PR #14 (audit close):  37 remaining  ██████████████�
 PR #29 (hotfix):       37 remaining  ████████████████████████████████████░░  37/37
 PR #30 (chore):        37 remaining  ████████████████████████████████████░░  37/37
 PR #31 (FR-FR-01 UI):  37 remaining  ████████████████████████████████████░░  37/37
+PR #32 (FR-FR-01 CF):  34 remaining  █████████████████████████████████░░░░░  34/37
+PR #33 (ADR reconcile):34 remaining  █████████████████████████████████░░░░░  34/37
+PR #34 (FR-FR-01 ME):  34 remaining  █████████████████████████████████░░░░░  34/37
 ```
 
-No bucket-B items have been formally closed yet. The first natural resolution
-moments arrive with PR #32 (friendship rules tests will address R1-R3) and any
-dedicated chore PR that batch-closes the five items already covered by PR #14
-Bucket A work (P1, P2, SK3, CN3, and partially CV2).
+PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
+documentation-only ADR reconciliation (no bucket-B impact). PR #34 (manual
+phone entry, FR-FR-01 Path B) reuses the same backend surface as PR #32 and
+closes no additional items.

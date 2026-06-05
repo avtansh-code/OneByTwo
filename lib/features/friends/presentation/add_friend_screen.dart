@@ -6,28 +6,27 @@ import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_permission_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_picker_controller.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
+import 'package:onebytwo/features/friends/domain/selected_contact.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/contact_list_tile.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/empty_contacts_state.dart';
+import 'package:onebytwo/features/friends/presentation/widgets/manual_phone_entry_tab.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/permission_denied_view.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/phone_selector_bottom_sheet.dart';
 
-/// Contact picker screen for the add-friend flow (SCR-10).
+/// Add-friend screen with a segmented control for choosing between
+/// the contact picker (Path A) and manual phone entry (Path B).
 ///
-/// Reads device contacts via [contactPickerControllerProvider] and
-/// manages permission state via [contactPermissionControllerProvider].
-/// On selection of a contact with a single valid phone number, the
-/// screen pops with the result. For contacts with multiple valid
-/// numbers, a bottom sheet is shown for disambiguation.
-class ContactPickerScreen extends ConsumerStatefulWidget {
-  /// Creates a [ContactPickerScreen].
-  const ContactPickerScreen({super.key});
+/// This is the primary and only entry point for adding friends.
+class AddFriendScreen extends ConsumerStatefulWidget {
+  /// Creates an [AddFriendScreen].
+  const AddFriendScreen({super.key});
 
   @override
-  ConsumerState<ContactPickerScreen> createState() =>
-      _ContactPickerScreenState();
+  ConsumerState<AddFriendScreen> createState() => _AddFriendScreenState();
 }
 
-class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
+class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
+  String _selectedTab = 'contacts';
   final _searchController = TextEditingController();
   bool _searchTelemetryFired = false;
   bool _openedTelemetryFired = false;
@@ -35,11 +34,21 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
   @override
   void initState() {
     super.initState();
-    // Schedule permission check after the first frame so that
-    // provider reads are safe.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fireScreenViewed();
       _checkAndLoad();
     });
+  }
+
+  void _fireScreenViewed() {
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_screen_viewed',
+            parameters: {'entry_path': 'contacts'},
+          ),
+    );
   }
 
   Future<void> _checkAndLoad() async {
@@ -127,6 +136,66 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
     }
   }
 
+  void _onManualSubmit(SelectedContact contact) {
+    // Navigate back with the manually entered contact, consistent
+    // with the contact picker path which pops with the result.
+    Navigator.of(context).pop(contact);
+  }
+
+  void _onTabChanged(Set<String> selection) {
+    final newTab = selection.first;
+    if (newTab == _selectedTab) return;
+
+    setState(() {
+      _selectedTab = newTab;
+    });
+
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_tab_switched',
+            parameters: {'tab': newTab},
+          ),
+    );
+
+    if (newTab == 'manual') {
+      _fireManualEntryOpened();
+    }
+  }
+
+  /// Switches the segmented control to the manual entry tab.
+  ///
+  /// Invoked from [PermissionDeniedView] when the user taps
+  /// "Type a number instead" — this is the Option-1 fallback that
+  /// the architect notes (section 2.2) describe alongside the
+  /// Option-3 segmented control.
+  void _switchToManualEntry() {
+    if (_selectedTab == 'manual') return;
+    setState(() {
+      _selectedTab = 'manual';
+    });
+
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_tab_switched',
+            parameters: {'tab': 'manual', 'source': 'permission_denied'},
+          ),
+    );
+
+    _fireManualEntryOpened();
+  }
+
+  void _fireManualEntryOpened() {
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(name: 'friend_manual_entry_opened'),
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -152,29 +221,45 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
       }
     });
 
-    return PopScope(
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
-          final state = ref.read(contactPickerControllerProvider);
-          if (state.selectedContact == null) {
-            unawaited(
-              ref
-                  .read(analyticsServiceProvider)
-                  .logEvent(
-                    name: 'friend_contact_picker_dismissed_without_selection',
+    return Scaffold(
+      appBar: AppBar(title: const Text('Add Friend')),
+      body: Column(
+        children: [
+          // Segmented control for tab selection.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'contacts',
+                    label: Text('From Contacts'),
                   ),
-            );
-          }
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Add Friend')),
-        body: _buildBody(permState, pickerState),
+                  ButtonSegment(value: 'manual', label: Text('Enter Number')),
+                ],
+                selected: {_selectedTab},
+                onSelectionChanged: _onTabChanged,
+              ),
+            ),
+          ),
+
+          // Tab content.
+          Expanded(
+            child: _selectedTab == 'contacts'
+                ? _buildContactsTab(permState, pickerState)
+                : ManualPhoneEntryTab(
+                    onSubmit: _onManualSubmit,
+                    analyticsService: ref.read(analyticsServiceProvider),
+                  ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBody(
+  /// Builds the contacts tab content for the segmented control.
+  Widget _buildContactsTab(
     ContactPermissionState permState,
     ContactPickerState pickerState,
   ) {
@@ -196,6 +281,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
                 .read(contactPermissionControllerProvider.notifier)
                 .openSettings();
           },
+          onTypeNumberInstead: _switchToManualEntry,
         );
 
       case ContactPermissionState.deniedPermanently:
@@ -207,6 +293,7 @@ class _ContactPickerScreenState extends ConsumerState<ContactPickerScreen> {
                 .read(contactPermissionControllerProvider.notifier)
                 .openSettings();
           },
+          onTypeNumberInstead: _switchToManualEntry,
         );
 
       case ContactPermissionState.granted:

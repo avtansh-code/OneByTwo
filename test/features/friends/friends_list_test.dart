@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/data/contact_service.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
-import 'package:onebytwo/features/friends/presentation/contact_picker_screen.dart';
+import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
 import 'package:onebytwo/features/friends/presentation/friends_list_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
@@ -107,8 +107,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.add));
       await tester.pumpAndSettle();
 
-      // Verify that the ContactPickerScreen is now displayed.
-      expect(find.byType(ContactPickerScreen), findsOneWidget);
+      // Verify that the AddFriendScreen is now displayed.
+      expect(find.byType(AddFriendScreen), findsOneWidget);
     });
 
     testWidgets('telemetry friend_add_button_tapped fires on tap', (

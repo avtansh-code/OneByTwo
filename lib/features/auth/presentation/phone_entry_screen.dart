@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
-import 'package:onebytwo/features/auth/presentation/widgets/india_phone_input_formatter.dart';
 
 /// Phone number entry screen for FR-AU-01.
 ///

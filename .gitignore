@@ -11,7 +11,9 @@ build/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-pubspec.lock
+# Note: pubspec.lock IS committed (this is an application package, not a
+# library — see https://dart.dev/tools/pub/glossary#lockfile). Committing
+# the lock file is what allows CI's ios/Podfile.lock to remain in sync.
 doc/api/
 *.dart.js
 *.info.json
