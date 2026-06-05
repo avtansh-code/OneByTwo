@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #34.
+> Last updated: PR #35.
 
 ---
 
@@ -17,8 +17,8 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 |---|---|---|---|---|
 | #31 | FR-FR-01 (UI) | Contact picker UI for add-friend flow | 3 | Merged |
 | #32 | FR-FR-01 (Matching) | User lookup and friendship creation | 3 | Merged |
-| #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | In flight |
-| #35 | FR-FR-03 | Friends list rendering | TBD | Queued |
+| #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | Merged |
+| #35 | FR-FR-03 | Friends list with simplified net balance | 3 | Merged |
 
 ---
 
@@ -28,8 +28,9 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 |---|---|---|
 | #31 | 3 | Merged |
 | #32 | 3 | Merged |
-| #34 | 2 | In flight |
-| **Total** | **8** | **3 PRs so far** |
+| #34 | 2 | Merged |
+| #35 | 3 | Merged |
+| **Total** | **11** | **4 PRs so far** |
 
 Sprint 1 reference:
 
@@ -45,7 +46,7 @@ Sprint 1 reference:
 
 - FR-FR-01 is now **complete** across three PRs: the contact picker UI (PR #31,
   merged), the matching and friendship creation logic (PR #32, merged), and the
-  manual phone entry path (PR #34, in flight). This three-PR split validated
+  manual phone entry path (PR #34, merged). This three-PR split validated
   clean pattern reuse of the phone validator, IndianPhoneInputFormatter, and
   MatchAndInviteController.
 - ADR-0013/0014 reconciliation (PR #33, merged before PR #34) confirmed both
@@ -53,8 +54,12 @@ Sprint 1 reference:
 - FR-FR-02 (link existing user or invite via system share sheet) was implemented
   as part of PR #32's MatchAndInviteController. The story file exists at
   `docs/sprint-zero/stories/FR-FR-02-link-or-invite-friend.md`.
-- FR-FR-03 (friends list with simplified net balance) is DoR-compliant and is
-  the next PR (#35).
+- FR-FR-03 (friends list with simplified net balance) shipped in PR #35 — the
+  first client surface to read `simplifiedBalances` (Invariant 2 read path) and
+  the first to display monetary values in INR (Invariant 1). It introduced the
+  shared `formatInrFromPaise` formatter and `netBalancePaise` pure function in
+  `lib/core/`, the `userProfileProvider.family(uid)` caching pattern, and a
+  composite Firestore index `memberIds + lastActivityAt`.
 - FR-FR-04 (per-friend transaction history) depends on FR-EX-01 and may slip to
   a later sprint if expense work is not yet available.
 
@@ -73,3 +78,26 @@ the patterns from PRs #31/#32 generalise cleanly. Key findings:
   No subclassing or new methods required.
 - **No friction surfaced.** The three-PR pattern split for FR-FR-01 validated
   cleanly.
+
+## Pattern Establishment (PR #35)
+
+PR #35 introduced patterns that downstream balance-rendering screens will
+inherit:
+
+- **`lib/core/formatters/inr_formatter.dart`** — single source of truth for
+  paise → INR string formatting (Indian numbering, Unicode minus, always two
+  decimal places). Every future screen that shows money must call this
+  formatter; inline arithmetic is forbidden by the boundary contract grep.
+- **`lib/core/balances/net_balance.dart`** — pure read-side reducer for the
+  nested `simplifiedBalances` map. Reusable for the Home dashboard
+  (`netBalanceProvider`, FR-HD-01) and groups (`group_list_provider`).
+- **`lib/core/telemetry/event_id_hash.dart`** — SHA-256-truncated hash for
+  opaque correlation IDs in telemetry. Used by `friend_row_tapped`; reuse for
+  any future event that would otherwise carry a deterministic UID-composed ID.
+- **`userProfileProvider.family(uid)`** caching pattern — one-shot cached user
+  doc lookups, keyed per uid via Riverpod family. Reusable for any screen that
+  resolves "the other user's display profile" by uid (group member list,
+  expense splits, etc.).
+- **`FriendDetailPlaceholderScreen`** — intentional minimal placeholder; the
+  FR-FR-04 PR replaces it with the real Friend Detail screen and keeps the
+  same call site in `FriendsListScreen.onRowTap`.

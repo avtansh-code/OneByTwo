@@ -202,6 +202,30 @@ describe("friendships/{friendshipId} — read rules", () => {
     await assertSucceeds(getDoc(friendshipDoc));
   });
 
+  it("allows a member to read a friendship that includes simplifiedBalances " +
+      "(FR-FR-03 read-side contract)", async () => {
+    // Re-seed the doc with admin SDK to include the server-managed
+    // simplifiedBalances field, then assert the member can read the full
+    // document including that field.
+    await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+      const adminDoc = doc(adminCtx.firestore(), `friendships/${docId}`);
+      await setDoc(adminDoc, {
+        memberIds: [uidA, uidB],
+        createdBy: uidA,
+        lastActivityAt: new Date(),
+        simplifiedBalances: {[uidB]: {[uidA]: 12345}},
+      });
+    });
+
+    const ctx = testEnv.authenticatedContext(uidA);
+    const friendshipDoc = doc(ctx.firestore(), `friendships/${docId}`);
+    const snap = await getDoc(friendshipDoc);
+    expect(snap.exists()).toBe(true);
+    expect(snap.data()?.simplifiedBalances).toEqual({
+      [uidB]: {[uidA]: 12345},
+    });
+  });
+
   it("rejects read by a non-member", async () => {
     const ctx = testEnv.authenticatedContext("outsider-uid");
     const friendshipDoc = doc(ctx.firestore(), `friendships/${docId}`);

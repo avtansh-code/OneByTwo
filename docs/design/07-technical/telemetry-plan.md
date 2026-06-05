@@ -97,9 +97,9 @@ Source: `docs/design/06-screen-specs/09-12-friends.md`
 
 | Event Name | Parameters | Parameter Types | Trigger | Screen Ref |
 |---|---|---|---|---|
-| `friends_list_viewed` | `friend_count` | `int` | Friends list screen becomes visible | SCR-09 |
+| `friends_list_viewed` | `friend_count` | `int` | Friends list screen renders the populated or empty state for the first time (fires once per screen mount; rebuilds and snapshot updates do not duplicate the event) | SCR-09 |
 | `friends_search_used` | `query_length` | `int` | User types at least 1 character into the search bar | SCR-09 |
-| `friend_row_tapped` | — | — | User taps a friend list tile | SCR-09 |
+| `friend_row_tapped` | `friendship_id` | `string` (SHA-256 of the raw friendshipId, truncated to the first 16 hex chars; never the raw composite UID pair) | User taps a friend list tile | SCR-09 |
 | `friends_empty_add_tapped` | — | — | User taps Add Friend CTA in empty state | SCR-09 |
 | `add_friend_screen_viewed` | `entry_path` | `string` (`contacts` / `manual`) | Add-friend screen becomes visible | SCR-10 |
 | `friend_invite_sent` | `method` | `string` (`contacts` / `manual`) | System share sheet opened for a non-user invite | SCR-10 |

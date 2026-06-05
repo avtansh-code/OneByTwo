@@ -1,7 +1,10 @@
+import 'dart:developer' as developer;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/data/user_repository.dart';
+import 'package:onebytwo/features/friends/domain/friendship_doc.dart';
 
 // ---------------------------------------------------------------------------
 // Abstract store
@@ -17,6 +20,39 @@ abstract class FriendshipStore {
 
   /// Returns the document data at [path], or null if it does not exist.
   Future<Map<String, dynamic>?> get(String path);
+
+  /// Watches every friendship document whose `memberIds` array contains
+  /// [userId], ordered by `lastActivityAt` descending. The stream emits
+  /// the latest snapshot list whenever the underlying query updates
+  /// (real-time delivery — AC-6 of FR-FR-03).
+  Stream<List<FriendshipDoc>> watchByMember(String userId);
+}
+
+// ---------------------------------------------------------------------------
+// Parse-failure observability sink
+// ---------------------------------------------------------------------------
+
+/// Function shape used by [FirestoreFriendshipStore] to surface
+/// malformed-friendship-document parse failures into production
+/// observability.
+typedef FriendshipParseFailureSink = void Function(String message);
+
+/// Default observability sink for malformed-friendship-document parse
+/// failures. Routes through [developer.log] under the canonical
+/// `friendship_parse_failure` event name so silent `simplifiedBalances`
+/// corruption (architect note §3 on
+/// `docs/sprint-zero/stories/FR-FR-03-friends-list.md`) stays visible
+/// in production logs and Crashlytics breadcrumbs (when integrated).
+///
+/// Use this function as the default for any new code path that parses
+/// `simplifiedBalances` server data. Tests inject a custom sink via the
+/// [FirestoreFriendshipStore] constructor's `onParseFailure` parameter.
+void logFriendshipParseFailure(String message) {
+  developer.log(
+    message,
+    name: 'friendship_parse_failure',
+    level: 900, // SEVERE per developer.log convention.
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -26,10 +62,21 @@ abstract class FriendshipStore {
 /// Firestore-backed implementation of [FriendshipStore].
 class FirestoreFriendshipStore implements FriendshipStore {
   /// Creates a [FirestoreFriendshipStore].
-  const FirestoreFriendshipStore({required FirebaseFirestore firestore})
-    : _firestore = firestore;
+  ///
+  /// [onParseFailure] receives a breadcrumb whenever
+  /// `FriendshipDoc.fromFirestore` encounters malformed
+  /// `simplifiedBalances` data while transforming a snapshot. Defaults
+  /// to [logFriendshipParseFailure] so production silently routes
+  /// corruption into observability. Tests may inject a callback that
+  /// records into an inspectable list.
+  const FirestoreFriendshipStore({
+    required FirebaseFirestore firestore,
+    FriendshipParseFailureSink onParseFailure = logFriendshipParseFailure,
+  }) : _firestore = firestore,
+       _onParseFailure = onParseFailure;
 
   final FirebaseFirestore _firestore;
+  final FriendshipParseFailureSink _onParseFailure;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('friendships');
@@ -49,6 +96,25 @@ class FirestoreFriendshipStore implements FriendshipStore {
   Future<Map<String, dynamic>?> get(String path) async {
     final snapshot = await _collection.doc(path).get();
     return snapshot.data();
+  }
+
+  @override
+  Stream<List<FriendshipDoc>> watchByMember(String userId) {
+    return _collection
+        .where('memberIds', arrayContains: userId)
+        .orderBy('lastActivityAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => FriendshipDoc.fromFirestore(
+                  id: doc.id,
+                  data: doc.data(),
+                  onParseFailure: _onParseFailure,
+                ),
+              )
+              .toList(growable: false),
+        );
   }
 }
 
@@ -93,6 +159,18 @@ class FriendshipRepository {
     final sorted = [userId1, userId2]..sort();
     final friendshipId = '${sorted[0]}_${sorted[1]}';
     return _store.exists(friendshipId);
+  }
+
+  /// Watches all friendships the given user is a member of, ordered
+  /// by most-recent activity. The stream is the canonical source for
+  /// the friends list (FR-FR-03) and propagates real-time updates
+  /// straight through from Firestore.
+  ///
+  /// READ-ONLY: this method never writes to Firestore. The returned
+  /// documents include the server-maintained `simplifiedBalances`
+  /// field per **invariant 2**.
+  Stream<List<FriendshipDoc>> watchFriendships(String currentUserId) {
+    return _store.watchByMember(currentUserId);
   }
 }
 

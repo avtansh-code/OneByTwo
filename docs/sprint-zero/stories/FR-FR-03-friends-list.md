@@ -105,9 +105,12 @@ so that **I can immediately tell who owes me, whom I owe, and which friendships 
 
 | Event name | Parameters | Trigger |
 |---|---|---|
-| `friends_list_viewed` | `friend_count` | Friends list screen becomes visible |
-| `friend_row_tapped` | `friendship_id` | User opens a friend from the list |
+| `friends_list_viewed` | `friend_count: int` | Friends list screen first renders the populated or empty state (fires once per screen mount) |
+| `friend_row_tapped` | `friendship_id: String` (SHA-256 truncated to 16 hex chars) | User opens a friend from the list |
 | `friends_empty_add_tapped` | — | User taps Add Friend from the empty state |
+
+The pre-existing `friend_add_button_tapped` continues to fire when the app-bar `+` is
+tapped from the populated state (regression target from the PR #14 placeholder screen).
 
 ---
 
@@ -177,3 +180,159 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 - **Providers:** `friendsListProvider` supplies the real-time ordered list; `friendDetailProvider` is the navigation handoff target when a row is tapped.
 - **Telemetry events:** `friends_list_viewed`, `friend_row_tapped`, and `friends_empty_add_tapped` are the core analytics events for this story.
 - **Balance source of truth:** the client must not recompute simplified debts; it renders the server-maintained `simplifiedBalances` projection and formats paise as INR for display only.
+
+---
+
+## Architect Notes
+
+> Appended for PR #35. These notes ratify the design decisions taken before
+> implementation begins. References: `docs/copilot_prompts/sprint_2/4.md`,
+> `.github/shared/invariants.md`, `.github/shared/decision-log.md`.
+
+### 1. Net-balance computation and INR formatting live in `lib/core/`
+
+- `lib/core/balances/net_balance.dart` exposes a pure function
+  `int netBalancePaise({Map<String, dynamic>? simplifiedBalances, String currentUserId, String otherUserId})`.
+  Returns the SIGNED paise amount from the current user's perspective. Positive ⇒
+  "owes you"; negative ⇒ "you owe"; zero ⇒ "settled up". Missing/null map returns 0.
+  Malformed nested entries (non-integer values, wrong shape) return 0 for that pair
+  — the parsing layer (see §3 below) is responsible for logging the parse failure.
+- `lib/core/formatters/inr_formatter.dart` exposes
+  `String formatInrFromPaise(int paise)`. Uses integer division (`~/`, `%`) so no
+  `double` arithmetic ever touches money. Indian numbering system via
+  `NumberFormat.decimalPattern('en_IN')` for the rupee component. Always two
+  decimal places. Zero state ⇒ `"₹0.00"`. Negative uses U+2212 minus
+  (`"−₹50.00"`). Symbol is always `₹` and is never overridable by callers.
+- These two functions belong in `lib/core/` (not feature-scoped) because every
+  monetary display path across the app will use them. The PR #34 precedent for
+  `lib/core/widgets/india_phone_input_formatter.dart` establishes the
+  "formatters/utilities are core" convention.
+
+### 2. Repository layer extends `FriendshipRepository`; the write path stays locked
+
+- Add `Stream<List<FriendshipDoc>> watchFriendships(String currentUserId)` to
+  `FriendshipRepository`. Delegates to a new
+  `Stream<List<FriendshipDoc>> watchByMember(String userId)` on the abstract
+  `FriendshipStore`. The Firestore implementation runs
+  `where('memberIds', 'array-contains', uid).orderBy('lastActivityAt', desc).snapshots()`.
+- Do NOT modify `createFriendship` or `friendshipExists`. PR #32's boundary
+  contract for the write path is locked in.
+
+### 3. Domain models with defensive parsing
+
+- `FriendshipDoc` (`lib/features/friends/domain/friendship_doc.dart`) is an
+  immutable value type carrying `friendshipId`, `memberIds`,
+  `simplifiedBalances` (typed `Map<String, Map<String, int>>`), and
+  `lastActivityAt`. The `fromFirestore(id, data)` factory performs strict type
+  validation:
+  - Missing or `null` `simplifiedBalances` ⇒ empty map (the freshly-created
+    friendship case before the Cloud Function runs; AC-3 still renders
+    "settled up" naturally).
+  - Malformed nested entries (non-`int` values, non-`Map` sub-entries) are
+    dropped and a breadcrumb is routed through the `onParseFailure` callback.
+    In production, `FirestoreFriendshipStore` wires the callback to
+    `logFriendshipParseFailure` (`lib/features/friends/data/friendship_repository.dart`),
+    which calls `developer.log(..., name: 'friendship_parse_failure', level: 900)`.
+    `developer.log` surfaces in Dart DevTools, the Android `adb logcat` stream,
+    the iOS device log, and Crashlytics breadcrumbs (when the Crashlytics
+    integration is wired). The remaining valid entries are preserved.
+  - This way, corrupt data never silently shows "settled up" for a real debt —
+    if every entry for a pair is invalid, the row's net is genuinely zero or
+    the parse failure is observable downstream.
+  - Tests inject a custom `FriendshipParseFailureSink` via the
+    `FirestoreFriendshipStore` constructor to inspect the callback contract
+    without spinning up Firestore.
+- `FriendListItem` (`lib/features/friends/domain/friend_list_item.dart`) is the
+  UI-facing projection: `friendshipId`, `otherUserId`, `displayName`,
+  `photoUrl`, and `netBalancePaise: int`. The provider returns the structured
+  integer; the widget invokes the shared formatter for display.
+
+### 4. Friend display-name resolution: cached family provider (Option B)
+
+The `friendships` doc carries `memberIds` (UIDs only); the friend's display
+name and photo URL live on `users/{otherUserId}`. Choice: **Option B from
+the prompt's Phase 2.4** — a `userProfileProvider.family(uid)` of type
+`FutureProvider.family<UserModel?, String>` caches each lookup. The
+`friendsListProvider` stream resolves each friend's profile via
+`await ref.read(userProfileProvider(otherUid).future)` and projects in parallel
+via `Future.wait`.
+
+- Profile reads are **one-shot/cached** by intent for v1.0. If a friend updates
+  their display name mid-session, the list does not live-update the name until
+  the user reopens the friends tab or the family is invalidated. This is
+  documented as an intentional trade-off; we revisit if it surfaces as a UX
+  issue.
+- If a profile lookup fails (deleted user doc, rules-denied edge case), the
+  row falls back to `displayName: "Unknown"` with the avatar omitted. The
+  balance still renders correctly because it derives from the friendship doc,
+  not the user doc. A provider test asserts this fallback.
+- **Defensive drop on degenerate `memberIds`.** A friendship doc whose
+  `memberIds` does not contain a distinct other user (empty list, single
+  member, or a list where every entry equals `currentUserId`) is **dropped**
+  from the projected list and surfaced via
+  `developer.log(name: 'friendship_parse_failure', level: 900)`. No "self
+  row" — i.e. a row that resolves the current user's own profile — is ever
+  rendered. Firestore Security Rules already require exactly two members on
+  write (`firestore.rules` and `functions/test/firestore-rules/friendships.test.ts`),
+  so this branch only fires for data that bypasses the production rules; the
+  drop keeps the UI honest if such corruption ever appears.
+
+### 5. Real-time updates via Firestore snapshot listener
+
+The `friendsListProvider` directly subscribes to the snapshot stream. Updates
+to `simplifiedBalances` or `lastActivityAt` flow through automatically;
+Firestore's `orderBy('lastActivityAt', desc)` owns the ordering — no
+client-side sort is performed. AC-6 is verified by repository tests (re-order
+on `lastActivityAt` change) and the integration stub (end-to-end seeding +
+mutation).
+
+### 6. Friend-detail navigation stub: minimal placeholder screen (Option A)
+
+A new `FriendDetailPlaceholderScreen` is pushed when a row is tapped. The
+screen displays a generic "Friend details coming soon" message and a back
+button. **It does not display the raw `friendshipId`** — even though it's a
+deterministic composite, the ID is composed of two UIDs and is PII-adjacent.
+
+- Why Option A over a SnackBar (Option B): the placeholder participates in
+  the Navigator stack, which lets the AC-6 integration test walk
+  open → tap → back → real-time update.
+- Removal moment: the FR-FR-04 PR replaces
+  `FriendDetailPlaceholderScreen` with the real Friend Detail screen
+  (`SCR-11`). The route call site in the list tile stays the same; only the
+  destination widget changes.
+
+### 7. Telemetry — single-fire + hashed identifiers
+
+- `friends_list_viewed` fires exactly **once per screen instance**, on first
+  paint of the populated or empty state. A `ConsumerStatefulWidget` with a
+  `_loggedView` boolean guards re-emission; widget tests assert that snapshot
+  updates and rebuilds do not duplicate the event.
+- `friend_row_tapped` includes a `friendship_id` parameter that is the
+  SHA-256 hash of the raw friendshipId, truncated to the first 16 hex chars.
+  The hash utility lives at `lib/core/telemetry/event_id_hash.dart` and is
+  the canonical helper for any other event that needs an opaque correlation
+  ID. Raw friendshipIds and UIDs must never appear in analytics parameters,
+  Crashlytics breadcrumbs, or log output (the PII-leak test enforces this).
+- `friends_empty_add_tapped` carries no parameters.
+
+A companion update to `docs/design/07-technical/telemetry-plan.md` is shipped
+in the same PR so the plan, story, and SCR-09 spec converge on the hashed
+`friendship_id` parameter and the single-fire `friends_list_viewed`
+behaviour.
+
+### 8. Composite index declaration
+
+The `memberIds (array-contains) + lastActivityAt (desc)` composite is the only
+index Firestore demands for this query. Devops adds it to
+`firestore.indexes.json` in the same PR and deploys it before the merge
+ceremony — without the live index, the populated state fails with
+`FAILED_PRECONDITION`.
+
+### 9. No new ADR required
+
+All moves above are within the precedent of ADR-0001 (simplified debts as the
+sole debt mechanism), ADR-0002 (paise integer arithmetic), and ADR-0013/0014
+(PII handling and Cloud Function gateway for lookups). If a future PR
+introduces denormalisation of `displayName` onto the friendship doc — a real
+tradeoff with PII implications — that escalates to a new ADR before
+implementation.
