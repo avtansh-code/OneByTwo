@@ -269,20 +269,6 @@ jobs:
           fi
           printf '%s' "${GOOGLE_SERVICE_INFO_PLIST_BASE64}" | base64 -D > ios/Runner/GoogleService-Info.plist
 
-      - name: Update CocoaPods specs repo (iOS dependency resolution)
-        # Disabling SwiftPM (above) forces dependency resolution back to
-        # CocoaPods, which uses a local specs cache. The cache shipped on
-        # the GitHub macos-15 runner image can lag behind the trunk and
-        # fail with "CocoaPods's specs repository is too out-of-date to
-        # satisfy dependencies" when new pod versions are required. A
-        # one-shot `pod repo update` refreshes the cache before
-        # `flutter build ios` invokes `pod install` internally.
-        #
-        # Note: this step runs in the `ios/` directory because `pod` is
-        # repository-aware and the Podfile location informs its behaviour.
-        working-directory: ios
-        run: pod repo update
-
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
 
