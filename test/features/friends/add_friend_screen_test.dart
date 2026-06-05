@@ -236,5 +236,142 @@ void main() {
       expect(params, isNotNull);
       expect(params, containsPair('tab', 'manual'));
     });
+
+    // ─── AC-6: Permission-denied fallback ────────────────────────────────
+
+    group('permission-denied fallback (AC-6)', () {
+      setUp(() {
+        // Force the denied permission state for this group.
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.denied;
+      });
+
+      testWidgets('PermissionDeniedView is rendered with the '
+          'Type-a-number-instead link wired', (tester) async {
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The contacts tab is still selected by default; its body
+        // renders the permission-denied view with the fallback link.
+        expect(find.text('Grant Permission'), findsOneWidget);
+        expect(find.text('Type a number instead'), findsOneWidget);
+        // The manual-entry helper text must NOT be visible yet (still
+        // on the contacts tab body, just in the denied state).
+        expect(
+          find.text('Enter a 10-digit Indian mobile number.'),
+          findsNothing,
+        );
+      });
+
+      testWidgets('tapping Type a number instead switches the segmented '
+          'control to the manual tab and shows the manual-entry UI', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Type a number instead'));
+        await tester.pumpAndSettle();
+
+        // Manual-entry tab body is now visible.
+        expect(
+          find.text('Enter a 10-digit Indian mobile number.'),
+          findsOneWidget,
+        );
+        // The fallback link is gone because the contacts tab is no
+        // longer being rendered.
+        expect(find.text('Type a number instead'), findsNothing);
+      });
+
+      testWidgets('tapping Type a number instead fires add_friend_tab_switched '
+          'with tab=manual and source=permission_denied', (tester) async {
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Type a number instead'));
+        await tester.pumpAndSettle();
+
+        expect(fakeAnalytics.loggedEvents, contains('add_friend_tab_switched'));
+
+        // Find the LAST tab-switched event (there may be earlier ones
+        // from initialisation paths) and assert its parameters.
+        final indices = <int>[];
+        for (var i = 0; i < fakeAnalytics.loggedEvents.length; i++) {
+          if (fakeAnalytics.loggedEvents[i] == 'add_friend_tab_switched') {
+            indices.add(i);
+          }
+        }
+        expect(indices, isNotEmpty);
+        final params = fakeAnalytics.loggedParams[indices.last];
+        expect(params, isNotNull);
+        expect(params, containsPair('tab', 'manual'));
+        expect(
+          params,
+          containsPair('source', 'permission_denied'),
+          reason:
+              'The fallback path from the denied view must mark the '
+              'source so funnel analytics can distinguish user-initiated '
+              'tab taps from permission-denied recoveries.',
+        );
+      });
+
+      testWidgets(
+        'tapping Type a number instead fires friend_manual_entry_opened',
+        (tester) async {
+          await tester.pumpWidget(
+            _buildSubject(
+              fakeAnalytics: fakeAnalytics,
+              fakeContactService: fakeContactService,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Type a number instead'));
+          await tester.pumpAndSettle();
+
+          expect(
+            fakeAnalytics.loggedEvents,
+            contains('friend_manual_entry_opened'),
+            reason:
+                'The opened event must fire when the manual tab becomes '
+                'active, regardless of whether the user reached it via '
+                'the segmented control or the permission-denied fallback.',
+          );
+        },
+      );
+
+      testWidgets('permanently-denied state also exposes the fallback link', (
+        tester,
+      ) async {
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.deniedPermanently;
+
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Type a number instead'), findsOneWidget);
+      });
+    });
   });
 }
