@@ -149,7 +149,7 @@ service cloud.firestore {
     // Expenses subcollection under a friendship — member-only read/write
     // with strict invariant-1 enforcement at the write boundary
     // (FR-EX-04: splits[*].sharePaise must sum to amountPaise).
-    // First subcollection rules for the friendships graph (PR #36 / FR-SE-03/04).
+    // First subcollection rules for the friendships graph (FR-SE-03/04).
     match /friendships/{friendshipId}/expenses/{expenseId} {
 
       // Loaders for cross-doc checks (parent friendship membership)
@@ -356,7 +356,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Settlements collection — top-level (FR-SE-05/06, PR #37).
+    // Settlements collection — top-level (FR-SE-05/06).
     //
     // A settlement document represents a cash payment from `fromUserId`
     // (the debtor) to `toUserId` (the recipient) within a context

@@ -51,7 +51,7 @@ function createMockLogger() {
  * subcollection can be configured per-test. Records every `tx.update(...)`
  * call for assertion.
  *
- * PR #37: also handles the top-level `settlements` collection query
+ * FR-SE-05/06: also handles the top-level `settlements` collection query
  * introduced by the `recomputeAndWrite` settlement-read extension. When
  * `settlements` is omitted, the settlements query returns an empty list.
  */

@@ -4,8 +4,8 @@
  * These tests exercise `createTriggerHandler(deps)` directly with mocked
  * Firestore + logger — no emulator required. The trigger handler is the
  * thin orchestration layer wrapping the shared `recomputeAndWrite` core
- * (extended in PR #37 to read settlements alongside expenses); this suite
- * asserts the trigger-specific concerns: discriminator-from-doc-data
+ * (extended in this story to read settlements alongside expenses); this
+ * suite asserts the trigger-specific concerns: discriminator-from-doc-data
  * extraction (after-side on create/update; before-side on hard delete),
  * stale-event guard, `lastActivityAt` monotonicity, error-policy mapping,
  * structured telemetry, and PII-free logging.
@@ -24,7 +24,7 @@ import {createTriggerHandler} from
 
 // ---------------------------------------------------------------------------
 // Mock helpers — copy the function.test.ts pattern with the settlements
-// extension (PR #37). The mock dispatches by collection name:
+// extension (FR-SE-05/06). The mock dispatches by collection name:
 //   - 'friendships' / 'groups' → context doc + expenses subcollection.
 //   - 'settlements' → top-level settlements query.
 // ---------------------------------------------------------------------------

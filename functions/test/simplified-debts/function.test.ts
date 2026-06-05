@@ -29,7 +29,7 @@ function createMockLogger() {
  * Creates a minimal mock Firestore that returns the provided context document
  * and expense documents inside a transaction.
  *
- * PR #37 extension: also returns settlement documents from the top-level
+ * FR-SE-05/06 extension: also returns settlement documents from the top-level
  * `settlements` collection. The mock dispatches by the FIRST argument to
  * `db.collection()`:
  *   - `'friendships'` / `'groups'` → context doc + expenses subcollection
@@ -453,7 +453,7 @@ describe("recomputeAndWrite — alsoSet reserved-key guard", () => {
 });
 
 // ---------------------------------------------------------------------------
-// PR #37 (FR-SE-05/06) — recomputeAndWrite settlement-read extension
+// FR-SE-05/06 — recomputeAndWrite settlement-read extension
 //
 // Validates that the shared core now reads settlements in the same
 // transaction as expenses and folds them into the net-balance map. The

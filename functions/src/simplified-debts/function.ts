@@ -10,12 +10,11 @@
  *      back to the context document in the same transaction. Returns a
  *      typed discriminated union — never throws `HttpsError` itself.
  *      Consumed by BOTH the HTTPS Callable handler AND the
- *      `onExpenseWriteFriendship` trigger (PR #36, FR-SE-03/04).
+ *      `onExpenseWriteFriendship` trigger (FR-SE-03/04).
  *
  *   2. `createHandler(deps)` — HTTPS Callable handler. Validates client
  *      input, delegates to `recomputeAndWrite`, maps documented failure
- *      codes to `HttpsError`, and emits structured telemetry. Behaviour
- *      is unchanged by the variant 2.3(b) refactor.
+ *      codes to `HttpsError`, and emits structured telemetry.
  *
  * Error codes follow `docs/design/07-technical/cloud-functions-error-codes.md`.
  * All monetary values are integer paise (Invariant 1).
@@ -77,7 +76,7 @@ export interface Dependencies {
  * applies a MONOTONICITY GUARD — the value actually written is
  * `max(existingLastActivityAt, alsoSet.lastActivityAt)`. This prevents
  * out-of-order Cloud Functions delivery from regressing the friends-list
- * ordering (PR #35 reader). No other reserved keys exist today.
+ * ordering. No other reserved keys exist today.
  */
 export interface RecomputeRequest {
   contextType: ContextType;
@@ -181,7 +180,7 @@ function contextCollectionName(contextType: ContextType): string {
  * Expense semantics: the payer is credited +amountPaise and each split
  * member is debited -sharePaise. All values are integer paise (Invariant 1).
  *
- * Settlement semantics (PR #37, FR-SE-05/06): a settlement of
+ * Settlement semantics (FR-SE-05/06): a settlement of
  * `{fromUserId: A, toUserId: B, amountPaise: N}` represents A paying B N
  * paise in cash. This CREDITS A's net balance (+N — A's debt is reduced)
  * and DEBITS B's net balance (-N — B is now owed less). Combined with the
@@ -190,8 +189,8 @@ function contextCollectionName(contextType: ContextType): string {
  *
  * In-code soft-delete filter: settlements with `deleted === true` are
  * excluded from the fold. The expense query already applies the
- * `where('deleted', '!=', true)` filter at the Firestore level (PR #36);
- * the settlements query reads ALL matching docs and filters in code to
+ * `where('deleted', '!=', true)` filter at the Firestore level; the
+ * settlements query reads ALL matching docs and filters in code to
  * avoid an unnecessary composite-index requirement (see Architect Notes
  * §2 of FR-SE-05-06 story).
  *
@@ -252,7 +251,7 @@ export function computeNetBalances(
 /**
  * Returns the LATER of two timestamps. Used to enforce monotonicity on
  * `lastActivityAt` writes — out-of-order Cloud Functions delivery must
- * never regress the friends-list ordering (PR #35 AC-6, PR #36 AC-12).
+ * never regress the friends-list ordering.
  *
  * Falls back to `next` when `existing` is missing or not a Timestamp.
  */
@@ -365,7 +364,7 @@ export async function recomputeAndWrite(
       .where("deleted", "!=", true);
 
     // Read settlements for this context from the TOP-LEVEL settlements
-    // collection (PR #37, FR-SE-05/06). Settlements carry their context
+    // collection (FR-SE-05/06). Settlements carry their context
     // discriminator in the doc data — not the path — because a single
     // settlement could in principle move between contexts (it cannot in
     // v1.0 — immutable contextType/contextId per security rules — but

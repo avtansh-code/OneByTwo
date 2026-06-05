@@ -7,8 +7,8 @@
  * `{retry: true}` option.
  *
  * Companion bindings:
- *   - `onExpenseWriteFriendship` (PR #36) handles expense writes under
- *     `friendships/{friendshipId}/expenses/{expenseId}`.
+ *   - `onExpenseWriteFriendship` handles expense writes under
+ *     `friendships/{friendshipId}/expenses/{expenseId}` (FR-SE-03/04).
  *   - `onExpenseWriteGroup` for `groups/{groupId}/expenses/{expenseId}`
  *     is DEFERRED to Sprint 3 (groups epic). Architect notes §1 of the
  *     FR-SE-05-06-settlement-trigger story explain why the settlements
@@ -34,8 +34,9 @@ const REGION = "asia-south1";
  * `settlements/{settlementId}`.
  *
  * - First trigger on a TOP-LEVEL collection in the application's
- *   history (PR #36 covered the subcollection-scoped expense case).
- * - First PR to make the simplified-debts algorithm read settlements
+ *   history (the existing expense trigger covers the subcollection-
+ *   scoped case).
+ * - First trigger to make the simplified-debts algorithm read settlements
  *   into the net-balance computation — the catalogue's "settlements"
  *   row of the algorithm read table is now truthful.
  * - Atomicity: both `simplifiedBalances` and `lastActivityAt` are

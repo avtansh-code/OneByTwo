@@ -1,8 +1,8 @@
 /**
  * Firestore Security Rules tests for the new `settlements/{settlementId}`
- * collection (PR #37, FR-SE-05/06).
+ * collection (FR-SE-05/06).
  *
- * Validates the access-control posture introduced by PR #37 — AC-1
+ * Validates the access-control posture introduced by this story — AC-1
  * through AC-6 of the FR-SE-05-06-settlement-trigger story:
  *
  *   - AC-1: create allowed for fromUserId only.
@@ -135,7 +135,7 @@ let testEnv: RulesTestEnvironment;
 // reads BOTH the per-context friendship doc AND the top-level
 // settlements collection inside a single transaction, so it has a
 // wider race window with the global clearFirestore lock than the
-// PR #36 expense trigger does (the latter reads only the per-context
+// expense trigger does (the latter reads only the per-context
 // expenses subcollection).
 const createdDocPaths: string[] = [];
 

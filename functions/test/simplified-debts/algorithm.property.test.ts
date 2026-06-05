@@ -8,7 +8,7 @@ import { computeNetBalances } from "../../src/simplified-debts/function";
  * Uses fast-check to generate random valid inputs and verify structural
  * properties that must hold for any input.
  *
- * PR #37 (FR-SE-05/06) extends the test surface to cover
+ * FR-SE-05/06 extends the test surface to cover
  * `computeNetBalances` over MIXED expense + settlement sequences. The
  * load-bearing property: for any random mix of expenses (which credit
  * the payer and debit the split members) AND settlements (which credit
@@ -136,7 +136,7 @@ describe("simplifyDebts property-based tests", () => {
 });
 
 // ---------------------------------------------------------------------------
-// PR #37 — Mixed expense + settlement property tests for computeNetBalances
+// FR-SE-05/06 — Mixed expense + settlement property tests for computeNetBalances
 // ---------------------------------------------------------------------------
 
 /**

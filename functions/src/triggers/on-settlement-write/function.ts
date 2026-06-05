@@ -3,14 +3,14 @@
  *
  * Handles every create / update / soft-delete / hard-delete of a
  * settlement document at `settlements/{settlementId}` (a TOP-LEVEL
- * collection, unlike PR #36's subcollection-scoped expense trigger).
+ * collection, unlike the subcollection-scoped expense trigger).
  * Delegates the read-compute-write transaction to the shared
- * `recomputeAndWrite` core (which was extended in this PR to read the
- * top-level settlements collection alongside the per-context expenses
+ * `recomputeAndWrite` core (which is extended to read the top-level
+ * settlements collection alongside the per-context expenses
  * subcollection — see `functions/src/simplified-debts/function.ts`),
  * and atomically maintains the parent context document's
- * `lastActivityAt` so the friends-list ordering shipped in PR #35
- * (FR-FR-03 AC-6) advances on every settlement event.
+ * `lastActivityAt` so the friends-list ordering (FR-FR-03 AC-6)
+ * advances on every settlement event.
  *
  * This is the second Firestore trigger in the application's history
  * and the first on a top-level collection. Because the settlements
@@ -19,7 +19,8 @@
  * event path. The after-side snapshot is preferred (create/update); on
  * hard delete the before-side is the source.
  *
- * Error policy (Cloud Functions v2 retry semantics — identical to PR #36):
+ * Error policy (Cloud Functions v2 retry semantics — identical to the
+ * expense trigger):
  *   - CONTEXT_NOT_FOUND: log structured failure, return successfully so
  *     Cloud Functions does NOT retry (the friendship/group is gone —
  *     retries cannot help).
@@ -96,7 +97,7 @@ type ChangeType = "create" | "update" | "delete";
 
 /**
  * Derives the change type from snapshot existence on each side of the
- * Firestore `Change<DocumentSnapshot>` (mirrors PR #36's expense trigger).
+ * Firestore `Change<DocumentSnapshot>` (mirrors the expense trigger).
  */
 function deriveChangeType(
   change: Change<DocumentSnapshot> | undefined,
@@ -173,7 +174,7 @@ export function createTriggerHandler(
     // IDs (safe raw) but the parent friendship `contextId` is the
     // composite `{uidA}_{uidB}` pattern — logging it raw would leak
     // user identifiers. Both are hashed for parity with the expense
-    // trigger's log format (PR #36).
+    // trigger's log format.
     const settlementIdHash = hashId(settlementId);
 
     const discriminator = extractContextDiscriminator(event.data);
@@ -225,8 +226,8 @@ export function createTriggerHandler(
       return;
     }
 
-    // 3. Hand-off seams for downstream PRs (placement parity with
-    //    PR #36's expense trigger):
+    // 3. Hand-off seams for downstream stories (placement parity with
+    //    the expense trigger):
     //    TODO(FR-AC-01): write activity-feed items to both parties'
     //      activity/{userId}/items subcollection after successful
     //      recompute.
@@ -237,7 +238,7 @@ export function createTriggerHandler(
     //    branch at the bottom of this handler) to keep retry semantics
     //    clean — a retryable transient failure must not duplicate
     //    activity items or notifications. Today they are deferred
-    //    entirely; the actual placement decision lives with the PR
+    //    entirely; the actual placement decision lives with the story
     //    that implements them.
 
     // 4. Build the alsoSet payload — atomically advance lastActivityAt
@@ -288,8 +289,7 @@ export function createTriggerHandler(
 
       if (result.code === "CONTEXT_NOT_FOUND") {
         // Friendship/group was deleted — retries cannot help. Return
-        // successfully so Cloud Functions does NOT retry. (Mirror of
-        // PR #36 AC-10 / AC-12 in this story.)
+        // successfully so Cloud Functions does NOT retry.
         return;
       }
 
