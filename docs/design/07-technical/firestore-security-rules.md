@@ -229,14 +229,37 @@ do not exist; everything is participant-scoped").
 - `contextType` must be one of: `friendship`, `group`.
 - `contextId` must be a non-empty string.
 - `toUserId` must be a non-empty string and must differ from `fromUserId`.
+- Both `fromUserId` and `toUserId` must be members of the parent context
+  (`memberIds` on the friendship/group document).
+- Extension-point locks (v1.0 fixed values per
+  `extension-points-register.md`):
+  - `method == 'manual'` (ARCH-EXT-01).
+  - `currency == 'INR'` (ARCH-EXT-02).
+  - `verificationStatus == 'unverified'` (ARCH-EXT-06).
+- `deleted` must be `false` on create.
+- `createdAt` must equal `request.time`.
+- The document MAY contain only the whitelisted fields:
+  `fromUserId`, `toUserId`, `amountPaise`, `contextType`, `contextId`,
+  `date`, `note`, `method`, `verificationStatus`, `currency`,
+  `createdAt`, `deleted`.
 
 ### Update
 
-- Denied to all clients. Settlements are immutable once created.
+- Allowed for either party (`fromUserId` or `toUserId`) — soft-delete only.
+- The ONLY field that may change is `deleted` (false → true). All other
+  fields are immutable, including `note`. The check uses Firestore's
+  `affectedKeys()` to enforce `hasOnly(['deleted'])`.
+- Un-delete is denied (clients cannot set `deleted` back to false).
+- `verificationStatus` is **client-read-only** — only the Cloud Functions
+  service account may write to this field (mirrors the
+  `simplifiedBalances` Invariant-2 enforcement pattern; ARCH-EXT-06).
+  v1.0 has no server-side writer; the field stays at the literal
+  `'unverified'` default.
 
 ### Delete
 
-- Denied to all clients. Settlements are never removed.
+- Denied to all clients (hard-delete is admin-SDK only). Soft-delete via
+  update is the supported client path.
 
 ---
 

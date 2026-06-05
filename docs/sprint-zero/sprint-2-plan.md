@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #36 + chore-backlog audit (issues #15-#28).
+> Last updated: PR #37 + chore-backlog audit (issues #15-#28).
 
 ---
 
@@ -55,6 +55,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | Merged |
 | #35 | FR-FR-03 | Friends list with simplified net balance | 3 | Merged |
 | #36 | FR-SE-03/04 | `onExpenseWriteFriendship` Firestore trigger | 3 | Merged |
+| #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | In review |
 
 ---
 
@@ -67,7 +68,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | 2 | Merged |
 | #35 | 3 | Merged |
 | #36 | 3 | Merged |
-| **Total** | **14** | **5 PRs so far** |
+| #37 | 5 | In review |
+| **Total** | **19** | **6 PRs so far** |
 
 Sprint 1 reference:
 
@@ -183,6 +185,48 @@ inherit:
 The architect notes appended to
 `docs/sprint-zero/stories/FR-SE-03-04-expense-trigger-friendship.md`
 ratify all design decisions taken in this PR.
+
+## Pattern Extension (PR #37)
+
+PR #37 extends the patterns ratified by PR #36 to ship the
+`onSettlementWrite` trigger:
+
+- **Shared core takes an additional read source** —
+  `recomputeAndWrite` now reads both the per-context expenses
+  subcollection AND the top-level `settlements` collection inside the
+  same Firestore transaction. `computeNetBalances` accepts both and
+  folds them together (expenses credit payer / debit splits;
+  settlements credit `fromUserId` / debit `toUserId`). The public
+  signature of `recomputeAndWrite` is unchanged — settlements are an
+  internal implementation detail.
+- **First trigger on a top-level collection** — the
+  `onSettlementWrite` trigger registers at `settlements/{settlementId}`
+  and reads the context discriminator (`contextType`, `contextId`)
+  from the document data rather than the trigger path. Naturally
+  handles both friendship and group contexts without modification when
+  groups ship in Sprint 3.
+- **Invariant-2 parallel for `verificationStatus` on settlements** —
+  enforced by the new `match /settlements/{settlementId}` security
+  rules block (field-level diff rejects client mutation). v1.0 has no
+  server-side writer; the rules are the enforcement mechanism per
+  ARCH-EXT-06.
+- **Settlements schema additions** — `deleted: bool` (default `false`)
+  for soft-delete and `createdAt: timestamp` (immutable) for audit
+  history. The settlements rules permit ONLY soft-delete on update;
+  every other field is immutable. Hard-delete is admin-only.
+- **In-code soft-delete filter for settlements** — the algorithm
+  filters `deleted === true` settlements in JavaScript inside
+  `computeNetBalances` rather than chaining a third Firestore
+  `where('deleted', '!=', true)` on the cross-field query. This avoids
+  an over-specified three-field composite index for negligible
+  computational cost (settlements per context are small).
+- **Composite index for settlements queries** — declared in
+  `firestore.indexes.json`:
+  `{collectionGroup: 'settlements', fields: [contextType ASC, contextId ASC]}`.
+
+The architect notes appended to
+`docs/sprint-zero/stories/FR-SE-05-06-settlement-trigger.md`
+ratify the PR #37 design decisions.
 
 ---
 

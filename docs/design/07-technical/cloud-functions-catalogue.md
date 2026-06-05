@@ -270,16 +270,32 @@ Functions event-delivery window (7 days) are dropped by checking
 
 ### Purpose
 
-Responds to the creation of a settlement document. Orchestrates:
+Responds to every write (create, update, soft-delete, hard-delete) of a
+settlement document. v1.0 orchestrates only the simplified-balances
+recompute; activity items and FCM are deferred to FR-AC-01 / FR-AC-03.
 
-1. Calls `recomputeSimplifiedBalances` for the settlement's context (FR-SE-04,
-   FR-SE-06).
-2. Writes an activity-feed item for both parties (FR-AC-01).
-3. Sends an FCM push notification to the recipient (FR-AC-03).
+1. Calls the shared `recomputeAndWrite` core for the settlement's
+   context, which reads expenses AND settlements in the same Firestore
+   transaction and writes the updated `simplifiedBalances` map to the
+   parent friendship/group document (FR-SE-04, FR-SE-06).
+2. **(Deferred to FR-AC-01)** Writes an activity-feed item for both
+   parties. Hand-off seam (`// TODO(FR-AC-01)`) lives in the trigger
+   source.
+3. **(Deferred to FR-AC-03)** Sends an FCM push notification to the
+   recipient. Hand-off seam (`// TODO(FR-AC-03)`) lives in the trigger
+   source.
 
 ### Trigger type
 
-**Firestore onCreate** on `settlements/{settlementId}`.
+**Firestore onWrite** on `settlements/{settlementId}` (the v2
+`onDocumentWritten` event). Covers create, update, soft-delete, and
+hard-delete. Region: `asia-south1`. Retry: enabled.
+
+The context discriminator (`contextType`, `contextId`) is read from the
+document data because the settlements collection is top-level — the
+discriminator is NOT in the trigger path. The after-side snapshot is
+preferred on create/update; the before-side is the source on hard
+delete.
 
 ### Input contract
 
@@ -785,7 +801,7 @@ ADR-0014 — Phone Number Lookup via Cloud Function.
 | `recomputeSimplifiedBalances` | Callable | No | `asia-south1` | shipped |
 | `onExpenseWriteFriendship` | Firestore onWrite `friendships/{id}/expenses/{id}` | Yes | `asia-south1` | shipped |
 | `onExpenseWriteGroup` | Firestore onWrite `groups/{id}/expenses/{id}` | Yes | `asia-south1` | planned |
-| `onSettlementWrite` | Firestore onCreate `settlements/{id}` | Yes | `asia-south1` | planned |
+| `onSettlementWrite` | Firestore onWrite `settlements/{id}` | Yes | `asia-south1` | shipped |
 | `onUserDelete` | Callable | No | `asia-south1` | planned |
 | `acceptGroupInvite` | Callable | No | `asia-south1` | planned |
 | `revokeGroupInvite` | Callable | No | `asia-south1` | planned |
