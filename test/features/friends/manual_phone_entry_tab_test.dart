@@ -66,9 +66,7 @@ Widget _buildSubject({
   String? currentUserPhone,
 }) {
   return ProviderScope(
-    overrides: [
-      analyticsServiceProvider.overrideWithValue(fakeAnalytics),
-    ],
+    overrides: [analyticsServiceProvider.overrideWithValue(fakeAnalytics)],
     child: MaterialApp(
       home: Scaffold(
         body: ManualPhoneEntryTab(
@@ -117,8 +115,7 @@ void main() {
       // The text field should use a phone keyboard type.
       final textFieldFinder = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.keyboardType == TextInputType.phone,
+            widget is TextField && widget.keyboardType == TextInputType.phone,
       );
       expect(textFieldFinder, findsOneWidget);
     });
@@ -165,8 +162,7 @@ void main() {
       // Enter fewer than 10 digits.
       final phoneField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.keyboardType == TextInputType.phone,
+            widget is TextField && widget.keyboardType == TextInputType.phone,
       );
       await tester.enterText(phoneField, '98765');
       await tester.pump();
@@ -188,8 +184,7 @@ void main() {
 
       final phoneField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.keyboardType == TextInputType.phone,
+            widget is TextField && widget.keyboardType == TextInputType.phone,
       );
       await tester.enterText(phoneField, '9876543210');
       await tester.pump();
@@ -199,38 +194,34 @@ void main() {
       expect(button.onPressed, isNotNull);
     });
 
-    testWidgets(
-      'tapping Add Friend with valid input calls onSubmit with '
-      'E.164 SelectedContact',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            submitCapture: submitCapture,
-            fakeAnalytics: fakeAnalytics,
-          ),
-        );
+    testWidgets('tapping Add Friend with valid input calls onSubmit with '
+        'E.164 SelectedContact', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          submitCapture: submitCapture,
+          fakeAnalytics: fakeAnalytics,
+        ),
+      );
 
-        final phoneField = find.byWidgetPredicate(
-          (widget) =>
-              widget is TextField &&
-              widget.keyboardType == TextInputType.phone,
-        );
-        await tester.enterText(phoneField, '9876543210');
-        await tester.pump();
+      final phoneField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.keyboardType == TextInputType.phone,
+      );
+      await tester.enterText(phoneField, '9876543210');
+      await tester.pump();
 
-        await tester.tap(find.text('Add Friend'));
-        await tester.pump();
+      await tester.tap(find.text('Add Friend'));
+      await tester.pump();
 
-        expect(submitCapture.callCount, 1);
-        expect(
-          submitCapture.lastContact,
-          const SelectedContact(
-            displayName: '+919876543210',
-            phoneNumbers: ['+919876543210'],
-          ),
-        );
-      },
-    );
+      expect(submitCapture.callCount, 1);
+      expect(
+        submitCapture.lastContact,
+        const SelectedContact(
+          displayName: '+919876543210',
+          phoneNumbers: ['+919876543210'],
+        ),
+      );
+    });
 
     testWidgets('validation error shown for invalid start digit', (
       tester,
@@ -244,8 +235,7 @@ void main() {
 
       final phoneField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.keyboardType == TextInputType.phone,
+            widget is TextField && widget.keyboardType == TextInputType.phone,
       );
       await tester.enterText(phoneField, '1234567890');
       await tester.pump();
@@ -275,8 +265,7 @@ void main() {
 
         final phoneField = find.byWidgetPredicate(
           (widget) =>
-              widget is TextField &&
-              widget.keyboardType == TextInputType.phone,
+              widget is TextField && widget.keyboardType == TextInputType.phone,
         );
         await tester.enterText(phoneField, '9876543210');
         await tester.pump();
@@ -291,43 +280,39 @@ void main() {
       },
     );
 
-    testWidgets(
-      'fires friend_manual_entry_validation_failed telemetry on '
-      'invalid submit',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            submitCapture: submitCapture,
-            fakeAnalytics: fakeAnalytics,
-          ),
-        );
+    testWidgets('fires friend_manual_entry_validation_failed telemetry on '
+        'invalid submit', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          submitCapture: submitCapture,
+          fakeAnalytics: fakeAnalytics,
+        ),
+      );
 
-        final phoneField = find.byWidgetPredicate(
-          (widget) =>
-              widget is TextField &&
-              widget.keyboardType == TextInputType.phone,
-        );
-        await tester.enterText(phoneField, '1234567890');
-        await tester.pump();
+      final phoneField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.keyboardType == TextInputType.phone,
+      );
+      await tester.enterText(phoneField, '1234567890');
+      await tester.pump();
 
-        await tester.tap(find.text('Add Friend'));
-        await tester.pump();
+      await tester.tap(find.text('Add Friend'));
+      await tester.pump();
 
-        expect(
-          fakeAnalytics.loggedEvents,
-          contains('friend_manual_entry_validation_failed'),
-        );
+      expect(
+        fakeAnalytics.loggedEvents,
+        contains('friend_manual_entry_validation_failed'),
+      );
 
-        // Verify error_code parameter is present.
-        final eventIndex = fakeAnalytics.loggedEvents.indexOf(
-          'friend_manual_entry_validation_failed',
-        );
-        expect(eventIndex, isNot(-1));
-        final params = fakeAnalytics.loggedParams[eventIndex];
-        expect(params, isNotNull);
-        expect(params, containsPair('error_code', isA<String>()));
-      },
-    );
+      // Verify error_code parameter is present.
+      final eventIndex = fakeAnalytics.loggedEvents.indexOf(
+        'friend_manual_entry_validation_failed',
+      );
+      expect(eventIndex, isNot(-1));
+      final params = fakeAnalytics.loggedParams[eventIndex];
+      expect(params, isNotNull);
+      expect(params, containsPair('error_code', isA<String>()));
+    });
 
     testWidgets('renders helper text', (tester) async {
       await tester.pumpWidget(
@@ -353,8 +338,7 @@ void main() {
 
       final phoneField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.keyboardType == TextInputType.phone,
+            widget is TextField && widget.keyboardType == TextInputType.phone,
       );
 
       // Submit a valid number.

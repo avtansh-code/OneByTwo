@@ -45,9 +45,14 @@ class SubmitSpy {
   /// The last contact received via [call].
   SelectedContact? lastContact;
 
+  /// Number of times [call] has been invoked. Boundary tests can assert
+  /// this is exactly 1 to detect accidental double-submits.
+  int callCount = 0;
+
   /// The callback to pass into the widget.
   void call(SelectedContact contact) {
     lastContact = contact;
+    callCount++;
   }
 }
 
@@ -62,9 +67,7 @@ Widget _buildSubject({
   required FakeAnalyticsService fakeAnalytics,
 }) {
   return ProviderScope(
-    overrides: [
-      analyticsServiceProvider.overrideWithValue(fakeAnalytics),
-    ],
+    overrides: [analyticsServiceProvider.overrideWithValue(fakeAnalytics)],
     child: MaterialApp(
       home: Scaffold(
         body: ManualPhoneEntryTab(
@@ -104,25 +107,24 @@ void main() {
   });
 
   group('manual entry -> controller boundary contract', () {
-    testWidgets(
-      'submit delivers +91XXXXXXXXXX format, never raw 10-digit',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(spy: spy, fakeAnalytics: fakeAnalytics),
-        );
+    testWidgets('submit delivers +91XXXXXXXXXX format, never raw 10-digit', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildSubject(spy: spy, fakeAnalytics: fakeAnalytics),
+      );
 
-        await _enterAndSubmit(tester, '9876543210');
+      await _enterAndSubmit(tester, '9876543210');
 
-        expect(spy.lastContact, isNotNull);
-        expect(
-          spy.lastContact!.phoneNumbers.first,
-          equals('+919876543210'),
-          reason:
-              'The phone number at the boundary must be E.164 '
-              'format (+91 prefix), not raw 10-digit.',
-        );
-      },
-    );
+      expect(spy.lastContact, isNotNull);
+      expect(
+        spy.lastContact!.phoneNumbers.first,
+        equals('+919876543210'),
+        reason:
+            'The phone number at the boundary must be E.164 '
+            'format (+91 prefix), not raw 10-digit.',
+      );
+    });
 
     testWidgets('submit never doubles the +91 prefix', (tester) async {
       await tester.pumpWidget(
@@ -154,35 +156,31 @@ void main() {
         expect(
           spy.lastContact!.phoneNumbers.first.contains(' '),
           isFalse,
-          reason:
-              'E.164 number at the boundary must contain no whitespace.',
+          reason: 'E.164 number at the boundary must contain no whitespace.',
         );
       },
     );
 
-    testWidgets(
-      'displayName matches the E.164 normalised number',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(spy: spy, fakeAnalytics: fakeAnalytics),
-        );
-
-        await _enterAndSubmit(tester, '9876543210');
-
-        expect(spy.lastContact, isNotNull);
-        expect(
-          spy.lastContact!.displayName,
-          equals('+919876543210'),
-          reason:
-              'For manual entry without a contact name, the '
-              'displayName must equal the E.164 number.',
-        );
-      },
-    );
-
-    testWidgets('phoneNumbers list contains exactly one entry', (
+    testWidgets('displayName matches the E.164 normalised number', (
       tester,
     ) async {
+      await tester.pumpWidget(
+        _buildSubject(spy: spy, fakeAnalytics: fakeAnalytics),
+      );
+
+      await _enterAndSubmit(tester, '9876543210');
+
+      expect(spy.lastContact, isNotNull);
+      expect(
+        spy.lastContact!.displayName,
+        equals('+919876543210'),
+        reason:
+            'For manual entry without a contact name, the '
+            'displayName must equal the E.164 number.',
+      );
+    });
+
+    testWidgets('phoneNumbers list contains exactly one entry', (tester) async {
       await tester.pumpWidget(
         _buildSubject(spy: spy, fakeAnalytics: fakeAnalytics),
       );

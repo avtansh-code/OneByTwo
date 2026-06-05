@@ -42,8 +42,7 @@ class FakeAnalyticsService implements AnalyticsService {
 /// Fake [ContactService] with configurable behaviour for testing.
 class FakeContactService implements ContactService {
   /// The permission state returned by [checkPermission].
-  ContactPermissionState checkPermissionResult =
-      ContactPermissionState.granted;
+  ContactPermissionState checkPermissionResult = ContactPermissionState.granted;
 
   /// The permission state returned by [requestPermission].
   ContactPermissionState requestPermissionResult =
@@ -87,9 +86,7 @@ Widget _buildSubject({
       analyticsServiceProvider.overrideWithValue(fakeAnalytics),
       contactServiceProvider.overrideWithValue(fakeContactService),
     ],
-    child: const MaterialApp(
-      home: AddFriendScreen(),
-    ),
+    child: const MaterialApp(home: AddFriendScreen()),
   );
 }
 
@@ -144,52 +141,50 @@ void main() {
       expect(find.text('Amit Kumar'), findsOneWidget);
     });
 
-    testWidgets(
-      'tapping Enter Number switches to manual entry tab',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            fakeAnalytics: fakeAnalytics,
-            fakeContactService: fakeContactService,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('tapping Enter Number switches to manual entry tab', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          fakeAnalytics: fakeAnalytics,
+          fakeContactService: fakeContactService,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Enter Number'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Enter Number'));
+      await tester.pumpAndSettle();
 
-        // The manual entry tab should now be visible.
-        expect(
-          find.text('Enter a 10-digit Indian mobile number.'),
-          findsOneWidget,
-        );
-        // The contacts list should be hidden.
-        expect(find.text('Amit Kumar'), findsNothing);
-      },
-    );
+      // The manual entry tab should now be visible.
+      expect(
+        find.text('Enter a 10-digit Indian mobile number.'),
+        findsOneWidget,
+      );
+      // The contacts list should be hidden.
+      expect(find.text('Amit Kumar'), findsNothing);
+    });
 
-    testWidgets(
-      'tapping From Contacts switches back to contact picker',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            fakeAnalytics: fakeAnalytics,
-            fakeContactService: fakeContactService,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('tapping From Contacts switches back to contact picker', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          fakeAnalytics: fakeAnalytics,
+          fakeContactService: fakeContactService,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Switch to manual entry.
-        await tester.tap(find.text('Enter Number'));
-        await tester.pumpAndSettle();
-        expect(find.text('Amit Kumar'), findsNothing);
+      // Switch to manual entry.
+      await tester.tap(find.text('Enter Number'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amit Kumar'), findsNothing);
 
-        // Switch back to contacts.
-        await tester.tap(find.text('From Contacts'));
-        await tester.pumpAndSettle();
-        expect(find.text('Amit Kumar'), findsOneWidget);
-      },
-    );
+      // Switch back to contacts.
+      await tester.tap(find.text('From Contacts'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amit Kumar'), findsOneWidget);
+    });
 
     testWidgets(
       'fires add_friend_screen_viewed with entry_path contacts on load',
@@ -218,34 +213,28 @@ void main() {
       },
     );
 
-    testWidgets(
-      'fires add_friend_tab_switched with tab manual when '
-      'Enter Number tapped',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            fakeAnalytics: fakeAnalytics,
-            fakeContactService: fakeContactService,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('fires add_friend_tab_switched with tab manual when '
+        'Enter Number tapped', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          fakeAnalytics: fakeAnalytics,
+          fakeContactService: fakeContactService,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Enter Number'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Enter Number'));
+      await tester.pumpAndSettle();
 
-        expect(
-          fakeAnalytics.loggedEvents,
-          contains('add_friend_tab_switched'),
-        );
+      expect(fakeAnalytics.loggedEvents, contains('add_friend_tab_switched'));
 
-        final eventIndex = fakeAnalytics.loggedEvents.indexOf(
-          'add_friend_tab_switched',
-        );
-        expect(eventIndex, isNot(-1));
-        final params = fakeAnalytics.loggedParams[eventIndex];
-        expect(params, isNotNull);
-        expect(params, containsPair('tab', 'manual'));
-      },
-    );
+      final eventIndex = fakeAnalytics.loggedEvents.indexOf(
+        'add_friend_tab_switched',
+      );
+      expect(eventIndex, isNot(-1));
+      final params = fakeAnalytics.loggedParams[eventIndex];
+      expect(params, isNotNull);
+      expect(params, containsPair('tab', 'manual'));
+    });
   });
 }
