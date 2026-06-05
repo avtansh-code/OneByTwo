@@ -33,3 +33,8 @@ export {recomputeSimplifiedBalances} from "./simplified-debts/index";
 
 // Lookup user by phone number callable
 export {lookupUserByPhoneNumber} from "./lookup-user-by-phone-number/index";
+
+// Firestore trigger: recompute simplifiedBalances when an expense is
+// created, updated, or deleted under a friendship (FR-SE-03/04).
+// First non-callable producer of simplifiedBalances (Invariant 2).
+export {onExpenseWriteFriendship} from "./triggers/on-expense-write/index";
