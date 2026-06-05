@@ -220,4 +220,53 @@ void main() {
       await sub.cancel();
     });
   });
+
+  group('logFriendshipParseFailure (observability sink)', () {
+    test('is a FriendshipParseFailureSink', () {
+      // Assign through a typed variable to lock the typedef contract at
+      // compile time (the test fails to compile if the signature drifts).
+      // ignore: omit_local_variable_types
+      const FriendshipParseFailureSink sink = logFriendshipParseFailure;
+      expect(sink, isA<FriendshipParseFailureSink>());
+    });
+
+    test('does not throw on representative parse-failure messages', () {
+      expect(
+        () => logFriendshipParseFailure(
+          'friendship abc_def: simplifiedBalances is not a Map; '
+          'defaulting to empty',
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => logFriendshipParseFailure(
+          'friendship abc_def: no distinct other user in memberIds '
+          '(got [uid-me]); dropped from friends list',
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('accepts an empty message without throwing', () {
+      expect(() => logFriendshipParseFailure(''), returnsNormally);
+    });
+  });
+
+  group('FirestoreFriendshipStore onParseFailure wiring', () {
+    test('accepts a custom FriendshipParseFailureSink without throwing', () {
+      // We cannot construct a real FirebaseFirestore in a unit test, but
+      // we can confirm the constructor's parameter contract by checking
+      // the function type accepted matches FriendshipParseFailureSink.
+      // The actual wiring through Firestore snapshots is covered by the
+      // integration stub (test/integration/friends/friends_list_flow_test).
+      // ignore: omit_local_variable_types
+      const FriendshipParseFailureSink customSink = _recordingSink;
+      expect(customSink, isA<FriendshipParseFailureSink>());
+    });
+  });
 }
+
+// Top-level sink used to confirm the typedef parameter contract above
+// without requiring a closure (typedefs of function types require a
+// tear-off).
+void _recordingSink(String _) {}

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,16 +29,54 @@ abstract class FriendshipStore {
 }
 
 // ---------------------------------------------------------------------------
+// Parse-failure observability sink
+// ---------------------------------------------------------------------------
+
+/// Function shape used by [FirestoreFriendshipStore] to surface
+/// malformed-friendship-document parse failures into production
+/// observability.
+typedef FriendshipParseFailureSink = void Function(String message);
+
+/// Default observability sink for malformed-friendship-document parse
+/// failures. Routes through [developer.log] under the canonical
+/// `friendship_parse_failure` event name so silent `simplifiedBalances`
+/// corruption (architect note §3 on
+/// `docs/sprint-zero/stories/FR-FR-03-friends-list.md`) stays visible
+/// in production logs and Crashlytics breadcrumbs (when integrated).
+///
+/// Use this function as the default for any new code path that parses
+/// `simplifiedBalances` server data. Tests inject a custom sink via the
+/// [FirestoreFriendshipStore] constructor's `onParseFailure` parameter.
+void logFriendshipParseFailure(String message) {
+  developer.log(
+    message,
+    name: 'friendship_parse_failure',
+    level: 900, // SEVERE per developer.log convention.
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Production store
 // ---------------------------------------------------------------------------
 
 /// Firestore-backed implementation of [FriendshipStore].
 class FirestoreFriendshipStore implements FriendshipStore {
   /// Creates a [FirestoreFriendshipStore].
-  const FirestoreFriendshipStore({required FirebaseFirestore firestore})
-    : _firestore = firestore;
+  ///
+  /// [onParseFailure] receives a breadcrumb whenever
+  /// `FriendshipDoc.fromFirestore` encounters malformed
+  /// `simplifiedBalances` data while transforming a snapshot. Defaults
+  /// to [logFriendshipParseFailure] so production silently routes
+  /// corruption into observability. Tests may inject a callback that
+  /// records into an inspectable list.
+  const FirestoreFriendshipStore({
+    required FirebaseFirestore firestore,
+    FriendshipParseFailureSink onParseFailure = logFriendshipParseFailure,
+  }) : _firestore = firestore,
+       _onParseFailure = onParseFailure;
 
   final FirebaseFirestore _firestore;
+  final FriendshipParseFailureSink _onParseFailure;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('friendships');
@@ -67,8 +107,11 @@ class FirestoreFriendshipStore implements FriendshipStore {
         .map(
           (snapshot) => snapshot.docs
               .map(
-                (doc) =>
-                    FriendshipDoc.fromFirestore(id: doc.id, data: doc.data()),
+                (doc) => FriendshipDoc.fromFirestore(
+                  id: doc.id,
+                  data: doc.data(),
+                  onParseFailure: _onParseFailure,
+                ),
               )
               .toList(growable: false),
         );

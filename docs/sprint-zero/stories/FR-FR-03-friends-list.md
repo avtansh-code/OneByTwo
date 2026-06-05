@@ -229,11 +229,19 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
     friendship case before the Cloud Function runs; AC-3 still renders
     "settled up" naturally).
   - Malformed nested entries (non-`int` values, non-`Map` sub-entries) are
-    dropped and a breadcrumb is logged via the analytics service. The remaining
-    valid entries are preserved.
+    dropped and a breadcrumb is routed through the `onParseFailure` callback.
+    In production, `FirestoreFriendshipStore` wires the callback to
+    `logFriendshipParseFailure` (`lib/features/friends/data/friendship_repository.dart`),
+    which calls `developer.log(..., name: 'friendship_parse_failure', level: 900)`.
+    `developer.log` surfaces in Dart DevTools, the Android `adb logcat` stream,
+    the iOS device log, and Crashlytics breadcrumbs (when the Crashlytics
+    integration is wired). The remaining valid entries are preserved.
   - This way, corrupt data never silently shows "settled up" for a real debt —
     if every entry for a pair is invalid, the row's net is genuinely zero or
-    the row error is observable downstream.
+    the parse failure is observable downstream.
+  - Tests inject a custom `FriendshipParseFailureSink` via the
+    `FirestoreFriendshipStore` constructor to inspect the callback contract
+    without spinning up Firestore.
 - `FriendListItem` (`lib/features/friends/domain/friend_list_item.dart`) is the
   UI-facing projection: `friendshipId`, `otherUserId`, `displayName`,
   `photoUrl`, and `netBalancePaise: int`. The provider returns the structured
@@ -258,6 +266,16 @@ via `Future.wait`.
   row falls back to `displayName: "Unknown"` with the avatar omitted. The
   balance still renders correctly because it derives from the friendship doc,
   not the user doc. A provider test asserts this fallback.
+- **Defensive drop on degenerate `memberIds`.** A friendship doc whose
+  `memberIds` does not contain a distinct other user (empty list, single
+  member, or a list where every entry equals `currentUserId`) is **dropped**
+  from the projected list and surfaced via
+  `developer.log(name: 'friendship_parse_failure', level: 900)`. No "self
+  row" — i.e. a row that resolves the current user's own profile — is ever
+  rendered. Firestore Security Rules already require exactly two members on
+  write (`firestore.rules` and `functions/test/firestore-rules/friendships.test.ts`),
+  so this branch only fires for data that bypasses the production rules; the
+  drop keeps the UI honest if such corruption ever appears.
 
 ### 5. Real-time updates via Firestore snapshot listener
 

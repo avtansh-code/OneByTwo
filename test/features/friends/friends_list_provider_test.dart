@@ -255,5 +255,74 @@ void main() {
         expect(repository.lastWatchedUid, 'uid-me');
       },
     );
+
+    test('drops a friendship doc whose memberIds contains no distinct other '
+        'user (defensive: corrupt or self-only doc)', () async {
+      profileBehaviour['uid-aaa'] = () async => _user(displayName: 'Aarav');
+
+      final sub = container.listen(
+        friendsListProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+
+      repository.controller.add([
+        // Corrupt doc: single-member list containing only the current user.
+        _doc(
+          id: 'corrupt-self-only',
+          memberIds: const ['uid-me'],
+          lastActivityAt: DateTime(2026, 1, 3),
+        ),
+        // Healthy doc.
+        _doc(
+          id: 'uid-aaa_uid-me',
+          memberIds: const ['uid-aaa', 'uid-me'],
+          lastActivityAt: DateTime(2026, 1, 2),
+        ),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final items = sub.read().value!;
+      expect(
+        items,
+        hasLength(1),
+        reason: 'corrupt doc should be dropped, healthy doc kept',
+      );
+      expect(items.first.friendshipId, 'uid-aaa_uid-me');
+      expect(
+        items.first.displayName,
+        isNot(equals('Unknown')),
+        reason: 'the kept row resolves the friend profile, not the dropped one',
+      );
+      // The dropped row must NEVER appear as a self-row (which would
+      // surface the current user's own profile).
+      expect(
+        items.any((i) => i.otherUserId == 'uid-me'),
+        isFalse,
+        reason: 'no self row should ever be projected',
+      );
+    });
+
+    test('drops a friendship doc with empty memberIds', () async {
+      final sub = container.listen(
+        friendsListProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+
+      repository.controller.add([
+        _doc(
+          id: 'empty-doc',
+          memberIds: const [],
+          lastActivityAt: DateTime(2026),
+        ),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final items = sub.read().value!;
+      expect(items, isEmpty);
+    });
   });
 }
