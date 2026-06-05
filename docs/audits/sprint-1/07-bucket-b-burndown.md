@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #34.
+> Last updated: PR #35.
 
 ---
 
@@ -160,9 +160,22 @@ PR #31 (FR-FR-01 UI):  37 remaining  ██████████████�
 PR #32 (FR-FR-01 CF):  34 remaining  █████████████████████████████████░░░░░  34/37
 PR #33 (ADR reconcile):34 remaining  █████████████████████████████████░░░░░  34/37
 PR #34 (FR-FR-01 ME):  34 remaining  █████████████████████████████████░░░░░  34/37
+PR #35 (FR-FR-03 list):34 remaining  █████████████████████████████████░░░░░  34/37
 ```
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
 documentation-only ADR reconciliation (no bucket-B impact). PR #34 (manual
 phone entry, FR-FR-01 Path B) reuses the same backend surface as PR #32 and
 closes no additional items.
+
+PR #35 (FR-FR-03 friends list with simplified net balance) closes **no
+additional bucket-B items**. Notes by ID:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** the PR adds a new
+  skipped integration stub `test/integration/friends/friends_list_flow_test.dart`
+  matching the established pattern. Partial credit only; the item remains open
+  until the emulator harness lands and the stubs are unskipped.
+- **INV2 — Share-sheet verification tests:** N/A this PR (no sharing surface).
+- **R4-R6 — Group rules test gaps:** out of scope (Sprint 3 groups epic).
+- **R7-R8 — Storage rules tests:** out of scope.
+- All other items unchanged.
