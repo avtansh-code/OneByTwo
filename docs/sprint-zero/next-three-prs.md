@@ -1,11 +1,11 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #33.
+> Last updated: PR #34.
 
 ---
 
-## PR #34 — FR-FR-03 Friends List Rendering
+## PR #35 — FR-FR-03 Friends List Rendering
 
 **Status:** Next up. Unblocked.
 
@@ -20,23 +20,23 @@ navigation to friend detail on tap.
 
 ---
 
-## PR #35 — TBD per Sprint 2 Plan
+## PR #36 — TBD per Sprint 2 Plan
 
 **Status:** Planned.
 
 **Scope:** Likely FR-FR-04 (per-friend transaction history) if FR-EX-01
 (expense creation) is ready, or an Expenses epic PR if Friends epic is
-complete. Final determination at PR #35 kickoff.
+complete. Final determination at PR #36 kickoff.
 
 **Agents involved:** TBD.
 
 ---
 
-## PR #36 — TBD per Sprint 2 Plan
+## PR #37 — TBD per Sprint 2 Plan
 
 **Status:** Planned.
 
 **Scope:** To be determined based on Sprint 2 velocity and remaining
-work after PR #35.
+work after PR #36.
 
 **Agents involved:** TBD.

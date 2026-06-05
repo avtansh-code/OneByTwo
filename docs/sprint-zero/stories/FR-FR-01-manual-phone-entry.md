@@ -1,7 +1,7 @@
 # FR-FR-01: Manual Phone Number Entry for Friend Add
 
 > Sub-story of FR-FR-01. Covers the "Enter Number" tab (Path B) on the Add
-> Friend screen, delivered in PR #33. The contact picker path (Path A) was
+> Friend screen, delivered in PR #34. The contact picker path (Path A) was
 > delivered in PR #31; the downstream matching and friendship creation logic
 > was delivered in PR #32.
 

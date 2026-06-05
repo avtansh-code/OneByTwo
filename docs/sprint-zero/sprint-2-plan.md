@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #33.
+> Last updated: PR #34.
 
 ---
 
@@ -17,8 +17,8 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 |---|---|---|---|---|
 | #31 | FR-FR-01 (UI) | Contact picker UI for add-friend flow | 3 | Merged |
 | #32 | FR-FR-01 (Matching) | User lookup and friendship creation | 3 | Merged |
-| #33 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | In flight |
-| #34 | FR-FR-03 | Friends list rendering | TBD | Queued |
+| #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | In flight |
+| #35 | FR-FR-03 | Friends list rendering | TBD | Queued |
 
 ---
 
@@ -28,7 +28,7 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 |---|---|---|
 | #31 | 3 | Merged |
 | #32 | 3 | Merged |
-| #33 | 2 | In flight |
+| #34 | 2 | In flight |
 | **Total** | **8** | **3 PRs so far** |
 
 Sprint 1 reference:
@@ -45,22 +45,22 @@ Sprint 1 reference:
 
 - FR-FR-01 is now **complete** across three PRs: the contact picker UI (PR #31,
   merged), the matching and friendship creation logic (PR #32, merged), and the
-  manual phone entry path (PR #33, in flight). This three-PR split validated
+  manual phone entry path (PR #34, in flight). This three-PR split validated
   clean pattern reuse of the phone validator, IndianPhoneInputFormatter, and
   MatchAndInviteController.
-- ADR-0013/0014 reconciliation (merged before PR #33) confirmed both ADRs
-  cross-reference each other. No new ADR was needed for PR #33.
+- ADR-0013/0014 reconciliation (PR #33, merged before PR #34) confirmed both
+  ADRs cross-reference each other. No new ADR was needed for PR #34.
 - FR-FR-02 (link existing user or invite via system share sheet) was implemented
   as part of PR #32's MatchAndInviteController. The story file exists at
   `docs/sprint-zero/stories/FR-FR-02-link-or-invite-friend.md`.
 - FR-FR-03 (friends list with simplified net balance) is DoR-compliant and is
-  the next PR (#34).
+  the next PR (#35).
 - FR-FR-04 (per-friend transaction history) depends on FR-EX-01 and may slip to
   a later sprint if expense work is not yet available.
 
-## Pattern Reuse Validation (PR #33)
+## Pattern Reuse Validation (PR #34)
 
-PR #33 was intentionally the smallest feature PR in Sprint 2 to validate that
+PR #34 was intentionally the smallest feature PR in Sprint 2 to validate that
 the patterns from PRs #31/#32 generalise cleanly. Key findings:
 
 - **Phone validator reuse:** `validateIndianMobile()` from `lib/core/validators.dart`
