@@ -18,11 +18,11 @@ UNTRACKED="$(git ls-files --others --exclude-standard 2>/dev/null || true)"
 
 # If there are no changes, say so and exit.
 if [ -z "$STAGED" ] && [ -z "$UNSTAGED" ] && [ -z "$UNTRACKED" ]; then
-  printf '--- Session Summary ---\nNo file changes detected.\n--- End Summary ---\n'
+  printf '%s\n' '--- Session Summary ---' 'No file changes detected.' '--- End Summary ---'
   exit 0
 fi
 
-printf '--- Session Summary ---\n'
+printf '%s\n' '--- Session Summary ---'
 
 if [ -n "$STAGED" ]; then
   printf '\nStaged changes:\n'
