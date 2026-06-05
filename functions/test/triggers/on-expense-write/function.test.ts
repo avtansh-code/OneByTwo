@@ -50,17 +50,29 @@ function createMockLogger() {
  * Builds a mock Firestore where the friendship doc and its expenses
  * subcollection can be configured per-test. Records every `tx.update(...)`
  * call for assertion.
+ *
+ * PR #37: also handles the top-level `settlements` collection query
+ * introduced by the `recomputeAndWrite` settlement-read extension. When
+ * `settlements` is omitted, the settlements query returns an empty list.
  */
 function createMockDb(opts: {
   contextExists: boolean;
   contextData?: Record<string, unknown>;
   expenses?: Array<{id: string; data: Record<string, unknown>}>;
+  settlements?: Array<{id: string; data: Record<string, unknown>}>;
 }): FirebaseFirestore.Firestore {
   const expenseDocs = (opts.expenses ?? []).map((e) => ({
     id: e.id,
     exists: true,
     data: () => e.data,
     ref: {path: `friendships/fid/expenses/${e.id}`},
+  }));
+
+  const settlementDocs = (opts.settlements ?? []).map((s) => ({
+    id: s.id,
+    exists: true,
+    data: () => s.data,
+    ref: {path: `settlements/${s.id}`},
   }));
 
   const contextSnap = {
@@ -71,20 +83,36 @@ function createMockDb(opts: {
 
   const updateFn = jest.fn();
 
+  const settlementsQuery = {_queryKind: "settlements"};
+  const expensesQuery = {_queryKind: "expenses"};
+
   const mockDb = {
-    collection: jest.fn().mockReturnValue({
-      doc: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({_isQuery: true}),
+    collection: jest.fn((name: string) => {
+      if (name === "settlements") {
+        return {
+          where: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue(settlementsQuery),
+          }),
+        };
+      }
+      return {
+        doc: jest.fn().mockReturnValue({
+          collection: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue(expensesQuery),
+          }),
+          _isDocRef: true,
         }),
-        _isDocRef: true,
-      }),
+      };
     }),
     runTransaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
       const tx = {
         get: jest.fn((ref: unknown) => {
-          if ((ref as Record<string, boolean>)._isQuery) {
+          const r = ref as Record<string, unknown>;
+          if (r._queryKind === "expenses") {
             return Promise.resolve({docs: expenseDocs});
+          }
+          if (r._queryKind === "settlements") {
+            return Promise.resolve({docs: settlementDocs});
           }
           return Promise.resolve(contextSnap);
         }),
