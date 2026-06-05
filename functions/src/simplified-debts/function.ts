@@ -1,18 +1,32 @@
 /**
- * Simplified Debts — Function Boundary (HTTPS Callable Handler)
+ * Simplified Debts — Function Boundary
  *
- * Validates input, reads Firestore, runs the simplified-debts algorithm,
- * writes `simplifiedBalances` back to the context document, and returns
- * the result to the caller.
+ * Provides two layered entry points:
  *
- * Error codes follow docs/design/07-technical/cloud-functions-error-codes.md.
+ *   1. `recomputeAndWrite(deps, request)` — shared core. Reads the context
+ *      document and its active expenses inside a Firestore transaction,
+ *      runs the simplified-debts algorithm, and writes the resulting
+ *      `simplifiedBalances` map (plus any caller-provided `alsoSet` fields)
+ *      back to the context document in the same transaction. Returns a
+ *      typed discriminated union — never throws `HttpsError` itself.
+ *      Consumed by BOTH the HTTPS Callable handler AND the
+ *      `onExpenseWriteFriendship` trigger (PR #36, FR-SE-03/04).
+ *
+ *   2. `createHandler(deps)` — HTTPS Callable handler. Validates client
+ *      input, delegates to `recomputeAndWrite`, maps documented failure
+ *      codes to `HttpsError`, and emits structured telemetry. Behaviour
+ *      is unchanged by the variant 2.3(b) refactor.
+ *
+ * Error codes follow `docs/design/07-technical/cloud-functions-error-codes.md`.
  * All monetary values are integer paise (Invariant 1).
- * The `simplifiedBalances` field is written only by this function (Invariant 2).
+ * The `simplifiedBalances` field is written only by `recomputeAndWrite`
+ * (Invariant 2 — server-side writer).
  *
  * @module simplified-debts/function
  */
 
 import {HttpsError} from "firebase-functions/v2/https";
+import {Timestamp} from "firebase-admin/firestore";
 import {
   simplifyDebts,
   projectToBalancesMap,
@@ -33,7 +47,7 @@ export interface RecomputeInput {
   contextId: string;
 }
 
-/** Shape of the successful response. */
+/** Shape of the successful callable response. */
 export interface RecomputeResponse {
   ok: true;
   transfers: Transfer[];
@@ -49,6 +63,48 @@ export interface Dependencies {
     error: (message: string, data?: Record<string, unknown>) => void;
   };
 }
+
+/**
+ * Request payload for the shared `recomputeAndWrite` core.
+ *
+ * `alsoSet` permits callers to atomically write additional fields on the
+ * context document inside the same `tx.update(...)` call as
+ * `simplifiedBalances`. The trigger uses this to write
+ * `lastActivityAt` (FR-SE-03/04 AC-6). The callable currently passes
+ * nothing (or an empty object), so its behaviour is unchanged.
+ *
+ * Reserved key: `lastActivityAt`. When present in `alsoSet`, the core
+ * applies a MONOTONICITY GUARD — the value actually written is
+ * `max(existingLastActivityAt, alsoSet.lastActivityAt)`. This prevents
+ * out-of-order Cloud Functions delivery from regressing the friends-list
+ * ordering (PR #35 reader). No other reserved keys exist today.
+ */
+export interface RecomputeRequest {
+  contextType: ContextType;
+  contextId: string;
+  alsoSet?: Record<string, unknown>;
+}
+
+/**
+ * Typed result returned by `recomputeAndWrite`. The shared core never
+ * throws `HttpsError`; instead it returns this discriminated union so
+ * the callable wrapper can map failures to `HttpsError` and the trigger
+ * wrapper can apply its own log-and-return-vs-retry policy.
+ *
+ * Unknown errors (transient Firestore contention, runtime exceptions)
+ * are NOT caught inside the core — they bubble up so the caller can
+ * apply the appropriate INTERNAL mapping or retry semantics.
+ */
+export type RecomputeResult =
+  | {
+      ok: true;
+      transfers: Transfer[];
+      simplifiedBalances: SimplifiedBalancesMap;
+    }
+  | {
+      ok: false;
+      code: "CONTEXT_NOT_FOUND" | "BALANCE_INVARIANT_VIOLATED";
+    };
 
 // ---------------------------------------------------------------------------
 // Error codes (from cloud-functions-error-codes.md)
@@ -152,127 +208,195 @@ function computeNetBalances(
 }
 
 // ---------------------------------------------------------------------------
-// Handler factory
+// Monotonicity guard for lastActivityAt
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the LATER of two timestamps. Used to enforce monotonicity on
+ * `lastActivityAt` writes — out-of-order Cloud Functions delivery must
+ * never regress the friends-list ordering (PR #35 AC-6, PR #36 AC-12).
+ *
+ * Falls back to `next` when `existing` is missing or not a Timestamp.
+ */
+function laterTimestamp(
+  existing: unknown,
+  next: Timestamp,
+): Timestamp {
+  if (!(existing instanceof Timestamp)) {
+    return next;
+  }
+  return existing.toMillis() >= next.toMillis() ? existing : next;
+}
+
+/**
+ * Applies the monotonicity guard to an `alsoSet` payload. Returns a new
+ * object where `lastActivityAt` (if present) is replaced with
+ * `max(existing.lastActivityAt, alsoSet.lastActivityAt)`. Other keys are
+ * passed through unchanged.
+ */
+function applyMonotonicityGuard(
+  existingData: FirebaseFirestore.DocumentData,
+  alsoSet: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!alsoSet || alsoSet.lastActivityAt === undefined) {
+    return {...(alsoSet ?? {})};
+  }
+  const incoming = alsoSet.lastActivityAt;
+  if (!(incoming instanceof Timestamp)) {
+    // Caller passed something that isn't a Timestamp — pass through
+    // unchanged and let Firestore reject it.
+    return {...alsoSet};
+  }
+  return {
+    ...alsoSet,
+    lastActivityAt: laterTimestamp(existingData.lastActivityAt, incoming),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Shared core — recomputeAndWrite
+// ---------------------------------------------------------------------------
+
+/**
+ * Reserved keys in the `alsoSet` payload — fields written by the core
+ * itself MUST NOT be overrideable by callers. `simplifiedBalances` is
+ * the load-bearing Invariant-2 field.
+ */
+const ALSO_SET_RESERVED_KEYS = new Set<string>(["simplifiedBalances"]);
+
+/**
+ * Reads the context document and its non-deleted expenses inside a
+ * Firestore transaction, runs the simplified-debts algorithm, and writes
+ * `simplifiedBalances` (plus any caller-provided `alsoSet` fields) back
+ * to the context document in the SAME transaction.
+ *
+ * Returns a typed result; never throws `HttpsError` directly. Unknown
+ * errors bubble up so callers can map them to their own error semantics.
+ *
+ * @param deps - Firestore database and logger.
+ * @param request - Context discriminator, ID, and optional `alsoSet`.
+ * @returns Either a successful result with transfers and balances, or a
+ *   failure result with a typed `code`.
+ * @throws Error when `alsoSet` contains a reserved key (e.g.
+ *   `simplifiedBalances`) — defence-in-depth against accidental writes.
+ *   Also throws if `alsoSet.lastActivityAt` is present but not a
+ *   `Timestamp`.
+ */
+export async function recomputeAndWrite(
+  deps: Dependencies,
+  request: RecomputeRequest,
+): Promise<RecomputeResult> {
+  const {db} = deps;
+  const {contextType, contextId, alsoSet} = request;
+
+  // Defence-in-depth: reject reserved keys before opening a transaction.
+  if (alsoSet) {
+    for (const key of Object.keys(alsoSet)) {
+      if (ALSO_SET_RESERVED_KEYS.has(key)) {
+        throw new Error(
+          `recomputeAndWrite: alsoSet must not contain reserved key '${key}' ` +
+            `(it is the core's responsibility to write this field).`,
+        );
+      }
+    }
+    if (
+      alsoSet.lastActivityAt !== undefined &&
+      !(alsoSet.lastActivityAt instanceof Timestamp)
+    ) {
+      throw new Error(
+        "recomputeAndWrite: alsoSet.lastActivityAt must be a Firestore " +
+          "Timestamp (received: " + typeof alsoSet.lastActivityAt + ").",
+      );
+    }
+  }
+
+  const collectionName = contextCollectionName(contextType);
+  const contextRef = db.collection(collectionName).doc(contextId);
+
+  return db.runTransaction(async (tx) => {
+    const contextSnap = await tx.get(contextRef);
+    if (!contextSnap.exists) {
+      return {ok: false as const, code: "CONTEXT_NOT_FOUND" as const};
+    }
+
+    const expensesRef = contextRef
+      .collection("expenses")
+      .where("deleted", "!=", true);
+    const expensesSnap = await tx.get(expensesRef);
+
+    const netBalances = computeNetBalances(expensesSnap.docs);
+
+    let transfers: Transfer[];
+    try {
+      transfers = simplifyDebts(netBalances);
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        err.message.includes("Balance invariant violation")
+      ) {
+        return {
+          ok: false as const,
+          code: "BALANCE_INVARIANT_VIOLATED" as const,
+        };
+      }
+      throw err;
+    }
+
+    const simplifiedBalances = projectToBalancesMap(transfers);
+
+    const guardedAlsoSet = applyMonotonicityGuard(
+      contextSnap.data() ?? {},
+      alsoSet,
+    );
+
+    // Defence-in-depth: place the computed `simplifiedBalances` LAST in
+    // the spread so it cannot be overwritten by a malformed `alsoSet`.
+    // The core is the sole writer of this field (Invariant 2) — any
+    // caller-supplied `simplifiedBalances` in `alsoSet` is ignored by
+    // the spread order, AND would have been rejected by the explicit
+    // reserved-keys guard above.
+    tx.update(contextRef, {...guardedAlsoSet, simplifiedBalances});
+
+    return {ok: true as const, transfers, simplifiedBalances};
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Callable handler factory
 // ---------------------------------------------------------------------------
 
 /**
  * Creates the HTTPS Callable handler with injected dependencies.
  *
- * @param deps - Firestore database and logger instances.
- * @returns An async handler function that validates input, computes
- *   simplified debts, writes the result to Firestore, and returns the
- *   response.
+ * Validates input, delegates compute+write to `recomputeAndWrite`, maps
+ * typed failure codes to `HttpsError`, and emits structured telemetry.
+ *
+ * @param deps - Firestore database and logger.
+ * @returns An async handler function suitable for `onCall(..., handler)`.
  */
 export function createHandler(
   deps: Dependencies,
 ): (data: unknown) => Promise<RecomputeResponse> {
-  const {db, logger} = deps;
+  const {logger} = deps;
 
   return async (data: unknown): Promise<RecomputeResponse> => {
     const startTime = Date.now();
 
-    // 1. Validate input (throws HttpsError on failure)
     const {contextType, contextId} = validateInput(data);
 
-    // 2. Log started event (no PII)
     logger.info("simplified_debts_compute_started", {
       event: "simplified_debts_compute_started",
       contextType,
       contextId,
     });
 
+    let result: RecomputeResult;
     try {
-      const collectionName = contextCollectionName(contextType);
-      const contextRef = db.collection(collectionName).doc(contextId);
-
-      // 3. Run inside a Firestore transaction
-      const result = await db.runTransaction(async (tx) => {
-        // Read context document
-        const contextSnap = await tx.get(contextRef);
-        if (!contextSnap.exists) {
-          throw new HttpsError(
-            "not-found",
-            `Context ${contextType}/${contextId} not found.`,
-            {errorCode: ERROR_CONTEXT_NOT_FOUND},
-          );
-        }
-
-        // Read non-deleted expenses
-        const expensesRef = contextRef
-          .collection("expenses")
-          .where("deleted", "!=", true);
-        const expensesSnap = await tx.get(expensesRef);
-
-        // Compute net balances from expenses
-        const netBalances = computeNetBalances(expensesSnap.docs);
-
-        // Run the simplified-debts algorithm
-        const transfers = simplifyDebts(netBalances);
-
-        // Project to the Firestore map shape
-        const simplifiedBalances = projectToBalancesMap(transfers);
-
-        // Write simplified balances back to context document
-        tx.update(contextRef, {simplifiedBalances});
-
-        return {transfers, simplifiedBalances};
-      });
-
-      const computedAt = new Date().toISOString();
-
-      // 4. Log completed event (no PII — no userId values or amounts)
-      logger.info("simplified_debts_compute_completed", {
-        event: "simplified_debts_compute_completed",
-        contextType,
-        contextId,
-        elapsedMs: Date.now() - startTime,
-        transferCount: result.transfers.length,
-      });
-
-      // 5. Return response
-      return {
-        ok: true,
-        transfers: result.transfers,
-        simplifiedBalances: result.simplifiedBalances,
-        computedAt,
-      };
-    } catch (err: unknown) {
-      // Re-throw HttpsError instances directly (already typed)
-      if (err instanceof HttpsError) {
-        logger.error("simplified_debts_compute_failed", {
-          event: "simplified_debts_compute_failed",
-          contextType,
-          contextId,
-          errorCode:
-            (
-              (err as HttpsError & {details?: {errorCode?: string}})
-                .details as {errorCode?: string} | undefined
-            )?.errorCode ?? err.code,
-          elapsedMs: Date.now() - startTime,
-        });
-        throw err;
-      }
-
-      // Map balance invariant violations
-      if (
-        err instanceof Error &&
-        err.message.includes("Balance invariant violation")
-      ) {
-        logger.error("simplified_debts_compute_failed", {
-          event: "simplified_debts_compute_failed",
-          contextType,
-          contextId,
-          errorCode: ERROR_BALANCE_INVARIANT_VIOLATED,
-          elapsedMs: Date.now() - startTime,
-        });
-        throw new HttpsError(
-          "internal",
-          "Balance invariant violated during computation.",
-          {errorCode: ERROR_BALANCE_INVARIANT_VIOLATED},
-        );
-      }
-
-      // Catch-all: map to INTERNAL
+      result = await recomputeAndWrite(deps, {contextType, contextId});
+    } catch {
+      // INTERNAL — any unknown error from the shared core. Log and map
+      // to HttpsError("internal", INTERNAL). Trigger callers map this
+      // path to a re-thrown error so Cloud Functions retries.
       logger.error("simplified_debts_compute_failed", {
         event: "simplified_debts_compute_failed",
         contextType,
@@ -286,5 +410,45 @@ export function createHandler(
         {errorCode: ERROR_INTERNAL},
       );
     }
+
+    if (!result.ok) {
+      logger.error("simplified_debts_compute_failed", {
+        event: "simplified_debts_compute_failed",
+        contextType,
+        contextId,
+        errorCode: result.code,
+        elapsedMs: Date.now() - startTime,
+      });
+      if (result.code === "CONTEXT_NOT_FOUND") {
+        throw new HttpsError(
+          "not-found",
+          `Context ${contextType}/${contextId} not found.`,
+          {errorCode: ERROR_CONTEXT_NOT_FOUND},
+        );
+      }
+      // BALANCE_INVARIANT_VIOLATED
+      throw new HttpsError(
+        "internal",
+        "Balance invariant violated during computation.",
+        {errorCode: ERROR_BALANCE_INVARIANT_VIOLATED},
+      );
+    }
+
+    const computedAt = new Date().toISOString();
+
+    logger.info("simplified_debts_compute_completed", {
+      event: "simplified_debts_compute_completed",
+      contextType,
+      contextId,
+      elapsedMs: Date.now() - startTime,
+      transferCount: result.transfers.length,
+    });
+
+    return {
+      ok: true,
+      transfers: result.transfers,
+      simplifiedBalances: result.simplifiedBalances,
+      computedAt,
+    };
   };
 }
