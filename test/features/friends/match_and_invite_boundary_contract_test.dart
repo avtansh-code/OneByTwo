@@ -12,6 +12,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/friends/data/friendship_repository.dart';
 import 'package:onebytwo/features/friends/data/matching_repository.dart';
+import 'package:onebytwo/features/friends/domain/friendship_doc.dart';
 
 /// Fake callable that captures the data passed to the Cloud Function.
 class BoundaryCapturingCallable {
@@ -44,6 +45,10 @@ class BoundaryCapturingStore implements FriendshipStore {
 
   @override
   Future<Map<String, dynamic>?> get(String path) async => null;
+
+  @override
+  Stream<List<FriendshipDoc>> watchByMember(String userId) =>
+      const Stream<List<FriendshipDoc>>.empty();
 }
 
 void main() {

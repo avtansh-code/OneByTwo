@@ -10,6 +10,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/friends/data/friendship_repository.dart';
+import 'package:onebytwo/features/friends/domain/friendship_doc.dart';
 
 /// Fake Firestore abstraction that records document operations.
 ///
@@ -41,6 +42,10 @@ class FakeFriendshipStore implements FriendshipStore {
   Future<Map<String, dynamic>?> get(String path) async {
     return documents[path];
   }
+
+  @override
+  Stream<List<FriendshipDoc>> watchByMember(String userId) =>
+      const Stream<List<FriendshipDoc>>.empty();
 }
 
 void main() {
