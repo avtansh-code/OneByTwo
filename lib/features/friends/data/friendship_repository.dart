@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/data/user_repository.dart';
+import 'package:onebytwo/features/friends/domain/friendship_doc.dart';
 
 // ---------------------------------------------------------------------------
 // Abstract store
@@ -17,6 +18,12 @@ abstract class FriendshipStore {
 
   /// Returns the document data at [path], or null if it does not exist.
   Future<Map<String, dynamic>?> get(String path);
+
+  /// Watches every friendship document whose `memberIds` array contains
+  /// [userId], ordered by `lastActivityAt` descending. The stream emits
+  /// the latest snapshot list whenever the underlying query updates
+  /// (real-time delivery — AC-6 of FR-FR-03).
+  Stream<List<FriendshipDoc>> watchByMember(String userId);
 }
 
 // ---------------------------------------------------------------------------
@@ -49,6 +56,22 @@ class FirestoreFriendshipStore implements FriendshipStore {
   Future<Map<String, dynamic>?> get(String path) async {
     final snapshot = await _collection.doc(path).get();
     return snapshot.data();
+  }
+
+  @override
+  Stream<List<FriendshipDoc>> watchByMember(String userId) {
+    return _collection
+        .where('memberIds', arrayContains: userId)
+        .orderBy('lastActivityAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    FriendshipDoc.fromFirestore(id: doc.id, data: doc.data()),
+              )
+              .toList(growable: false),
+        );
   }
 }
 
@@ -93,6 +116,18 @@ class FriendshipRepository {
     final sorted = [userId1, userId2]..sort();
     final friendshipId = '${sorted[0]}_${sorted[1]}';
     return _store.exists(friendshipId);
+  }
+
+  /// Watches all friendships the given user is a member of, ordered
+  /// by most-recent activity. The stream is the canonical source for
+  /// the friends list (FR-FR-03) and propagates real-time updates
+  /// straight through from Firestore.
+  ///
+  /// READ-ONLY: this method never writes to Firestore. The returned
+  /// documents include the server-maintained `simplifiedBalances`
+  /// field per **invariant 2**.
+  Stream<List<FriendshipDoc>> watchFriendships(String currentUserId) {
+    return _store.watchByMember(currentUserId);
   }
 }
 
