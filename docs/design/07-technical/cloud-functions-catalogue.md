@@ -783,7 +783,7 @@ ADR-0014 — Phone Number Lookup via Cloud Function.
 | Function name | Trigger | Auto-retry | Region | Status |
 |---|---|---|---|---|
 | `recomputeSimplifiedBalances` | Callable | No | `asia-south1` | shipped |
-| `onExpenseWriteFriendship` | Firestore onWrite `friendships/{id}/expenses/{id}` | Yes | `asia-south1` | planned |
+| `onExpenseWriteFriendship` | Firestore onWrite `friendships/{id}/expenses/{id}` | Yes | `asia-south1` | shipped |
 | `onExpenseWriteGroup` | Firestore onWrite `groups/{id}/expenses/{id}` | Yes | `asia-south1` | planned |
 | `onSettlementWrite` | Firestore onCreate `settlements/{id}` | Yes | `asia-south1` | planned |
 | `onUserDelete` | Callable | No | `asia-south1` | planned |

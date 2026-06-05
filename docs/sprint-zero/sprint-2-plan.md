@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #35.
+> Last updated: PR #36.
 
 ---
 
@@ -19,6 +19,7 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 | #32 | FR-FR-01 (Matching) | User lookup and friendship creation | 3 | Merged |
 | #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | Merged |
 | #35 | FR-FR-03 | Friends list with simplified net balance | 3 | Merged |
+| #36 | FR-SE-03/04 | `onExpenseWriteFriendship` Firestore trigger | 3 | Merged |
 
 ---
 
@@ -30,7 +31,8 @@ graph that all downstream features (expenses, settlements, groups) depend upon.
 | #32 | 3 | Merged |
 | #34 | 2 | Merged |
 | #35 | 3 | Merged |
-| **Total** | **11** | **4 PRs so far** |
+| #36 | 3 | Merged |
+| **Total** | **14** | **5 PRs so far** |
 
 Sprint 1 reference:
 
@@ -60,6 +62,15 @@ Sprint 1 reference:
   shared `formatInrFromPaise` formatter and `netBalancePaise` pure function in
   `lib/core/`, the `userProfileProvider.family(uid)` caching pattern, and a
   composite Firestore index `memberIds + lastActivityAt`.
+- FR-SE-03/04 (`onExpenseWriteFriendship` trigger) shipped in PR #36 — the
+  first Firestore trigger in the application and the first non-callable
+  producer of `simplifiedBalances` (Invariant 2 server-side writer). It
+  added a shared `recomputeAndWrite` core to the simplified-debts module,
+  the `lastActivityAt` monotonicity guard, the bounded-enumeration sum
+  check in Firestore Security Rules for the
+  `friendships/{id}/expenses/{id}` subcollection, and enabled
+  `npm run test:integration` inside `firebase emulators:exec` so future
+  triggers exercise their registration end-to-end in CI.
 - FR-FR-04 (per-friend transaction history) depends on FR-EX-01 and may slip to
   a later sprint if expense work is not yet available.
 
@@ -101,3 +112,39 @@ inherit:
 - **`FriendDetailPlaceholderScreen`** — intentional minimal placeholder; the
   FR-FR-04 PR replaces it with the real Friend Detail screen and keeps the
   same call site in `FriendsListScreen.onRowTap`.
+
+## Pattern Establishment (PR #36)
+
+PR #36 introduced patterns that downstream Cloud Functions triggers will
+inherit:
+
+- **Shared core extraction (`recomputeAndWrite`)** — the simplified-debts
+  callable and the new `onExpenseWriteFriendship` trigger now both consume
+  a typed-result core that takes an `alsoSet` payload for atomic
+  additional writes. Future triggers (`onExpenseWriteGroup` in Sprint 3,
+  `onSettlementWrite` next) reuse this seam without re-implementing the
+  algorithm.
+- **`lastActivityAt` monotonicity guard** — `max(existing, eventTimestamp)`
+  applied inside the same Firestore transaction as the
+  `simplifiedBalances` write. Prevents out-of-order Cloud Functions
+  delivery from regressing the friends-list ordering (FR-FR-03 AC-6).
+- **Bounded enumeration sum check in Firestore Security Rules** — the
+  `friendships/{id}/expenses/{id}` block enumerates split positions up to
+  the schema-natural cap (N=2 for a two-member friendship) with each
+  index access guarded by `splits.size() > i`. The groups subcollection
+  (Sprint 3) will declare its own bounded enumeration matching the
+  group-member cap.
+- **First Firestore trigger registration end-to-end in CI** — the PR
+  pipeline now runs `npm run build && npm run test:integration` inside
+  `firebase emulators:exec --only auth,firestore,functions,storage`, so
+  every future trigger PR exercises its registration, not just its
+  handler in isolation.
+- **First non-callable producer of `simplifiedBalances`** — Invariant 2
+  transitioned from a read-side abstraction to a live server-side
+  production-data writer. The DoD invariant grep confirms exactly one
+  write site remains in `functions/src/` (variant 2.3(b) collapses the
+  callable and trigger to a shared writer).
+
+The architect notes appended to
+`docs/sprint-zero/stories/FR-SE-03-04-expense-trigger-friendship.md`
+ratify all design decisions taken in this PR.
