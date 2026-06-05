@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:onebytwo/core/validators.dart';
+import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/auth/presentation/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/friends/domain/selected_contact.dart';
 
 /// Manual phone number entry tab for the add-friend flow (Path B).
@@ -16,7 +16,6 @@ class ManualPhoneEntryTab extends StatefulWidget {
   const ManualPhoneEntryTab({
     required this.onSubmit,
     required this.analyticsService,
-    this.currentUserPhone,
     super.key,
   });
 
@@ -26,9 +25,6 @@ class ManualPhoneEntryTab extends StatefulWidget {
 
   /// Analytics service for telemetry events.
   final AnalyticsService analyticsService;
-
-  /// The current user's phone number, used for self-add detection.
-  final String? currentUserPhone;
 
   @override
   State<ManualPhoneEntryTab> createState() => _ManualPhoneEntryTabState();
@@ -54,7 +50,7 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
       });
       widget.analyticsService.logEvent(
         name: 'friend_manual_entry_validation_failed',
-        parameters: {'error_code': 'invalid_number'},
+        parameters: {'error_code': _classifyError(digits)},
       );
       return;
     }
@@ -67,6 +63,26 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
 
     final e164 = '+91$digits';
     widget.onSubmit(SelectedContact(displayName: e164, phoneNumbers: [e164]));
+  }
+
+  /// Classifies an invalid phone input into a stable analytics
+  /// error code (no PII — never includes the digits themselves).
+  ///
+  /// Codes:
+  /// - `empty`             — no characters entered
+  /// - `non_numeric`       — contains non-digit characters
+  /// - `too_short`         — fewer than 10 digits
+  /// - `too_long`          — more than 10 digits (defence-in-depth; the
+  ///   input formatter normally caps at 10)
+  /// - `invalid_start_digit` — exactly 10 digits but does not start with 6-9
+  /// - `invalid_number`    — fallback for any other validator rejection
+  String _classifyError(String digits) {
+    if (digits.isEmpty) return 'empty';
+    if (!RegExp(r'^\d+$').hasMatch(digits)) return 'non_numeric';
+    if (digits.length < 10) return 'too_short';
+    if (digits.length > 10) return 'too_long';
+    if (!RegExp('^[6-9]').hasMatch(digits)) return 'invalid_start_digit';
+    return 'invalid_number';
   }
 
   @override

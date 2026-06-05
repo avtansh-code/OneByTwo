@@ -114,9 +114,11 @@ friend is not in my contacts**.
 
 | Event name | Parameters | Trigger |
 |---|---|---|
-| `add_friend_screen_viewed` | `entry_path: "contacts"` or `"manual"` | Screen becomes visible |
+| `add_friend_screen_viewed` | `entry_path: "contacts"` (the segmented control defaults to "From Contacts") | Screen becomes visible |
+| `add_friend_tab_switched` | `tab: "contacts"` \| `"manual"`, optional `source: "permission_denied"` when reached via the Type-a-number-instead fallback | User taps a different segmented-control tab, or the fallback link in the permission-denied view |
+| `friend_manual_entry_opened` | None (no PII) | The manual-entry tab becomes the active tab (either via tab switch or the permission-denied fallback) |
 | `friend_manual_entry_submitted` | None (no PII) | User taps Add Friend with valid input |
-| `friend_manual_entry_validation_failed` | `error_code: "too_short"` or `"invalid_start_digit"` | Validation fails (no PII) |
+| `friend_manual_entry_validation_failed` | `error_code: "empty"` \| `"non_numeric"` \| `"too_short"` \| `"too_long"` \| `"invalid_start_digit"` \| `"invalid_number"` (no PII; classified by `_classifyError` in the tab widget) | Validation fails on submit |
 
 Downstream events from PR #32 (`friend_added`, `friend_invite_sent`, etc.)
 fire from the shared controller.

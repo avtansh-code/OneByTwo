@@ -157,9 +157,12 @@ PR #14 (audit close):  37 remaining  ██████████████�
 PR #29 (hotfix):       37 remaining  ████████████████████████████████████░░  37/37
 PR #30 (chore):        37 remaining  ████████████████████████████████████░░  37/37
 PR #31 (FR-FR-01 UI):  37 remaining  ████████████████████████████████████░░  37/37
+PR #32 (FR-FR-01 CF):  34 remaining  █████████████████████████████████░░░░░  34/37
+PR #33 (ADR reconcile):34 remaining  █████████████████████████████████░░░░░  34/37
+PR #34 (FR-FR-01 ME):  34 remaining  █████████████████████████████████░░░░░  34/37
 ```
 
-No bucket-B items have been formally closed yet. The first natural resolution
-moments arrive with PR #32 (friendship rules tests will address R1-R3) and any
-dedicated chore PR that batch-closes the five items already covered by PR #14
-Bucket A work (P1, P2, SK3, CN3, and partially CV2).
+PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
+documentation-only ADR reconciliation (no bucket-B impact). PR #34 (manual
+phone entry, FR-FR-01 Path B) reuses the same backend surface as PR #32 and
+closes no additional items.

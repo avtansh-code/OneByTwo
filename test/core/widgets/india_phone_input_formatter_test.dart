@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onebytwo/features/auth/presentation/widgets/india_phone_input_formatter.dart';
+import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 
 void main() {
   late IndianPhoneInputFormatter formatter;

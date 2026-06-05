@@ -16,8 +16,7 @@ import 'package:onebytwo/features/friends/presentation/widgets/phone_selector_bo
 /// Add-friend screen with a segmented control for choosing between
 /// the contact picker (Path A) and manual phone entry (Path B).
 ///
-/// Replaces the previous single-path `ContactPickerScreen` as the
-/// primary entry point for adding friends.
+/// This is the primary and only entry point for adding friends.
 class AddFriendScreen extends ConsumerStatefulWidget {
   /// Creates an [AddFriendScreen].
   const AddFriendScreen({super.key});
@@ -159,6 +158,42 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
             parameters: {'tab': newTab},
           ),
     );
+
+    if (newTab == 'manual') {
+      _fireManualEntryOpened();
+    }
+  }
+
+  /// Switches the segmented control to the manual entry tab.
+  ///
+  /// Invoked from [PermissionDeniedView] when the user taps
+  /// "Type a number instead" — this is the Option-1 fallback that
+  /// the architect notes (section 2.2) describe alongside the
+  /// Option-3 segmented control.
+  void _switchToManualEntry() {
+    if (_selectedTab == 'manual') return;
+    setState(() {
+      _selectedTab = 'manual';
+    });
+
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'add_friend_tab_switched',
+            parameters: {'tab': 'manual', 'source': 'permission_denied'},
+          ),
+    );
+
+    _fireManualEntryOpened();
+  }
+
+  void _fireManualEntryOpened() {
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(name: 'friend_manual_entry_opened'),
+    );
   }
 
   @override
@@ -223,8 +258,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
     );
   }
 
-  /// Builds the contacts tab content, replicating the
-  /// `ContactPickerScreen` body logic.
+  /// Builds the contacts tab content for the segmented control.
   Widget _buildContactsTab(
     ContactPermissionState permState,
     ContactPickerState pickerState,
@@ -247,6 +281,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
                 .read(contactPermissionControllerProvider.notifier)
                 .openSettings();
           },
+          onTypeNumberInstead: _switchToManualEntry,
         );
 
       case ContactPermissionState.deniedPermanently:
@@ -258,6 +293,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
                 .read(contactPermissionControllerProvider.notifier)
                 .openSettings();
           },
+          onTypeNumberInstead: _switchToManualEntry,
         );
 
       case ContactPermissionState.granted:
