@@ -440,3 +440,250 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 | ADR — CF module layout | `.github/shared/decision-log.md` — ADR-0011 |
 
 ---
+
+## Architect Notes
+
+> Appended at PR #45 kickoff after consulting the architect-canonical
+> rate-limit path declaration in `.github/shared/decision-log.md`
+> lines 695–765, the existing integration-test seed path at
+> `functions/test/integration/lookup-user-by-phone-number.integration.test.ts:243`,
+> and the FR-EX-01 Architect Notes §2.10 deferred-FAB-chooser
+> decision.
+
+### 2.1 — Stream A: canonical rate-limit doc-path choice
+
+The architect-canonical path is
+`_rateLimits/{userId}/lookups/{counterDocId}` (a 4-segment
+subcollection doc reference) where `counterDocId` is the literal
+string `counter`. Rationale:
+
+1. **Matches the existing integration test seed path.** The test
+   author at PR #32/#34 already encoded
+   `_rateLimits/${userId}/lookups/counter` at
+   `functions/test/integration/lookup-user-by-phone-number.integration.test.ts:243`.
+   The architect-intended layout was clear in the test author's
+   mind; only the production code drifted.
+2. **Matches the architect-canonical "logical container" wording in
+   `.github/shared/decision-log.md`.** Where
+   `_rateLimits/{userId}/lookups` is described as the LOCATION
+   (logical container — a subcollection), the actual write target
+   inside that location is the `counter` doc. The decision-log
+   prose and the production code now align on this interpretation.
+3. **Naturally extends to additional rate-limit categories.** Future
+   categories (e.g. `_rateLimits/${uid}/sends/counter` for FR-SE-09
+   reminder send rate-limit, or `_rateLimits/${uid}/uploads/counter`
+   for FR-EX-05 receipt upload rate-limit) plug in by adding new
+   subcollection siblings — no schema migration required.
+4. **The recursive-wildcard rule `match /_rateLimits/{document=**}`
+   covers all depths.** No rules change is needed for the new
+   4-segment path, and the same rule will continue to cover any
+   future rate-limit categories.
+
+Alternative considered: `db.doc(`_rateLimits/${callerUid}_lookups`)`
+(a single doc with a composite ID at depth 2). Rejected because
+(a) composite IDs are harder to enumerate, (b) the integration test
+author's intent was clearly the subcollection model, and (c) future
+rate-limit categories would each need their own composite-ID rules
+per category.
+
+### 2.2 — Stream A: no transaction refactor
+
+The current implementation uses a non-transactional read-then-increment
+pattern. This has a known time-of-check-to-time-of-use race: two
+concurrent invocations could both read `count: 99` and both
+`FieldValue.increment(1)` to a final `count: 101`, briefly allowing
+101 lookups in the window. The architect explicitly **defers** this
+refactor to a separate PR:
+
+- The race is a behavioural concern (correctness under concurrent
+  load), not a path-string bug. Bundling it with PR #45 would
+  expand the test surface (new property tests; new emulator
+  concurrency seeding) and the risk profile.
+- The current quantitative impact is bounded — the race window is
+  the round-trip latency between read and update (~50–200 ms on
+  `asia-south1`), and the absolute over-shoot is bounded by the
+  number of concurrent in-flight requests for the same caller in
+  that window.
+- Track as a follow-up under issue
+  [#22](https://github.com/avtansh-code/OneByTwo/issues/22) or a
+  new "operational hardening" chore PR. PR #45 fixes only the
+  path-string bug.
+
+### 2.3 — Stream A: files to touch (exhaustive — anything outside this set is scope creep)
+
+- `functions/src/lookup-user-by-phone-number/function.ts` — line 108
+  only (one-line path-string fix).
+- `functions/test/lookup-user-by-phone-number/function.test.ts` — no
+  changes anticipated. The mock-Firestore at lines 43–73 returns
+  the same doc shape regardless of input path string; the boundary
+  tests will continue to pass after the production change. (If a
+  test surprisingly breaks, the reconciliation is documented in
+  §2.7.)
+- `functions/test/integration/lookup-user-by-phone-number.integration.test.ts`
+  — remove the SKIPPED header comment block at lines 112–131; flip
+  `describe.skip` → `describe` at line 133. No body changes (the
+  seed path at line 243 already encodes the canonical 4-segment
+  path).
+- `docs/design/07-technical/cloud-functions-catalogue.md` — lines
+  725–745. Update the path string in the "Firestore paths written"
+  table row from `_rateLimits/{userId}/lookups` to
+  `_rateLimits/{userId}/lookups/counter`; update the surrounding
+  prose paragraph to reflect the subcollection layout.
+
+### 2.4 — Stream B: files to touch (exhaustive)
+
+- `docs/design/03-architecture/non-functional-design.md` — line 399
+  only (one `expense_added` telemetry reference).
+- `docs/design/06-screen-specs/06-08-home-and-search.md` — lines 152,
+  517, 519 (three telemetry references — one in the home dashboard
+  funnel table, two in the FAB telemetry table).
+- `docs/design/06-screen-specs/19-22-expenses.md` — lines 360
+  (telemetry-table row) and 386 (prose: "The `expense_added`
+  telemetry event fires with `offline: true`").
+- `test/features/expenses/split_calculator_test.dart` — lines 87,
+  91, 192, 216 (four `99999999` occurrences; one description
+  string) PLUS lines 95, 96, 216 dependent share assertions
+  (`50000000`/`49999999` → `500000000`/`499999999`; see §2.7).
+- `test/features/expenses/split_calculator_property_test.dart` —
+  lines 10, 37, 40, 63, 65, 88, 109, 134, 159 (`99999999` →
+  `999999999` in sample range bounds, comments, and test
+  descriptions; no dependent assertions because the property tests
+  assert sum invariants over sampled values).
+- `lib/features/friends/presentation/friends_list_screen.dart` —
+  one top-of-file `// TODO(SCR-08)` comment block insertion (3
+  lines) immediately above the class declaration / dartdoc and
+  below the import block.
+
+### 2.5 — Files explicitly NOT to touch (negative scope guardrails)
+
+- `firestore.rules` — the recursive-wildcard
+  `match /_rateLimits/{document=**}` deny rule already covers the
+  new 4-segment path.
+- `firestore.indexes.json` — no new queries.
+- `storage.rules` — unrelated.
+- Any file containing `type: 'expense_added'` as a
+  notification-type schema discriminator value. See AC-B1 + AC-X4
+  for the verification grep; full list of protected files:
+  - `docs/design/07-technical/firestore-schema.md`
+  - `docs/design/07-technical/notifications.md`
+  - `docs/design/07-technical/cloud-functions-catalogue.md`
+  - `docs/design/04-wireframes/notifications-and-deeplinks.md`
+  - `docs/design/01-information-architecture/navigation-flow.md`
+  - `docs/OneByTwo_Requirements_Spec.md`
+  - `docs/sprint-zero/stories/FR-FR-01-matching-and-friendship.md`
+- `lib/features/expenses/application/expense_telemetry.dart` —
+  already uses the Camp B `expense_save_succeeded` /
+  `expense_save_failed` constants since PR #38.
+- `lib/features/expenses/**` runtime code — telemetry constants are
+  already correct.
+- `docs/design/07-technical/telemetry-plan.md` — already uses the
+  Camp B names since PR #38.
+- The rate-limit logic itself (transaction semantics, window-reset
+  behaviour, the 100/hour limit constant).
+- `test/core/formatters/inr_formatter_test.dart` lines 99, 110 —
+  these use `99999999` as general paise boundary samples in the
+  INR formatter symmetry / round-trip tests; they are NOT
+  splitter-cap label tests. Out of Stream B Item B-2 scope.
+
+### 2.6 — Test pyramid execution order
+
+Same as PR #44 (codified in `CHORE-d5-runtime-upgrade.md` Architect
+Notes §2.6). Every layer is exercised:
+
+- **Layer 1 (algorithm unit):** `cd functions && npm test` includes
+  the existing `lookup-user-by-phone-number/algorithm.test.ts`
+  (unchanged by this PR — the algorithm is unrelated to the
+  path-string bug).
+- **Layer 2 (algorithm property):** N/A for this PR.
+- **Layer 3 (function boundary):** `function.test.ts` continues to
+  pass under the new path string (the mock-Firestore is
+  path-agnostic).
+- **Layer 4 (rules):** existing rules tests cover the
+  `_rateLimits/**` recursive-wildcard deny — no new test required
+  (AC-A5).
+- **Layer 5 (integration):** the 5 previously-skipped tests in
+  `lookup-user-by-phone-number.integration.test.ts` now run under
+  `firebase emulators:exec` and exercise the rate-limit branch
+  end-to-end.
+
+For Stream B, only Layer 5 (Flutter `flutter test`) is exercised —
+and only because the splitter tests under-sample the upper 90% of
+the legal cap range pre-fix and bump that range post-fix. The
+splitter behaviour is unchanged.
+
+### 2.7 — Anticipated reconciliations
+
+Beyond the path-string fix in production code, the architect
+anticipates the following coordinated changes to keep tests passing:
+
+1. **Stream A:** ZERO boundary-test reconciliations expected. The
+   mock-Firestore at
+   `functions/test/lookup-user-by-phone-number/function.test.ts`
+   lines 43–73 calls `mockDb.doc(...)` with a single
+   `jest.fn().mockReturnValue(...)` that returns the same shape
+   regardless of the input path. The mock is path-agnostic by
+   design. If a boundary test surprisingly fails, document the
+   reconciliation here with the file:line citation before
+   committing.
+
+2. **Stream B Item B-2 (splitter-share assertion update):** the
+   prompt's literal "find-and-replace `99999999` → `999999999`"
+   prescription is incomplete — the dependent share assertions on
+   `split_calculator_test.dart` lines 95, 96 and the exact tuple
+   on line 216 must also be updated to keep the assertions
+   correct:
+
+   | Line | Old | New | Reason |
+   |---|---|---|---|
+   | 87 (description) | `(99999999 paise, odd)` | `(999999999 paise, odd)` | description string |
+   | 91 (total) | `totalPaise: 99999999,` | `totalPaise: 999999999,` | test input |
+   | 95 (share 0) | `expect(result[0].sharePaise, 50000000);` | `expect(result[0].sharePaise, 500000000);` | `(999999999 + 1) / 2` |
+   | 96 (share 1) | `expect(result[1].sharePaise, 49999999);` | `expect(result[1].sharePaise, 499999999);` | `999999999 / 2` |
+   | 192 (amounts) | `..., 99999999]` | `..., 999999999]` | property loop input |
+   | 216 (tuple) | `(99999999, [50000000, 49999999])` | `(999999999, [500000000, 499999999])` | exact case: total + shares must sum |
+
+   The integer arithmetic check: `500000000 + 499999999 = 999999999`
+   ✓; `(999999999 + 1) / 2 = 500000000` (ceiling), `999999999 / 2
+   = 499999999` (floor). Both match the splitter's
+   "extra-paise-on-first-share for odd totals" rule.
+
+   The property test file has no dependent assertions because it
+   asserts sum invariants over sampled values; updating the sample
+   range upper bound from `99999999` to `999999999` widens the
+   coverage envelope without breaking any assertion.
+
+3. **Even-cap test guardrail:** the EVEN cap test at
+   `split_calculator_test.dart` lines 47–58 uses `99999998` (one
+   less than the 8-nines value) and is NOT in PR #45 scope. The
+   prompt explicitly cites only the 4 `99999999` lines (87, 91,
+   192, 216), so the even test stays as-is. A pedantic follow-up
+   could bump this to `999999998` (the largest even value ≤
+   `999999999`) in a future PR; not blocking.
+
+### 2.8 — No new ADR required
+
+ADR-0011 (CF module layout) and the existing
+`.github/shared/decision-log.md` rate-limit entry both stand
+unchanged. PR #45 implements the existing architect-canonical
+decision; no architectural decisions are revisited.
+
+### 2.9 — Forward-compatibility note
+
+The 4-segment subcollection pattern
+`_rateLimits/{userId}/{category}/counter` extends naturally to future
+rate-limit categories without schema migration:
+
+- FR-SE-09 reminder send rate-limit → `_rateLimits/${uid}/sends/counter`
+- FR-EX-05 receipt upload rate-limit → `_rateLimits/${uid}/uploads/counter`
+- Any future category → `_rateLimits/${uid}/{newCategory}/counter`
+
+The next functions-dev to add a rate-limit category copies this
+pattern, picks a new `category` subcollection name, and writes to
+`_rateLimits/${uid}/${category}/counter`. The recursive-wildcard
+deny rule `match /_rateLimits/{document=**}` covers all categories
+without rule changes.
+
+This convention is documented in this Architect Notes section
+rather than promoted to a standalone ADR. If the pattern
+proliferates beyond three categories, a future PR may codify it as
+ADR-00xx; not blocking for v1.0.
