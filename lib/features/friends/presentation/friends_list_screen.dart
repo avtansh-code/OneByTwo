@@ -112,7 +112,9 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           .read(analyticsServiceProvider)
           .logEvent(
             name: 'friend_row_tapped',
-            parameters: {'friendship_id': hashFriendshipId(item.friendshipId)},
+            parameters: {
+              'friendship_id_hash': hashFriendshipId(item.friendshipId),
+            },
           ),
     );
     final currentUid = ref.read(currentUserIdProvider);
