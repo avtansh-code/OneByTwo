@@ -16,12 +16,12 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {
     "firebase-admin": "^13.0.2",
-    "firebase-functions": "^6.1.2"
+    "firebase-functions": "^7.0.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

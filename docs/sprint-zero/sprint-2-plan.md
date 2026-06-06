@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #42 (FR-FR-04 friend detail full screen) — 9th merged PR.
+> Last updated: PR #44 (D5 runtime upgrade — Node 22 + firebase-functions 7.x) — 11th merged PR.
 
 ---
 
@@ -82,6 +82,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #41 | chore | D5 deadline backlog cross-refs | 0 | Merged |
 | #42 | FR-FR-04 | Friend Detail full screen (per-friend transaction history) | 5 | Merged |
 | #43 | FR-SE-05/06/07 | Settle Up flow (record settlement + real-time round-trip + Friend Detail CTA card) | 5 | Merged |
+| #44 | CHORE-D5 | D5 runtime upgrade — Node 22 + firebase-functions 7.x (closes #39 #40) | 3 | Merged |
 
 ---
 
@@ -99,7 +100,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #41 | 0 | Merged (docs-only) |
 | #42 | 5 | Merged |
 | #43 | 5 | Merged |
-| **Total** | **34** | **10 PRs so far** |
+| #44 | 3 | Merged |
+| **Total** | **37** | **11 PRs so far** |
 
 Sprint 1 reference:
 
@@ -352,39 +354,85 @@ slot).
 hygiene) → item 3 (discoverability nicety). All three can ship in a
 single docs/tests-only PR.
 
-### From PR #38 deploy (Firebase CLI warnings, 2026-06-06)
+### From PR #38 deploy (Firebase CLI warnings, 2026-06-06) — **CLOSED BY PR #44**
 
 Two **deadline-bound** items surfaced by the post-PR #38 functions deploy.
 Filed as standalone GitHub issues (not S4 — these are S2 because of the
 hard 2026-10-31 deploy-blocker) and tracked separately from the S4 set
-above. Both should ship in the SAME PR — see PR #44 Option A in
-`docs/sprint-zero/next-three-prs.md` for the recommended slot.
+above. **Both shipped together in PR #44 (D5 runtime upgrade).**
 
 4. **Cloud Functions runtime Node 20 decommissioned 2026-10-31** —
    tracked as [#39](https://github.com/avtansh-code/OneByTwo/issues/39).
-   After this date, `firebase deploy --only functions` will be rejected
-   for the Node 20 runtime. Upgrade target: **Node 22 LTS**. Touches
-   `functions/package.json` `engines.node`, `firebase.json`
-   `functions[].runtime`, and the `actions/setup-node` pin in
-   `.github/workflows/pr.yml`.
-
-   **Why deadline-bound:** hard cutoff. The next functions deploy after
-   2026-10-31 will fail. **Recommended ship-by date: mid-September 2026**
-   to leave one deploy cycle of slack.
+   After this date, `firebase deploy --only functions` would have been
+   rejected for the Node 20 runtime. **Closed by PR #44** — Node 22 LTS
+   shipped: `functions/package.json` `engines.node = "22"`,
+   `firebase.json` `functions[0].runtime = "nodejs22"`, and all five
+   `actions/setup-node@v4` invocations across `.github/workflows/pr.yml`
+   (three) and `.github/workflows/release.yml` (two) pinned to `'22'`.
 
 5. **`firebase-functions` package outdated (6.x → 7.x)** — tracked as
-   [#40](https://github.com/avtansh-code/OneByTwo/issues/40). CLI warns
-   on every deploy. Breaking changes affect v2 trigger and callable
-   surfaces (i.e. all 5 of our deployed functions).
+   [#40](https://github.com/avtansh-code/OneByTwo/issues/40). CLI warned
+   on every deploy. **Closed by PR #44** — `firebase-functions` upgraded
+   from `^6.1.2` to `^7.0.0` (resolved `7.2.5`); the CLI deprecation
+   warning on every deploy clears.
 
-   **Why bundled with #4:** the Node-22 + `firebase-functions@7.x`
-   matrix is the only combination that future-proofs all the way
-   through. Doing them separately doubles the breaking-change
-   reconciliation surface.
+**Outcome:** zero source-code reconciliations required (the v6 → v7
+breaking changes do not apply to our v2-only callsites — see
+`docs/sprint-zero/stories/CHORE-d5-runtime-upgrade.md` Architect Notes
+§2.4 and §2.7 for the applicability matrix). The five-layer test
+pyramid stays green on the new matrix:
 
-Both close umbrella item D5 in
+| Layer | Suite count | Test count |
+|---|---|---|
+| 1 + 2 + 3 (algorithm unit + property + boundary) | 9 / 9 | 100 / 100 pass |
+| 4 (Firestore + Storage rules) | 7 / 7 | 149 / 149 pass |
+| 5 (full-emulator integration) | 3 / 4 + 1 skipped suite | 28 pass / 5 skipped |
+
+Coverage on `functions/src/simplified-debts/function.ts` stays at
+89.13% branch (PR #36 baseline 88.57%; unchanged within margin).
+
+Both items close umbrella item D5 in
 `docs/audits/sprint-1/07-bucket-b-burndown.md`. Issue #22 (umbrella
 dependency-upgrade backlog) retains D1, D2, D4, D6, D7.
+
+---
+
+## Pattern Establishment (PR #44)
+
+PR #44 establishes the **dependency-upgrade chore pattern** that
+future deadline-bound deploy-toolchain bumps (Node 24, future
+`firebase-functions@8.x`, etc.) will inherit:
+
+- **Atomic runtime + SDK bundling** — Node 22 + `firebase-functions@7.x`
+  ship in the same PR so the rollback story is a single `git revert`.
+  Splitting would double the breaking-change reconciliation surface
+  AND require two reverts to recover. The "split into PR #44a + PR
+  #44b" escape hatch in Architect Notes §2.1 was not exercised; the
+  default single-PR approach worked.
+- **Pre-implementation breaking-change applicability matrix** — the
+  architect populates §2.4 of the chore story with a row-per-breaking-
+  change table mapping each v6 → v7 (or analogous) change to our
+  codebase. Validated post-implementation in §2.7. For PR #44 the
+  prediction was "zero reconciliations required"; the test pyramid
+  confirmed it.
+- **Five-layer test pyramid as the upgrade gate** — every layer
+  (algorithm unit, property, boundary, rules, integration) must stay
+  green on the new matrix BEFORE merge. The CI pipeline already
+  enforces this; the chore-story Architect Notes §2.6 codifies the
+  execution order.
+- **CI runner pin scheme** — the five `actions/setup-node@v4`
+  invocations across `pr.yml` (three) and `release.yml` (two) move
+  in lockstep with the `functions/package.json` `engines.node` and
+  `firebase.json` `functions[0].runtime` pins. Future runtime bumps
+  follow the same pattern.
+- **Forward-compatibility note in §2.9** — the chore story documents
+  the next foreseeable runtime forcing event (Node 22 deprecation
+  2027-04-30 / decommission 2027-10-31), so the next D-row update
+  can be slotted ~6 months ahead of the cutoff.
+
+The architect notes appended to
+`docs/sprint-zero/stories/CHORE-d5-runtime-upgrade.md` ratify the
+PR #44 design decisions.
 
 ---
 

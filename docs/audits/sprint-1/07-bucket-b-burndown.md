@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #38.
+> Last updated: PR #44.
 
 ---
 
@@ -16,10 +16,10 @@
 |---|---|---|---|
 | Code chores | 12 | 0 | 12 |
 | Documentation chores | 8 | 1 | 7 |
-| Dependency upgrades | 6 | 0 | 6 |
+| Dependency upgrades | 6 | 2 | 4 |
 | Test coverage gaps | 8 | 4 | 4 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **5** | **32** |
+| **Total** | **37** | **7** | **30** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
@@ -123,8 +123,8 @@ so INV2 remains partially addressed pending the dedicated chore.
 | D1 | Riverpod 3.x migration | Dedicated chore PR, Sprint 2 or 3 |
 | D2 | `share_plus` upgrade (10 to 13) | Before first share-using PR |
 | D4 | `build_runner` upgrade (discontinued transitives) | When convenient |
-| D5a | Cloud Functions Node 20 runtime decommissioned **2026-10-31** (tracked as [#39](https://github.com/avtansh-code/OneByTwo/issues/39)) | **Before 2026-09-30** (one deploy cycle of slack) |
-| D5b | `firebase-functions` package outdated (6.x → 7.x; tracked as [#40](https://github.com/avtansh-code/OneByTwo/issues/40)) | Bundle with D5a |
+| D5a | Cloud Functions Node 20 runtime decommissioned **2026-10-31** (tracked as [#39](https://github.com/avtansh-code/OneByTwo/issues/39)) | **Closed by PR #44** (Node 22 LTS shipped) |
+| D5b | `firebase-functions` package outdated (6.x → 7.x; tracked as [#40](https://github.com/avtansh-code/OneByTwo/issues/40)) | **Closed by PR #44** (firebase-functions ^7.0.0 shipped; resolved 7.2.5) |
 | D6 | npm audit moderate vulnerabilities | When firebase-admin/functions upgraded |
 | D7 | Jest 30, TypeScript 6, ESLint 9 major bumps | When convenient |
 
@@ -165,6 +165,9 @@ PR #35 (FR-FR-03 list):34 remaining  ██████████████�
 PR #36 (FR-SE-03/04):  33 remaining  ████████████████████████████████░░░░░░  33/37
 PR #37 (FR-SE-05/06):  33 remaining  ████████████████████████████████░░░░░░  33/37
 PR #38 (FR-EX-01):     32 remaining  ███████████████████████████████░░░░░░░  32/37
+PR #42 (FR-FR-04):     32 remaining  ███████████████████████████████░░░░░░░  32/37
+PR #43 (FR-SE-05-07):  32 remaining  ███████████████████████████████░░░░░░░  32/37
+PR #44 (D5 upgrade):   30 remaining  █████████████████████████████░░░░░░░░░  30/37
 ```
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
@@ -282,4 +285,57 @@ by itself but makes partial progress on **PY3**:
   round-trip, the settlement read path, and the rules-denied error
   state). Partial credit only; PY3 remains open pending the
   Flutter emulator harness.
+- All other items unchanged.
+
+PR #43 (FR-SE-05/06/07 settle up flow) closes no Bucket-B items by
+itself but makes partial progress on **PY3**:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #43 adds
+  `test/integration/settlements/settle_up_flow_test.dart` (skipped
+  stub documenting the settle-up round-trip). Partial credit only;
+  PY3 remains open pending the Flutter emulator harness.
+- All other items unchanged.
+
+PR #44 (D5 deadline — Node 22 + firebase-functions 7.x runtime
+upgrade) closes **D5a + D5b**:
+
+- **D5a — Cloud Functions Node 20 runtime decommissioned 2026-10-31:**
+  `functions/package.json` `engines.node` bumped from `20` → `22`;
+  `firebase.json` `functions[0].runtime` bumped from `nodejs20` →
+  `nodejs22`; all five `actions/setup-node@v4` invocations in
+  `.github/workflows/pr.yml` (three) and `.github/workflows/release.yml`
+  (two) bumped from `node-version: '20'` → `'22'`. The next
+  `firebase deploy --only functions` after the 2026-10-31 cutoff now
+  succeeds. **Resolved.** Issue [#39](https://github.com/avtansh-code/OneByTwo/issues/39)
+  closed via `Closes #39` in the PR #44 body.
+- **D5b — `firebase-functions` package outdated (6.x → 7.x):**
+  `functions/package.json` `firebase-functions` bumped from `^6.1.2`
+  → `^7.0.0` (resolved `7.2.5`). The CLI deprecation warning on every
+  deploy clears. **Resolved.** Issue
+  [#40](https://github.com/avtansh-code/OneByTwo/issues/40) closed
+  via `Closes #40` in the PR #44 body.
+
+Other notes by ID for PR #44:
+
+- **D6 — npm audit moderate vulnerabilities:** the upgrade does not
+  silence the `npm audit` warnings (15 vulnerabilities of varying
+  severity remain in transitive dev-only deps). D6 stays open.
+- **D7 — Jest 30, TypeScript 6, ESLint 9 major bumps:** out of scope
+  per the PR #44 guardrails (this PR is dedicated to the Node 22 +
+  `firebase-functions@7.x` axis only).
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #44 does
+  not add new integration tests; the existing 28 (3 of 4 suites; 1
+  suite skipped for the unrelated `lookup-user-by-phone-number`
+  rate-limit doc-path bug) re-pass on the new matrix. No PY3
+  movement.
+- **`firebase-admin` 13.x and `firebase-functions-test` 3.x:**
+  intentionally NOT bumped per Architect Notes §2.1 — the
+  `firebase-functions@7.x` migration notes do not require it
+  (`firebase-functions-test` peer-dep range `firebase-functions >= 4.9.0`
+  accepts 7.x). Bundling would double the breaking-change reconciliation
+  surface for zero deadline reason.
+- **Pre-existing `lookup-user-by-phone-number` rate-limit doc-path
+  bug:** still untouched. The five `describe.skip`'d integration
+  tests remain skipped. Candidate for PR #45 per
+  `docs/sprint-zero/next-three-prs.md`.
 - All other items unchanged.
