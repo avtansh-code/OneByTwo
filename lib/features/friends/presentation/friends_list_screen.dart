@@ -10,6 +10,10 @@ import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_list_tile.dart';
 
+// TODO(SCR-08): wire the multi-context FAB chooser when the SCR-08
+// home dashboard ships. Today the only Add Expense entry point is the
+// FAB on FriendDetailScreen (FR-EX-01).
+
 /// Friends list screen (SCR-09 / FR-FR-03).
 ///
 /// Renders the four states defined by SCR-09:

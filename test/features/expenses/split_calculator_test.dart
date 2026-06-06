@@ -84,16 +84,16 @@ void main() {
       expect(result[1].sharePaise, 0);
     });
 
-    test('the maximum permitted total (99999999 paise, odd) splits with '
+    test('the maximum permitted total (999999999 paise, odd) splits with '
         'remainder on first', () {
       final result = computeSplits(
         method: SplitMethod.equal,
-        totalPaise: 99999999,
+        totalPaise: 999999999,
         memberUids: const ['uid-a', 'uid-b'],
       );
 
-      expect(result[0].sharePaise, 50000000);
-      expect(result[1].sharePaise, 49999999);
+      expect(result[0].sharePaise, 500000000);
+      expect(result[1].sharePaise, 499999999);
     });
   });
 
@@ -189,7 +189,7 @@ void main() {
     // group asserts the splitter's own correctness by construction.
     test('equal: splits[0] + splits[1] == totalPaise for representative '
         'amounts', () {
-      const amounts = <int>[1, 2, 3, 99, 100, 101, 999, 1000, 1001, 99999999];
+      const amounts = <int>[1, 2, 3, 99, 100, 101, 999, 1000, 1001, 999999999];
 
       for (final amount in amounts) {
         final result = computeSplits(
@@ -213,7 +213,7 @@ void main() {
         (100, [100, 0]),
         (12345, [6173, 6172]),
         (1, [1, 0]),
-        (99999999, [50000000, 49999999]),
+        (999999999, [500000000, 499999999]),
       ];
 
       for (final (total, shares) in cases) {

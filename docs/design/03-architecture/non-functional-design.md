@@ -396,7 +396,7 @@ fully symbolicated. PII is excluded from crash reports (SRS section 5.4).
 events, as specified in SRS section 5.10:
 
 - `signup_started`, `signup_completed`
-- `expense_added`, `settlement_recorded`
+- `expense_save_succeeded`, `settlement_recorded`
 - `group_created`, `friend_added`
 - `simplified_balance_computed`
 - `support_email_opened`

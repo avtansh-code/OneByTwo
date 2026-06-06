@@ -357,7 +357,7 @@ Note: The "Save Expense" button performs a final client-side re-validation of al
 | `expense_step3_opened` | Sheet step 3 becomes visible | `has_receipt_from_edit` (bool, for edit flow) | Section 5.10 |
 | `expense_receipt_attached` | User attaches a receipt image | `source` (`camera` / `gallery`), `file_size_bytes` | Section 5.10 |
 | `expense_receipt_removed` | User removes an attached receipt | -- | Section 5.10 |
-| `expense_added` | Expense successfully saved | `amount_paise`, `category`, `split_method`, `participant_count`, `has_receipt` (bool), `context_type`, `context_id` | Section 5.10 (canonical funnel event) |
+| `expense_save_succeeded` | Expense successfully saved | `amount_paise`, `category`, `split_method`, `participant_count`, `has_receipt` (bool), `context_type`, `context_id` | Section 5.10 (canonical funnel event) |
 | `expense_save_failed` | Save operation fails | `error_code`, `retry_count` | Section 5.10 |
 | `expense_step3_abandoned` | User dismisses the sheet from step 3 | `had_receipt`, `time_spent_ms` | Section 5.10 |
 
@@ -383,7 +383,7 @@ Note: The "Save Expense" button performs a final client-side re-validation of al
 
 1. **Camera permission denied:** If the user taps "Take Photo" but camera permission is denied, display an `OBTSnackbar` type `info`: "Camera access is needed to take a photo. You can grant permission in Settings." with an action label "Settings" that opens the device settings. Fall back to gallery-only mode.
 2. **Gallery permission denied:** Similar treatment. `OBTSnackbar` type `info`: "Photo library access is needed. You can grant permission in Settings." Both buttons remain visible but tapping the denied option re-prompts or directs to Settings.
-3. **Network loss during save:** If the device goes offline after the user taps "Save Expense", the write is queued locally (FR-OF-02). The `OBTSnackbar` type `info` appears: "You're offline. This expense will be saved when you're back online." The sheet dismisses normally. The `expense_added` telemetry event fires with `offline: true`.
+3. **Network loss during save:** If the device goes offline after the user taps "Save Expense", the write is queued locally (FR-OF-02). The `OBTSnackbar` type `info` appears: "You're offline. This expense will be saved when you're back online." The sheet dismisses normally. The `expense_save_succeeded` telemetry event fires with `offline: true`.
 4. **Receipt upload succeeds but expense save fails:** The uploaded receipt image becomes orphaned in Firebase Storage. A server-side cleanup Cloud Function (out of scope for this screen spec but noted for the Architect) should garbage-collect orphaned receipts after 24 hours.
 5. **Very large receipt image (just under 10 MB):** Upload may take several seconds on slow connections. The uploading state must remain visible. If the upload exceeds 30 seconds, show an `OBTSnackbar` type `error`: "Upload is taking too long. Try a smaller image or check your connection."
 

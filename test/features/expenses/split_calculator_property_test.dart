@@ -7,7 +7,7 @@
 // rather than specific values.
 //
 // Properties asserted:
-// 1. `equal` with any totalPaise in [1, 99999999] produces splits whose
+// 1. `equal` with any totalPaise in [1, 999999999] produces splits whose
 //    sum equals totalPaise.
 // 2. `exact` with any valid (sum-matching) shares returns identity and
 //    the sum still equals totalPaise.
@@ -34,10 +34,10 @@ void main() {
   int sample(int min, int max) => min + random.nextInt(max - min + 1);
 
   group('property: equal-split sum invariant (FR-EX-04)', () {
-    test('sum equals totalPaise for 500 sampled values in [1, 99999999]', () {
+    test('sum equals totalPaise for 500 sampled values in [1, 999999999]', () {
       const trials = 500;
       for (var i = 0; i < trials; i++) {
-        final total = sample(1, 99999999);
+        final total = sample(1, 999999999);
         final result = computeSplits(
           method: SplitMethod.equal,
           totalPaise: total,
@@ -60,9 +60,9 @@ void main() {
     test('splits[0] == splits[1] + 1 for every odd sample', () {
       const trials = 300;
       for (var i = 0; i < trials; i++) {
-        var total = sample(1, 99999999);
+        var total = sample(1, 999999999);
         if (total.isEven) total += 1;
-        if (total > 99999999) total = 99999999; // boundary safety
+        if (total > 999999999) total = 999999999; // boundary safety
 
         final result = computeSplits(
           method: SplitMethod.equal,
@@ -85,7 +85,7 @@ void main() {
     test('every share is >= 0 across 300 sampled values', () {
       const trials = 300;
       for (var i = 0; i < trials; i++) {
-        final total = sample(1, 99999999);
+        final total = sample(1, 999999999);
         final result = computeSplits(
           method: SplitMethod.equal,
           totalPaise: total,
@@ -106,7 +106,7 @@ void main() {
       () {
         const trials = 100;
         for (var i = 0; i < trials; i++) {
-          final total = sample(1, 99999999);
+          final total = sample(1, 999999999);
           final first = sample(0, total);
           final second = total - first;
 
@@ -131,7 +131,7 @@ void main() {
       () {
         const trials = 100;
         for (var i = 0; i < trials; i++) {
-          final total = sample(1, 99999999);
+          final total = sample(1, 999999999);
           final r1 = computeSplits(
             method: SplitMethod.equal,
             totalPaise: total,
@@ -156,7 +156,7 @@ void main() {
     test('splits[i].userId equals memberUids[i] for the equal method', () {
       const trials = 100;
       for (var i = 0; i < trials; i++) {
-        final total = sample(1, 99999999);
+        final total = sample(1, 999999999);
         // Randomise the member-uid pair each iteration to avoid relying
         // on alphabetical accidents.
         final firstUid = 'uid-${random.nextInt(1 << 20)}';
