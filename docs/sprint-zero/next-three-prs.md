@@ -120,6 +120,50 @@ multiple devs (Option B), QA.
 
 ---
 
+## PR #42 — Post-PR #38 cleanup (S4 docs + tests) OR Bucket-B chore PR
+
+**Status:** Planned.
+
+**Scope:**
+
+Two candidates after PR #41:
+
+- **Option A — Post-PR #38 cleanup PR.** Bundles the three S4 follow-ups
+  surfaced by the PR #38 QA sign-off — see
+  `docs/sprint-zero/sprint-2-plan.md` "Post-Merge Cleanup Backlog" for
+  the full detail. Roughly 10 lines of diff total across:
+  - 6 stale `expense_added` / `expense_add_failed` references in 3
+    design docs (NFD + 2 screen specs).
+  - 11 stale `99999999` cap labels in the two splitter test files (the
+    typo fix from PR #38 commit `684cd09` was not propagated to tests).
+  - 1 missing `// TODO(SCR-08)` top-of-file comment in
+    `friends_list_screen.dart` for the deferred multi-context FAB
+    chooser (Architect Notes §2.10).
+
+  All three are documentation / test-quality polish; no runtime change.
+  Single-commit PR with a `chore(docs): post-PR-#38 cleanup` subject.
+  ~1 SP. Suitable for any contributor; no architect ratification needed.
+
+- **Option B — Bucket-B chore PR (alternate to PR #41 Option B if PR
+  #41 picks Option A).** Same Bucket-B bundle described in the PR #41
+  Option B notes — Sprint 2 polish set (M1 / S1 / S3 / S4 / CV2) or the
+  telemetry sweep (#16 / #18-S5). Roughly 2-3 SP.
+
+**Likely choice:** Option A if PR #41 picks its Option A (lookup
+rate-limit fix). The two together would close the lookup bug AND drain
+the Post-Merge Cleanup Backlog before PR #43 starts a fresh feature
+cycle. The architect makes the final call at PR #42 kickoff.
+
+**Stories required before kickoff:** none — the three S4 items are
+fully specified in `docs/sprint-zero/sprint-2-plan.md` "Post-Merge
+Cleanup Backlog" and the QA Sign-Off section of
+`docs/sprint-zero/stories/FR-EX-01-expense-creation.md`.
+
+**Agents involved:** Flutter Dev OR PM (single-commit docs/test change),
+QA (sign-off only).
+
+---
+
 ## Snapshot — Sprint 2 status at end of PR #38
 
 | Metric | Value |
