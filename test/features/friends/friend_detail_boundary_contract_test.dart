@@ -66,12 +66,18 @@ void main() {
           fail('Expected source file $path to exist for boundary grep');
         }
         final content = file.readAsLinesSync();
-        // Match `simplifiedBalances =` and `simplifiedBalances:` only when
-        // used as an assignment target — never as a map-literal field
-        // populated for a client write. We forbid both shapes on the
-        // read-side files; the friendship_repository (write path) is the
-        // only place these may appear.
-        final assignmentPattern = RegExp(r"simplifiedBalances\s*[:=]");
+        // Forbid: (a) Dart-style assignment `simplifiedBalances = X` where
+        // the `=` is not the `==` equality operator, and (b) the quoted
+        // map-literal key `'simplifiedBalances':` or `"simplifiedBalances":`
+        // which would indicate a write payload field.
+        //
+        // We deliberately ALLOW `simplifiedBalances:` (without quotes) as
+        // a named argument, e.g. the call site of `netBalancePaise(
+        // simplifiedBalances: ..., currentUserId: ..., otherUserId: ...)`
+        // — this is a READ contract, not a write.
+        final assignmentPattern = RegExp(r'simplifiedBalances\s*=[^=]');
+        final mapLiteralPattern =
+            RegExp("""['"]simplifiedBalances['"]\\s*:""");
         for (var i = 0; i < content.length; i++) {
           final line = content[i];
           if (_isCommentLine(line)) continue;
@@ -81,6 +87,14 @@ void main() {
             reason:
                 'Forbidden simplifiedBalances assignment in $path:${i + 1}; '
                 'this field is server-maintained (Invariant 2)',
+          );
+          expect(
+            mapLiteralPattern.hasMatch(line),
+            isFalse,
+            reason:
+                'Forbidden simplifiedBalances map-literal key in '
+                "$path:${i + 1}; this field is server-maintained "
+                '(Invariant 2)',
           );
         }
       });

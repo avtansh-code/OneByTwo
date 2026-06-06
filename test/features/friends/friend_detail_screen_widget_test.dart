@@ -13,12 +13,13 @@
 
 // ignore_for_file: cascade_invocations
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
@@ -110,13 +111,44 @@ SettlementDoc _settlement({
   );
 }
 
+class FakeExpenseRepository implements ExpenseRepository {
+  ExpenseCreateError? throwError;
+  String returnId = 'eid-test';
+  bool createCalled = false;
+  String? lastWatchedFriendshipId;
+
+  @override
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  }) async {
+    createCalled = true;
+    if (throwError != null) {
+      throw throwError!;
+    }
+    return returnId;
+  }
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    int limit = 5,
+  }) {
+    lastWatchedFriendshipId = friendshipId;
+    return const Stream<List<ExpenseDoc>>.empty();
+  }
+}
+
 Widget _buildSubject({
   required AsyncValue<FriendDetailState> initialValue,
   required FakeAnalyticsService analytics,
+  FakeExpenseRepository? expenseRepository,
 }) {
   return ProviderScope(
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
+      if (expenseRepository != null)
+        expenseRepositoryProvider.overrideWithValue(expenseRepository),
       friendDetailProvider(_args).overrideWith((ref) {
         switch (initialValue) {
           case AsyncData(:final value):
@@ -386,6 +418,7 @@ void main() {
         _buildSubject(
           initialValue: AsyncData(state),
           analytics: analytics,
+          expenseRepository: FakeExpenseRepository(),
         ),
       );
       await tester.pumpAndSettle();
