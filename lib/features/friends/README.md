@@ -52,14 +52,50 @@ The FAB on the Friend Detail screen opens `AddExpenseBottomSheet` from
 the expenses feature folder (the call site was preserved verbatim from
 the FR-FR-03 placeholder so PR #38 needed no change at swap-time).
 
+### FR-SE-05 / FR-SE-07 — Settle Up CTA on Friend Detail (PR #43)
+
+PR #43 inserts an `OBTSettleUpCard` between the header and the
+timeline on `FriendDetailScreen` when
+`header.balanceState == BalanceState.owes` (the current user owes the
+friend). Per Architect Notes §2.5 the receiving direction
+(`netBalancePaise > 0`) ships **without** the card; that branch
+depends on FR-SE-09 Send Reminder (separate later PR).
+
+Tapping the card fires `settle_up_tapped { source: 'friend_detail',
+friendship_id_hash }` and opens `SettleUpBottomSheet` from the
+`settlements` feature folder. The bottom sheet's controller writes to
+the top-level `settlements/{auto-id}` collection; the
+`onSettlementWrite` trigger (PR #37) folds the new doc into
+`simplifiedBalances` and the friendship-doc snapshot stream re-emits,
+flipping the header pill toward `Settled up` within NFR-PE-04's
+2.5 s P95 budget.
+
+- `widgets/obt_settle_up_card.dart` — reusable card with payer
+  avatar → arrow → payee avatar + suggested amount + Settle Up CTA.
+  Lives under `friends/` because the only PR #43 host is
+  `FriendDetailScreen`; future hosts (Home Dashboard FR-HD-02; Group
+  Detail FR-GR-04) will lift the widget into a shared design-system
+  folder per the `OBTAmountInput` extraction precedent from PR #38.
+
+PR #43 also extends `_SettlementRow` in
+`widgets/friend_detail_timeline.dart` with a payer-aware label
+(review §R3 / AC-9):
+
+- `fromUserId == currentUserUid` → `"You paid [Friend's first name] ₹X.XX"`
+- `fromUserId == otherUserUid` → `"[Friend's first name] paid you ₹X.XX"`
+
 Telemetry:
 
 - `friends_list_viewed` (single-fire per screen instance) — PR #35
-- `friend_row_tapped` with hashed `friendship_id` — PR #35
+- `friend_row_tapped` with hashed `friendship_id_hash` — PR #35
+  (parameter key renamed from `friendship_id` in PR #43 review §R4
+  for consistency with PR #42's `friend_detail_viewed` parameter)
 - `friends_empty_add_tapped` — PR #35
 - `friend_detail_viewed` (single-fire per screen instance) with
   `friendship_id_hash` + `balance_state` (`owed` / `owes` /
   `settled`) — PR #42
+- `settle_up_tapped { source: 'friend_detail', friendship_id_hash }`
+  — PR #43
 
 All `friendship_id` values flow through `hashFriendshipId()` from
 `core/telemetry/event_id_hash.dart` before emission.
@@ -87,7 +123,7 @@ domain/
   selected_contact.dart
 presentation/
   add_friend_screen.dart
-  friend_detail_screen.dart          # PR #42 — replaces the placeholder
+  friend_detail_screen.dart          # PR #42 — replaces placeholder; PR #43 inserts OBTSettleUpCard
   friends_list_screen.dart
   match_and_invite_screen.dart
   widgets/
@@ -96,9 +132,10 @@ presentation/
     empty_contacts_state.dart
     friend_detail_header.dart        # PR #42
     friend_detail_states.dart        # PR #42
-    friend_detail_timeline.dart      # PR #42
+    friend_detail_timeline.dart      # PR #42; PR #43 §R3 payer-aware settlement labels
     friend_list_tile.dart
     manual_phone_entry_tab.dart
+    obt_settle_up_card.dart          # PR #43 (FR-SE-07)
     permission_denied_view.dart
     phone_selector_bottom_sheet.dart
 ```
