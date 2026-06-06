@@ -113,7 +113,7 @@ AddExpenseController _buildController({
 }
 
 Future<void> _driveFullSuccessFlow(AddExpenseController controller) async {
-  // Drive every state transition that PR #38 emits an event for.
+  // Drive every state transition that FR-EX-01 emits an event for.
   controller.setAmount(1000);
   controller.setDescription('Coffee');
   controller.setCategory(ExpenseCategory.food);

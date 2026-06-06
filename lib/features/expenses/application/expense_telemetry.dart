@@ -102,10 +102,10 @@ abstract final class ExpenseTelemetry {
   /// Wall-clock duration the sheet was open, in milliseconds.
   static const String paramTimeSpentMs = 'time_spent_ms';
 
-  /// `'equal'` / `'exact'` (PR #38).
+  /// `'equal'` / `'exact'` (the methods enabled in FR-EX-01).
   static const String paramSplitMethod = 'split_method';
 
-  /// Always 2 in PR #38 (the friendship is two-person by definition).
+  /// Always 2 in FR-EX-01 (the friendship is two-person by definition).
   static const String paramParticipantCount = 'participant_count';
 
   /// `true` if the payer is the current user; `false` otherwise.

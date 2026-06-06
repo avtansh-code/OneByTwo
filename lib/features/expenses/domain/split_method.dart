@@ -1,6 +1,6 @@
 /// Split methods supported by the expense schema.
 ///
-/// PR #38 ships `equal` and `exact` as enabled, working chips on
+/// FR-EX-01 ships `equal` and `exact` as enabled, working chips on
 /// SCR-20; the other three values are present in the enum to preserve
 /// schema compatibility with the security rules' allow-list at
 /// `firestore.rules` line 204 and with the future PRs that will enable
@@ -15,17 +15,17 @@ enum SplitMethod {
   /// gates Save on `sum(shares) == amountPaise` (FR-EX-04).
   exact,
 
-  /// Reserved — disabled chip with a "Coming soon" tooltip in PR #38.
+  /// Reserved — disabled chip with a "Coming soon" tooltip in FR-EX-01.
   unequal,
 
-  /// Reserved — disabled chip with a "Coming soon" tooltip in PR #38.
+  /// Reserved — disabled chip with a "Coming soon" tooltip in FR-EX-01.
   percentage,
 
-  /// Reserved — disabled chip with a "Coming soon" tooltip in PR #38.
+  /// Reserved — disabled chip with a "Coming soon" tooltip in FR-EX-01.
   shares,
 }
 
-/// Returns true when [method] has a working implementation in PR #38.
+/// Returns true when [method] has a working implementation in FR-EX-01.
 /// The disabled chips on SCR-20 use this gate to render the "Coming
 /// soon" affordance without firing any event when tapped.
 bool isSplitMethodEnabled(SplitMethod method) {

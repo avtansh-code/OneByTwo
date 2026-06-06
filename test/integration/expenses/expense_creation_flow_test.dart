@@ -1,7 +1,8 @@
 // Expense creation integration flow tests (FR-EX-01, AC-14).
 //
-// End-to-end round-trip through the registered PR #36
-// `onExpenseWriteFriendship` trigger inside `firebase emulators:exec`.
+// End-to-end round-trip through the registered
+// `onExpenseWriteFriendship` trigger (FR-SE-03/04) inside
+// `firebase emulators:exec`.
 // Mirrors the skipped-stub pattern from
 // test/integration/friends/friends_list_flow_test.dart and
 // test/integration/friends/match_and_invite_flow_test.dart — the
@@ -20,8 +21,8 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('AddExpense integration (FR-EX-01) — round-trip via the PR #36 '
-      'trigger', () {
+  group('AddExpense integration (FR-EX-01) — round-trip via the '
+      'onExpenseWriteFriendship trigger', () {
     test('end-to-end (AC-14): user A creates ₹100 equal split with friend B '
         "→ friendship's simplifiedBalances updates to {B: {A: 5000}} "
         '→ friends list re-renders "₹50.00"', () {

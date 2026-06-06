@@ -4,7 +4,7 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 /// Single-select grid of the eight FR-EX-08 category chips.
 ///
 /// Future extraction note: the per-chip rendering will move to the
-/// reusable OBTCategoryChip in a follow-up; PR #38 inlines.
+/// reusable OBTCategoryChip in a follow-up; FR-EX-01 inlines.
 class ExpenseCategoryGrid extends StatelessWidget {
   /// Creates an [ExpenseCategoryGrid].
   const ExpenseCategoryGrid({

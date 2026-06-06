@@ -3,7 +3,7 @@
 Feature-folder that owns expense capture, splits, and (later) editing/deletion
 for friendship and group contexts.
 
-## Implemented scope (PR #38 — FR-EX-01)
+## Implemented scope (FR-EX-01)
 
 Two-step **Add Expense** bottom sheet on the Friend Detail screen, friendship
 context only:
@@ -15,9 +15,9 @@ context only:
   `unequal`/`percentage`/`shares` rendered as disabled chips with "Coming
   soon" tooltips (Telemetry-plan locks honoured).
 - **Save** writes a new doc under `friendships/{fid}/expenses/{eid}` via the
-  `ExpenseRepository`. The Cloud Function `onExpenseWriteFriendship` (PR #36)
-  is the sole writer of `simplifiedBalances` — this feature never touches
-  that field.
+  `ExpenseRepository`. The Cloud Function `onExpenseWriteFriendship`
+  (FR-SE-03/04) is the sole writer of `simplifiedBalances` — this feature
+  never touches that field.
 
 Telemetry (Camp B names — see `expense_telemetry.dart`):
 
@@ -47,7 +47,7 @@ domain/
   expense_doc.dart              # Firestore-shape with toCreateMap()
   expense_draft.dart            # UI draft model
   split_calculator.dart         # pure integer splitter
-  split_method.dart             # enum (equal + exact enabled in PR #38)
+  split_method.dart             # enum (equal + exact enabled in FR-EX-01)
 presentation/
   add_expense_bottom_sheet.dart # root sheet + ref.listen side-effects
   steps/
@@ -62,26 +62,26 @@ presentation/
 ## Deferred extension points
 
 - **Step 3 (receipt upload)** — FR-EX-05. `ExpenseDoc.receiptUrl` is wired
-  but always `null` in PR #38. Candidate for PR #39 or PR #40 per
+  but always `null` in FR-EX-01. Candidate for the next PR per
   `docs/sprint-zero/next-three-prs.md`.
 - **Notes field** — Step 1 has no notes input yet (`has_notes` always
   `false` in `expense_step1_completed` / `expense_save_succeeded`).
 - **Unequal / percentage / shares splits** — chips visible but disabled
   with "Coming soon" tooltips. Lift the three locks in `split_method.dart`
   when each method ships.
-- **Edit / delete expense** — FR-EX-06. The PR #38 bottom-sheet scaffold,
+- **Edit / delete expense** — FR-EX-06. The FR-EX-01 bottom-sheet scaffold,
   `split_calculator`, and `ExpenseRepository` write path are reusable for
-  edit. Soft-delete is already accepted by PR #36's trigger and PR #37's
-  rules. Candidate for PR #39 or PR #40.
+  edit. Soft-delete is already accepted by the FR-SE-03/04 trigger and
+  the FR-SE-05/06 rules. Candidate for the next PR.
 - **Activity feed** — FR-EX-07. Chronological list of expenses and
   settlements across all friendships and groups. Reads the same
   `friendships/{fid}/expenses/{eid}` documents this feature writes; no
   new write surface required.
 - **Group context** — FR-EX-02. Only friendship context is supported in
-  PR #38; `context_type` telemetry param is always `'friendship'`. Pairs
-  with the deferred `onExpenseWriteGroup` trigger (PR #36 Architect
-  Notes §2).
-- **Multi-context entry point** — the Add Expense FAB in PR #38 lives on
+  FR-EX-01; `context_type` telemetry param is always `'friendship'`. Pairs
+  with the deferred `onExpenseWriteGroup` trigger (FR-SE-03/04 architect
+  notes §2).
+- **Multi-context entry point** — the Add Expense FAB in FR-EX-01 lives on
   the placeholder Friend Detail screen only. The Home dashboard
   (FR-HD-01) and Group Detail (FR-GR-04) FABs will invoke the same
   bottom-sheet sequence with the relevant `context_type` once those
@@ -91,20 +91,20 @@ presentation/
 
 ## Hand-off seams
 
-- **PR #35 friends list (upstream read side):** the post-expense net
+- **FR-FR-03 friends list (upstream read side):** the post-expense net
   balance re-renders automatically. This feature triggers no manual
   refresh; `friends_list_screen.dart` streams `simplifiedBalances`
   directly via `core/balances/net_balance.dart` and formats with
   `core/formatters/inr_formatter.dart#formatInrFromPaise`.
-- **PR #35 Friend Detail placeholder (upstream UI entry):** the Add
+- **FR-FR-03 Friend Detail placeholder (upstream UI entry):** the Add
   Expense FAB is wired on `FriendDetailPlaceholderScreen`. FR-FR-04
   (Friend Detail full screen) will replace the placeholder; the FAB
   call site is preserved.
-- **PR #36 `onExpenseWriteFriendship` (downstream write side):** every
-  write from `ExpenseRepository` to `friendships/{fid}/expenses/{eid}`
-  invokes the trigger. The trigger is the sole writer of
-  `simplifiedBalances` and `lastActivityAt`; this feature writes
-  neither.
+- **FR-SE-03/04 `onExpenseWriteFriendship` (downstream write side):**
+  every write from `ExpenseRepository` to
+  `friendships/{fid}/expenses/{eid}` invokes the trigger. The trigger
+  is the sole writer of `simplifiedBalances` and `lastActivityAt`;
+  this feature writes neither.
 
 ## Invariants honoured
 

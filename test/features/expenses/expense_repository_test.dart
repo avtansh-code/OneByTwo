@@ -3,8 +3,8 @@
 // Tests `FirestoreExpenseStore` + `ExpenseRepository.createExpense`
 // against an injected `FakeExpenseStore`. The repository is the
 // boundary at which the typed `ExpenseDoc` becomes the
-// Firestore-shaped map that PR #36's `onExpenseWriteFriendship`
-// trigger consumes; this test pyramid catches drift between
+// Firestore-shaped map that the `onExpenseWriteFriendship` trigger
+// (FR-SE-03/04) consumes; this test pyramid catches drift between
 // the architect-ratified write shape and the production rules.
 //
 // Mirrors the friends/friendship_repository_test.dart pattern of

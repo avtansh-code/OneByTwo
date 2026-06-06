@@ -56,7 +56,7 @@ class Split {
 ///   defence in depth (the assertion only fires in debug; the security
 ///   rules' `sumOfSharesEquals` check is the production safety net).
 /// - [SplitMethod.unequal], [SplitMethod.percentage], [SplitMethod.shares]
-///   are present in the enum but disabled in PR #38; calling
+///   are present in the enum but disabled in FR-EX-01; calling
 ///   [computeSplits] with one of them throws an [UnimplementedError]
 ///   (the controller silently no-ops on their selection, so this is
 ///   only reachable by misuse — defence in depth).
@@ -67,7 +67,7 @@ List<Split> computeSplits({
   String? payerUid,
   List<int>? exactShares,
 }) {
-  assert(memberUids.length == 2, 'PR #38 supports exactly two members');
+  assert(memberUids.length == 2, 'FR-EX-01 supports exactly two members');
 
   switch (method) {
     case SplitMethod.equal:

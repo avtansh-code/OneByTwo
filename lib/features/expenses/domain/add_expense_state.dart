@@ -22,7 +22,7 @@ class Editing extends AddExpenseState {
     this.validationErrors = const <String, String>{},
   });
 
-  /// The current step index (1 or 2 in PR #38).
+  /// The current step index (1 or 2 in FR-EX-01).
   final int step;
 
   /// The current draft snapshot.

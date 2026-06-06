@@ -10,8 +10,9 @@ import 'package:onebytwo/features/expenses/domain/split_method.dart';
 /// each setter call.
 ///
 /// `notes` is in the draft for future use (FR-EX-01 mentions optional
-/// notes per SCR-19) but is NOT written to Firestore in PR #38 — the
-/// `has_notes` telemetry parameter is `false` for every PR #38 save.
+/// notes per SCR-19) but is NOT written to Firestore in this iteration —
+/// the `has_notes` telemetry parameter is `false` for every save until
+/// the notes input ships.
 @immutable
 class ExpenseDraft {
   /// Creates an [ExpenseDraft].

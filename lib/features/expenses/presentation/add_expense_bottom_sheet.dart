@@ -15,7 +15,7 @@ import 'package:onebytwo/features/expenses/presentation/steps/step_2_split_and_p
 ///
 /// Future extraction note: the surrounding "sheet" chrome (drag
 /// handle, rounded corners, padding) is rendered inline here for
-/// PR #38 — a follow-up extracts it as the reusable `OBTBottomSheet`
+/// FR-EX-01 — a follow-up extracts it as the reusable `OBTBottomSheet`
 /// per the design-system catalogue. The presentation here matches
 /// the catalogue's specified surface visually so the extraction is
 /// mechanical.
@@ -99,7 +99,8 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     if (next is Success && previous is! Success) {
-      // TODO(avtansh): replace with the OBTSnackbar reusable.
+      // TODO(flutter-dev): replace with OBTSnackbar reusable from the
+      // design-system catalogue (item 13). Inline rendering for FR-EX-01.
       messenger.showSnackBar(const SnackBar(content: Text('Expense added.')));
       // Auto-dismiss the sheet on a successful save.
       Navigator.of(context).maybePop();
