@@ -58,7 +58,8 @@ ExpenseDoc _validDoc({
     category: category,
     date: date ?? DateTime(2026, 6, 6),
     payerId: payerId,
-    splits: splits ??
+    splits:
+        splits ??
         const [
           Split(userId: 'uid-current', sharePaise: 500),
           Split(userId: 'uid-friend', sharePaise: 500),
@@ -87,15 +88,14 @@ void main() {
       expect(id, 'eid-42');
     });
 
-    test('writes to the expenses subcollection under the parent friendship',
-        () async {
-      await repo.createExpense(
-        friendshipId: 'uid-a_uid-b',
-        doc: _validDoc(),
-      );
-      expect(store.writes, hasLength(1));
-      expect(store.writes.single.path, 'uid-a_uid-b');
-    });
+    test(
+      'writes to the expenses subcollection under the parent friendship',
+      () async {
+        await repo.createExpense(friendshipId: 'uid-a_uid-b', doc: _validDoc());
+        expect(store.writes, hasLength(1));
+        expect(store.writes.single.path, 'uid-a_uid-b');
+      },
+    );
   });
 
   group('ExpenseDoc.toCreateMap — shape', () {
@@ -140,8 +140,9 @@ void main() {
     });
 
     test('category serialises to snake_case enum name', () {
-      final map = _validDoc(category: ExpenseCategory.entertainment)
-          .toCreateMap();
+      final map = _validDoc(
+        category: ExpenseCategory.entertainment,
+      ).toCreateMap();
       expect(map['category'], 'entertainment');
     });
 
@@ -273,24 +274,26 @@ void main() {
       );
     });
 
-    test('any other FirebaseException maps to ExpenseCreateErrorType.unknown',
-        () async {
-      store.throwOnAdd = FirebaseException(
-        plugin: 'cloud_firestore',
-        code: 'cancelled',
-      );
+    test(
+      'any other FirebaseException maps to ExpenseCreateErrorType.unknown',
+      () async {
+        store.throwOnAdd = FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'cancelled',
+        );
 
-      await expectLater(
-        repo.createExpense(friendshipId: 'fid', doc: _validDoc()),
-        throwsA(
-          isA<ExpenseCreateError>().having(
-            (e) => e.type,
-            'type',
-            ExpenseCreateErrorType.unknown,
+        await expectLater(
+          repo.createExpense(friendshipId: 'fid', doc: _validDoc()),
+          throwsA(
+            isA<ExpenseCreateError>().having(
+              (e) => e.type,
+              'type',
+              ExpenseCreateErrorType.unknown,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 
   group('Invariant 2 — repository never references simplifiedBalances', () {

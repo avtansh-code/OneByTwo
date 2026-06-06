@@ -44,18 +44,19 @@ void main() {
     });
 
     test(
-        'the maximum permitted total (99999998 paise, even) splits cleanly',
-        () {
-      // 99999998 is the largest even value at or below the AC-2 cap.
-      final result = computeSplits(
-        method: SplitMethod.equal,
-        totalPaise: 99999998,
-        memberUids: const ['uid-a', 'uid-b'],
-      );
+      'the maximum permitted total (99999998 paise, even) splits cleanly',
+      () {
+        // 99999998 is the largest even value at or below the AC-2 cap.
+        final result = computeSplits(
+          method: SplitMethod.equal,
+          totalPaise: 99999998,
+          memberUids: const ['uid-a', 'uid-b'],
+        );
 
-      expect(result[0].sharePaise, 49999999);
-      expect(result[1].sharePaise, 49999999);
-    });
+        expect(result[0].sharePaise, 49999999);
+        expect(result[1].sharePaise, 49999999);
+      },
+    );
   });
 
   group('computeSplits — equal method (odd totals)', () {

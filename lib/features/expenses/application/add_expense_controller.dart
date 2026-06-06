@@ -50,18 +50,18 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     required ExpenseRepository repository,
     required AnalyticsService analytics,
     DateTime Function()? clock,
-  })  : _repository = repository,
-        _analytics = analytics,
-        _clock = clock ?? DateTime.now,
-        super(
-          Editing(
-            step: 1,
-            draft: ExpenseDraft(
-              date: (clock ?? DateTime.now)(),
-              payerId: currentUserUid,
-            ),
-          ),
-        ) {
+  }) : _repository = repository,
+       _analytics = analytics,
+       _clock = clock ?? DateTime.now,
+       super(
+         Editing(
+           step: 1,
+           draft: ExpenseDraft(
+             date: (clock ?? DateTime.now)(),
+             payerId: currentUserUid,
+           ),
+         ),
+       ) {
     _step1OpenedAt = _clock();
     _emitStep1Opened();
   }
@@ -165,10 +165,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
 
     _emitStep1Completed(s.draft);
     _step2OpenedAt = _clock();
-    state = Editing(
-      step: 2,
-      draft: s.draft,
-    );
+    state = Editing(step: 2, draft: s.draft);
     _emitStep2Opened(s.draft);
   }
 
@@ -386,8 +383,9 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     _analytics.logEvent(
       name: ExpenseTelemetry.step1Completed,
       parameters: <String, Object>{
-        ExpenseTelemetry.paramAmountRange:
-            ExpenseTelemetry.amountRangeFor(draft.amountPaise),
+        ExpenseTelemetry.paramAmountRange: ExpenseTelemetry.amountRangeFor(
+          draft.amountPaise,
+        ),
         ExpenseTelemetry.paramCategory: draft.category!.name,
         ExpenseTelemetry.paramHasNotes: false,
       },
@@ -439,8 +437,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       parameters: <String, Object>{
         ExpenseTelemetry.paramSplitMethod: draft.splitMethod.name,
         ExpenseTelemetry.paramParticipantCount: 2,
-        ExpenseTelemetry.paramPayerIsSelf:
-            draft.payerId == currentUserUid,
+        ExpenseTelemetry.paramPayerIsSelf: draft.payerId == currentUserUid,
       },
     );
   }
@@ -473,8 +470,9 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       name: ExpenseTelemetry.saveSucceeded,
       parameters: <String, Object>{
         ExpenseTelemetry.paramContextType: 'friend',
-        ExpenseTelemetry.paramAmountRange:
-            ExpenseTelemetry.amountRangeFor(draft.amountPaise),
+        ExpenseTelemetry.paramAmountRange: ExpenseTelemetry.amountRangeFor(
+          draft.amountPaise,
+        ),
         ExpenseTelemetry.paramCategory: draft.category!.name,
         ExpenseTelemetry.paramSplitMethod: draft.splitMethod.name,
         ExpenseTelemetry.paramParticipantCount: 2,
@@ -492,8 +490,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       name: ExpenseTelemetry.saveFailed,
       parameters: <String, Object>{
         ExpenseTelemetry.paramErrorType: _errorTypeName(type),
-        ExpenseTelemetry.paramIsOffline:
-            type == ExpenseCreateErrorType.network,
+        ExpenseTelemetry.paramIsOffline: type == ExpenseCreateErrorType.network,
         ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
       },
     );
@@ -517,17 +514,15 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
 /// `analyticsServiceProvider`, leaving the controller construction
 /// itself to flow through this binding.
 final addExpenseControllerProvider = StateNotifierProvider.autoDispose
-    .family<AddExpenseController, AddExpenseState, AddExpenseArgs>(
-  (ref, args) {
-    return AddExpenseController(
-      friendshipId: args.friendshipId,
-      currentUserUid: args.currentUserUid,
-      otherUserUid: args.otherUserUid,
-      repository: ref.watch(expenseRepositoryProvider),
-      analytics: ref.watch(analyticsServiceProvider),
-    );
-  },
-);
+    .family<AddExpenseController, AddExpenseState, AddExpenseArgs>((ref, args) {
+      return AddExpenseController(
+        friendshipId: args.friendshipId,
+        currentUserUid: args.currentUserUid,
+        otherUserUid: args.otherUserUid,
+        repository: ref.watch(expenseRepositoryProvider),
+        analytics: ref.watch(analyticsServiceProvider),
+      );
+    });
 
 /// Argument tuple for [addExpenseControllerProvider].
 @immutable
@@ -558,6 +553,5 @@ class AddExpenseArgs {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(friendshipId, currentUserUid, otherUserUid);
+  int get hashCode => Object.hash(friendshipId, currentUserUid, otherUserUid);
 }

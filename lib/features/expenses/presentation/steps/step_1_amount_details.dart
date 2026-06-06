@@ -37,7 +37,8 @@ class Step1AmountDetails extends ConsumerWidget {
     };
     final errors = state is Editing ? state.validationErrors : null;
 
-    final canProceed = state is Editing &&
+    final canProceed =
+        state is Editing &&
         draft != null &&
         draft.isStep1Complete &&
         (errors?.isEmpty ?? true);
@@ -56,10 +57,7 @@ class Step1AmountDetails extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Category grid — 8 chips, single-select.
-        Text(
-          'Category',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Category', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         ExpenseCategoryGrid(
           selected: draft?.category,
@@ -119,13 +117,10 @@ class _DateField extends StatelessWidget {
     final formatted = date == null
         ? 'Today'
         : '${date!.day.toString().padLeft(2, '0')}/'
-            '${date!.month.toString().padLeft(2, '0')}/'
-            '${date!.year}';
+              '${date!.month.toString().padLeft(2, '0')}/'
+              '${date!.year}';
     return InputDecorator(
-      decoration: InputDecoration(
-        labelText: 'Date',
-        errorText: errorText,
-      ),
+      decoration: InputDecoration(labelText: 'Date', errorText: errorText),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

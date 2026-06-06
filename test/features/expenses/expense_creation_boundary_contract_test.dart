@@ -60,14 +60,14 @@ void main() {
       expect(
         violations,
         isEmpty,
-        reason: 'Boundary violations in lib/features/expenses/**:\n'
+        reason:
+            'Boundary violations in lib/features/expenses/**:\n'
             '${violations.join('\n')}',
       );
     });
   });
 
-  group('expenses boundary contract — no simplifiedBalances (invariant 2)',
-      () {
+  group('expenses boundary contract — no simplifiedBalances (invariant 2)', () {
     test('lib/features/expenses contains no reference to simplifiedBalances '
         '(AC-16)', () {
       final dir = Directory('lib/features/expenses');

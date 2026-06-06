@@ -227,29 +227,33 @@ void main() {
       controller.dispose();
     });
 
-    test('proceedToStep2 fires step1_completed and step2_opened on success',
-        () {
-      final controller = buildController(repo: repo, analytics: analytics);
-      controller.setAmount(10000);
-      controller.setDescription('Coffee');
-      controller.setCategory(ExpenseCategory.food);
-      controller.proceedToStep2();
+    test(
+      'proceedToStep2 fires step1_completed and step2_opened on success',
+      () {
+        final controller = buildController(repo: repo, analytics: analytics);
+        controller.setAmount(10000);
+        controller.setDescription('Coffee');
+        controller.setCategory(ExpenseCategory.food);
+        controller.proceedToStep2();
 
-      expect(analytics.hasEvent(ExpenseTelemetry.step1Completed), isTrue);
-      expect(analytics.hasEvent(ExpenseTelemetry.step2Opened), isTrue);
+        expect(analytics.hasEvent(ExpenseTelemetry.step1Completed), isTrue);
+        expect(analytics.hasEvent(ExpenseTelemetry.step2Opened), isTrue);
 
-      final completedParams =
-          analytics.lastParamsFor(ExpenseTelemetry.step1Completed)!;
-      expect(completedParams['amount_range'], isA<String>());
-      expect(completedParams['category'], 'food');
-      expect(completedParams['has_notes'], false);
+        final completedParams = analytics.lastParamsFor(
+          ExpenseTelemetry.step1Completed,
+        )!;
+        expect(completedParams['amount_range'], isA<String>());
+        expect(completedParams['category'], 'food');
+        expect(completedParams['has_notes'], false);
 
-      final openedParams =
-          analytics.lastParamsFor(ExpenseTelemetry.step2Opened)!;
-      expect(openedParams['split_method'], 'equal');
-      expect(openedParams['participant_count'], 2);
-      controller.dispose();
-    });
+        final openedParams = analytics.lastParamsFor(
+          ExpenseTelemetry.step2Opened,
+        )!;
+        expect(openedParams['split_method'], 'equal');
+        expect(openedParams['participant_count'], 2);
+        controller.dispose();
+      },
+    );
 
     test('back from step 2 returns to step 1', () {
       final controller = buildController(repo: repo, analytics: analytics);
@@ -279,8 +283,9 @@ void main() {
       controller.setSplitMethod(SplitMethod.exact);
 
       expect(analytics.hasEvent(ExpenseTelemetry.splitMethodChanged), isTrue);
-      final params =
-          analytics.lastParamsFor(ExpenseTelemetry.splitMethodChanged)!;
+      final params = analytics.lastParamsFor(
+        ExpenseTelemetry.splitMethodChanged,
+      )!;
       expect(params['from_method'], 'equal');
       expect(params['to_method'], 'exact');
       controller.dispose();
@@ -402,8 +407,9 @@ void main() {
       expect(analytics.hasEvent(ExpenseTelemetry.step2Completed), isTrue);
       expect(analytics.hasEvent(ExpenseTelemetry.saveSucceeded), isTrue);
 
-      final saveParams =
-          analytics.lastParamsFor(ExpenseTelemetry.saveSucceeded)!;
+      final saveParams = analytics.lastParamsFor(
+        ExpenseTelemetry.saveSucceeded,
+      )!;
       expect(saveParams['context_type'], 'friend');
       expect(saveParams['amount_range'], isA<String>());
       expect(saveParams['category'], 'food');
@@ -442,21 +448,22 @@ void main() {
     });
 
     test(
-        'network error transitions to Error state with network type',
-        () async {
-      repo.throwError = const ExpenseCreateError(
-        type: ExpenseCreateErrorType.network,
-      );
-      final controller = await arrangeValidStep2();
-      await controller.save();
+      'network error transitions to Error state with network type',
+      () async {
+        repo.throwError = const ExpenseCreateError(
+          type: ExpenseCreateErrorType.network,
+        );
+        final controller = await arrangeValidStep2();
+        await controller.save();
 
-      expect(controller.state, isA<AddExpenseError>());
-      expect(
-        (controller.state as AddExpenseError).errorType,
-        ExpenseCreateErrorType.network,
-      );
-      controller.dispose();
-    });
+        expect(controller.state, isA<AddExpenseError>());
+        expect(
+          (controller.state as AddExpenseError).errorType,
+          ExpenseCreateErrorType.network,
+        );
+        controller.dispose();
+      },
+    );
 
     test('fires expense_save_failed with hashed friendship_id_hash', () async {
       repo.throwError = const ExpenseCreateError(

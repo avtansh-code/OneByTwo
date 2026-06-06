@@ -35,7 +35,7 @@ abstract class ExpenseStore {
 class FirestoreExpenseStore implements ExpenseStore {
   /// Creates a [FirestoreExpenseStore].
   FirestoreExpenseStore({required FirebaseFirestore firestore})
-      : _firestore = firestore;
+    : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 

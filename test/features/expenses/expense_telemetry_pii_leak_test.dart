@@ -112,9 +112,7 @@ AddExpenseController _buildController({
   );
 }
 
-Future<void> _driveFullSuccessFlow(
-  AddExpenseController controller,
-) async {
+Future<void> _driveFullSuccessFlow(AddExpenseController controller) async {
   // Drive every state transition that PR #38 emits an event for.
   controller.setAmount(1000);
   controller.setDescription('Coffee');
@@ -137,22 +135,24 @@ void main() {
   });
 
   group('expense telemetry — no raw PII anywhere', () {
-    test('no event name contains any PII fragment after a full success flow',
-        () async {
-      final controller = _buildController(repo: repo, analytics: analytics);
-      await _driveFullSuccessFlow(controller);
-      controller.dispose();
+    test(
+      'no event name contains any PII fragment after a full success flow',
+      () async {
+        final controller = _buildController(repo: repo, analytics: analytics);
+        await _driveFullSuccessFlow(controller);
+        controller.dispose();
 
-      for (final event in analytics.loggedEvents) {
-        for (final pii in _piiStrings) {
-          expect(
-            event.name.contains(pii),
-            isFalse,
-            reason: 'Event name "${event.name}" leaked PII "$pii"',
-          );
+        for (final event in analytics.loggedEvents) {
+          for (final pii in _piiStrings) {
+            expect(
+              event.name.contains(pii),
+              isFalse,
+              reason: 'Event name "${event.name}" leaked PII "$pii"',
+            );
+          }
         }
-      }
-    });
+      },
+    );
 
     test('no event parameter key contains any PII fragment after a full '
         'success flow', () async {
@@ -220,8 +220,9 @@ void main() {
       final controller = _buildController(repo: repo, analytics: analytics);
       controller.dispose();
 
-      final opened = analytics.loggedEvents
-          .firstWhere((e) => e.name == ExpenseTelemetry.step1Opened);
+      final opened = analytics.loggedEvents.firstWhere(
+        (e) => e.name == ExpenseTelemetry.step1Opened,
+      );
       final params = opened.parameters!;
       expect(
         params['friendship_id_hash'],
@@ -239,17 +240,15 @@ void main() {
       await controller.save();
       controller.dispose();
 
-      final saved = analytics.loggedEvents
-          .firstWhere((e) => e.name == ExpenseTelemetry.saveSucceeded);
+      final saved = analytics.loggedEvents.firstWhere(
+        (e) => e.name == ExpenseTelemetry.saveSucceeded,
+      );
       final params = saved.parameters!;
       expect(
         params['friendship_id_hash'],
         equals(hashFriendshipId(_piiFriendshipId)),
       );
-      expect(
-        params['expense_id_hash'],
-        equals(hashId(_piiExpenseId)),
-      );
+      expect(params['expense_id_hash'], equals(hashId(_piiExpenseId)));
     });
 
     test('expense_save_failed payload carries friendship_id_hash as the '
@@ -265,8 +264,9 @@ void main() {
       await controller.save();
       controller.dispose();
 
-      final failed = analytics.loggedEvents
-          .firstWhere((e) => e.name == ExpenseTelemetry.saveFailed);
+      final failed = analytics.loggedEvents.firstWhere(
+        (e) => e.name == ExpenseTelemetry.saveFailed,
+      );
       final params = failed.parameters!;
       expect(
         params['friendship_id_hash'],

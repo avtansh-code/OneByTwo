@@ -136,7 +136,8 @@ void main() {
       expect(
         tester.widget<FilledButton>(nextButton).onPressed,
         isNull,
-        reason: 'Next must be disabled until amount + description + '
+        reason:
+            'Next must be disabled until amount + description + '
             'category are all set',
       );
     });
@@ -167,8 +168,9 @@ void main() {
       expect(tester.widget<FilledButton>(nextButton).onPressed, isNull);
     });
 
-    testWidgets('description error appears when empty after attempting Next',
-        (tester) async {
+    testWidgets('description error appears when empty after attempting Next', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
@@ -206,26 +208,28 @@ void main() {
   });
 
   group('Step 1 → Step 2 transition', () {
-    testWidgets('tapping Next advances to step 2 and shows "Add Expense (2/3)"',
-        (tester) async {
-      await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'tapping Next advances to step 2 and shows "Add Expense (2/3)"',
+      (tester) async {
+        await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
+        await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byKey(const Key('expense_amount_input')),
-        '100',
-      );
-      await tester.enterText(
-        find.byKey(const Key('expense_description_input')),
-        'Coffee',
-      );
-      await tester.tap(find.text('Food'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-      await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('expense_amount_input')),
+          '100',
+        );
+        await tester.enterText(
+          find.byKey(const Key('expense_description_input')),
+          'Coffee',
+        );
+        await tester.tap(find.text('Food'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Add Expense (2/3)'), findsOneWidget);
-    });
+        expect(find.text('Add Expense (2/3)'), findsOneWidget);
+      },
+    );
 
     testWidgets('expense_step1_completed and expense_step2_opened fire on '
         'transition', (tester) async {
@@ -290,7 +294,8 @@ void main() {
       expect(
         tester.widget<FilledButton>(saveButton).onPressed,
         isNotNull,
-        reason: 'Equal split is always valid by construction; Save must be '
+        reason:
+            'Equal split is always valid by construction; Save must be '
             'enabled immediately on step 2',
       );
     });
@@ -331,8 +336,9 @@ void main() {
       expect(analytics.hasEvent(ExpenseTelemetry.saveSucceeded), isTrue);
     });
 
-    testWidgets('shows the success snackbar "Expense added." on success',
-        (tester) async {
+    testWidgets('shows the success snackbar "Expense added." on success', (
+      tester,
+    ) async {
       await driveSaveHappyPath(tester);
 
       expect(find.text('Expense added.'), findsOneWidget);
@@ -364,10 +370,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text("Couldn't add the expense. Try again."),
-        findsOneWidget,
-      );
+      expect(find.text("Couldn't add the expense. Try again."), findsOneWidget);
       expect(analytics.hasEvent(ExpenseTelemetry.saveFailed), isTrue);
     });
   });

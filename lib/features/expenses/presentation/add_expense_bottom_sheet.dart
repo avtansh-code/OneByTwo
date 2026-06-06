@@ -44,10 +44,10 @@ class AddExpenseBottomSheet extends ConsumerStatefulWidget {
 
 class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
   AddExpenseArgs get _args => AddExpenseArgs(
-        friendshipId: widget.friendshipId,
-        currentUserUid: widget.currentUserUid,
-        otherUserUid: widget.otherUserUid,
-      );
+    friendshipId: widget.friendshipId,
+    currentUserUid: widget.currentUserUid,
+    otherUserUid: widget.otherUserUid,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -100,15 +100,11 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
     if (messenger == null) return;
     if (next is Success && previous is! Success) {
       // TODO(avtansh): replace with the OBTSnackbar reusable.
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Expense added.')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Expense added.')));
       // Auto-dismiss the sheet on a successful save.
       Navigator.of(context).maybePop();
     } else if (next is AddExpenseError && previous is! AddExpenseError) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(next.message)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(next.message)));
     }
   }
 

@@ -48,7 +48,8 @@ void main() {
         expect(
           sum,
           total,
-          reason: 'Sum mismatch on trial $i: total=$total, sum=$sum, '
+          reason:
+              'Sum mismatch on trial $i: total=$total, sum=$sum, '
               'splits=[${result[0].sharePaise}, ${result[1].sharePaise}]',
         );
       }
@@ -72,7 +73,8 @@ void main() {
         expect(
           result[0].sharePaise,
           equals(result[1].sharePaise + 1),
-          reason: 'Odd total $total should give first share = second + 1; '
+          reason:
+              'Odd total $total should give first share = second + 1; '
               'got ${result[0].sharePaise}, ${result[1].sharePaise}',
         );
       }
@@ -99,51 +101,55 @@ void main() {
   });
 
   group('property: exact returns identity', () {
-    test('100 sampled (total, [a, total-a]) pairs return the input verbatim',
-        () {
-      const trials = 100;
-      for (var i = 0; i < trials; i++) {
-        final total = sample(1, 99999999);
-        final first = sample(0, total);
-        final second = total - first;
+    test(
+      '100 sampled (total, [a, total-a]) pairs return the input verbatim',
+      () {
+        const trials = 100;
+        for (var i = 0; i < trials; i++) {
+          final total = sample(1, 99999999);
+          final first = sample(0, total);
+          final second = total - first;
 
-        final result = computeSplits(
-          method: SplitMethod.exact,
-          totalPaise: total,
-          memberUids: const ['uid-current', 'uid-other'],
-          exactShares: [first, second],
-        );
+          final result = computeSplits(
+            method: SplitMethod.exact,
+            totalPaise: total,
+            memberUids: const ['uid-current', 'uid-other'],
+            exactShares: [first, second],
+          );
 
-        expect(result[0].sharePaise, first);
-        expect(result[1].sharePaise, second);
-        expect(result[0].sharePaise + result[1].sharePaise, total);
-      }
-    });
+          expect(result[0].sharePaise, first);
+          expect(result[1].sharePaise, second);
+          expect(result[0].sharePaise + result[1].sharePaise, total);
+        }
+      },
+    );
   });
 
   group('property: determinism', () {
-    test('repeated invocations with identical inputs produce identical outputs',
-        () {
-      const trials = 100;
-      for (var i = 0; i < trials; i++) {
-        final total = sample(1, 99999999);
-        final r1 = computeSplits(
-          method: SplitMethod.equal,
-          totalPaise: total,
-          memberUids: const ['uid-x', 'uid-y'],
-        );
-        final r2 = computeSplits(
-          method: SplitMethod.equal,
-          totalPaise: total,
-          memberUids: const ['uid-x', 'uid-y'],
-        );
+    test(
+      'repeated invocations with identical inputs produce identical outputs',
+      () {
+        const trials = 100;
+        for (var i = 0; i < trials; i++) {
+          final total = sample(1, 99999999);
+          final r1 = computeSplits(
+            method: SplitMethod.equal,
+            totalPaise: total,
+            memberUids: const ['uid-x', 'uid-y'],
+          );
+          final r2 = computeSplits(
+            method: SplitMethod.equal,
+            totalPaise: total,
+            memberUids: const ['uid-x', 'uid-y'],
+          );
 
-        for (var j = 0; j < r1.length; j++) {
-          expect(r1[j].userId, r2[j].userId);
-          expect(r1[j].sharePaise, r2[j].sharePaise);
+          for (var j = 0; j < r1.length; j++) {
+            expect(r1[j].userId, r2[j].userId);
+            expect(r1[j].sharePaise, r2[j].sharePaise);
+          }
         }
-      }
-    });
+      },
+    );
   });
 
   group('property: caller ordering preserved', () {

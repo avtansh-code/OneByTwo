@@ -40,10 +40,7 @@ class SplitRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
         ),
         Expanded(
           child: method == SplitMethod.exact && onChanged != null

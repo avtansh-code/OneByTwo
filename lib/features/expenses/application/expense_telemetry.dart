@@ -50,8 +50,7 @@ abstract final class ExpenseTelemetry {
 
   /// Validation of an exact-split entry failed. Payload:
   /// `split_method`, `direction` (`under` or `over`).
-  static const String splitValidationFailed =
-      'expense_split_validation_failed';
+  static const String splitValidationFailed = 'expense_split_validation_failed';
 
   /// Sheet dismissed from Step 2. Payload: `split_method`,
   /// `time_spent_ms`.

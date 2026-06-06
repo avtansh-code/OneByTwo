@@ -38,17 +38,13 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
-    final canSave = !isSaving &&
-        (errors?['splits'] == null) &&
-        draft.amountPaise > 0;
+    final canSave =
+        !isSaving && (errors?['splits'] == null) && draft.amountPaise > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Split method',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Split method', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -99,10 +95,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Payer toggle.
-        Text(
-          'Paid by',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Paid by', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -131,10 +124,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Total',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Total', style: Theme.of(context).textTheme.titleMedium),
             Text(
               formatInrFromPaise(draft.amountPaise),
               style: Theme.of(context).textTheme.titleMedium,
@@ -230,10 +220,7 @@ class _SplitMethodChip extends StatelessWidget {
       onSelected: enabled ? (_) => onTap() : null,
     );
     if (!enabled) {
-      return Tooltip(
-        message: 'Coming soon',
-        child: chip,
-      );
+      return Tooltip(message: 'Coming soon', child: chip);
     }
     return chip;
   }

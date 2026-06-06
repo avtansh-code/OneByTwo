@@ -103,8 +103,9 @@ void main() {
   });
 
   group('OBTAmountInput — input filtering', () {
-    testWidgets('refuses non-numeric input (letters discarded)',
-        (tester) async {
+    testWidgets('refuses non-numeric input (letters discarded)', (
+      tester,
+    ) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -115,8 +116,9 @@ void main() {
       expect(captured.last, 12300);
     });
 
-    testWidgets('refuses a leading minus (negative values not permitted)',
-        (tester) async {
+    testWidgets('refuses a leading minus (negative values not permitted)', (
+      tester,
+    ) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -127,8 +129,9 @@ void main() {
       expect(captured.last, 5000);
     });
 
-    testWidgets('refuses multiple decimal points (only first kept)',
-        (tester) async {
+    testWidgets('refuses multiple decimal points (only first kept)', (
+      tester,
+    ) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -139,8 +142,9 @@ void main() {
       expect(captured.last, 1234);
     });
 
-    testWidgets('clamps to at most 2 digits after the decimal point',
-        (tester) async {
+    testWidgets('clamps to at most 2 digits after the decimal point', (
+      tester,
+    ) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -165,8 +169,9 @@ void main() {
       expect(captured.last, _kCap);
     });
 
-    testWidgets('typing one paise over the cap stays at or below the cap',
-        (tester) async {
+    testWidgets('typing one paise over the cap stays at or below the cap', (
+      tester,
+    ) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -186,23 +191,22 @@ void main() {
   });
 
   group('OBTAmountInput — initial state', () {
-    testWidgets('renders an empty field when initialAmountPaise is null',
-        (tester) async {
+    testWidgets('renders an empty field when initialAmountPaise is null', (
+      tester,
+    ) async {
       await _pumpInput(tester, onChanged: (_) {});
       // The formatted value for the field is empty initially.
       final textField = find.byType(TextField);
       expect(textField, findsOneWidget);
-      expect(tester.widget<TextField>(textField).controller?.text ?? '',
-          isEmpty);
+      expect(
+        tester.widget<TextField>(textField).controller?.text ?? '',
+        isEmpty,
+      );
     });
 
     testWidgets('renders a pre-filled value when initialAmountPaise is '
         'supplied', (tester) async {
-      await _pumpInput(
-        tester,
-        onChanged: (_) {},
-        initialAmountPaise: 12345,
-      );
+      await _pumpInput(tester, onChanged: (_) {}, initialAmountPaise: 12345);
 
       final textField = find.byType(TextField);
       expect(textField, findsOneWidget);
@@ -225,8 +229,9 @@ void main() {
       expect(find.text('Amount cannot exceed ₹99,99,999.99.'), findsOneWidget);
     });
 
-    testWidgets('the rupee prefix is always visible (₹ symbol)',
-        (tester) async {
+    testWidgets('the rupee prefix is always visible (₹ symbol)', (
+      tester,
+    ) async {
       await _pumpInput(tester, onChanged: (_) {});
       expect(find.text('₹'), findsOneWidget);
     });
