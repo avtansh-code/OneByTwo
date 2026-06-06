@@ -22,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart'
     show firebaseFirestoreProvider;
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
+import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 class FakeSettlementStore implements SettlementStore {
@@ -29,6 +30,12 @@ class FakeSettlementStore implements SettlementStore {
       StreamController<List<SettlementDoc>>.broadcast();
   String? lastWatchedContextType;
   String? lastWatchedContextId;
+
+  // Write-side capture (FR-SE-05).
+  Map<String, dynamic>? lastCreatedData;
+  String returnSettlementId = 'sid-test';
+  FirebaseException? throwOnCreate;
+  Exception? throwUnknownOnCreate;
 
   void emit(List<SettlementDoc> docs) => _controller.add(docs);
   void emitError(Object error) => _controller.addError(error);
@@ -41,6 +48,20 @@ class FakeSettlementStore implements SettlementStore {
     lastWatchedContextType = contextType;
     lastWatchedContextId = contextId;
     return _controller.stream;
+  }
+
+  @override
+  Future<String> createSettlement({
+    required Map<String, dynamic> data,
+  }) async {
+    lastCreatedData = data;
+    if (throwOnCreate != null) {
+      throw throwOnCreate!;
+    }
+    if (throwUnknownOnCreate != null) {
+      throw throwUnknownOnCreate!;
+    }
+    return returnSettlementId;
   }
 
   Future<void> close() => _controller.close();
@@ -247,6 +268,136 @@ void main() {
 
       final repo = container.read(settlementRepositoryProvider);
       expect(repo, isA<SettlementRepository>());
+    });
+  });
+
+  group('SettlementRepository.createSettlement — write path (FR-SE-05)', () {
+    SettlementDoc _docToCreate({
+      String fromUserId = 'uid-me',
+      String toUserId = 'uid-friend',
+      int amountPaise = 5000,
+      String contextType = 'friendship',
+      String contextId = 'uid-friend_uid-me',
+      String? note,
+    }) {
+      return SettlementDoc(
+        settlementId: 'unused-on-create',
+        fromUserId: fromUserId,
+        toUserId: toUserId,
+        amountPaise: amountPaise,
+        contextType: contextType,
+        contextId: contextId,
+        date: DateTime(2026, 6, 5),
+        note: note,
+        method: 'manual',
+        verificationStatus: 'unverified',
+        currency: 'INR',
+        createdAt: DateTime(2026, 6, 5, 12),
+        deleted: false,
+      );
+    }
+
+    test('happy path returns the generated settlement ID', () async {
+      store.returnSettlementId = 'sid-generated';
+      final id = await repository.createSettlement(doc: _docToCreate());
+      expect(id, 'sid-generated');
+    });
+
+    test('passes the toCreateMap() shape to the store', () async {
+      await repository.createSettlement(
+        doc: _docToCreate(amountPaise: 12345, note: 'Pizza'),
+      );
+      expect(store.lastCreatedData, isNotNull);
+      expect(store.lastCreatedData!['amountPaise'], 12345);
+      expect(store.lastCreatedData!['note'], 'Pizza');
+      expect(store.lastCreatedData!['method'], 'manual');
+      expect(store.lastCreatedData!['currency'], 'INR');
+      expect(store.lastCreatedData!['verificationStatus'], 'unverified');
+      expect(store.lastCreatedData!['deleted'], false);
+    });
+
+    test('FirebaseException(permission-denied) → '
+        'SettlementCreateError(permissionDenied)', () async {
+      store.throwOnCreate = FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'rules rejected',
+      );
+
+      await expectLater(
+        repository.createSettlement(doc: _docToCreate()),
+        throwsA(
+          isA<SettlementCreateError>().having(
+            (e) => e.type,
+            'type',
+            SettlementCreateErrorType.permissionDenied,
+          ),
+        ),
+      );
+    });
+
+    test('FirebaseException(unavailable) → '
+        'SettlementCreateError(network)', () async {
+      store.throwOnCreate = FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'unavailable',
+      );
+
+      await expectLater(
+        repository.createSettlement(doc: _docToCreate()),
+        throwsA(
+          isA<SettlementCreateError>().having(
+            (e) => e.type,
+            'type',
+            SettlementCreateErrorType.network,
+          ),
+        ),
+      );
+    });
+
+    test('FirebaseException(other code) → SettlementCreateError(unknown)',
+        () async {
+      store.throwOnCreate = FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'cancelled',
+      );
+
+      await expectLater(
+        repository.createSettlement(doc: _docToCreate()),
+        throwsA(
+          isA<SettlementCreateError>().having(
+            (e) => e.type,
+            'type',
+            SettlementCreateErrorType.unknown,
+          ),
+        ),
+      );
+    });
+
+    test('non-FirebaseException → SettlementCreateError(unknown)', () async {
+      store.throwUnknownOnCreate = Exception('boom');
+
+      await expectLater(
+        repository.createSettlement(doc: _docToCreate()),
+        throwsA(
+          isA<SettlementCreateError>().having(
+            (e) => e.type,
+            'type',
+            SettlementCreateErrorType.unknown,
+          ),
+        ),
+      );
+    });
+
+    test('repository never writes the simplifiedBalances field '
+        '(Invariant 2)', () async {
+      await repository.createSettlement(doc: _docToCreate());
+      expect(store.lastCreatedData, isNotNull);
+      expect(
+        store.lastCreatedData!.containsKey('simplifiedBalances'),
+        isFalse,
+        reason: 'simplifiedBalances is server-maintained (Invariant 2)',
+      );
     });
   });
 }
