@@ -1,11 +1,11 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #42 merged (FR-FR-04 friend detail full screen).
+> Last updated: PR #43 merged (FR-SE-05/06/07 settle up flow).
 
 ---
 
-## GitHub issue / PR numbering note (post-PR #42)
+## GitHub issue / PR numbering note (post-PR #43)
 
 The numbering jumped because issues and PRs share the same sequential
 namespace on GitHub. The post-PR #38 sequence so far:
@@ -17,73 +17,19 @@ namespace on GitHub. The post-PR #38 sequence so far:
 | #40 | Issue | `firebase-functions` 6.x → 7.x (open) |
 | #41 | PR | docs(plan) — D5 deadline backlog cross-refs (merged 2026-06-06) |
 | #42 | PR | FR-FR-04 friend detail full screen (merged 2026-06-06) |
-| **#43** | **PR** | **Next feature PR — see below** |
+| #43 | PR | FR-SE-05/06/07 settle up flow (merged 2026-06-06) |
+| **#44** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #43, PR #44, PR #45. Their issue-number
+**pull requests** — i.e. PR #44, PR #45, PR #46. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the orchestrator
-should not assume PR #44 = number 44 on GitHub.
-
----
-
-## PR #43 — FR-SE-08 Settle-Up UI
-
-**Status:** Next up. Unblocked.
-
-**Scope:**
-
-The default plan is **FR-SE-08 Settle-Up UI** — the first Flutter client
-surface that produces settlement writes. Symmetric to PR #38 for
-settlements: PR #37 shipped the `onSettlementWrite` trigger that
-consumes settlement documents, but the only producer today is the admin
-SDK. FR-SE-08 closes the settlement round-trip from the user's point of
-view. Particularly natural to ship right after PR #42 (FR-FR-04) since
-the Friend Detail screen is the entry point for "I want to record a
-settlement with this friend." PR #42 wired the settlement READ path
-defensively; FR-SE-08 pairs it with the WRITE path and inserts the
-`OBTSettleUpCard` between the header and the timeline.
-
-**Likely deliverables:**
-
-- Settle Up bottom-sheet UI keyed by friendship (mirrors the
-  AddExpenseBottomSheet pattern from PR #38).
-- `SettlementRepository.createSettlement(...)` write path on the
-  abstract `SettlementStore` extended in PR #42.
-- An `OBTSettleUpCard` affordance on `FriendDetailScreen` rendered
-  between the header and the timeline when the net balance is
-  non-zero (FR-SE-07 — "on every screen with non-zero balance"). The
-  position is reserved in PR #42's screen but no card is currently
-  rendered; FR-SE-08 inserts it via a clean diff.
-- `settle_up_tapped` telemetry event (deferred from PR #42).
-- Round-trip integration test: tap Settle Up → confirm → trigger
-  recomputes → friendship's `simplifiedBalances` clears →
-  `OBTBalancePill` flips to "Settled up".
-
-**Out of scope:**
-
-- Edit / delete settlement (separate later PR).
-- Send reminder (FR-SE-09 — separate later PR).
-- Group settlements (FR-GR-04 — Sprint 3 groups epic).
-
-**Stories required before kickoff:**
-
-- `docs/sprint-zero/stories/FR-SE-08-settle-up.md` (PM authors
-  before architect handoff).
-
-**Agents involved:** PM, Architect, Flutter Dev, QA.
-
-Alternates (architect's call at PR #43 kickoff):
-
-- **FR-EX-05 Receipt attachment (Step 3 of the bottom sheet).** Pairs
-  with Storage rules R7-R8 from the Bucket-B burndown.
-- **FR-EX-06 Edit / delete expense.** Natural follow-up to "I just
-  added a wrong expense" and the read-only expense rows in PR #42.
+should not assume PR #45 = number 45 on GitHub.
 
 ---
 
 ## PR #44 — D5 deadline (Node 22 + firebase-functions 7.x)
 
-**Status:** Planned. Deadline: 2026-10-31.
+**Status:** Next up. Unblocked. **DEADLINE: 2026-10-31.**
 
 **Scope:**
 
@@ -97,6 +43,23 @@ Both ship in the SAME PR so the runtime + SDK upgrade is atomic and
 the rollback story is a single revert. Slot this PR before
 mid-September 2026 to leave a comfortable buffer.
 
+**Likely deliverables:**
+
+- `functions/package.json` `engines.node` → `22`.
+- `firebase.json` `functions[].runtime` → `nodejs22`.
+- `firebase-functions` 6.x → 7.x with breaking-change reconciliation on
+  all five deployed functions (v2 trigger + callable surfaces).
+- `.github/workflows/pr.yml` and `.github/workflows/release.yml`
+  `actions/setup-node` pinned to `22`.
+- Re-run of every Functions test under the new runtime.
+- Closes #39 and #40.
+
+**Out of scope:**
+
+- Any feature work — this is a pure infrastructure upgrade PR.
+- Other dependency upgrades (Riverpod 3.x, share_plus, etc.) — those
+  remain on issue #22.
+
 **Agents involved:** Functions Dev, DevOps, QA.
 
 ---
@@ -105,44 +68,74 @@ mid-September 2026 to leave a comfortable buffer.
 
 **Status:** Slot reserved. Architect picks at PR #44 kickoff per Sprint 2 velocity.
 
-Candidates:
+Candidates (in rough priority order):
 
-- `lookup-user-by-phone-number` rate-limit doc-path bug fix (5 skipped
-  integration tests).
-- Post-PR #38 cleanup PR (the 3 S4 items: stale event names in 3 design
-  docs; splitter test cap labels; missing `// TODO(SCR-08)` comment).
-- A Bucket-B chore PR (e.g., the Storage rules R7-R8 chore that pairs
-  with FR-EX-05).
-- FR-EX-05 (Receipt attachment) if FR-SE-08 ships in PR #43 and the
-  Sprint 2 budget allows.
+- **`lookup-user-by-phone-number` rate-limit doc-path bug fix.**
+  Five skipped integration tests in
+  `functions/test/integration/lookup-user-by-phone-number.test.ts`
+  blocked on the rate-limit doc-path mismatch.
+- **FR-EX-05 — Receipt attachment** (Step 3 of the Add Expense bottom
+  sheet). Pairs with Storage rules R7-R8 from the Bucket-B burndown
+  ([#21](https://github.com/avtansh-code/OneByTwo/issues/21)).
+- **FR-EX-06 — Edit / delete expense.** Natural follow-up to PR #38
+  (the rows are currently read-only on Friend Detail per PR #42); the
+  bottom sheet pattern is established.
+- **FR-SE-09 — Send Reminder.** Closes the receiving-direction branch
+  of the OBTSettleUpCard (per PR #43 §2.5 default-omit). Requires
+  FCM dependency + 24-hour rate-limit rules.
+- **FR-SE-08 dedicated full-history screen** at `/settlements/history`
+  (P0 — PR #42's in-timeline rows satisfy v1.0 but the dedicated
+  screen is still a backlog item).
+- **Post-PR #38 cleanup PR** (the 3 S4 items: stale event names in 3
+  design docs; splitter test cap labels; missing `// TODO(SCR-08)`
+  comment).
+
+---
+
+## PR #46 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #45 kickoff.
+
+Candidates: whatever doesn't land in PR #45 from the list above, plus:
+
+- A Bucket-B chore PR (e.g., Storage rules R7-R8 if FR-EX-05 ships).
+- Pre-Sprint 3 design polish (FR-FR-01 chore #28 Friends HTML
+  mockup; SCR-09/10 wireframe alignment).
 
 ---
 
 ## Sequencing rationale
 
-After PR #42 the read-side of the simplified-debts round-trip is
-closed end-to-end: a friendship member sees the friends-list net
-balance chip, drills into Friend Detail, sees the underlying expense
-ledger, taps the FAB to add a new expense, and watches the balance
-pill + the new row appear via the snapshot stream. The natural next
-step is to symmetrically close the SETTLEMENT round-trip — hence
-FR-SE-08 as the PR #43 default.
+After PR #43 both halves of the simplified-debts round-trip are
+closed end-to-end from the user's point of view: a friendship member
+sees the friends-list net balance chip, drills into Friend Detail,
+sees the underlying expense ledger, adds expenses (PR #38) and
+settlements (PR #43), and watches the balance pill + the new row
+appear via the snapshot stream within NFR-PE-04's 2.5 s P95 budget.
 
 PR #44 then de-risks the deploy path by retiring the Node 20
-runtime + firebase-functions 6.x before the 2026-10-31 cutoff.
+runtime + firebase-functions 6.x before the 2026-10-31 cutoff. With
+5 Cloud Functions live in production (PR #36 trigger, PR #37 trigger
++ algorithm extension, plus the original 3 from Sprint 1), the
+upgrade surface is non-trivial; bundling Node-22 + functions@7.x
+into one PR keeps the rollback story atomic.
 
 PR #45 picks up the highest-value backlog item per Sprint 2 velocity
-at the PR #44 kickoff.
+at the PR #44 kickoff. FR-EX-05 / FR-EX-06 / FR-SE-09 are all
+plausible; the architect's call at kickoff reflects the current
+priority signal.
 
 ---
 
-## Snapshot — Sprint 2 status at end of PR #42
+## Snapshot — Sprint 2 status at end of PR #43
 
 | Metric | Value |
 |---|---|
-| PRs merged in Sprint 2 | 9 (#31, #32, #34, #35, #36, #37, #38, #41, #42) |
-| Story points delivered | 29 (PR #41 was 0 SP — pure docs cross-refs; PR #42 was 5 SP) |
+| PRs merged in Sprint 2 | 10 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43) |
+| Story points delivered | 34 (PR #41 was 0 SP — pure docs cross-refs; PR #42 + PR #43 were 5 SP each) |
 | Bucket-B items closed | 5 (R1, R2, R3, CV3, SR8) |
 | Critical Cross-PR Constraints | C-1 RESOLVED (chore #25 closed in PR #38) |
 | Open `sprint-2-chore` issues | 15 |
-| Outstanding deadline-bound work | **D5 — Node 22 + firebase-functions 7.x (issues #39 + #40) by mid-September 2026** to ship before the 2026-10-31 cutoff |
+| Outstanding deadline-bound work | **D5 — Node 22 + firebase-functions 7.x (issues #39 + #40) by mid-September 2026** to ship before the 2026-10-31 cutoff. PR #44 is the dedicated default plan. |
+| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43** — both expenses (PR #38) and settlements (PR #43) flow end-to-end through the UI → trigger → snapshot stream → real-time re-render path. The read-side was closed in PR #42 (Friend Detail). |
+

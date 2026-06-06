@@ -10,6 +10,9 @@ import 'package:onebytwo/features/friends/application/friend_detail_provider.dar
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_header.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_states.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_timeline.dart';
+import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
+import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
+import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 
 /// Friend Detail screen (SCR-11 / FR-FR-04).
 ///
@@ -94,6 +97,16 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                 child: Column(
                   children: [
                     FriendDetailHeaderWidget(header: state.header),
+                    if (state.header.balanceState == BalanceState.owes)
+                      OBTSettleUpCard(
+                        payerDisplayName: 'You',
+                        payerPhotoUrl: null,
+                        payeeDisplayName: state.header.displayName,
+                        payeePhotoUrl: state.header.photoUrl,
+                        suggestedAmountPaise: state.header.netBalancePaise
+                            .abs(),
+                        onSettleUp: () => _onSettleUpTapped(context, state),
+                      ),
                     FriendDetailTimelineWidget(
                       timeline: state.timeline,
                       currentUserUid: widget.currentUserUid,
@@ -168,6 +181,39 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
         friendshipId: widget.friendshipId,
         currentUserUid: widget.currentUserUid,
         otherUserUid: widget.otherUserUid,
+      ),
+    );
+  }
+
+  Future<void> _onSettleUpTapped(
+    BuildContext context,
+    FriendDetailStatePopulated state,
+  ) async {
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: SettleUpTelemetry.settleUpTapped,
+            parameters: <String, Object>{
+              SettleUpTelemetry.paramSource: 'friend_detail',
+              SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
+                widget.friendshipId,
+              ),
+            },
+          ),
+    );
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (_) => SettleUpBottomSheet(
+        friendshipId: widget.friendshipId,
+        currentUserUid: widget.currentUserUid,
+        otherUserUid: widget.otherUserUid,
+        otherDisplayName: state.header.displayName,
+        otherUserPhotoUrl: state.header.photoUrl,
+        suggestedAmountPaise: state.header.netBalancePaise.abs(),
       ),
     );
   }

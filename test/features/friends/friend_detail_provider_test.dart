@@ -122,6 +122,12 @@ class FakeSettlementStore implements SettlementStore {
     lastWatchedContextId = contextId;
     return controller.stream;
   }
+
+  @override
+  Future<String> createSettlement({required Map<String, dynamic> data}) async {
+    // Read-side fake; the provider tests never call createSettlement.
+    return 'sid-fake-friend-detail-provider';
+  }
 }
 
 UserModel _user({required String displayName, String? photoUrl}) {

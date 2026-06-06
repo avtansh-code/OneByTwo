@@ -81,6 +81,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #38 | FR-EX-01 + chore #25 | Expense creation UI (friendship) + adopt `expense_save_*` event names | 5 | Merged |
 | #41 | chore | D5 deadline backlog cross-refs | 0 | Merged |
 | #42 | FR-FR-04 | Friend Detail full screen (per-friend transaction history) | 5 | Merged |
+| #43 | FR-SE-05/06/07 | Settle Up flow (record settlement + real-time round-trip + Friend Detail CTA card) | 5 | Merged |
 
 ---
 
@@ -97,7 +98,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #38 | 5 | Merged |
 | #41 | 0 | Merged (docs-only) |
 | #42 | 5 | Merged |
-| **Total** | **29** | **9 PRs so far** |
+| #43 | 5 | Merged |
+| **Total** | **34** | **10 PRs so far** |
 
 Sprint 1 reference:
 

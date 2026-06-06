@@ -26,7 +26,11 @@ import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
+import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
+import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
+import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
+import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 
 class FakeAnalyticsService implements AnalyticsService {
   final List<({String name, Map<String, Object>? parameters})> loggedEvents =
@@ -94,11 +98,13 @@ SettlementDoc _settlement({
   required String id,
   required DateTime date,
   int amountPaise = 5000,
+  String fromUserId = 'uid-me',
+  String toUserId = 'uid-friend',
 }) {
   return SettlementDoc(
     settlementId: id,
-    fromUserId: 'uid-me',
-    toUserId: 'uid-friend',
+    fromUserId: fromUserId,
+    toUserId: toUserId,
     amountPaise: amountPaise,
     contextType: 'friendship',
     contextId: 'uid-friend_uid-me',
@@ -140,16 +146,36 @@ class FakeExpenseRepository implements ExpenseRepository {
   }
 }
 
+class FakeSettlementRepository implements SettlementRepository {
+  bool createCalled = false;
+  String returnSettlementId = 'sid-test';
+
+  @override
+  Future<String> createSettlement({required SettlementDoc doc}) async {
+    createCalled = true;
+    return returnSettlementId;
+  }
+
+  @override
+  Stream<List<SettlementDoc>> watchByContext({
+    required String contextType,
+    required String contextId,
+  }) => const Stream<List<SettlementDoc>>.empty();
+}
+
 Widget _buildSubject({
   required AsyncValue<FriendDetailState> initialValue,
   required FakeAnalyticsService analytics,
   FakeExpenseRepository? expenseRepository,
+  FakeSettlementRepository? settlementRepository,
 }) {
   return ProviderScope(
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
       if (expenseRepository != null)
         expenseRepositoryProvider.overrideWithValue(expenseRepository),
+      if (settlementRepository != null)
+        settlementRepositoryProvider.overrideWithValue(settlementRepository),
       friendDetailProvider(_args).overrideWith((ref) {
         switch (initialValue) {
           case AsyncData(:final value):
@@ -256,9 +282,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Coffee'), findsOneWidget);
-      // The settlement row carries either a "Settled" / "Payment" label or
-      // an amount — assert the amount is rendered for the seeded settlement.
-      expect(find.text(formatInrFromPaise(5000)), findsWidgets);
+      // Settlement row is labelled by review §R3 with the payer
+      // context. The seeded settlement uses the default fromUserId =
+      // 'uid-me', so the label reads "You paid Bina ₹X.XX".
+      expect(
+        find.text('You paid Bina ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('friend_detail_viewed fires once with owed balance_state', (
@@ -508,6 +538,198 @@ void main() {
 
       // The FAB exposes a tooltip / semantic label.
       expect(find.byTooltip('Add expense'), findsOneWidget);
+    });
+  });
+
+  // ===================================================================
+  // FR-SE-05 / FR-SE-07 / Architect Notes §2.5 — OBTSettleUpCard
+  // ===================================================================
+
+  group('OBTSettleUpCard rendering (FR-SE-07)', () {
+    testWidgets('renders the OBTSettleUpCard in the owes direction', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(
+          netBalancePaise: -5000,
+          balanceState: BalanceState.owes,
+        ),
+        timeline: [
+          TimelineExpense(
+            doc: _expense(
+              description: 'Dinner',
+              date: DateTime(2026, 6, 5),
+              amountPaise: 10000,
+              payerId: 'uid-friend',
+              splits: const [
+                Split(userId: 'uid-me', sharePaise: 5000),
+                Split(userId: 'uid-friend', sharePaise: 5000),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OBTSettleUpCard), findsOneWidget);
+      expect(find.text('Settle Up'), findsOneWidget);
+      expect(find.text(formatInrFromPaise(5000)), findsWidgets);
+    });
+
+    testWidgets(
+      'does NOT render the OBTSettleUpCard in the owed direction (§2.5 omit)',
+      (tester) async {
+        final state = FriendDetailStatePopulated(
+          header: _header(
+            netBalancePaise: 5000,
+            balanceState: BalanceState.owed,
+          ),
+          timeline: [
+            TimelineExpense(
+              doc: _expense(description: 'Tea', date: DateTime(2026, 6)),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          _buildSubject(
+            initialValue: AsyncData(state),
+            analytics: analytics,
+            settlementRepository: FakeSettlementRepository(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OBTSettleUpCard), findsNothing);
+      },
+    );
+
+    testWidgets('does NOT render the OBTSettleUpCard when settled (AC-2)', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(),
+        timeline: [
+          TimelineExpense(
+            doc: _expense(description: 'Old', date: DateTime(2026, 5, 30)),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OBTSettleUpCard), findsNothing);
+    });
+
+    testWidgets(
+      'tapping the card opens SettleUpBottomSheet + fires settle_up_tapped',
+      (tester) async {
+        final state = FriendDetailStatePopulated(
+          header: _header(
+            netBalancePaise: -5000,
+            balanceState: BalanceState.owes,
+          ),
+          timeline: const [],
+        );
+
+        await tester.pumpWidget(
+          _buildSubject(
+            initialValue: AsyncData(state),
+            analytics: analytics,
+            settlementRepository: FakeSettlementRepository(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Settle Up'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SettleUpBottomSheet), findsOneWidget);
+        expect(analytics.countOf(SettleUpTelemetry.settleUpTapped), 1);
+        final params = analytics.lastParamsFor(
+          SettleUpTelemetry.settleUpTapped,
+        );
+        expect(params?[SettleUpTelemetry.paramSource], 'friend_detail');
+        expect(
+          params?[SettleUpTelemetry.paramFriendshipIdHash],
+          equals(hashFriendshipId('uid-friend_uid-me')),
+        );
+      },
+    );
+  });
+
+  // ===================================================================
+  // Review §R3 — _SettlementRow payer-context labels (AC-9)
+  // ===================================================================
+
+  group('Settlement row payer context (review §R3)', () {
+    testWidgets('fromUserId == currentUid → "You paid Bina ₹X.XX"', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(
+          netBalancePaise: -5000,
+          balanceState: BalanceState.owes,
+        ),
+        timeline: [
+          TimelineSettlement(
+            doc: _settlement(id: 'sid-me-paid', date: DateTime(2026, 6, 5)),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('You paid Bina ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('fromUserId == otherUid → "Bina paid you ₹X.XX"', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
+        timeline: [
+          TimelineSettlement(
+            doc: _settlement(
+              id: 'sid-friend-paid',
+              date: DateTime(2026, 6, 5),
+              fromUserId: 'uid-friend',
+              toUserId: 'uid-me',
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Bina paid you ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
     });
   });
 }

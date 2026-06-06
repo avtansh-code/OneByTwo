@@ -5,7 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/data/user_repository.dart'
     show firebaseFirestoreProvider;
+import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
+
+// Re-export the typed error from the domain layer so callers may
+// import either path. The architect notes group the error type with
+// the repository file; the domain location is the canonical
+// definition.
+export 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 
 // ---------------------------------------------------------------------------
 // Abstract store
@@ -13,12 +20,9 @@ import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 /// Abstraction over Firestore document operations for settlements.
 ///
-/// PR #42 only exposes the read-side. FR-SE-08 / PR #43 will extend
-/// this with `createSettlement(...)`. The store / repository / fake
-/// pattern mirrors [`FriendshipStore`](../../friends/data/friendship_repository.dart)
-/// and [`ExpenseStore`](../../expenses/data/expense_repository.dart) so
-/// the FR-SE-08 diff stays focused on its write logic.
-// ignore: one_member_abstracts
+/// FR-FR-04 (PR #42) shipped the read-side `watchByContext`. FR-SE-05
+/// (PR #43) adds the write-side `createSettlement` — the first client
+/// producer of top-level `settlements/{settlementId}` documents.
 abstract class SettlementStore {
   /// Watches settlements scoped to a single context (a friendship or a
   /// group), ordered by `date` descending.
@@ -26,6 +30,12 @@ abstract class SettlementStore {
     required String contextType,
     required String contextId,
   });
+
+  /// Persists [data] to `settlements/{auto-id}` and returns the
+  /// generated document ID. Implementations MUST NOT mutate [data].
+  /// The map is produced by [SettlementDoc.toCreateMap] and satisfies
+  /// every predicate in `firestore.rules` lines 379–489.
+  Future<String> createSettlement({required Map<String, dynamic> data});
 }
 
 // ---------------------------------------------------------------------------
@@ -99,19 +109,32 @@ class FirestoreSettlementStore implements SettlementStore {
               .toList(growable: false),
         );
   }
+
+  @override
+  Future<String> createSettlement({required Map<String, dynamic> data}) async {
+    final ref = await _collection.add(data);
+    return ref.id;
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Repository
 // ---------------------------------------------------------------------------
 
-/// Repository that manages settlement reads. The Friend Detail screen
-/// consumes this; FR-SE-08 / PR #43 will pair this with the write path
-/// (`createSettlement`).
+/// Repository that manages settlement reads and writes.
 ///
-/// READ-ONLY: this class never writes to Firestore. The
-/// `verificationStatus` field on returned documents is client-read-only
-/// per ARCH-EXT-06.
+/// FR-FR-04 (PR #42) shipped the read-side. FR-SE-05 (PR #43) adds the
+/// write-side `createSettlement(...)` which is the first client
+/// producer of top-level `settlements/{settlementId}` documents.
+///
+/// **Invariant 2 (`simplifiedBalances` server-maintained).** This
+/// repository writes ONLY to the top-level `settlements` collection.
+/// `simplifiedBalances` on the parent friendship / group document is
+/// folded by the `onSettlementWrite` trigger (PR #37) in a single
+/// transaction; this client never touches that field.
+///
+/// `verificationStatus` is client-read-only per ARCH-EXT-06; the
+/// write payload always carries `'unverified'`.
 class SettlementRepository {
   /// Creates a [SettlementRepository].
   const SettlementRepository({required SettlementStore store}) : _store = store;
@@ -130,6 +153,42 @@ class SettlementRepository {
         .map(
           (docs) => docs.where((doc) => !doc.deleted).toList(growable: false),
         );
+  }
+
+  /// Persists [doc] to `settlements/{auto-id}` and returns the
+  /// generated document ID. Translates [FirebaseException]s into
+  /// [SettlementCreateError] with a typed [SettlementCreateErrorType]
+  /// so the controller never has to interpret raw Firebase codes.
+  ///
+  /// The write payload is produced by [SettlementDoc.toCreateMap] and
+  /// satisfies every predicate in `firestore.rules` lines 379–489.
+  Future<String> createSettlement({required SettlementDoc doc}) async {
+    try {
+      return await _store.createSettlement(data: doc.toCreateMap());
+    } on FirebaseException catch (e, st) {
+      throw SettlementCreateError(
+        type: _mapFirebaseCode(e.code),
+        underlying: e,
+        stackTrace: st,
+      );
+    } catch (e, st) {
+      throw SettlementCreateError(
+        type: SettlementCreateErrorType.unknown,
+        underlying: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  SettlementCreateErrorType _mapFirebaseCode(String code) {
+    switch (code) {
+      case 'permission-denied':
+        return SettlementCreateErrorType.permissionDenied;
+      case 'unavailable':
+        return SettlementCreateErrorType.network;
+      default:
+        return SettlementCreateErrorType.unknown;
+    }
   }
 }
 
