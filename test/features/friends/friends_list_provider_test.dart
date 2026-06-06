@@ -42,6 +42,11 @@ class FakeRepository implements FriendshipRepository {
   Future<bool> friendshipExists(String userId1, String userId2) {
     throw UnimplementedError('write path not exercised in this test');
   }
+
+  @override
+  Stream<FriendshipDoc?> watchFriendship(String friendshipId) {
+    throw UnimplementedError('friend detail path not exercised here');
+  }
 }
 
 UserModel _user({required String displayName, String? photoUrl}) {

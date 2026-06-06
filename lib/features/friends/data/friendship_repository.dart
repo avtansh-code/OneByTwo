@@ -26,6 +26,14 @@ abstract class FriendshipStore {
   /// the latest snapshot list whenever the underlying query updates
   /// (real-time delivery — AC-6 of FR-FR-03).
   Stream<List<FriendshipDoc>> watchByMember(String userId);
+
+  /// Watches the single friendship document at [friendshipId] for
+  /// real-time updates (FR-FR-04). Emits `null` when the document
+  /// does not exist; emits a [FriendshipDoc] for every snapshot update
+  /// (e.g., when the `recomputeSimplifiedBalances` Cloud Function
+  /// writes a new `simplifiedBalances` value after an expense or
+  /// settlement is added or removed).
+  Stream<FriendshipDoc?> watchById(String friendshipId);
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +124,19 @@ class FirestoreFriendshipStore implements FriendshipStore {
               .toList(growable: false),
         );
   }
+
+  @override
+  Stream<FriendshipDoc?> watchById(String friendshipId) {
+    return _collection.doc(friendshipId).snapshots().map((snap) {
+      final data = snap.data();
+      if (!snap.exists || data == null) return null;
+      return FriendshipDoc.fromFirestore(
+        id: snap.id,
+        data: data,
+        onParseFailure: _onParseFailure,
+      );
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +192,20 @@ class FriendshipRepository {
   /// field per **invariant 2**.
   Stream<List<FriendshipDoc>> watchFriendships(String currentUserId) {
     return _store.watchByMember(currentUserId);
+  }
+
+  /// Watches a single friendship document for real-time updates. Used
+  /// by the Friend Detail screen (FR-FR-04) so the balance pill
+  /// re-renders when `simplifiedBalances` updates after a server-side
+  /// `recomputeSimplifiedBalances` cycle.
+  ///
+  /// Emits `null` when the document does not exist (e.g., the user is
+  /// not a member of this friendship and the security rules block the
+  /// read, or the friendship was deleted by the other side).
+  ///
+  /// READ-ONLY: this method never writes to Firestore.
+  Stream<FriendshipDoc?> watchFriendship(String friendshipId) {
+    return _store.watchById(friendshipId);
   }
 }
 

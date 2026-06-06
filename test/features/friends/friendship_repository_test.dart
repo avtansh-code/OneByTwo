@@ -46,6 +46,10 @@ class FakeFriendshipStore implements FriendshipStore {
   @override
   Stream<List<FriendshipDoc>> watchByMember(String userId) =>
       const Stream<List<FriendshipDoc>>.empty();
+
+  @override
+  Stream<FriendshipDoc?> watchById(String friendshipId) =>
+      const Stream<FriendshipDoc?>.empty();
 }
 
 void main() {

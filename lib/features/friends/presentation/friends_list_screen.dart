@@ -7,7 +7,7 @@ import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
-import 'package:onebytwo/features/friends/presentation/friend_detail_placeholder_screen.dart';
+import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_list_tile.dart';
 
 /// Friends list screen (SCR-09 / FR-FR-03).
@@ -118,7 +118,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     final currentUid = ref.read(currentUserIdProvider);
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => FriendDetailPlaceholderScreen(
+        builder: (_) => FriendDetailScreen(
           friendshipId: item.friendshipId,
           currentUserUid: currentUid,
           otherUserUid: item.otherUserId,

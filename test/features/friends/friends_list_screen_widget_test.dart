@@ -18,12 +18,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/data/contact_service.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
-import 'package:onebytwo/features/friends/presentation/friend_detail_placeholder_screen.dart';
+import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/friends_list_screen.dart';
 
 class FakeAnalyticsService implements AnalyticsService {
@@ -99,6 +100,20 @@ void main() {
         contactServiceProvider.overrideWithValue(contactService),
         friendsListProvider.overrideWith((ref) => streamController.stream),
         currentUserIdProvider.overrideWithValue('current_user_uid'),
+        // Override the friend-detail family so the navigation tap doesn't
+        // try to instantiate the production firebaseFirestoreProvider.
+        friendDetailProvider.overrideWith(
+          (ref, args) => Stream<FriendDetailState>.value(
+            const FriendDetailStateEmpty(
+              header: FriendDetailHeader(
+                displayName: 'Friend',
+                photoUrl: null,
+                netBalancePaise: 0,
+                balanceState: BalanceState.settled,
+              ),
+            ),
+          ),
+        ),
       ],
       child: const MaterialApp(home: FriendsListScreen()),
     );
@@ -284,10 +299,10 @@ void main() {
         reason: 'Raw friendshipId leaked in friend_row_tapped parameters',
       );
 
-      expect(find.byType(FriendDetailPlaceholderScreen), findsOneWidget);
+      expect(find.byType(FriendDetailScreen), findsOneWidget);
     });
 
-    testWidgets('placeholder detail screen does NOT display the raw '
+    testWidgets('navigated friend detail screen does NOT display the raw '
         'friendship ID', (tester) async {
       await tester.pumpWidget(buildSubject());
       streamController.add(items);
@@ -304,7 +319,7 @@ void main() {
           expect(
             widget.data ?? '',
             isNot(contains('uid-aaa_uid-me')),
-            reason: 'Placeholder rendered raw friendshipId in a Text widget',
+            reason: 'Friend Detail rendered raw friendshipId in a Text widget',
           );
         }
       }
