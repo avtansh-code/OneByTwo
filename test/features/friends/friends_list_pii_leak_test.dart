@@ -165,9 +165,9 @@ void main() {
 
     final params = rowTapped.first.parameters;
     expect(params, isNotNull);
-    expect(params!['friendship_id'], isA<String>());
+    expect(params!['friendship_id_hash'], isA<String>());
     expect(
-      params['friendship_id'],
+      params['friendship_id_hash'],
       equals(hashFriendshipId('uid-priyalakshmi_uid-rahulagarwal')),
     );
 

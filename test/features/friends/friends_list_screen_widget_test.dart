@@ -286,13 +286,16 @@ void main() {
       expect(analytics.countOf('friend_row_tapped'), 1);
       final params = analytics.lastParamsFor('friend_row_tapped');
       expect(params, isNotNull);
-      expect(params!['friendship_id'], isA<String>());
+      expect(params!['friendship_id_hash'], isA<String>());
       expect(
-        params['friendship_id'],
+        params['friendship_id_hash'],
         equals(hashFriendshipId('uid-aaa_uid-me')),
       );
       // The raw friendshipId must NOT be present anywhere in the event.
-      expect(params['friendship_id'], isNot(equals('uid-aaa_uid-me')));
+      expect(
+        params['friendship_id_hash'],
+        isNot(equals('uid-aaa_uid-me')),
+      );
       expect(
         params.values.any((v) => v.toString().contains('uid-aaa_uid-me')),
         isFalse,
