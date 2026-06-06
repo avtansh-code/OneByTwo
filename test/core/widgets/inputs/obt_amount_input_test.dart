@@ -6,7 +6,7 @@
 // - emits integer paise via `onChanged: ValueChanged<int>`;
 // - refuses non-numeric input;
 // - refuses negative values;
-// - caps at 99,999,999 paise (₹9,99,999.99) per AC-2;
+// - caps at 999,999,999 paise (₹99,99,999.99) per AC-2;
 // - keeps the `₹` prefix non-editable;
 // - renders the Indian-numbering separator on the rupee component;
 // - the `errorText` prop is rendered below the field.
@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 
-const _kCap = 99999999; // paise — equal to ₹9,99,999.99 (AC-2)
+const _kCap = 999999999; // paise — equal to ₹99,99,999.99 (AC-2)
 
 Future<void> _pumpInput(
   WidgetTester tester, {
@@ -103,7 +103,8 @@ void main() {
   });
 
   group('OBTAmountInput — input filtering', () {
-    testWidgets('refuses non-numeric input (letters discarded)', (tester) async {
+    testWidgets('refuses non-numeric input (letters discarded)',
+        (tester) async {
       final captured = <int>[];
       await _pumpInput(tester, onChanged: captured.add);
 
@@ -152,7 +153,7 @@ void main() {
   });
 
   group('OBTAmountInput — cap enforcement (AC-2)', () {
-    testWidgets('typing exactly the cap (₹99,99,999.99) emits 99999999', (
+    testWidgets('typing exactly the cap (₹99,99,999.99) emits 999999999', (
       tester,
     ) async {
       final captured = <int>[];
