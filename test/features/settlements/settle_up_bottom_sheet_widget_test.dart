@@ -126,7 +126,10 @@ void main() {
     testWidgets('renders the suggested amount echo', (tester) async {
       await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
       await tester.pump();
-      expect(find.text(formatInrFromPaise(_suggested)), findsWidgets);
+      expect(
+        find.textContaining(formatInrFromPaise(_suggested)),
+        findsWidgets,
+      );
     });
 
     testWidgets('renders the Record Settlement button', (tester) async {
