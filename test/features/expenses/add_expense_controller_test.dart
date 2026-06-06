@@ -12,6 +12,7 @@
 
 // ignore_for_file: cascade_invocations
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -32,6 +33,7 @@ class FakeExpenseRepository implements ExpenseRepository {
   ExpenseDoc? capturedDoc;
   String returnExpenseId = 'expense-id-123';
   ExpenseCreateError? throwError;
+  Exception? throwUnknown;
   bool called = false;
 
   @override
@@ -44,6 +46,9 @@ class FakeExpenseRepository implements ExpenseRepository {
     capturedDoc = doc;
     if (throwError != null) {
       throw throwError!;
+    }
+    if (throwUnknown != null) {
+      throw throwUnknown!;
     }
     return returnExpenseId;
   }
@@ -492,6 +497,36 @@ void main() {
       repo.throwError = null;
       await controller.save();
       expect(controller.state, isA<Success>());
+      controller.dispose();
+    });
+
+    test('unexpected (non-ExpenseCreateError) exception transitions to '
+        'AddExpenseError with unknown type, fires expense_save_failed with '
+        'error_type=unknown, and reports to FlutterError.onError WITHOUT '
+        'rethrowing (so VoidCallback save() callers do not produce an '
+        'unhandled async error)', () async {
+      repo.throwUnknown = const FormatException('unexpected ExpenseStore boom');
+      final controller = await arrangeValidStep2();
+
+      final captured = <FlutterErrorDetails>[];
+      final previousOnError = FlutterError.onError;
+      FlutterError.onError = captured.add;
+      try {
+        await expectLater(controller.save(), completes);
+      } finally {
+        FlutterError.onError = previousOnError;
+      }
+
+      expect(controller.state, isA<AddExpenseError>());
+      expect(
+        (controller.state as AddExpenseError).errorType,
+        ExpenseCreateErrorType.unknown,
+      );
+      final params = analytics.lastParamsFor(ExpenseTelemetry.saveFailed)!;
+      expect(params['error_type'], 'unknown');
+      expect(captured, hasLength(1));
+      expect(captured.single.exception, isA<FormatException>());
+      expect(captured.single.library, 'expenses');
       controller.dispose();
     });
   });

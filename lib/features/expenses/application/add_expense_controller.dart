@@ -299,12 +299,21 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         errorType: ExpenseCreateErrorType.unknown,
         message: _kMsgSaveFailure,
       );
-      // Re-throw via Future.error so observers can capture; the
-      // controller has already moved to AddExpenseError above.
-      throw ExpenseCreateError(
-        type: ExpenseCreateErrorType.unknown,
-        underlying: err,
-        stackTrace: st,
+      // Report to the framework's error reporter (Crashlytics hooks
+      // into this via FlutterError.onError when wired in main.dart).
+      // We don't rethrow because the call site uses VoidCallback —
+      // a rethrown Future error would become an unhandled async error
+      // routed to PlatformDispatcher.instance.onError. The typed
+      // branch above is symmetric: state-transition + telemetry only.
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: err,
+          stack: st,
+          library: 'expenses',
+          context: ErrorDescription(
+            'unexpected error during AddExpenseController.save()',
+          ),
+        ),
       );
     }
   }
