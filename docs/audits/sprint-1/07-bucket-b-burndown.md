@@ -123,7 +123,8 @@ so INV2 remains partially addressed pending the dedicated chore.
 | D1 | Riverpod 3.x migration | Dedicated chore PR, Sprint 2 or 3 |
 | D2 | `share_plus` upgrade (10 to 13) | Before first share-using PR |
 | D4 | `build_runner` upgrade (discontinued transitives) | When convenient |
-| D5 | `firebase-functions` 7.x evaluation | Before Sprint 2 CF work |
+| D5a | Cloud Functions Node 20 runtime decommissioned **2026-10-31** (tracked as [#39](https://github.com/avtansh-code/OneByTwo/issues/39)) | **Before 2026-09-30** (one deploy cycle of slack) |
+| D5b | `firebase-functions` package outdated (6.x → 7.x; tracked as [#40](https://github.com/avtansh-code/OneByTwo/issues/40)) | Bundle with D5a |
 | D6 | npm audit moderate vulnerabilities | When firebase-admin/functions upgraded |
 | D7 | Jest 30, TypeScript 6, ESLint 9 major bumps | When convenient |
 
