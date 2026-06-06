@@ -302,4 +302,37 @@ void main() {
       );
     });
   });
+
+  group('Code-review §R2 — Saving → Success transition', () {
+    testWidgets(
+      'never shows the body with draft == null after a successful save',
+      (tester) async {
+        repo.returnSettlementId = 'sid-r2';
+        await tester.pumpWidget(
+          _buildSubject(repo: repo, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap Save; do a single pump so we are between Saving and the
+        // post-frame Navigator.pop(). The body MUST NOT render the
+        // editable form fields with their fall-back values.
+        await tester.tap(find.text('Record Settlement'));
+        await tester.pump();
+
+        // The success-placeholder is visible; the Record Settlement
+        // button is gone because the form fields no longer render.
+        expect(
+          find.text('Record Settlement'),
+          findsNothing,
+          reason:
+              'Saving → Success transition must not re-render the '
+              'editable form with reset values',
+        );
+
+        // Drain the rest of the animation; the sheet auto-dismisses.
+        await tester.pumpAndSettle();
+        expect(find.text('Settlement recorded.'), findsOneWidget);
+      },
+    );
+  });
 }

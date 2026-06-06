@@ -121,6 +121,15 @@ class _SettleUpBottomSheetState extends ConsumerState<SettleUpBottomSheet> {
   }
 
   Widget _buildBody(BuildContext context, SettleUpState state) {
+    // Guard against the Saving → Success transition: the listener in
+    // _onStateChanged pops the sheet on the same frame, but without
+    // this short-circuit the body would render once with a fall-back
+    // date / empty note (cosmetic only, but avoidable). Per code-review
+    // §R2 — keep the divergent render out of the build tree entirely.
+    if (state is SettleUpSuccess) {
+      return const _SuccessPlaceholder();
+    }
+
     final draft = switch (state) {
       SettleUpEditing(:final draft) => draft,
       SettleUpSaving(:final draft) => draft,
@@ -340,6 +349,21 @@ class _DateField extends StatelessWidget {
 }
 
 class _NoteField extends StatefulWidget {
+  /// Optional note field for the Settle Up bottom sheet.
+  ///
+  /// The 200-character cap is enforced at TWO layers
+  /// (defence-in-depth per code-review §R3):
+  ///
+  /// 1. `TextField.maxLength: 200` blocks input past 200 chars in the
+  ///    UI immediately.
+  /// 2. `SettleUpDraft.validate()` blocks Save at the model layer
+  ///    with the user-facing message "Note must be 200 characters or
+  ///    fewer.".
+  ///
+  /// Both layers are intentional. Removing either would weaken the
+  /// guard (the UI cap prevents the validator ever firing in normal
+  /// use; the validator catches any path that bypasses the UI cap,
+  /// such as a future programmatic note injection).
   const _NoteField({
     required this.initialNote,
     required this.onChanged,
@@ -363,6 +387,24 @@ class _NoteFieldState extends State<_NoteField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialNote ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _NoteField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reconcile the controller text when the parent rebuilds with a
+    // different initialNote. Today the only mutation path is this
+    // widget's own onChanged so the controller is already in sync,
+    // but FR-SE-09 (Send Reminder) or any future PR that seeds a
+    // default note from outside will need this guard. Per code-review
+    // §R1 — close the latent footgun now.
+    final newNote = widget.initialNote ?? '';
+    if (newNote != oldWidget.initialNote && newNote != _controller.text) {
+      _controller.value = TextEditingValue(
+        text: newNote,
+        selection: TextSelection.collapsed(offset: newNote.length),
+      );
+    }
   }
 
   @override
@@ -411,5 +453,26 @@ class _RecordButton extends StatelessWidget {
             )
           : const Text('Record Settlement'),
     );
+  }
+}
+
+/// Minimal placeholder rendered while the listener pops the sheet on
+/// the Saving → Success transition. The listener fires
+/// `Navigator.of(context).maybePop()` on the same frame as the state
+/// emit, so the placeholder is only visible for at most one paint;
+/// using it avoids the cosmetic "draft reset" frame that the full body
+/// switch would otherwise produce (per code-review §R2).
+///
+/// A static `SizedBox` (rather than a spinner) is intentional: a
+/// `CircularProgressIndicator` would tick forever and trap
+/// `pumpAndSettle` in widget tests. The placeholder never animates,
+/// so the test driver can settle reliably and the user only ever sees
+/// an empty pane for one frame before `maybePop()` closes the sheet.
+class _SuccessPlaceholder extends StatelessWidget {
+  const _SuccessPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(height: 120);
   }
 }
