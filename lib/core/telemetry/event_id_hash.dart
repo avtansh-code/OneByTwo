@@ -16,10 +16,23 @@ import 'package:crypto/crypto.dart';
 /// The function is referenced from the architect notes on
 /// `docs/sprint-zero/stories/FR-FR-03-friends-list.md` and from
 /// `docs/design/07-technical/telemetry-plan.md` (`friend_row_tapped`
-/// parameter contract). Reuse it for any future telemetry event that
-/// needs to carry an opaque identifier.
-String hashFriendshipId(String friendshipId) {
-  final bytes = utf8.encode(friendshipId);
+/// parameter contract). For any other PII-adjacent identifier (e.g.
+/// `expenseId`), use [hashId] which applies the same algorithm.
+String hashFriendshipId(String friendshipId) => hashId(friendshipId);
+
+/// Returns a stable, opaque correlation hash for any PII-adjacent
+/// identifier (e.g. `expenseId`, `groupId`, `settlementId`). Applies
+/// the same SHA-256-truncated-to-16-hex contract as [hashFriendshipId]
+/// so the two functions are interchangeable on identical input
+/// (verified by the PII-leak tests).
+///
+/// Use this helper whenever you need to emit a telemetry event with
+/// an identifier parameter. The parameter name convention (per
+/// ADR-0013) is to append `_hash` to indicate that the value is
+/// hashed rather than the raw identifier — e.g. `expense_id_hash`,
+/// `friendship_id_hash`.
+String hashId(String id) {
+  final bytes = utf8.encode(id);
   final digest = sha256.convert(bytes);
   return digest.toString().substring(0, 16);
 }

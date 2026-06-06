@@ -134,7 +134,7 @@ void main() {
 
     test('setAmount over the AC-2 cap surfaces a validation error', () {
       final controller = buildController(repo: repo, analytics: analytics);
-      controller.setAmount(100000000); // 1 over the cap
+      controller.setAmount(1000000000); // 1 over the cap (999,999,999)
       final state = controller.state as Editing;
       expect(
         state.validationErrors.containsKey('amount'),
