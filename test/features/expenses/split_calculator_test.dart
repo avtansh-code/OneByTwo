@@ -284,4 +284,77 @@ void main() {
       }
     });
   });
+
+  group('Split value equality', () {
+    test('two Split instances with the same fields are equal', () {
+      const a = Split(userId: 'uid-a', sharePaise: 500);
+      const b = Split(userId: 'uid-a', sharePaise: 500);
+
+      expect(a == b, isTrue);
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('Split is identical to itself', () {
+      const a = Split(userId: 'uid-a', sharePaise: 500);
+
+      // ignore: unrelated_type_equality_checks
+      expect(a == a, isTrue);
+    });
+
+    test('Splits with different userId are NOT equal', () {
+      const a = Split(userId: 'uid-a', sharePaise: 500);
+      const b = Split(userId: 'uid-b', sharePaise: 500);
+
+      expect(a == b, isFalse);
+    });
+
+    test('Splits with different sharePaise are NOT equal', () {
+      const a = Split(userId: 'uid-a', sharePaise: 500);
+      const b = Split(userId: 'uid-a', sharePaise: 501);
+
+      expect(a == b, isFalse);
+    });
+
+    test('Split is NOT equal to an arbitrary other object', () {
+      const a = Split(userId: 'uid-a', sharePaise: 500);
+
+      // ignore: unrelated_type_equality_checks
+      expect(a == const Object(), isFalse);
+    });
+  });
+
+  group('computeSplits — deferred split methods', () {
+    test('unequal method throws UnimplementedError', () {
+      expect(
+        () => computeSplits(
+          method: SplitMethod.unequal,
+          totalPaise: 1000,
+          memberUids: const ['a', 'b'],
+        ),
+        throwsA(isA<UnimplementedError>()),
+      );
+    });
+
+    test('percentage method throws UnimplementedError', () {
+      expect(
+        () => computeSplits(
+          method: SplitMethod.percentage,
+          totalPaise: 1000,
+          memberUids: const ['a', 'b'],
+        ),
+        throwsA(isA<UnimplementedError>()),
+      );
+    });
+
+    test('shares method throws UnimplementedError', () {
+      expect(
+        () => computeSplits(
+          method: SplitMethod.shares,
+          totalPaise: 1000,
+          memberUids: const ['a', 'b'],
+        ),
+        throwsA(isA<UnimplementedError>()),
+      );
+    });
+  });
 }
