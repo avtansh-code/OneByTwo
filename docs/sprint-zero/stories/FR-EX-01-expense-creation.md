@@ -228,7 +228,7 @@ refresh or client-side debt arithmetic**.
 > Then the Next button stays disabled (state #3 in SCR-19).
 >
 > When the user enters an amount in paise (the output of `OBTAmountInput`)
-> that exceeds `99999999` (`9,99,99,999` paise = `₹99,99,999.99` cap per
+> that exceeds `999999999` (`9,99,99,999` paise = `₹99,99,999.99` cap per
 > SCR-19)
 > Then an inline `danger`-coloured error appears: "Amount cannot exceed
 > ₹99,99,999.99."
@@ -1013,7 +1013,7 @@ the server splitter at
 brings the same discipline to the client at
 `test/features/expenses/split_calculator_property_test.dart`. Properties:
 
-1. `equal` with any `totalPaise ∈ [1, 99999999]` produces splits
+1. `equal` with any `totalPaise ∈ [1, 999999999]` produces splits
    whose sum equals `totalPaise`.
 2. `exact` with any valid `(totalPaise, exactShares)` pair (where the
    sum already matches) returns identity and the sum still equals
@@ -1278,7 +1278,7 @@ Implementation contract:
 - The emitted `int` value is computed as
   `(rupees * 100) + paiseFractional` using integer arithmetic only.
   No `double.parse`, no `toDouble()`, no division by 100.
-- Maximum value enforced: `99999999` paise (₹99,99,999.99 per the
+- Maximum value enforced: `999999999` paise (₹99,99,999.99 per the
   catalogue and SCR-19); any keystroke that would exceed the cap is
   silently rejected and the `errorText` is rendered as supplied by
   the caller (the controller hosts the error message — the widget is
