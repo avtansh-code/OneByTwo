@@ -16,7 +16,11 @@
 
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/features/auth/data/user_repository.dart'
+    show firebaseFirestoreProvider;
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
@@ -225,4 +229,29 @@ void main() {
       expect(() => logSettlementParseFailure(''), returnsNormally);
     });
   });
+
+  group('settlementRepositoryProvider', () {
+    test('constructs a SettlementRepository wired to '
+        'firebaseFirestoreProvider', () {
+      // Override the firestore dependency with a fake so the provider
+      // can resolve without booting Firebase. The provider's only job
+      // is to wrap a FirestoreSettlementStore around the injected
+      // firestore — we assert the resulting repository is non-null and
+      // of the expected type.
+      final container = ProviderContainer(
+        overrides: [
+          firebaseFirestoreProvider.overrideWithValue(_FakeFirestore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(settlementRepositoryProvider);
+      expect(repo, isA<SettlementRepository>());
+    });
+  });
+}
+
+class _FakeFirestore implements FirebaseFirestore {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

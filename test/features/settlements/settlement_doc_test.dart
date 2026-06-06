@@ -254,4 +254,298 @@ void main() {
       expect(failures.single, contains('note'));
     });
   });
+
+  group('SettlementDoc equality', () {
+    SettlementDoc base() => SettlementDoc(
+      settlementId: 'sid-1',
+      fromUserId: 'uid-from',
+      toUserId: 'uid-to',
+      amountPaise: 5000,
+      contextType: 'friendship',
+      contextId: 'uid-from_uid-to',
+      date: DateTime(2026, 6),
+      note: 'Pizza',
+      method: 'manual',
+      verificationStatus: 'unverified',
+      currency: 'INR',
+      createdAt: DateTime(2026, 6, 1, 12),
+      deleted: false,
+    );
+
+    test('identical instances are equal and share hashCode', () {
+      final a = base();
+      expect(a, equals(a));
+      expect(a.hashCode, equals(a.hashCode));
+    });
+
+    test('two SettlementDocs with the same fields are equal and share '
+        'hashCode', () {
+      expect(base(), equals(base()));
+      expect(base().hashCode, equals(base().hashCode));
+    });
+
+    test('different settlementId breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: 'sid-2',
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different fromUserId breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: 'uid-other',
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different toUserId breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: 'uid-other',
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different amountPaise breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise + 1,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different contextType breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: 'group',
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different contextId breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: 'other_pair',
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different date breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: DateTime(2026, 6, 2),
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different note breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: 'Different note',
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different method breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: 'upi',
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different verificationStatus breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: 'verified',
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different currency breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: 'USD',
+        createdAt: a.createdAt,
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different createdAt breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: DateTime(2026, 6, 1, 13),
+        deleted: a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different deleted breaks equality', () {
+      final a = base();
+      final b = SettlementDoc(
+        settlementId: a.settlementId,
+        fromUserId: a.fromUserId,
+        toUserId: a.toUserId,
+        amountPaise: a.amountPaise,
+        contextType: a.contextType,
+        contextId: a.contextId,
+        date: a.date,
+        note: a.note,
+        method: a.method,
+        verificationStatus: a.verificationStatus,
+        currency: a.currency,
+        createdAt: a.createdAt,
+        deleted: !a.deleted,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('different runtime type breaks equality', () {
+      expect(base(), isNot(equals('not a SettlementDoc')));
+    });
+  });
 }
