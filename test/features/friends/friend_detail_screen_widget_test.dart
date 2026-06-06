@@ -212,7 +212,6 @@ void main() {
   group('Populated state (non-zero balance — owed)', () {
     final state = FriendDetailStatePopulated(
       header: _header(
-        displayName: 'Bina',
         netBalancePaise: 12345,
         balanceState: BalanceState.owed,
       ),
@@ -221,20 +220,19 @@ void main() {
           doc: _expense(
             description: 'Coffee',
             date: DateTime(2026, 6, 5),
-            amountPaise: 1000,
           ),
         ),
         TimelineSettlement(
           doc: _settlement(
             id: 'sid-1',
             date: DateTime(2026, 6, 3),
-            amountPaise: 5000,
           ),
         ),
       ],
     );
 
-    testWidgets('renders the friend display name in the header', (tester) async {
+    testWidgets('renders the friend display name in the header',
+        (tester) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: AsyncData(state),
@@ -246,7 +244,8 @@ void main() {
       expect(find.text('Bina'), findsWidgets);
     });
 
-    testWidgets('renders the owed balance pill copy and INR amount', (tester) async {
+    testWidgets('renders the owed balance pill copy and INR amount',
+        (tester) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: AsyncData(state),
@@ -299,7 +298,6 @@ void main() {
   group('Populated state (non-zero balance — owes)', () {
     final state = FriendDetailStatePopulated(
       header: _header(
-        displayName: 'Bina',
         netBalancePaise: -5000,
         balanceState: BalanceState.owes,
       ),
@@ -349,16 +347,13 @@ void main() {
   group('Populated state (settled up)', () {
     final state = FriendDetailStatePopulated(
       header: _header(
-        displayName: 'Bina',
-        netBalancePaise: 0,
-        balanceState: BalanceState.settled,
+        
       ),
       timeline: [
         TimelineExpense(
           doc: _expense(
             description: 'Old expense',
             date: DateTime(2026, 5, 30),
-            amountPaise: 1000,
           ),
         ),
       ],
@@ -393,7 +388,7 @@ void main() {
 
   group('Empty state', () {
     final state = FriendDetailStateEmpty(
-      header: _header(displayName: 'Bina'),
+      header: _header(),
     );
 
     testWidgets('renders the no-expenses placeholder', (tester) async {
@@ -492,7 +487,7 @@ void main() {
         header: _header(netBalancePaise: 1000, balanceState: BalanceState.owed),
         timeline: [
           TimelineExpense(
-            doc: _expense(description: 'Tea', date: DateTime(2026, 6, 1)),
+            doc: _expense(description: 'Tea', date: DateTime(2026, 6)),
           ),
         ],
       );
@@ -525,7 +520,6 @@ void main() {
         (tester) async {
       final state = FriendDetailStatePopulated(
         header: _header(
-          displayName: 'Bina',
           netBalancePaise: 12345,
           balanceState: BalanceState.owed,
         ),

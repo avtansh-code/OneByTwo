@@ -50,7 +50,16 @@ class FriendDetailArgs {
 /// Balance-direction discriminator surfaced by [FriendDetailHeader].
 /// The telemetry event `friend_detail_viewed` carries the snake-case
 /// name (`owed`, `owes`, `settled`) as the `balance_state` parameter.
-enum BalanceState { owed, owes, settled }
+enum BalanceState {
+  /// The other user owes the current user (positive net balance).
+  owed,
+
+  /// The current user owes the other user (negative net balance).
+  owes,
+
+  /// Settled up (zero net balance).
+  settled,
+}
 
 /// Header projection rendered above the timeline.
 @immutable
@@ -254,8 +263,7 @@ Stream<FriendDetailState> _friendDetailStream({
   Future<UserModel?> resolveProfile() async {
     if (profileLoaded) return profile;
     profileLoaded = true;
-    profile = await profileLookup();
-    return profile;
+    return profile = await profileLookup();
   }
 
   final controller = StreamController<FriendDetailState>();

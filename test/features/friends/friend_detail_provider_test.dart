@@ -309,7 +309,7 @@ void main() {
       final expense1 =
           _expense(description: 'Coffee', date: DateTime(2026, 6, 5));
       final expense2 =
-          _expense(description: 'Dinner', date: DateTime(2026, 6, 1));
+          _expense(description: 'Dinner', date: DateTime(2026, 6));
       expenseStore.controller.add([expense1, expense2]);
       final settlement1 =
           _settlement(id: 'sid-1', date: DateTime(2026, 6, 3));

@@ -54,7 +54,7 @@ void main() {
       // 2. Tap the Aarav row.
       // 3. Assert friend_row_tapped fires with friendship_id =
       //    SHA-256("uid-aaa_uid-me")[0:16].
-      // 4. Assert FriendDetailPlaceholderScreen is on top of the
+      // 4. Assert FriendDetailScreen is on top of the
       //    Navigator stack and does NOT display the raw friendshipId.
       // 5. Tap back. Assert the friends list is restored.
       expect(true, isTrue);

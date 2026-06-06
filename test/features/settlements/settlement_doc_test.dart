@@ -39,7 +39,7 @@ Map<String, dynamic> _validData({
     'amountPaise': amountPaise,
     'contextType': contextType,
     'contextId': contextId,
-    'date': Timestamp.fromDate(date ?? DateTime(2026, 6, 1)),
+    'date': Timestamp.fromDate(date ?? DateTime(2026, 6)),
     'note': note,
     'method': method,
     'verificationStatus': verificationStatus,
@@ -65,7 +65,7 @@ void main() {
       expect(doc.amountPaise, isA<int>());
       expect(doc.contextType, 'friendship');
       expect(doc.contextId, 'uid-from_uid-to');
-      expect(doc.date, DateTime(2026, 6, 1));
+      expect(doc.date, DateTime(2026, 6));
       expect(doc.note, 'Pizza split');
       expect(doc.method, 'manual');
       expect(doc.verificationStatus, 'unverified');
@@ -77,7 +77,7 @@ void main() {
     test('null note is allowed (schema default)', () {
       final doc = SettlementDoc.fromFirestore(
         id: 'sid-1',
-        data: _validData(note: null),
+        data: _validData(),
       );
       expect(doc, isNotNull);
       expect(doc!.note, isNull);

@@ -8,7 +8,8 @@ import 'package:onebytwo/features/friends/application/friend_detail_provider.dar
 /// Layout (top to bottom):
 /// - Centred avatar (80 dp; falls back to the initial when no photo).
 /// - Display name as a title.
-/// - Balance pill below the name, colour-coded per [FriendDetailHeader.balanceState].
+/// - Balance pill below the name, colour-coded per
+///   [FriendDetailHeader.balanceState].
 ///
 /// All paise → INR conversion goes through [formatInrFromPaise]; no
 /// inline rupee arithmetic (Invariant 1).

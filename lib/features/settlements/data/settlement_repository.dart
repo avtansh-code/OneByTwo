@@ -18,6 +18,7 @@ import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 /// pattern mirrors [`FriendshipStore`](../../friends/data/friendship_repository.dart)
 /// and [`ExpenseStore`](../../expenses/data/expense_repository.dart) so
 /// the FR-SE-08 diff stays focused on its write logic.
+// ignore: one_member_abstracts
 abstract class SettlementStore {
   /// Watches settlements scoped to a single context (a friendship or a
   /// group), ordered by `date` descending.

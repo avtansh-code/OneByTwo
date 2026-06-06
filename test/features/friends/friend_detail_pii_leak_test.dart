@@ -102,8 +102,8 @@ void main() {
 
   testWidgets('friend_detail_viewed carries the hashed friendship_id, never '
       'the raw composite UID', (tester) async {
-    final state = FriendDetailStateEmpty(
-      header: const FriendDetailHeader(
+    const state = FriendDetailStateEmpty(
+      header: FriendDetailHeader(
         displayName: 'Priya Lakshmi',
         photoUrl: 'https://photos.example.com/priya.png',
         netBalancePaise: 0,
@@ -145,8 +145,8 @@ void main() {
   });
 
   testWidgets('no PII in analytics event names', (tester) async {
-    final state = FriendDetailStateEmpty(
-      header: const FriendDetailHeader(
+    const state = FriendDetailStateEmpty(
+      header: FriendDetailHeader(
         displayName: 'Priya Lakshmi',
         photoUrl: 'https://photos.example.com/priya.png',
         netBalancePaise: 0,
@@ -171,8 +171,8 @@ void main() {
   });
 
   testWidgets('no PII in analytics event parameter keys', (tester) async {
-    final state = FriendDetailStateEmpty(
-      header: const FriendDetailHeader(
+    const state = FriendDetailStateEmpty(
+      header: FriendDetailHeader(
         displayName: 'Priya Lakshmi',
         photoUrl: 'https://photos.example.com/priya.png',
         netBalancePaise: 0,
@@ -192,7 +192,9 @@ void main() {
           expect(
             key.contains(pii),
             isFalse,
-            reason: 'Event "${event.name}" parameter key "$key" leaked PII: $pii',
+            reason:
+                'Event "${event.name}" parameter key "$key" leaked '
+                'PII: $pii',
           );
         }
       }

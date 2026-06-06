@@ -96,10 +96,10 @@ presentation/
   refresh; `friends_list_screen.dart` streams `simplifiedBalances`
   directly via `core/balances/net_balance.dart` and formats with
   `core/formatters/inr_formatter.dart#formatInrFromPaise`.
-- **FR-FR-03 Friend Detail placeholder (upstream UI entry):** the Add
-  Expense FAB is wired on `FriendDetailPlaceholderScreen`. FR-FR-04
-  (Friend Detail full screen) will replace the placeholder; the FAB
-  call site is preserved.
+- **FR-FR-04 Friend Detail (upstream UI entry):** the Add Expense FAB
+  is wired on `FriendDetailScreen` (replaced the original
+  `FriendDetailPlaceholderScreen` in PR #42). The FAB call site is
+  preserved verbatim — only the host screen changed.
 - **FR-SE-03/04 `onExpenseWriteFriendship` (downstream write side):**
   every write from `ExpenseRepository` to
   `friendships/{fid}/expenses/{eid}` invokes the trigger. The trigger

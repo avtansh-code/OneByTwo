@@ -354,7 +354,6 @@ void main() {
     test('queries with the supplied friendshipId and limit', () async {
       repo.watchExpensesByFriendship(
         friendshipId: 'uid-a_uid-b',
-        limit: 5,
       );
       await Future<void>.delayed(Duration.zero);
 
@@ -365,7 +364,6 @@ void main() {
     test('emits an empty list when the underlying stream emits []', () async {
       final stream = repo.watchExpensesByFriendship(
         friendshipId: 'uid-a_uid-b',
-        limit: 5,
       );
       final emissions = <List<ExpenseDoc>>[];
       final sub = stream.listen(emissions.add);
@@ -382,7 +380,6 @@ void main() {
     test('preserves the underlying ordering (date desc)', () async {
       final stream = repo.watchExpensesByFriendship(
         friendshipId: 'uid-a_uid-b',
-        limit: 5,
       );
       final emissions = <List<ExpenseDoc>>[];
       final sub = stream.listen(emissions.add);
@@ -390,7 +387,7 @@ void main() {
       store.watchController.add([
         expense(description: 'Newest', date: DateTime(2026, 6, 5)),
         expense(description: 'Middle', date: DateTime(2026, 6, 3)),
-        expense(description: 'Oldest', date: DateTime(2026, 6, 1)),
+        expense(description: 'Oldest', date: DateTime(2026, 6)),
       ]);
       await Future<void>.delayed(Duration.zero);
 
@@ -406,7 +403,6 @@ void main() {
     test('propagates stream errors as AsyncError downstream', () async {
       final stream = repo.watchExpensesByFriendship(
         friendshipId: 'uid-a_uid-b',
-        limit: 5,
       );
       final errors = <Object>[];
       final sub = stream.listen((_) {}, onError: errors.add);

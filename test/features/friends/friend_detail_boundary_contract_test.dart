@@ -77,7 +77,7 @@ void main() {
         // — this is a READ contract, not a write.
         final assignmentPattern = RegExp(r'simplifiedBalances\s*=[^=]');
         final mapLiteralPattern =
-            RegExp("""['"]simplifiedBalances['"]\\s*:""");
+            RegExp(r"""['"]simplifiedBalances['"]\s*:""");
         for (var i = 0; i < content.length; i++) {
           final line = content[i];
           if (_isCommentLine(line)) continue;
@@ -93,7 +93,7 @@ void main() {
             isFalse,
             reason:
                 'Forbidden simplifiedBalances map-literal key in '
-                "$path:${i + 1}; this field is server-maintained "
+                '$path:${i + 1}; this field is server-maintained '
                 '(Invariant 2)',
           );
         }

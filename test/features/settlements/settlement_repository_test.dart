@@ -60,7 +60,7 @@ SettlementDoc _doc({
     amountPaise: amountPaise,
     contextType: contextType,
     contextId: contextId,
-    date: date ?? DateTime(2026, 6, 1),
+    date: date ?? DateTime(2026, 6),
     note: null,
     method: 'manual',
     verificationStatus: 'unverified',
@@ -122,7 +122,7 @@ void main() {
 
       final newest = _doc(id: 'sid-1', date: DateTime(2026, 6, 5));
       final middle = _doc(id: 'sid-2', date: DateTime(2026, 6, 3));
-      final oldest = _doc(id: 'sid-3', date: DateTime(2026, 6, 1));
+      final oldest = _doc(id: 'sid-3', date: DateTime(2026, 6));
 
       store.emit([newest, middle, oldest]);
       await Future<void>.delayed(Duration.zero);
@@ -185,7 +185,7 @@ void main() {
       final emissions = <List<SettlementDoc>>[];
       final sub = stream.listen(emissions.add);
 
-      final first = _doc(id: 'sid-1', date: DateTime(2026, 6, 1));
+      final first = _doc(id: 'sid-1', date: DateTime(2026, 6));
       store.emit([first]);
       await Future<void>.delayed(Duration.zero);
 
