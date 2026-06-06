@@ -548,4 +548,130 @@ void main() {
       expect(base(), isNot(equals('not a SettlementDoc')));
     });
   });
+
+  group('SettlementDoc.toCreateMap — write-side shape (FR-SE-05)', () {
+    SettlementDoc baseDoc({
+      String fromUserId = 'uid-from',
+      String toUserId = 'uid-to',
+      int amountPaise = 5000,
+      String? note,
+      DateTime? date,
+      String contextType = 'friendship',
+      String contextId = 'uid-from_uid-to',
+    }) {
+      return SettlementDoc(
+        settlementId: 'unused-on-create',
+        fromUserId: fromUserId,
+        toUserId: toUserId,
+        amountPaise: amountPaise,
+        contextType: contextType,
+        contextId: contextId,
+        date: date ?? DateTime(2026, 6, 5),
+        note: note,
+        method: 'manual',
+        verificationStatus: 'unverified',
+        currency: 'INR',
+        createdAt: DateTime(2026, 6, 1, 12),
+        deleted: false,
+      );
+    }
+
+    test('contains exactly the keys whitelisted by hasOnlyKnownKeys', () {
+      final map = baseDoc().toCreateMap();
+      expect(map.keys.toSet(), equals(<String>{
+        'fromUserId',
+        'toUserId',
+        'amountPaise',
+        'contextType',
+        'contextId',
+        'date',
+        'note',
+        'method',
+        'verificationStatus',
+        'currency',
+        'createdAt',
+        'deleted',
+      }));
+    });
+
+    test('amountPaise is int (Invariant 1)', () {
+      final map = baseDoc(amountPaise: 12345).toCreateMap();
+      expect(map['amountPaise'], isA<int>());
+      expect(map['amountPaise'], 12345);
+    });
+
+    test('date is Timestamp', () {
+      final map = baseDoc(date: DateTime(2026, 6, 5)).toCreateMap();
+      expect(map['date'], isA<Timestamp>());
+      expect((map['date'] as Timestamp).toDate(), DateTime(2026, 6, 5));
+    });
+
+    test('createdAt is FieldValue.serverTimestamp() (request.time)', () {
+      final map = baseDoc().toCreateMap();
+      // FieldValue.serverTimestamp() returns a sentinel — we assert by
+      // type and by NOT equalling a literal Timestamp.
+      expect(map['createdAt'], isA<FieldValue>());
+    });
+
+    test('method == "manual" (ARCH-EXT-01)', () {
+      final map = baseDoc().toCreateMap();
+      expect(map['method'], 'manual');
+    });
+
+    test('currency == "INR" (ARCH-EXT-02)', () {
+      final map = baseDoc().toCreateMap();
+      expect(map['currency'], 'INR');
+    });
+
+    test('verificationStatus == "unverified" (ARCH-EXT-06)', () {
+      final map = baseDoc().toCreateMap();
+      expect(map['verificationStatus'], 'unverified');
+    });
+
+    test('deleted == false', () {
+      final map = baseDoc().toCreateMap();
+      expect(map['deleted'], false);
+    });
+
+    test('note is null when omitted (canonical §2.3)', () {
+      final map = baseDoc().toCreateMap();
+      expect(map.containsKey('note'), isTrue);
+      expect(map['note'], isNull);
+    });
+
+    test('note is preserved when present', () {
+      final map = baseDoc(note: 'Pizza').toCreateMap();
+      expect(map['note'], 'Pizza');
+    });
+
+    test('fromUserId / toUserId / contextType / contextId are strings', () {
+      final map = baseDoc(
+        fromUserId: 'uid-me',
+        toUserId: 'uid-friend',
+        contextType: 'friendship',
+        contextId: 'uid-friend_uid-me',
+      ).toCreateMap();
+      expect(map['fromUserId'], 'uid-me');
+      expect(map['toUserId'], 'uid-friend');
+      expect(map['contextType'], 'friendship');
+      expect(map['contextId'], 'uid-friend_uid-me');
+    });
+
+    test('group context type is preserved', () {
+      final map = baseDoc(
+        contextType: 'group',
+        contextId: 'gid-1',
+      ).toCreateMap();
+      expect(map['contextType'], 'group');
+      expect(map['contextId'], 'gid-1');
+    });
+
+    test('no extra keys leak into the map (defends hasOnlyKnownKeys)', () {
+      final map = baseDoc().toCreateMap();
+      const forbiddenKeys = ['groupId', 'splits', 'description', 'category'];
+      for (final k in forbiddenKeys) {
+        expect(map.containsKey(k), isFalse, reason: 'unexpected key: $k');
+      }
+    });
+  });
 }
