@@ -21,7 +21,7 @@ These eight events are explicitly named in SRS section 5.10 as key funnel events
 |---|---|---|---|---|
 | `signup_started` | -- | -- | User taps Continue with a valid 10-digit number on the phone-entry screen (ADR-0007) | FR-AU-01; SCR-03 |
 | `signup_completed` | `method` | `string` (`phone`) | OTP verified and session created for a first-time user | FR-AU-03; SCR-04 |
-| `expense_added` | `context_type`, `amount_range`, `category`, `split_method`, `participant_count`, `has_receipt`, `has_notes`, `is_offline` | `string`, `string`, `string`, `string`, `int`, `bool`, `bool`, `bool` | Expense successfully saved | FR-EX-01; SCR-21 |
+| `expense_save_succeeded` | `context_type`, `amount_range`, `category`, `split_method`, `participant_count`, `has_receipt`, `has_notes`, `is_offline` | `string`, `string`, `string`, `string`, `int`, `bool`, `bool`, `bool` | Expense successfully saved | FR-EX-01; SCR-21 |
 | `settlement_recorded` | `context_type`, `amount_range`, `is_partial` | `string`, `string`, `bool` | Settlement successfully written | FR-SE-05; SCR-23 |
 | `group_created` | `type`, `has_cover_photo` | `string`, `bool` | Group document created | FR-GR-01; SCR-14 |
 | `friend_added` | `method` | `string` (`contacts` / `manual` / `invite`) | Friendship document created | FR-FR-01; SCR-10 |
@@ -89,7 +89,7 @@ Source: `docs/design/06-screen-specs/06-08-home-and-search.md`
 | `expense_context_selected` | `context_type` | `string` (`friend` / `group`) | User selects a friend or group in Step 1 of the add-expense flow | SCR-08 |
 | `expense_split_method_selected` | `method` | `string` (`equal` / `unequal` / `percentage` / `shares` / `exact`) | User selects a split method in Step 3 | SCR-08 |
 | `expense_add_cancelled` | `step_reached`, `had_data_entered` | `string`, `bool` | User dismisses the bottom sheet without saving | SCR-08 |
-| `expense_add_failed` | `error_type`, `is_offline` | `string`, `bool` | Save attempt fails | SCR-08 |
+| `expense_save_failed` | `error_type`, `is_offline` | `string`, `bool` | Save attempt fails | SCR-08 |
 
 ### 1.4 Friends Events
 
@@ -250,7 +250,7 @@ to a bucketed `amount_range` string:
 | `5000_25000` | 500000–2499999 | 5,000–24,999 |
 | `over_25000` | 2500000+ | 25,000+ |
 
-This bucketing applies to all events that reference amounts: `expense_added`,
+This bucketing applies to all events that reference amounts: `expense_save_succeeded`,
 `expense_step1_completed`, `settlement_recorded`, `expense_delete_confirmed`,
 `home_settle_up_tapped`.
 
@@ -328,13 +328,13 @@ fab_tapped
     → expense_step1_completed
       → expense_step2_completed
         → expense_step3_opened
-          → expense_added
+          → expense_save_succeeded
 ```
 
 **Key metrics:**
 - Abandonment rate per step (`expense_step[N]_abandoned` / `expense_step[N]_opened`).
 - Most common split methods selected (`split_method` parameter distribution).
-- Receipt attachment rate (`has_receipt` = `true` / total `expense_added`).
+- Receipt attachment rate (`has_receipt` = `true` / total `expense_save_succeeded`).
 - Category distribution.
 
 ### 4.3 Settlement Funnel
