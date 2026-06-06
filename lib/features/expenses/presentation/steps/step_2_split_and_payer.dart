@@ -4,6 +4,7 @@ import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_draft.dart';
+import 'package:onebytwo/features/expenses/domain/split_calculator.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/split_row.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/split_validation_message.dart';
@@ -162,18 +163,21 @@ class Step2SplitAndPayer extends ConsumerWidget {
   }
 
   int _shareFor(String userId, ExpenseDraft draft) {
-    // For equal: 50/50 with remainder on the first share (current
-    // user). For exact: read from draft.exactShares using the
-    // current-user-first ordering convention.
+    // Single source of truth: delegate to computeSplits() so any future
+    // change to the splitter's rounding policy (banker's rounding,
+    // remainder-to-even, etc.) is reflected here automatically.
+    // Without this delegation the UI would silently diverge from the
+    // saved Firestore document.
     if (draft.splitMethod == SplitMethod.equal) {
-      final total = draft.amountPaise;
-      final half = total ~/ 2;
-      final remainder = total % 2;
-      if (userId == args.currentUserUid) {
-        return half + remainder;
-      } else {
-        return half;
+      final splits = computeSplits(
+        method: SplitMethod.equal,
+        totalPaise: draft.amountPaise,
+        memberUids: <String>[args.currentUserUid, args.otherUserUid],
+      );
+      for (final s in splits) {
+        if (s.userId == userId) return s.sharePaise;
       }
+      return 0;
     }
     final shares = draft.exactShares;
     if (shares.isEmpty) return 0;
@@ -211,8 +215,8 @@ class _SplitMethodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(avtansh): replace with the reusable OBTCategoryChip
-    // (sibling of expense-category chips). Inline rendering for PR #38.
+    // TODO(flutter-dev): replace with the reusable OBTCategoryChip
+    // (sibling of expense-category chips). Inline rendering for FR-EX-01.
     final label = _labelFor(method);
     final chip = ChoiceChip(
       label: Text(label),
