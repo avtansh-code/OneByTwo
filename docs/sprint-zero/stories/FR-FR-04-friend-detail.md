@@ -237,7 +237,7 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 | Flutter Dev | Friend Detail screen, header, timeline, states, provider, settlement repository, expense-repository read-path extension, widget + provider + boundary + PII tests, integration stub |
 | Architect | Review of read-side data flow, invariants 1 and 2 compliance, query and index expectations |
 | QA | Manual smoke matrix, real-time update verification, error state, emulator-backed sign-off |
-| DevOps | Deploy the updated `firestore.indexes.json` (settlements composite extended with `date DESC`) before merge |
+| DevOps | Deploy the updated `firestore.indexes.json` (settlements composite extended with `date DESC` + new `expenses` composite `deleted ASC, date DESC` per review §R1) before merge |
 | Designer | SCR-11 sign-off on header presentation, balance pill clarity, accessibility focus order |
 
 ---
@@ -252,17 +252,25 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
   corruption stays observable.
 - **Extended `ExpenseStore` / `ExpenseRepository`.** A new
   `watchExpensesByFriendship({friendshipId, limit: 5})` is added to the
-  abstract store and the Firestore implementation. The
-  composite index `(deleted ASC, date DESC)` already exists on the
-  `friendships/{fid}/expenses` collection.
+  abstract store and the Firestore implementation. The composite index
+  `(deleted ASC, date DESC)` on `collectionGroup: expenses` is **added
+  in this PR** to `firestore.indexes.json` — it was declared in the
+  schema doc (`docs/design/07-technical/firestore-schema.md` §Composite
+  Indexes "Friendship Expenses by Date" and "Group Expenses by Date")
+  but never deployed because the only previous consumer was the
+  `onExpenseWriteFriendship` trigger which queries
+  `where('deleted', '!=', true)` without an `orderBy` (covered by
+  Firestore's auto-created single-field index). The new client query
+  combines `where('deleted', isEqualTo: false)` with
+  `orderBy('date', descending: true)` and requires the composite.
 - **Settlements composite index extension.** The existing
   `settlements (contextType ASC, contextId ASC)` composite is extended
   to `(contextType ASC, contextId ASC, date DESC)` so the canonical
   query `where contextType + where contextId + orderBy('date', desc)`
   runs without `FAILED_PRECONDITION`. The extension matches the schema
   doc (`docs/design/07-technical/firestore-schema.md` §Composite
-  Indexes). DevOps deploys the updated `firestore.indexes.json` before
-  merge.
+  Indexes "Settlements by Context and Date"). DevOps deploys the
+  updated `firestore.indexes.json` before merge.
 - **`friendDetailProvider`.** New combined provider that fans out three
   reads — the friendship document via `friendshipRepositoryProvider`, the
   per-friendship expense stream, the per-friendship settlement stream —
@@ -375,9 +383,15 @@ this if they discover a stronger reason to inline.
   AC-4 applies to the COMBINED list — settlements count toward the cap
   so that the timeline never grows beyond the "recent activity" budget
   the SCR-11 spec defines.
-- The expense query uses the existing composite index
-  `(deleted ASC, date DESC)` on `friendships/{fid}/expenses` (already
-  in `firestore.indexes.json` since PR #35-era schema doc).
+- The expense query uses the composite index `(deleted ASC, date DESC)`
+  on `collectionGroup: expenses` (`queryScope: COLLECTION` — applies to
+  every `friendships/{fid}/expenses` subcollection). The composite was
+  declared in the schema doc but **never deployed** because the only
+  previous consumer (the `onExpenseWriteFriendship` trigger) queries
+  `where('deleted', '!=', true)` without an `orderBy` and is served by
+  Firestore's auto-created single-field index. This PR is the first
+  consumer that needs the composite, so the index entry is **added in
+  this PR's `firestore.indexes.json` diff** (PR review §R1).
 - The settlement query is
   `where('contextType', ==, 'friendship').where('contextId', ==, fid).orderBy('date', desc).limit(5)`.
   The existing composite index in `firestore.indexes.json` had only
@@ -390,10 +404,11 @@ this if they discover a stronger reason to inline.
 
   **Deviation from prompt scope:** the source prompt explicitly listed
   `firestore.indexes.json` as out of scope. The deviation is necessary
-  for the canonical settlement query to work in production; without it
-  the AC-5 path would crash on any non-empty result set. DevOps deploys
-  the updated index before merge (the deploy is independent of the app
-  bundle so it lands first without breaking the running app).
+  for the canonical settlement query AND the canonical expense query to
+  work in production; without them the AC-4 and AC-5 paths would crash
+  on any non-empty result set. DevOps deploys the updated index file
+  before merge (the deploy is independent of the app bundle so it lands
+  first without breaking the running app).
 
 ### 4. Per-row tap behaviour — no-op
 

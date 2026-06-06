@@ -257,16 +257,12 @@ Stream<FriendDetailState> _friendDetailStream({
   required Stream<List<SettlementDoc>> settlementStream,
   required Future<UserModel?> Function() profileLookup,
 }) {
-  // Cache the resolved profile after the first lookup; if the lookup
-  // fails or returns null we fall back to "Unknown".
-  UserModel? profile;
-  var profileLoaded = false;
-
-  Future<UserModel?> resolveProfile() async {
-    if (profileLoaded) return profile;
-    profileLoaded = true;
-    return profile = await profileLookup();
-  }
+  // Memoise the in-flight profile lookup so concurrent emitIfReady calls
+  // all await the SAME future. Naive boolean+nullable caching would
+  // momentarily render "Unknown" on a second emission scheduled before
+  // the first lookup resolves (race surfaced in PR #42 review §R2).
+  Future<UserModel?>? profileFuture;
+  Future<UserModel?> resolveProfile() => profileFuture ??= profileLookup();
 
   final controller = StreamController<FriendDetailState>();
 
