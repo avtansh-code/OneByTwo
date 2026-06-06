@@ -13,7 +13,8 @@
       "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "contextType", "order": "ASCENDING"},
-        {"fieldPath": "contextId", "order": "ASCENDING"}
+        {"fieldPath": "contextId", "order": "ASCENDING"},
+        {"fieldPath": "date", "order": "DESCENDING"}
       ]
     }
   ],
