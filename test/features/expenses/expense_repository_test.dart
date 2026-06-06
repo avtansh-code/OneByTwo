@@ -15,6 +15,8 @@
 
 // ignore_for_file: cascade_invocations
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
@@ -28,6 +30,11 @@ class FakeExpenseStore implements ExpenseStore {
   String returnId = 'auto-generated-id';
   Object? throwOnAdd;
 
+  final StreamController<List<ExpenseDoc>> watchController =
+      StreamController<List<ExpenseDoc>>.broadcast();
+  String? lastWatchedFriendshipId;
+  int? lastWatchedLimit;
+
   @override
   Future<String> addExpense({
     required String friendshipId,
@@ -40,6 +47,18 @@ class FakeExpenseStore implements ExpenseStore {
     writes.add((path: friendshipId, data: data));
     return returnId;
   }
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    required int limit,
+  }) {
+    lastWatchedFriendshipId = friendshipId;
+    lastWatchedLimit = limit;
+    return watchController.stream;
+  }
+
+  Future<void> close() => watchController.close();
 }
 
 ExpenseDoc _validDoc({
@@ -300,6 +319,112 @@ void main() {
     test('toCreateMap does not include simplifiedBalances', () {
       final map = _validDoc().toCreateMap();
       expect(map.containsKey('simplifiedBalances'), isFalse);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // FR-FR-04 — read-path tests for watchExpensesByFriendship.
+  // ---------------------------------------------------------------------------
+
+  group('ExpenseRepository.watchExpensesByFriendship', () {
+    tearDown(() async {
+      await store.close();
+    });
+
+    ExpenseDoc expense({
+      required String description,
+      required DateTime date,
+      int amountPaise = 1000,
+    }) {
+      return ExpenseDoc(
+        amountPaise: amountPaise,
+        description: description,
+        category: ExpenseCategory.food,
+        date: date,
+        payerId: 'uid-current',
+        splits: const [
+          Split(userId: 'uid-current', sharePaise: 500),
+          Split(userId: 'uid-friend', sharePaise: 500),
+        ],
+        splitMethod: SplitMethod.equal,
+        createdBy: 'uid-current',
+      );
+    }
+
+    test('queries with the supplied friendshipId and limit', () async {
+      repo.watchExpensesByFriendship(
+        friendshipId: 'uid-a_uid-b',
+        limit: 5,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.lastWatchedFriendshipId, 'uid-a_uid-b');
+      expect(store.lastWatchedLimit, 5);
+    });
+
+    test('emits an empty list when the underlying stream emits []', () async {
+      final stream = repo.watchExpensesByFriendship(
+        friendshipId: 'uid-a_uid-b',
+        limit: 5,
+      );
+      final emissions = <List<ExpenseDoc>>[];
+      final sub = stream.listen(emissions.add);
+
+      store.watchController.add(const []);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, hasLength(1));
+      expect(emissions.first, isEmpty);
+
+      await sub.cancel();
+    });
+
+    test('preserves the underlying ordering (date desc)', () async {
+      final stream = repo.watchExpensesByFriendship(
+        friendshipId: 'uid-a_uid-b',
+        limit: 5,
+      );
+      final emissions = <List<ExpenseDoc>>[];
+      final sub = stream.listen(emissions.add);
+
+      store.watchController.add([
+        expense(description: 'Newest', date: DateTime(2026, 6, 5)),
+        expense(description: 'Middle', date: DateTime(2026, 6, 3)),
+        expense(description: 'Oldest', date: DateTime(2026, 6, 1)),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions.last.map((e) => e.description).toList(), [
+        'Newest',
+        'Middle',
+        'Oldest',
+      ]);
+
+      await sub.cancel();
+    });
+
+    test('propagates stream errors as AsyncError downstream', () async {
+      final stream = repo.watchExpensesByFriendship(
+        friendshipId: 'uid-a_uid-b',
+        limit: 5,
+      );
+      final errors = <Object>[];
+      final sub = stream.listen((_) {}, onError: errors.add);
+
+      store.watchController.addError(Exception('Firestore boom'));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(errors, hasLength(1));
+      expect(errors.first, isException);
+
+      await sub.cancel();
+    });
+
+    test('default limit is 5 when caller omits it', () async {
+      repo.watchExpensesByFriendship(friendshipId: 'uid-a_uid-b');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.lastWatchedLimit, 5);
     });
   });
 }
