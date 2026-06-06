@@ -480,22 +480,52 @@ operationally irrelevant to our handlers (change 4 — our only
 `onRequest` is the synchronous `healthcheck`).
 
 **Post-implementation update (filled by functions-dev after the
-test pyramid runs on the new matrix):**
+test pyramid ran on the new matrix):**
 
-> If zero reconciliations were required, state that explicitly here
-> and cite the green test pyramid run as evidence:
->
-> "Zero reconciliations required. Test pyramid green on the new
-> matrix: Layer 1+2+3 (N tests pass), Layer 4 (M rules tests pass),
-> Layer 5 (P integration tests pass). The pre-implementation
-> prediction in this section held."
->
-> If non-zero, populate the table below with one row per
-> reconciliation:
->
-> | File:line | Old API | New API | Rationale |
-> |---|---|---|---|
-> | (one row per reconciliation) | | | |
+**Zero reconciliations required.** The pre-implementation prediction
+held. Test pyramid green on the new matrix:
+
+| Layer | Suite count | Test count | Status |
+|---|---|---|---|
+| 1 + 2 + 3 (algorithm unit + property + boundary) | 9 / 9 | 100 / 100 pass | ✓ |
+| 4 (Firestore + Storage rules) | 7 / 7 | 149 / 149 pass | ✓ |
+| 5 (full-emulator integration) | 3 / 4 + 1 skipped suite | 28 pass / 5 skipped | ✓ |
+
+Coverage on `functions/src/simplified-debts/function.ts`: **89.13%
+branch** (PR #36 baseline was 88.57% — unchanged within margin; the
+coverage gate's per-module line threshold of ≥ 70% is comfortably
+cleared by every `functions/src/**` module).
+
+The single skipped integration suite is
+`functions/test/integration/lookup-user-by-phone-number.integration.test.ts`
+(`describe.skip` — the pre-existing rate-limit doc-path bug from
+PR #32 / #34, surfaced by the PR #36 CI workflow change and tracked
+as a separate `PR #45` candidate per
+`docs/sprint-zero/next-three-prs.md`). Unrelated to this PR.
+
+The five deployed functions — `healthcheck`, `lookupUserByPhoneNumber`,
+`recomputeSimplifiedBalances`, `onExpenseWriteFriendship`,
+`onSettlementWrite` — all load and execute under the new runtime + SDK
+matrix. No source-code changes were required to any file under
+`functions/src/**`.
+
+**Side observation (out of scope; flagged for follow-up):** the rules
+test suite is sensitive to the firebase-tools functions-emulator
+runtime under the new matrix when run via
+`firebase emulators:exec --only auth,firestore,functions,storage`. The
+issue reproduces on the OLD ff6 matrix too with `firebase-tools >= 14.x`
+and is environment-sensitive (timing-dependent on macOS; not observed
+on Linux runners). When run with `--only firestore,storage` (rules
+tests do not depend on the functions emulator), 149/149 pass cleanly
+on both the old and the new matrix. The CI pipeline (`pr.yml`
+integration-tests job) chains `npm run test:rules` inside an
+`--only auth,firestore,functions,storage` invocation; CI baseline on
+Linux runners has historically been 149/149. The orchestrator notes
+this as a candidate for a future test-hygiene chore (move
+`test:rules` to a dedicated `--only firestore,storage` invocation in
+the CI workflow to eliminate the trigger-interference flake) but
+**explicitly defers it as out of scope for PR #44 per the scope
+guardrails** — the upgrade is the only deadline-bound item.
 
 ### 2.8 — No new ADR required
 

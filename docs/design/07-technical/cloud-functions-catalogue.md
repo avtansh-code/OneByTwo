@@ -3,7 +3,7 @@
 > **Document version:** 1.0
 > **Status:** Draft
 > **Region:** All functions are deployed to `asia-south1` (Mumbai) per SRS section 5.2.
-> **Runtime:** Node 20, TypeScript, strict mode enabled.
+> **Runtime:** Node 22, TypeScript, strict mode enabled. (Upgraded from Node 20 in PR #44 ahead of the 2026-10-31 Cloud Functions Gen 2 decommission cutoff; `firebase-functions` SDK upgraded to `^7.0.0` in the same PR.)
 > **Authoritative source:** `docs/OneByTwo_Requirements_Spec.md` v1.1.
 
 ---
