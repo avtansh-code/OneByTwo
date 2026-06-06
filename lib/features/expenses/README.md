@@ -61,16 +61,50 @@ presentation/
 
 ## Deferred extension points
 
-- **Step 3 (receipt upload)** — FR-EX-05 (`ExpenseDoc.receiptUrl` is wired but
-  always `null` in PR #38).
-- **Notes field** — Step 1 has no notes input yet (`has_notes` always `false`
-  in `expense_step1_completed` / `expense_save_succeeded`).
-- **Unequal / percentage / shares splits** — chips visible but disabled with
-  "Coming soon" tooltips.
-- **Group context** — only friendship context is supported in PR #38;
-  `context_type` telemetry param is `'friendship'`.
-- **`recurringRule`** — extension-point lock per `ARCH-EXT-06` (not in the
-  write shape).
+- **Step 3 (receipt upload)** — FR-EX-05. `ExpenseDoc.receiptUrl` is wired
+  but always `null` in PR #38. Candidate for PR #39 or PR #40 per
+  `docs/sprint-zero/next-three-prs.md`.
+- **Notes field** — Step 1 has no notes input yet (`has_notes` always
+  `false` in `expense_step1_completed` / `expense_save_succeeded`).
+- **Unequal / percentage / shares splits** — chips visible but disabled
+  with "Coming soon" tooltips. Lift the three locks in `split_method.dart`
+  when each method ships.
+- **Edit / delete expense** — FR-EX-06. The PR #38 bottom-sheet scaffold,
+  `split_calculator`, and `ExpenseRepository` write path are reusable for
+  edit. Soft-delete is already accepted by PR #36's trigger and PR #37's
+  rules. Candidate for PR #39 or PR #40.
+- **Activity feed** — FR-EX-07. Chronological list of expenses and
+  settlements across all friendships and groups. Reads the same
+  `friendships/{fid}/expenses/{eid}` documents this feature writes; no
+  new write surface required.
+- **Group context** — FR-EX-02. Only friendship context is supported in
+  PR #38; `context_type` telemetry param is always `'friendship'`. Pairs
+  with the deferred `onExpenseWriteGroup` trigger (PR #36 Architect
+  Notes §2).
+- **Multi-context entry point** — the Add Expense FAB in PR #38 lives on
+  the placeholder Friend Detail screen only. The Home dashboard
+  (FR-HD-01) and Group Detail (FR-GR-04) FABs will invoke the same
+  bottom-sheet sequence with the relevant `context_type` once those
+  surfaces ship.
+- **`recurringRule`** — extension-point lock per `ARCH-EXT-06` (not in
+  the write shape).
+
+## Hand-off seams
+
+- **PR #35 friends list (upstream read side):** the post-expense net
+  balance re-renders automatically. This feature triggers no manual
+  refresh; `friends_list_screen.dart` streams `simplifiedBalances`
+  directly via `core/balances/net_balance.dart` and formats with
+  `core/formatters/inr_formatter.dart#formatInrFromPaise`.
+- **PR #35 Friend Detail placeholder (upstream UI entry):** the Add
+  Expense FAB is wired on `FriendDetailPlaceholderScreen`. FR-FR-04
+  (Friend Detail full screen) will replace the placeholder; the FAB
+  call site is preserved.
+- **PR #36 `onExpenseWriteFriendship` (downstream write side):** every
+  write from `ExpenseRepository` to `friendships/{fid}/expenses/{eid}`
+  invokes the trigger. The trigger is the sole writer of
+  `simplifiedBalances` and `lastActivityAt`; this feature writes
+  neither.
 
 ## Invariants honoured
 
