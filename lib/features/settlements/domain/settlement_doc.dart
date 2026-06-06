@@ -146,6 +146,45 @@ class SettlementDoc {
     );
   }
 
+  /// Serialises this document to the Firestore create-map shape that
+  /// satisfies every predicate in `firestore.rules` lines 379–489 —
+  /// `hasAllRequiredKeys`, `hasOnlyKnownKeys`, `isValidShape`,
+  /// `isValidExtensionPointLocks`, and `isValidSettlementCreate`.
+  ///
+  /// The shape mirrors `ExpenseDoc.toCreateMap()` (PR #38) and is the
+  /// boundary at which the strict-create discipline is enforced.
+  ///
+  /// Field rationale:
+  ///
+  /// - `createdAt` uses [FieldValue.serverTimestamp] so the rules'
+  ///   `createdAt == request.time` predicate is satisfied. The
+  ///   instance's [createdAt] field is ignored on create (it is set
+  ///   by the server).
+  /// - `method`, `currency`, `verificationStatus` are locked to
+  ///   `'manual'` / `'INR'` / `'unverified'` per ARCH-EXT-01 /
+  ///   ARCH-EXT-02 / ARCH-EXT-06 — the rules' `isValidExtensionPointLocks`
+  ///   predicate rejects any other value.
+  /// - `deleted` is `false` on create (soft-delete is a separate
+  ///   update path, see `firestore.rules` `isValidSettlementUpdate`).
+  /// - `note` is always present — `null` when the user supplied no
+  ///   note (§2.3 canonical form) or a non-empty string otherwise.
+  Map<String, dynamic> toCreateMap() {
+    return <String, dynamic>{
+      'fromUserId': fromUserId,
+      'toUserId': toUserId,
+      'amountPaise': amountPaise,
+      'contextType': contextType,
+      'contextId': contextId,
+      'date': Timestamp.fromDate(date),
+      'note': note,
+      'method': method,
+      'verificationStatus': verificationStatus,
+      'currency': currency,
+      'createdAt': FieldValue.serverTimestamp(),
+      'deleted': deleted,
+    };
+  }
+
   /// Auto-generated Firestore document ID.
   final String settlementId;
 
