@@ -32,7 +32,15 @@ import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 class FakeFriendshipStore implements FriendshipStore {
   final Map<String, Map<String, dynamic>> documents = {};
-  Future<Map<String, dynamic>?> Function(String path)? onGet;
+  final StreamController<FriendshipDoc?> _watchController =
+      StreamController<FriendshipDoc?>.broadcast();
+  Object? watchError;
+  String? lastWatchedFriendshipId;
+
+  void emit(FriendshipDoc? doc) => _watchController.add(doc);
+  void emitError(Object error) => _watchController.addError(error);
+
+  Future<void> close() => _watchController.close();
 
   @override
   Future<void> set(String path, Map<String, dynamic> data) async {
@@ -43,14 +51,35 @@ class FakeFriendshipStore implements FriendshipStore {
   Future<bool> exists(String path) async => documents.containsKey(path);
 
   @override
-  Future<Map<String, dynamic>?> get(String path) async {
-    if (onGet != null) return onGet!(path);
-    return documents[path];
-  }
+  Future<Map<String, dynamic>?> get(String path) async => documents[path];
 
   @override
   Stream<List<FriendshipDoc>> watchByMember(String userId) {
     throw UnimplementedError('not exercised in friend_detail_provider tests');
+  }
+
+  @override
+  Stream<FriendshipDoc?> watchById(String friendshipId) {
+    lastWatchedFriendshipId = friendshipId;
+    if (watchError != null) {
+      // ignore: only_throw_errors
+      return Stream<FriendshipDoc?>.error(watchError!);
+    }
+    // Synthesise an initial emission from the seeded documents map.
+    if (documents.containsKey(friendshipId)) {
+      final data = documents[friendshipId]!;
+      final doc = FriendshipDoc.fromFirestore(id: friendshipId, data: data);
+      return Stream<FriendshipDoc?>.value(doc)
+          .asyncExpand((first) async* {
+        yield first;
+        yield* _watchController.stream;
+      });
+    }
+    // No seeded doc — emit null followed by any explicit emits.
+    return Stream<FriendshipDoc?>.value(null).asyncExpand((first) async* {
+      yield first;
+      yield* _watchController.stream;
+    });
   }
 }
 
@@ -192,6 +221,7 @@ void main() {
 
   tearDown(() async {
     container.dispose();
+    await friendshipStore.close();
     await expenseStore.controller.close();
     await settlementStore.controller.close();
   });
@@ -430,8 +460,9 @@ void main() {
       expect(state.header.displayName, 'Unknown');
     });
 
-    test('emits error when the friendship doc lookup throws', () async {
-      friendshipStore.onGet = (path) async => throw Exception('boom');
+    test('emits error when the friendship doc stream emits an error',
+        () async {
+      friendshipStore.watchError = Exception('boom');
       profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
 
       final sub = container.listen(
@@ -490,8 +521,9 @@ void main() {
       expect(sub.read(), isA<AsyncError<FriendDetailState>>());
     });
 
-    test('emits error when the friendship document does not exist', () async {
-      // friendshipStore.documents is empty — get returns null.
+    test('emits error when the friendship document does not exist',
+        () async {
+      // friendshipStore.documents is empty — watchById emits null.
       profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
 
       final sub = container.listen(
@@ -503,6 +535,53 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(sub.read(), isA<AsyncError<FriendDetailState>>());
+    });
+
+    test('balance pill updates when the friendship doc emits a new '
+        'simplifiedBalances (AC-9 real-time behaviour)', () async {
+      friendshipStore.documents['uid-friend_uid-me'] = {
+        'memberIds': const ['uid-friend', 'uid-me'],
+        'simplifiedBalances': const <String, dynamic>{},
+        'lastActivityAt': null,
+      };
+      profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
+
+      final sub = container.listen(
+        friendDetailProvider(_args),
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      expenseStore.controller.add(const []);
+      settlementStore.controller.add(const []);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      var state = sub.read().value;
+      expect(state, isA<FriendDetailStateEmpty>());
+      expect((state! as FriendDetailStateEmpty).header.netBalancePaise, 0);
+
+      // Server trigger writes a new simplifiedBalances after an
+      // expense is added: the friend now owes the current user ₹50.
+      friendshipStore.emit(
+        const FriendshipDoc(
+          friendshipId: 'uid-friend_uid-me',
+          memberIds: ['uid-friend', 'uid-me'],
+          simplifiedBalances: {
+            'uid-friend': {'uid-me': 5000},
+          },
+          lastActivityAt: null,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      state = sub.read().value;
+      expect(state, isA<FriendDetailStateEmpty>());
+      final updated = state! as FriendDetailStateEmpty;
+      expect(updated.header.netBalancePaise, 5000);
+      expect(updated.header.balanceState, BalanceState.owed);
     });
   });
 }

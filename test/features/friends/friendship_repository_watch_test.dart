@@ -50,6 +50,10 @@ class FakeFriendshipStore implements FriendshipStore {
     return _controller.stream;
   }
 
+  @override
+  Stream<FriendshipDoc?> watchById(String friendshipId) =>
+      const Stream<FriendshipDoc?>.empty();
+
   Future<void> close() => _controller.close();
 }
 
