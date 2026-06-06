@@ -1399,3 +1399,219 @@ emitted for the no-op (Firebase Analytics does not record events that
 do not fire, and adding a `fab_tapped_unwired` would breach the
 "events fire on real user-visible state changes" rule from the
 telemetry plan section 3 privacy rules).
+
+---
+
+## QA Sign-Off
+
+**Sign-off status:** APPROVED WITH CAVEATS
+
+**Signed off by:** OneByTwo QA agent
+**Date:** 2026-06-06
+**Branch:** `feat/fr-ex-01-expense-creation`
+**HEAD at sign-off:** `684cd0963ee22022fd3a48bef0c8bd49be7b95b9` (latest functional commit: `4b8b95f75d4fe29d3d7d1df403c24ad5e2eca41c`; subsequent docs-only typo fix: `684cd09`)
+**Pre-verification by orchestrator (re-verified by QA):**
+- `flutter analyze --fatal-infos` → clean (No issues found! 13.1s).
+- `flutter test` → 581 passed / 17 skipped (the 17 skipped are integration
+  tests gated on the Firebase Emulator Suite).
+- Coverage on `lib/features/expenses/**` = 90.3% (gate ≥70%);
+  `add_expense_controller.dart` = 97.8%; `split_calculator.dart` = 100%
+  (per-target ≥80%).
+- Boundary-contract greps return 0 violations against `.dart` non-comment
+  lines (the only hits are inverse-documentation in `README.md` and a
+  doc-comment in `expense_repository.dart` describing what NOT to do).
+
+### Environment constraint
+
+The CLI environment used for this sign-off has no device, simulator, or
+emulator. Live execution of the 12-step manual smoke matrix from
+`docs/copilot_prompts/sprint_2/7.md` Phase 5 step 7 is therefore not
+possible here. Per the brief, the substitute is a strict 1:1 mapping of
+each smoke step to the AC(s) it verifies and to the test file(s) that
+exercise(s) the same behaviour at unit / widget / integration-stub level.
+The human reviewer is expected to re-execute the matrix on a physical
+device or simulator at PR review time before merge.
+
+### DoD checklist (story section "Definition of Done", lines 578–635)
+
+| # | DoD item | Status | Evidence |
+|---|---|---|---|
+| 1 | `flutter analyze --fatal-infos` is clean | PASS | Pre-verified by orchestrator: "No issues found! 13.1s" |
+| 2 | `flutter test` green across all new and existing tests (widget, controller, repository, boundary-contract grep, PII-leak) | PASS | Pre-verified: 581 passed / 17 skipped. The 17 skipped are integration-test stubs gated on the emulator suite |
+| 3 | Integration test `test/integration/expenses/expense_creation_flow_test.dart` green against the emulator suite (AC-14) | DEFERRED | 3 stubs `skip: 'Requires emulator suite'` with full TODO outlines. CI job `Integration Tests (Emulator Suite)` is the production gate |
+| 4 | `firebase deploy --only firestore:rules` | N/A | No rules change in this PR (correctly marked "NOT required" in the story) |
+| 5 | `firebase deploy --only functions` | N/A | No functions change in this PR (correctly marked "NOT required" in the story) |
+| 6 | Coverage gate per SRS §5.7 (`lib/features/expenses/**` ≥70%; controller and splitter ≥80%; `lib/core/**` unchanged; overall ≥50%) | PASS | Pre-verified: feature module 90.3%; controller 97.8%; splitter 100% |
+| 7 | Boundary contracts pass (no `.toDouble()`, `/100`, `simplifiedBalances` in `lib/features/expenses/`) | PASS | `test/features/expenses/expense_creation_boundary_contract_test.dart` greps `.dart` non-comment lines and returns 0 violations. The 4 hits in `README.md` are inverse-documentation; the 1 hit in `expense_repository.dart:66` is a `///` doc-comment |
+| 8 | Architect Notes appended with §2.0 chore #25 decision FIRST, followed by §2.1–§2.10 | PASS | Story file lines 789–1402: §2.0 (chore #25 Camp B ratification) is the first sub-section of Architect Notes; §2.1–§2.10 follow per the source prompt's Phase 2 outline |
+| 9 | `Closes #25` appears in the PR body | PENDING | Orchestrator adds at PR-open time. Architect's telemetry-plan commit `966af82` subject already contains `(Closes #25)` |
+| 10 | Telemetry plan updated with Camp B chore #25 names (sections 1.3, 2.1, section 6 funnel) | PASS | `docs/design/07-technical/telemetry-plan.md` lines 24, 92, 173 carry `expense_save_succeeded` / `expense_save_failed`; 0 hits for legacy `expense_added` / `expense_add_failed` |
+| 11 | `docs/sprint-zero/sprint-2-plan.md` updated (PR #38 status Merged, 5 SP velocity, Critical Constraint C-1 RESOLVED with chosen names + §2.0 citation) | PASS | Plan now reads "Last updated: PR #38 (FR-EX-01 expense creation UI + chore #25 closure)"; row for PR #38 marked Merged; chore #25 closure note cites Camp B names and Architect Notes §2.0 |
+| 12 | `docs/sprint-zero/next-three-prs.md` rolled to PR #39 candidate | DEFERRED | File does not exist on branch as at HEAD `684cd09`. PM Phase 7 is committing this in parallel; please verify the file appears before merge |
+| 13 | `docs/audits/sprint-1/07-bucket-b-burndown.md` marks SR8 (expense event naming) CLOSED with Architect Notes citation | DEFERRED | File still says "Last updated: PR #36"; SR8 still listed at line 117 as open "Before first expense PR". PM Phase 7 is committing this in parallel; please verify before merge |
+| 14 | `lib/features/expenses/README.md` populated with implemented scope + deferred items | PASS | 114-line README documenting scope, integration, telemetry (Camp B names), invariants, and deferred work (FR-EX-02/05/06/07; three split methods) |
+| 15 | QA reviewed and verified all 18 acceptance criteria including the negative cases AC-12, AC-15, AC-16, AC-17, AC-18 | PASS | See "18 Acceptance Criteria walk" table below |
+| 16 | Telemetry events firing correctly; PII-leak verified (AC-17) | PASS | `test/features/expenses/expense_telemetry_pii_leak_test.dart` (305 lines) drives the controller through every state with PII-flavoured IDs and asserts no raw fragment appears in any event name, parameter key, or parameter value across success + failure flows. Manual Firebase Analytics DebugView inspection deferred to PR review |
+| 17 | Accessibility verified — semantic labels per SCR-19 / SCR-20; VoiceOver + TalkBack walks | DEFERRED | Requires device. Re-execute at PR review. Semantic labels are present in source per Architect Notes §2.7 |
+| 18 | Dark mode checked on Step 1 + Step 2 (WCAG AA) | DEFERRED | Requires device. Re-execute at PR review |
+| 19 | No open S1 or S2 bugs | PASS | No S1/S2 bugs identified during this review. Two S4 (minor) items surfaced as follow-ups; see Caveats |
+
+**Totals:** PASS = 11; N/A = 2; DEFERRED = 5; PENDING = 1; FAIL = 0.
+
+### Invariant compliance (DoD §7)
+
+| Invariant | Status | Citations |
+|---|---|---|
+| Inv-1 (money is integer paise; no `double`, no `.toDouble()`, no `/100`) | PASS | `test/features/expenses/expense_creation_boundary_contract_test.dart` greps `lib/features/expenses/**/*.dart` for `\.toDouble\(\)`, `/100\b`, `(double `, skipping comment lines, and asserts 0 violations. The splitter is integer-only (`lib/features/expenses/domain/split_calculator.dart` lines 73–79 use `~/` and `%`). Sum-preservation is asserted across 500 random samples in `test/features/expenses/split_calculator_property_test.dart`. The only `lib/features/expenses/` hits are 2 inverse-documentation lines in `README.md` |
+| Inv-2 (`simplifiedBalances` never written from client; this feature reads only) | PASS | `test/features/expenses/expense_creation_boundary_contract_test.dart` greps `lib/features/expenses/**/*.dart` for `simplifiedBalances` on non-comment lines and asserts 0 violations. The 4 hits are: 3 in `README.md` (inverse documentation), 1 in `expense_repository.dart:66` (`///` doc-comment stating "Never touches `simplifiedBalances`") |
+| Inv-3 (no platform-specific share-target imports) | N/A | No share / share-target functionality in PR #38 |
+| Inv-4 (no second Firebase project) | PASS | `.firebaserc` declares a single `"default": "onebytwo-avtanshgupta"` project; no additional project IDs introduced |
+
+### 18 Acceptance Criteria walk
+
+| AC | Status | Evidence (test file or design citation) |
+|---|---|---|
+| AC-1 | PASS | `lib/features/friends/presentation/friend_detail_placeholder_screen.dart` lines 78–98 wire the FAB to `_openAddExpenseSheet` → `showModalBottomSheet(AddExpenseBottomSheet)`. Bottom-sheet opening asserted in `test/features/expenses/add_expense_bottom_sheet_widget_test.dart`. Smoke step 3 covers the device-level FAB tap |
+| AC-2 | PASS | `lib/core/widgets/inputs/obt_amount_input.dart` line 60: `_kMaxPaise = 999999999` (= ₹99,99,999.99). Contract tests in `test/core/widgets/inputs/obt_amount_input_test.dart` (235 lines) cover paise emission, cap enforcement, non-positive refusal, multiple-decimal refusal, and 2-fractional-digit clamp |
+| AC-3 | PASS | Description trim/length validation asserted in `test/features/expenses/add_expense_controller_test.dart` and `add_expense_bottom_sheet_widget_test.dart`. Inline error for >100 chars asserted at widget level |
+| AC-4 | PASS | Date-picker default-to-today and forward-only range asserted in `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` |
+| AC-5 | PASS | 9-category dropdown with `food` default asserted in `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` |
+| AC-6 | PASS | `expense_step1_started`, `expense_step1_completed`, `expense_step2_started` sequence asserted in `test/features/expenses/add_expense_controller_test.dart` with hashed `friendship_id_hash`. Note: AC-6's parenthetical lists 6 amount buckets but the authority phrase ("per the bucketing table in section 2.1 of the telemetry plan") binds the implementation to the ratified 4-bucket table (`under_500`, `500_5000`, `5000_25000`, `over_25000`). Implementation honours the authority table; AC parenthetical is documentation drift, not a defect |
+| AC-7 | PASS | Step 2 layout (split-method chips, payer dropdown, save button) asserted in `test/features/expenses/add_expense_bottom_sheet_widget_test.dart`. Payer dropdown shows "You" / "Friend" per Architect Notes §2.5 (verified in `lib/features/expenses/presentation/steps/step_2_split_and_payer.dart`) |
+| AC-8 | PASS | Equal-split default and ₹50.00 / ₹50.00 read-only display asserted in `test/features/expenses/split_calculator_test.dart` and at widget level |
+| AC-9 | PASS | Sum-preservation across 500 random samples per split method asserted in `test/features/expenses/split_calculator_property_test.dart` |
+| AC-10 | PASS | Splitter is integer-only by construction (`lib/features/expenses/domain/split_calculator.dart` uses `~/` and `%`). Enforced by the boundary-contract grep test |
+| AC-11 | PASS | Repository write shape asserted in `test/features/expenses/expense_repository_test.dart` (302 lines): 14 required fields per Architect Notes §2.4; `source: 'manual'`, `currency: 'INR'`; `recurringRule` omitted per ARCH-EXT-03. Save → snackbar → dismiss asserted in `add_expense_bottom_sheet_widget_test.dart` |
+| AC-12 | PASS | `FirebaseException` → `ExpenseCreateError` mapping (`permissionDenied` / `network` / `unknown`) asserted in `test/features/expenses/expense_repository_test.dart`. Failure-state telemetry (`expense_save_failed`) asserted in `add_expense_controller_test.dart`. Failure snackbar ("Couldn't add the expense. Try again.") asserted in `add_expense_bottom_sheet_widget_test.dart` |
+| AC-13 | PASS (with note) | `add_expense_controller.discard()` fires `expense_step1_abandoned` (step 1 with data), `expense_step2_abandoned` (step 2), no event on empty step 1 — asserted in `test/features/expenses/add_expense_controller_test.dart`. Implementation does NOT show a "Discard / Keep editing" confirmation snackbar — consistent with SCR-19 Open Question #1 ("the current spec says no") and AC-13's explicit escape clause "If the SCR-19 / SCR-20 screen spec mandates an explicit confirm dialog rather than the warning snackbar, the screen spec wins" |
+| AC-14 | DEFERRED | `test/integration/expenses/expense_creation_flow_test.dart` has 3 `test(... skip: 'Requires emulator suite')` stubs with full TODO outlines. The CI `Integration Tests (Emulator Suite)` job is the production gate (per orchestrator brief and PR #30 enforcement) |
+| AC-15 | PASS | `test/features/expenses/expense_creation_boundary_contract_test.dart` enforces the Inv-1 grep contract on `.dart` non-comment lines |
+| AC-16 | PASS | Same boundary-contract test enforces the Inv-2 grep contract on `.dart` non-comment lines |
+| AC-17 | PASS | `test/features/expenses/expense_telemetry_pii_leak_test.dart` (305 lines) drives the controller through every state with PII-flavoured `friendshipId = 'uid-priyalakshmi_uid-rahulagarwal'` and `expenseId = 'realExpenseId123'`. Asserts (a) no raw PII fragment appears in any event name, parameter key, or parameter value across both success and failure flows; (b) `friendship_id_hash`, `expense_id_hash` carry the SHA-256-truncated form from `hashFriendshipId()` / `hashId()` |
+| AC-18 | PASS | Architect Notes §2.0 (story file lines 789–846) records Camp B ratification. Architect's telemetry-plan commit `966af827f6875a8e0953eb153c43aedbcfe17775` subject is `docs(telemetry): adopt chore #25 expense event naming convention (Closes #25)`. Camp B names propagate to `lib/features/expenses/application/expense_telemetry.dart` (`saveSucceeded` / `saveFailed` constants), to the telemetry plan (sections 1.1, 1.3, 1.6, 2.1, section 6), to all tests that assert event names, and to `lib/features/expenses/README.md`. Zero legacy `expense_added` / `expense_add_failed` references in `lib/` and `test/` |
+
+**18-AC totals:** PASS = 17 (including AC-13 PASS-with-note); DEFERRED = 1 (AC-14 to CI emulator job); FAIL = 0.
+
+### Manual smoke matrix mapping
+
+The 12 steps below are verbatim from `docs/copilot_prompts/sprint_2/7.md`
+Phase 5 step 7 (orchestrator brief called this a "10-step matrix"; the
+prompt is 12 bullets). Live execution requires emulator + device and is
+NOT possible in the CLI sign-off environment; the test-file mapping
+below substitutes per the brief.
+
+| # | Smoke step (verbatim) | AC(s) covered | Test file evidence | Status |
+|---|---|---|---|---|
+| 1 | Start emulators (`scripts/dev/start-emulators.sh`) | (setup) | n/a — environment setup for AC-14 round-trip | MANUAL (requires emulator) |
+| 2 | Sign in as user A via the emulator Auth UI; seed user B and a friendship A↔B via the emulator Firestore UI (or a one-off admin SDK script) | (setup) | n/a — seed for AC-14 round-trip | MANUAL (requires emulator) |
+| 3 | Open the app → Friends tab → tap into the friend B → Friend Detail placeholder shows the FAB. Tap FAB | AC-1 | `lib/features/friends/presentation/friend_detail_placeholder_screen.dart` lines 78–98 + `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` + integration stub | MANUAL (requires emulator + device) |
+| 4 | The Add Expense bottom sheet opens at Step 1. Type `100` (rupees) in the amount field — verify the live preview shows `₹100.00`. Type description "Dinner". Select category `food`. Leave date as today. Tap Next | AC-2, AC-3, AC-4, AC-5, AC-6 | `test/core/widgets/inputs/obt_amount_input_test.dart` (paise + live preview) + `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` (description / category / date) + `test/features/expenses/add_expense_controller_test.dart` (Step 1 telemetry sequence) | MANUAL (requires emulator + device) |
+| 5 | Step 2 opens with `equal` selected by default. Verify both split rows show ₹50.00 (read-only). The disabled chips show "Coming soon". Payer dropdown shows "You" by default | AC-7, AC-8 | `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` (Step 2 layout) + `test/features/expenses/split_calculator_test.dart` (equal split = ₹50/₹50) | MANUAL (requires emulator + device) |
+| 6 | Tap Save. Verify the loading spinner; verify the snackbar "Expense added"; verify the sheet dismisses | AC-11 | `test/features/expenses/expense_repository_test.dart` (write shape) + `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` (snackbar + dismiss) + `test/features/expenses/add_expense_controller_test.dart` (state transitions) | MANUAL (requires emulator + device) |
+| 7 | Back on the Friends list, verify the row for B now reads "owes you ₹50.00" (this is the round-trip — the trigger fired, `simplifiedBalances` updated, the snapshot stream emitted, the row re-rendered). Verify the row moved to the top (because `lastActivityAt` advanced) | AC-14 | `test/integration/expenses/expense_creation_flow_test.dart` (3 stubs, all `skip: 'Requires emulator suite'`; CI job is the gate) | MANUAL (requires emulator) — CI integration job is the production gate |
+| 8 | Switch the split method to `exact` mid-flow: enter ₹60 + ₹50 → verify the `expense_split_validation_failed` event fires; correct to ₹50 + ₹50 → verify Save activates | (deferred scope) | The `exact` method is DEFERRED to FR-EX-03; only `equal` is wired in PR #38. Disabled-chip "Coming soon" affordance asserted in `test/features/expenses/add_expense_bottom_sheet_widget_test.dart`. Reviewer should verify the chip is disabled in place of testing the validation flow | MANUAL — out of PR #38 scope; verify "Coming soon" chip is disabled |
+| 9 | Attempt to type a description >100 chars → verify the inline error | AC-3 | `test/features/expenses/add_expense_controller_test.dart` (length validation) + `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` (inline error widget) | MANUAL (requires emulator + device) |
+| 10 | Attempt to enter a negative amount → verify the amount input refuses non-positive input | AC-2 | `test/core/widgets/inputs/obt_amount_input_test.dart` (non-positive refusal) | MANUAL (requires emulator + device) |
+| 11 | Set the device to airplane mode (or kill the emulator's Firestore) → tap Save → verify the failure snackbar; restore connectivity → tap Save → verify success and the round-trip closes | AC-12, AC-14 | `test/features/expenses/expense_repository_test.dart` (network → `ExpenseCreateError.network`) + `test/features/expenses/add_expense_bottom_sheet_widget_test.dart` (failure snackbar) + integration stub (round-trip) | MANUAL (requires emulator + device) |
+| 12 | Open the bottom sheet, enter data, tap back → verify the discard confirmation | AC-13 (with note) | Implementation intentionally does NOT show a confirmation, per SCR-19 Open Question #1 ("the current spec says no") and AC-13's "screen spec wins" escape clause. Abandonment telemetry (`expense_step1_abandoned` / `expense_step2_abandoned`) asserted in `test/features/expenses/add_expense_controller_test.dart`. Reviewer should observe direct dismiss with the abandonment event firing in DebugView | MANUAL (requires emulator + device) — observe direct dismiss, not confirmation |
+
+### Caveats / follow-ups
+
+1. **`Closes #25` in PR body** — PENDING. The orchestrator adds this when
+   opening the PR. The architect's telemetry-plan commit `966af82`
+   subject already carries `(Closes #25)`, so issue #25 will auto-close
+   on merge regardless.
+2. **PM Phase 7 (DoD §8 cont.) — `docs/sprint-zero/next-three-prs.md`** —
+   DEFERRED. File does not exist on branch as at HEAD `684cd09`. PM is
+   committing this in parallel. Please verify the file appears before
+   merge.
+3. **PM Phase 7 (DoD §8 cont.) — `docs/audits/sprint-1/07-bucket-b-burndown.md`** —
+   DEFERRED. File still says "Last updated: PR #36"; SR8 still open
+   "Before first expense PR" at line 117. PM is committing this in
+   parallel. Please verify SR8 is marked CLOSED with Architect Notes §2.0
+   citation before merge.
+4. **AC-14 integration test** — `skip: 'Requires emulator suite'` on all
+   3 stubs. CI `Integration Tests (Emulator Suite)` job is the gate.
+5. **Manual smoke matrix re-execution** — required on a physical device
+   or simulator at PR review. The CLI sign-off environment has no
+   device.
+6. **Smoke step 8 (`exact` split mid-flow)** — out of PR #38 scope; only
+   `equal` is wired. Reviewer should verify the disabled "Coming soon"
+   chip in place of executing the `exact` validation flow. FR-EX-03 will
+   deliver the remaining split methods.
+7. **Smoke step 12 (discard confirmation)** — implementation
+   intentionally does NOT show a confirmation snackbar per SCR-19's
+   "current spec says no" default and AC-13's "screen spec wins" escape
+   clause. Reviewer should observe direct dismiss with abandonment
+   telemetry (`expense_step1_abandoned` / `expense_step2_abandoned`).
+8. **Documentation drift — legacy event names in design docs** (S4
+   minor). 6 stale `expense_added` / `expense_add_failed` references
+   remain in 3 design docs outside Architect Notes §2.0's stated
+   propagation scope:
+   - `docs/design/03-architecture/non-functional-design.md:399`
+   - `docs/design/06-screen-specs/06-08-home-and-search.md:152, 517, 519`
+   - `docs/design/06-screen-specs/19-22-expenses.md:360, 386`
+   Recommend a follow-up docs-cleanup PR. Not a blocker because §2.0's
+   propagation scope was explicitly limited to telemetry-plan + code +
+   tests.
+9. **Documentation drift — splitter test descriptions still label
+   `99999999` as "the maximum permitted total"** (S4 minor). The
+   typo fix that bumped the cap to `999999999` (commit `684cd09`)
+   was applied to the story but not to `split_calculator_test.dart`
+   (lines 38, 47) nor to `split_calculator_property_test.dart` (sample
+   bounds). Tests pass correctly; descriptions are misleading;
+   property-test sampling under-covers the upper 90% of the legal cap
+   range (`[99999999, 999999999]`). Recommend a follow-up cleanup.
+   Not a blocker because (a) implementation enforces the correct cap
+   (`lib/core/widgets/inputs/obt_amount_input.dart:60` and
+   `lib/features/expenses/application/add_expense_controller.dart`),
+   (b) OBTAmountInput widget tests correctly assert behaviour at the
+   actual cap, and (c) the splitter is provably correct by construction
+   (integer `~/` and `%`).
+10. **Discoverability gap — no `// TODO(SCR-08)` in `friends_list_screen.dart`**
+    (S4 minor). Architect Notes §2.10 prescribed a no-op FAB on
+    `friends_list_screen.dart` with a `// TODO(SCR-08): wire the
+    multi-context FAB chooser` comment. The implementation chose to add
+    no FAB at all (functionally equivalent to no-op), and consequently
+    the TODO comment is also absent. The deferred multi-context FAB
+    chooser remains discoverable via Architect Notes §2.10 and the
+    SCR-08 screen spec, but in-source discoverability is reduced.
+    Consider a top-of-file `// TODO(SCR-08): …` comment in a follow-up.
+
+No S1 or S2 bugs identified during this review. No AC is violated by
+the implementation. No invariant is breached. No defect that would
+require blocking the PR has been found.
+
+### Sign-off statement
+
+I approve PR #38 for merge subject to (a) the orchestrator adding
+`Closes #25` to the PR body, (b) PM Phase 7 completing the
+`next-three-prs.md` and `07-bucket-b-burndown.md` updates before
+merge, (c) the CI `Integration Tests (Emulator Suite)` job passing
+green on the final HEAD, and (d) the human reviewer re-executing the
+12-step manual smoke matrix on a physical device or simulator at PR
+review time and confirming the device-level behaviour matches the
+test-asserted behaviour above.
+
+— OneByTwo QA agent, 2026-06-06
+
+### Editorial note from the orchestrator (post-sign-off)
+
+QA sign-off was authored against HEAD `684cd09`, prior to the PM Phase 7
+commits landing. The following caveats from the sign-off above are now
+RESOLVED:
+
+- **CAV-2 / DoD row 12** — `docs/sprint-zero/next-three-prs.md` now
+  exists on the branch as of commit `700a71c`
+  (`docs(plan): FR-EX-01 expense creation UI shipped, chore #25 closed,
+  prep PR #39`). DoD row 12 reads **PASS**.
+- **CAV-3 / DoD row 13** — `docs/audits/sprint-1/07-bucket-b-burndown.md`
+  now reads "Last updated: PR #38" and SR8 is marked CLOSED with the
+  Architect Notes §2.0 citation as of the same commit `700a71c`. DoD
+  row 13 reads **PASS**.
+
+Revised DoD totals: PASS = 13, N/A = 2, DEFERRED = 3 (AC-14 integration
+test → CI emulator job; accessibility walk → device; dark-mode walk →
+device), PENDING = 1 (`Closes #25` → orchestrator adds at PR-open time),
+FAIL = 0. Sign-off status remains **APPROVED WITH CAVEATS**; the three
+DEFERRED items and the PENDING item are unchanged.
