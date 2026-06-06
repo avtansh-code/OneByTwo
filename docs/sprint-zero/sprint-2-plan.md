@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #38 (FR-EX-01 expense creation UI + chore #25 closure).
+> Last updated: PR #42 (FR-FR-04 friend detail full screen) — 9th merged PR.
 
 ---
 
@@ -79,6 +79,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #36 | FR-SE-03/04 | `onExpenseWriteFriendship` Firestore trigger | 3 | Merged |
 | #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | Merged |
 | #38 | FR-EX-01 + chore #25 | Expense creation UI (friendship) + adopt `expense_save_*` event names | 5 | Merged |
+| #41 | chore | D5 deadline backlog cross-refs | 0 | Merged |
+| #42 | FR-FR-04 | Friend Detail full screen (per-friend transaction history) | 5 | Merged |
 
 ---
 
@@ -93,7 +95,9 @@ work until the decision is recorded in the story file's Architect Notes.
 | #36 | 3 | Merged |
 | #37 | 5 | Merged |
 | #38 | 5 | Merged |
-| **Total** | **24** | **7 PRs so far** |
+| #41 | 0 | Merged (docs-only) |
+| #42 | 5 | Merged |
+| **Total** | **29** | **9 PRs so far** |
 
 Sprint 1 reference:
 
@@ -132,8 +136,21 @@ Sprint 1 reference:
   `friendships/{id}/expenses/{id}` subcollection, and enabled
   `npm run test:integration` inside `firebase emulators:exec` so future
   triggers exercise their registration end-to-end in CI.
-- FR-FR-04 (per-friend transaction history) depends on FR-EX-01 and may slip to
-  a later sprint if expense work is not yet available.
+- FR-FR-04 (per-friend transaction history) shipped in PR #42 — the
+  first client surface to read the `friendships/{fid}/expenses/{eid}`
+  subcollection PR #38 wrote to, and the first surface to read the
+  top-level `settlements/{settlementId}` collection PR #37 shipped
+  rules + a trigger for. It introduced
+  `lib/features/settlements/` (the read-side scaffolding for the
+  settlements feature folder), extended `ExpenseRepository` with
+  `watchExpensesByFriendship`, added a combined `friendDetailProvider`
+  that joins three real-time streams (friendship doc + expenses +
+  settlements) into a `FriendDetailState` sealed union, and replaced
+  the PR #35 placeholder screen with `FriendDetailScreen`. The
+  settlements composite index was extended from
+  `(contextType, contextId)` to `(contextType, contextId, date)` to
+  unblock the canonical query — DevOps deploys the updated
+  `firestore.indexes.json` before merge.
 
 ## Pattern Reuse Validation (PR #34)
 
@@ -267,7 +284,7 @@ QA sign-off was APPROVED WITH CAVEATS — see the "QA Sign-Off" section in
 `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`. Three S4 items
 are deferred to a follow-up cleanup PR. Recommended bundling: a single
 `chore(docs): post-PR-#38 cleanup` PR (~10 lines diff total), or attach
-to a Bucket-B chore PR (see `docs/sprint-zero/next-three-prs.md` PR #42
+to a Bucket-B chore PR (see `docs/sprint-zero/next-three-prs.md` PR #45
 slot).
 
 1. **Stale `expense_added` / `expense_add_failed` references in 3 design docs.**
@@ -338,7 +355,7 @@ single docs/tests-only PR.
 Two **deadline-bound** items surfaced by the post-PR #38 functions deploy.
 Filed as standalone GitHub issues (not S4 — these are S2 because of the
 hard 2026-10-31 deploy-blocker) and tracked separately from the S4 set
-above. Both should ship in the SAME PR — see PR #42 Option C in
+above. Both should ship in the SAME PR — see PR #44 Option A in
 `docs/sprint-zero/next-three-prs.md` for the recommended slot.
 
 4. **Cloud Functions runtime Node 20 decommissioned 2026-10-31** —
@@ -428,12 +445,12 @@ batched into a standalone chore PR. The orchestrator's recommendation:
 |---|---|---|
 | **PR #37 (`onSettlementWrite`)** | none required | Settlements work has its own scope; do not bundle chores. |
 | **PR #38 (FR-EX-01 expense creation UI)** | **#25** | **MANDATORY bundle — see Critical Constraint C-1 at the top of this document.** Naming convention MUST be decided before the first expense event is logged; bundling avoids retrofitting every downstream funnel chart, alert, and test. |
-| **Post-PR #38 cleanup PR (1 SP, candidate for PR #42)** | none required | The three S4 items from the PR #38 QA sign-off (stale event names in 3 design docs; splitter test cap labels; missing `// TODO(SCR-08)` comment). Pure docs + test-description fixes; ~10 lines diff total. See "Post-Merge Cleanup Backlog" section above and `docs/sprint-zero/next-three-prs.md` PR #42 slot for full detail. |
+| **Post-PR #38 cleanup PR (1 SP, candidate for PR #45)** | none required | The three S4 items from the PR #38 QA sign-off (stale event names in 3 design docs; splitter test cap labels; missing `// TODO(SCR-08)` comment). Pure docs + test-description fixes; ~10 lines diff total. See "Post-Merge Cleanup Backlog" section above and `docs/sprint-zero/next-three-prs.md` PR #45 slot for full detail. |
 | **Standalone chore PR (Sprint 2 polish — 3 SP)** | **#15, #17, #19** | Pure mechanical refactor + template edit. Low risk. Fast feedback. |
 | **Standalone chore PR (telemetry sweep — 2 SP)** | **#16, #18 (S5 only)** | Both touch auth/OTP screens; one PR keeps the analytics changes coherent. |
 | **Pre-FR-EX-01 design polish PR (2 SP)** | **#18 (S1, S3, S4), #28** | Spec alignment + friends mockup before the expense screens land so the design system stabilises. |
 | **Standalone CF chore PR (Sprint 3 ramp — 3 SP)** | **#24** | CF PR checklist + Jest config docs make Sprint 3's groups trigger work less ambiguous. |
 | **Defer to Sprint 3** | **#21 (R5-R8)** | Group rules tests pair with the groups epic; Storage size/content-type can also wait. |
-| **Defer to Sprint 4+** | **#22 (D1/D2/D4/D6/D7 remaining), #27** | Dependency upgrades and the Invariant-1 hook are non-urgent; type system + boundary contracts suffice for now. **D5 has been split out into #39 (Node 20 decommissioned 2026-10-31) and #40 (firebase-functions 6→7) and is URGENT** — slot the pair into PR #41 or PR #42 so the Cloud Functions deploy path stays open past the cutoff. |
+| **Defer to Sprint 4+** | **#22 (D1/D2/D4/D6/D7 remaining), #27** | Dependency upgrades and the Invariant-1 hook are non-urgent; type system + boundary contracts suffice for now. **D5 has been split out into #39 (Node 20 decommissioned 2026-10-31) and #40 (firebase-functions 6→7) and is URGENT** — slot the pair into PR #44 (default plan per `docs/sprint-zero/next-three-prs.md`) so the Cloud Functions deploy path stays open past the cutoff. |
 | **Defer to Sprint 6** | **#26** | Release-only secrets and DPDP review explicitly tied to release execution. |
 | **Already covered** | **#23 (PY3 partial)** | PR #36 enabled `test:integration` in CI. Remaining INV2 / RT2 sub-items deferred. |

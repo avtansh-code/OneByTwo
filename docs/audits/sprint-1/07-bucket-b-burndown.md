@@ -226,8 +226,8 @@ additional bucket-B items**. Notes by ID:
 - **NEW finding pre-existing:** the `lookup-user-by-phone-number`
   rate-limit doc-path bug surfaced by PR #36 is still open. PR #37
   did not touch the lookup gateway; the five `describe.skip`'d
-  integration tests remain skipped. Candidate for PR #41 per
-  `docs/sprint-zero/next-three-prs.md`.
+  integration tests remain skipped. Candidate for PR #44 (alternate)
+  or PR #45 per `docs/sprint-zero/next-three-prs.md`.
 - All other items unchanged.
 
 PR #38 (FR-EX-01 expense creation UI + chore #25) closes **SR8**:
@@ -269,5 +269,17 @@ Other notes by ID for PR #38:
   member count × per-share cap.
 - **NEW finding pre-existing:** the `lookup-user-by-phone-number`
   rate-limit doc-path bug remains untouched by PR #38. Candidate
-  for PR #41 per `docs/sprint-zero/next-three-prs.md`.
+  for PR #44 (alternate) or PR #45 per
+  `docs/sprint-zero/next-three-prs.md`.
+- All other items unchanged.
+
+PR #42 (FR-FR-04 friend detail full screen) closes no Bucket-B items
+by itself but makes partial progress on **PY3**:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #42 adds
+  `test/integration/friends/friend_detail_flow_test.dart` (three
+  skipped stubs documenting the canonical steps for the friend-detail
+  round-trip, the settlement read path, and the rules-denied error
+  state). Partial credit only; PY3 remains open pending the
+  Flutter emulator harness.
 - All other items unchanged.
