@@ -333,6 +333,40 @@ slot).
 hygiene) → item 3 (discoverability nicety). All three can ship in a
 single docs/tests-only PR.
 
+### From PR #38 deploy (Firebase CLI warnings, 2026-06-06)
+
+Two **deadline-bound** items surfaced by the post-PR #38 functions deploy.
+Filed as standalone GitHub issues (not S4 — these are S2 because of the
+hard 2026-10-31 deploy-blocker) and tracked separately from the S4 set
+above. Both should ship in the SAME PR — see PR #42 Option C in
+`docs/sprint-zero/next-three-prs.md` for the recommended slot.
+
+4. **Cloud Functions runtime Node 20 decommissioned 2026-10-31** —
+   tracked as [#39](https://github.com/avtansh-code/OneByTwo/issues/39).
+   After this date, `firebase deploy --only functions` will be rejected
+   for the Node 20 runtime. Upgrade target: **Node 22 LTS**. Touches
+   `functions/package.json` `engines.node`, `firebase.json`
+   `functions[].runtime`, and the `actions/setup-node` pin in
+   `.github/workflows/pr.yml`.
+
+   **Why deadline-bound:** hard cutoff. The next functions deploy after
+   2026-10-31 will fail. **Recommended ship-by date: mid-September 2026**
+   to leave one deploy cycle of slack.
+
+5. **`firebase-functions` package outdated (6.x → 7.x)** — tracked as
+   [#40](https://github.com/avtansh-code/OneByTwo/issues/40). CLI warns
+   on every deploy. Breaking changes affect v2 trigger and callable
+   surfaces (i.e. all 5 of our deployed functions).
+
+   **Why bundled with #4:** the Node-22 + `firebase-functions@7.x`
+   matrix is the only combination that future-proofs all the way
+   through. Doing them separately doubles the breaking-change
+   reconciliation surface.
+
+Both close umbrella item D5 in
+`docs/audits/sprint-1/07-bucket-b-burndown.md`. Issue #22 (umbrella
+dependency-upgrade backlog) retains D1, D2, D4, D6, D7.
+
 ---
 
 ## Sprint 2 Chore Backlog (open GitHub issues)
@@ -362,7 +396,7 @@ Status legend:
 | [#19](https://github.com/avtansh-code/OneByTwo/issues/19) | Add PR coverage tracking to conventions | CV2 | Partially addressed | `feature-pr-conventions.md` has an enforced-thresholds section and `.github/PULL_REQUEST_TEMPLATE.md` has a "Coverage thresholds maintained" checkbox. **Still missing:** explicit before/after coverage fields requested by the issue. |
 | [#20](https://github.com/avtansh-code/OneByTwo/issues/20) | Improve test coverage gaps | SC1, SC2, SC3, SC4, **CV3** | Partially addressed | **CV3 closed by PR #36** — `functions/src/simplified-debts/function.ts` branch coverage now **90%** (was 76%) thanks to the `recomputeAndWrite` variant 2.3(b) refactor. SC1 (concurrent submit guard), SC2 (OTP auto-retrieval timeout), SC3 (`MAX_SAFE_INTEGER`), SC4 (large-group scalability) still open. |
 | [#21](https://github.com/avtansh-code/OneByTwo/issues/21) | Firestore + Storage rules test gaps | **R1, R2, R3, R4**; R5-R8 | Partially addressed | **R1, R2, R3 closed by PR #32** (friendship create/update/delete rules tests). **R4 closed by PR #36** — new `expenses-friendship.test.ts` covers 45 cases including sum check, extension-point locks, immutables, soft-delete. R5-R6 (group rules) still open (Sprint 3). R7-R8 (Storage avatar file-size / content-type) still open — `storage-rules/avatars.test.ts` only covers basic read/write. |
-| [#22](https://github.com/avtansh-code/OneByTwo/issues/22) | Dependency upgrades — Riverpod 3.x, share_plus, firebase-functions 7.x | D1, D2, D4, D5, D6, D7 | Open | No upgrade PRs merged. Firebase deploy warnings surfaced D5 (`firebase-functions` 6→7) and the Node 20 deprecation deadline (Oct 2026). |
+| [#22](https://github.com/avtansh-code/OneByTwo/issues/22) | Dependency upgrades — Riverpod 3.x, share_plus, firebase-functions 7.x | D1, D2, D4, D5, D6, D7 | **Open — D5 now URGENT** (split into [#39](https://github.com/avtansh-code/OneByTwo/issues/39) Node 20 decommissioned **2026-10-31** and [#40](https://github.com/avtansh-code/OneByTwo/issues/40) firebase-functions 6→7) | Sprint 1 audit deferral. D5 was reinforced by the post-PR #38 deploy warnings (2026-06-06) and split into two deadline-aware sub-issues; #39 has ~5 months runway before the next `firebase deploy --only functions` is rejected. D1, D2, D4, D6, D7 remain tracked on the umbrella. |
 | [#23](https://github.com/avtansh-code/OneByTwo/issues/23) | Expand integration tests for Sprint 2 flows | PY3, RT2, INV2 | Partially addressed | **PR #36 enabled `npm run test:integration` inside `firebase emulators:exec`** — every future trigger PR exercises its actual registration in CI (helps PY3). Friend-add stub `test/integration/friends/friends_list_flow_test.dart` shipped in PR #35 (still skipped). RT2 (CI step duration logging) not yet added. INV2 (share-sheet verification) — system share sheet is the only path, but no test asserts the package-import boundary. Expense-create flow integration tests blocked on FR-EX-01. |
 | [#24](https://github.com/avtansh-code/OneByTwo/issues/24) | Conventions doc — CF PR checklist and Jest config separation | CN3, CN4 | Open | `feature-pr-conventions.md` does not yet enumerate the Jest config split (`jest.config.js` vs `jest.rules.config.js` vs `jest.integration.config.js`) nor CF-specific PR checklist items (region pinning, error-code mapping, transaction usage, idempotency). |
 | [#25](https://github.com/avtansh-code/OneByTwo/issues/25) | Expense event naming convention decision | SR8 | **Closed by PR #38** (Camp B adopted — see Critical Constraint C-1 above, marked RESOLVED) | Decision: `expense_save_succeeded` / `expense_save_failed` per Architect Notes §2.0 of FR-EX-01. Five telemetry-plan occurrences renamed; `lib/features/expenses/application/expense_telemetry.dart` ships the matching constants. `Closes #25` recorded in PR #38 body. |
@@ -400,6 +434,6 @@ batched into a standalone chore PR. The orchestrator's recommendation:
 | **Pre-FR-EX-01 design polish PR (2 SP)** | **#18 (S1, S3, S4), #28** | Spec alignment + friends mockup before the expense screens land so the design system stabilises. |
 | **Standalone CF chore PR (Sprint 3 ramp — 3 SP)** | **#24** | CF PR checklist + Jest config docs make Sprint 3's groups trigger work less ambiguous. |
 | **Defer to Sprint 3** | **#21 (R5-R8)** | Group rules tests pair with the groups epic; Storage size/content-type can also wait. |
-| **Defer to Sprint 4+** | **#22, #27** | Dependency upgrades and the Invariant-1 hook are non-urgent; type system + boundary contracts suffice for now. |
+| **Defer to Sprint 4+** | **#22 (D1/D2/D4/D6/D7 remaining), #27** | Dependency upgrades and the Invariant-1 hook are non-urgent; type system + boundary contracts suffice for now. **D5 has been split out into #39 (Node 20 decommissioned 2026-10-31) and #40 (firebase-functions 6→7) and is URGENT** — slot the pair into PR #41 or PR #42 so the Cloud Functions deploy path stays open past the cutoff. |
 | **Defer to Sprint 6** | **#26** | Release-only secrets and DPDP review explicitly tied to release execution. |
 | **Already covered** | **#23 (PY3 partial)** | PR #36 enabled `test:integration` in CI. Remaining INV2 / RT2 sub-items deferred. |

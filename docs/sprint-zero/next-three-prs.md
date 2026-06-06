@@ -120,13 +120,13 @@ multiple devs (Option B), QA.
 
 ---
 
-## PR #42 — Post-PR #38 cleanup (S4 docs + tests) OR Bucket-B chore PR
+## PR #42 — Post-PR #38 cleanup (S4 docs + tests) OR Bucket-B chore PR OR D5 deadline PR
 
 **Status:** Planned.
 
 **Scope:**
 
-Two candidates after PR #41:
+Three candidates after PR #41:
 
 - **Option A — Post-PR #38 cleanup PR.** Bundles the three S4 follow-ups
   surfaced by the PR #38 QA sign-off — see
@@ -149,18 +149,31 @@ Two candidates after PR #41:
   Option B notes — Sprint 2 polish set (M1 / S1 / S3 / S4 / CV2) or the
   telemetry sweep (#16 / #18-S5). Roughly 2-3 SP.
 
+- **Option C — D5 deadline PR (Node 22 + firebase-functions 7.x).**
+  Closes [#39](https://github.com/avtansh-code/OneByTwo/issues/39)
+  (Cloud Functions runtime Node 20 decommissioned **2026-10-31**;
+  ~5 months runway as of filing) **and**
+  [#40](https://github.com/avtansh-code/OneByTwo/issues/40)
+  (`firebase-functions` 6.x → 7.x breaking-change reconciliation) in a
+  single bundle. Must ship before mid-September 2026 to leave a deploy
+  cycle of slack before the cutoff; if the orchestrator does not slot
+  it into PR #42, it must surface again no later than PR #44. SP
+  estimate sized by Architect at kickoff (likely 3-5 SP because of
+  breaking-change reconciliation across 5 functions + integration
+  tests + CI workflow Node-version pin update).
+
 **Likely choice:** Option A if PR #41 picks its Option A (lookup
-rate-limit fix). The two together would close the lookup bug AND drain
-the Post-Merge Cleanup Backlog before PR #43 starts a fresh feature
-cycle. The architect makes the final call at PR #42 kickoff.
+rate-limit fix) — drains the Post-Merge Cleanup Backlog. If the
+deadline runway is the priority, Option C jumps ahead and the cleanup
+slips to PR #43. The architect makes the final call at PR #42 kickoff.
 
-**Stories required before kickoff:** none — the three S4 items are
-fully specified in `docs/sprint-zero/sprint-2-plan.md` "Post-Merge
-Cleanup Backlog" and the QA Sign-Off section of
-`docs/sprint-zero/stories/FR-EX-01-expense-creation.md`.
+**Stories required before kickoff:** none for Option A (fully specified
+in the "Post-Merge Cleanup Backlog"); none for Option C either (issues
+#39 and #40 are the spec). Option B may need a story depending on the
+bundle.
 
-**Agents involved:** Flutter Dev OR PM (single-commit docs/test change),
-QA (sign-off only).
+**Agents involved:** Flutter Dev OR PM (Option A), Functions Dev
+(Option C), QA (sign-off).
 
 ---
 
