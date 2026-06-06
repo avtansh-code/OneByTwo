@@ -769,3 +769,633 @@ architect may override with rationale.
    dependencies). **PM default in this story: "You" / "Friend"**
    placeholders. Architect may override and route the real-names option
    as a polish follow-up PR.
+
+---
+
+## Architect Notes
+
+> Appended for PR #38. These notes ratify the design decisions taken
+> before implementation begins. References:
+> `docs/copilot_prompts/sprint_2/7.md` (Phase 2 §2.0–§2.9),
+> `.github/shared/invariants.md`, `.github/shared/decision-log.md`
+> (ADR-0001 simplified debts; ADR-0002 paise integers; ADR-0006
+> Riverpod; ADR-0007 feature-first layout; ADR-0013 PII /
+> telemetry hashing). Architect Notes §2.0 (chore #25) is the
+> first item per Critical Constraint C-1 of
+> `docs/sprint-zero/sprint-2-plan.md` — Phase 3 implementation is
+> blocked until §2.0 is recorded. With §2.0 ratified below,
+> flutter-dev may begin Phase 3.
+
+### 2.0 Chore #25 — expense event naming convention (BLOCKING ITEM, RESOLVED)
+
+**Decision: Camp B.** The success event is
+`expense_save_succeeded`; the failure event is `expense_save_failed`.
+The legacy `expense_added` / `expense_add_failed` names are retired
+across the codebase and the telemetry plan in this PR.
+
+Rationale. Three factors point the same way. First, the existing
+edit / delete cluster in section 1.6 of
+`docs/design/07-technical/telemetry-plan.md` already runs on the
+verb-past + state pattern: `expense_edit_saved`, `expense_edit_failed`,
+`expense_delete_confirmed`, `expense_delete_failed`, and crucially the
+Step-3 success-side `expense_save_failed` from SCR-21. The add cluster
+is the only sub-cluster that breaks the pattern (noun-past `*_added`
+beside verb-past `*_add_failed`), and that asymmetry was flagged in
+the Sprint 1 audit as SR8 ("Expense event naming asymmetry. Success
+logs `expense_added`; failure logs `expense_save_failed`. Inconsistent
+naming harms funnel analysis." —
+`docs/audits/sprint-1/05-sprint-2-readiness.md` line 138). Second,
+adopting `expense_save_succeeded` brings the add and edit paths under
+a single dashboard query template (`event_name LIKE
+'expense_%_succeeded'`) without a per-path special case — the OBT
+project-internal architectural goal of symmetry across feature
+clusters is honoured. Third, the failure-side name `expense_save_failed`
+already exists in the plan for SCR-21; aligning the add cluster's
+failure-side name with it eliminates a duplicate event when the
+receipt PR ships. The cost is a one-shot search-and-replace across
+the telemetry plan (this commit's sibling) and the test fixtures
+flutter-dev writes in Phase 4 — both bounded, both performed before
+any production user has seen an event.
+
+Propagation in this PR. (a) `docs/design/07-technical/telemetry-plan.md`
+sections 1.1 (Core Funnel Events), 1.3 (Home and Search Events), 2.1
+(Amount Ranges narrative), and 4.2 (Expense Funnel diagram + metrics)
+are updated by sibling commit `docs(telemetry): adopt chore #25
+expense event naming convention (Closes #25)`. (b) `lib/features/expenses/application/expense_telemetry.dart`
+constants will name the success event
+`expenseSaveSucceeded` / `'expense_save_succeeded'` and the failure
+event `expenseSaveFailed` / `'expense_save_failed'`. (c) Every test
+in `test/features/expenses/` that asserts an event name uses the new
+strings. (d) Sprint 2 plan Critical Constraint C-1 is marked RESOLVED
+with a citation back to this §2.0. (e) `docs/audits/sprint-1/07-bucket-b-burndown.md`
+SR8 is marked CLOSED with the same citation. (f) The PR body carries
+`Closes #25`.
+
+Audit trail. (a) Telemetry plan section 1.6 cluster:
+`docs/design/07-technical/telemetry-plan.md` lines 154–183 (the
+edit / delete row block already uses verb-past + state). (b) Audit
+finding: `docs/audits/sprint-1/05-sprint-2-readiness.md` line 138
+(SR8). (c) OBT-internal architectural goal: §7.3 of the SRS describes
+the simplified-debts and Invariant 2 patterns as a single
+client-read-only contract, and the telemetry expense-funnel diagram
+in section 4.2 of the telemetry plan reads success events
+left-to-right; keeping success and failure names on the same verb
+root (`save`) lets the funnel diagram render the failure edges as a
+structural mirror. (Note: the source prompt called this "section 6
+funnel diagram" — that section number is stale; the actual location
+is §4.2, which the sibling telemetry-plan commit edits.)
+
+### 2.1 Source layout for the expenses feature
+
+Feature-first folder layout, mirroring `lib/features/friends/`
+exactly. The `lib/features/expenses/` folder currently contains only
+`README.md` + `.gitkeep`; PR #38 fills it.
+
+```
+lib/features/expenses/
+  application/
+    add_expense_controller.dart           # Riverpod StateNotifier (AddExpenseState)
+    expense_telemetry.dart                # Event-name constants (post-chore-#25) + emit helpers
+  data/
+    expense_repository.dart               # Firestore writer + ExpenseCreateError typed errors
+  domain/
+    add_expense_state.dart                # Sealed AddExpenseState (Editing / Saving / Success / Error)
+    expense_category.dart                 # ExpenseCategory enum + label/icon map
+    expense_draft.dart                    # UI-state model
+    expense_doc.dart                      # Firestore-shape model with toCreateMap()
+    split_method.dart                     # SplitMethod enum (equal + exact enabled in PR #38)
+    split_calculator.dart                 # Pure top-level computeSplits(...); integer paise only
+  presentation/
+    add_expense_bottom_sheet.dart         # Root sheet (host)
+    steps/
+      step_1_amount_details.dart
+      step_2_split_and_payer.dart
+    widgets/
+      expense_category_grid.dart
+      split_row.dart
+      split_validation_message.dart
+  README.md                               # Populated by Phase 3 with implemented scope
+```
+
+Tests at `test/features/expenses/` mirror the source layout, plus
+`test/integration/expenses/expense_creation_flow_test.dart` for the
+emulator round-trip and `test/core/widgets/inputs/obt_amount_input_test.dart`
+per §2.8.
+
+### 2.2 Controller state machine
+
+`AddExpenseController extends StateNotifier<AddExpenseState>`
+(Riverpod 2.x). Precedent: `MatchAndInviteController` at
+`lib/features/friends/application/match_and_invite_controller.dart`,
+which uses a sealed-class state hierarchy and emits one telemetry
+event per state transition through private `_emit*` helpers.
+PR #38 mirrors that contract.
+
+`AddExpenseState` is a sealed class with the following cases (defined
+in `lib/features/expenses/domain/add_expense_state.dart`):
+
+```dart
+sealed class AddExpenseState { const AddExpenseState(); }
+
+class Editing extends AddExpenseState {
+  const Editing({
+    required this.step,                  // 1 or 2
+    required this.draft,                 // ExpenseDraft
+    required this.validationErrors,      // Map<String, String>
+  });
+  final int step;
+  final ExpenseDraft draft;
+  final Map<String, String> validationErrors;
+}
+
+class Saving extends AddExpenseState {
+  const Saving({required this.draft});
+  final ExpenseDraft draft;
+}
+
+class Success extends AddExpenseState {
+  const Success({required this.expenseId});
+  final String expenseId;
+}
+
+class Error extends AddExpenseState {
+  const Error({
+    required this.draft,
+    required this.errorType,             // ExpenseCreateErrorType
+    required this.message,               // User-facing copy
+  });
+  final ExpenseDraft draft;
+  final ExpenseCreateErrorType errorType;
+  final String message;
+}
+```
+
+The controller is the sole owner of: (a) telemetry emission via the
+private `_emit*` helpers in `expense_telemetry.dart`, (b) Firestore
+writes via the injected `ExpenseRepository`, and (c) splitter
+invocation via the pure top-level function described in §2.3. UI
+widgets are pure projections of state — they NEVER call the
+repository directly and NEVER emit telemetry directly.
+
+Telemetry hand-offs follow the FR-FR-03 / FR-SE-03-04 precedent of
+**one event per state transition**, named via the post-chore-#25
+constants. Each `_emit*` method takes explicitly typed parameters and
+hashes any identifier via `hashFriendshipId()` / `hashId()` from
+`lib/core/telemetry/event_id_hash.dart` (ADR-0013). The
+PII-leak test (AC-17) enforces this.
+
+Transition map (informative):
+
+| Transition | Telemetry event |
+|---|---|
+| `null → Editing(step:1)` (sheet open) | `expense_step1_opened` |
+| `Editing(step:1) → Editing(step:1)` (category tap) | `expense_category_selected` |
+| `Editing(step:1) → Editing(step:2)` (Next) | `expense_step1_completed` THEN `expense_step2_opened` |
+| `Editing(step:2) → Editing(step:2)` (method change) | `expense_split_method_changed` |
+| `Editing(step:2) → Editing(step:2)` (payer change) | `expense_payer_changed` |
+| `Editing(step:2) → Editing(step:2)` (failed sum check) | `expense_split_validation_failed` |
+| `Editing(step:2) → Saving` (Save valid) | `expense_step2_completed` |
+| `Saving → Success` (write ok) | `expense_save_succeeded` (post-chore-#25) |
+| `Saving → Error` (write throws) | `expense_save_failed` (post-chore-#25) |
+| `Editing(step:1) → null` (discard with data) | `expense_step1_abandoned` |
+| `Editing(step:2) → null` (discard) | `expense_step2_abandoned` |
+
+Discards from step 1 with an empty draft emit nothing — the user has
+expressed no intent to add an expense.
+
+### 2.3 Splitter discipline
+
+`split_calculator.dart` exports a pure top-level function:
+
+```dart
+List<Split> computeSplits({
+  required SplitMethod method,
+  required int totalPaise,
+  required List<String> memberUids,
+  String? payerUid,
+  List<int>? exactShares,
+});
+```
+
+The function is pure, integer-only, deterministic. The caller
+(controller) MUST pre-sort `memberUids` current-user-first; the
+splitter does NOT re-sort (a single ordering convention prevents
+two-source-of-truth bugs). The returned `splits[i].userId` follows
+the order of the passed `memberUids`.
+
+Algorithm per method (friendship has exactly two members; N = 2):
+
+- `equal`: `share = totalPaise ~/ 2; remainder = totalPaise % 2;
+  splits = [{memberUids[0], share + remainder}, {memberUids[1],
+  share}]`. The extra paise lands on the first share (deterministic;
+  current-user-first). Sum is `totalPaise` by construction.
+- `exact`: `splits = [{memberUids[0], exactShares[0]}, {memberUids[1],
+  exactShares[1]}]`. The controller's validator gates on
+  `exactShares.fold(0, (a, b) => a + b) == totalPaise` BEFORE the
+  splitter is called; the splitter `assert`s the same invariant as
+  defence in depth (the assertion only fires in debug; the security
+  rules' `sumOfSharesEquals` check is the production safety net).
+- `unequal`, `percentage`, `shares` are present in the
+  `SplitMethod` enum but the controller treats their selection as a
+  no-op for PR #38 (the UI's chip is disabled and `setSplitMethod`
+  ignores them). When they ship in a follow-up PR, the splitter
+  acquires three additional algorithm branches; the controller and
+  repository contracts remain unchanged.
+
+Integer discipline is absolute. The splitter MUST NOT take a `double`
+anywhere. The boundary-contract grep test (AC-15) enforces no
+`.toDouble()`, no `/100`, and no `double ` declarations across
+`lib/features/expenses/**`.
+
+Property-test discipline. The project already runs property tests on
+the server splitter at
+`functions/test/simplified-debts/algorithm.property.test.ts`; PR #38
+brings the same discipline to the client at
+`test/features/expenses/split_calculator_property_test.dart`. Properties:
+
+1. `equal` with any `totalPaise ∈ [1, 99999999]` produces splits
+   whose sum equals `totalPaise`.
+2. `exact` with any valid `(totalPaise, exactShares)` pair (where the
+   sum already matches) returns identity and the sum still equals
+   `totalPaise`.
+3. Determinism — for any input, two invocations with the same
+   arguments return splits with identical ordering and values.
+4. The extra-paise-on-first-share rule — for any odd `totalPaise`,
+   `splits[0].sharePaise == splits[1].sharePaise + 1`.
+
+### 2.4 Repository write target and shape
+
+`expense_repository.dart` exposes:
+
+```dart
+abstract class ExpenseRepository {
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  });
+}
+```
+
+The Firestore-backed implementation writes to
+`FirebaseFirestore.instance.collection('friendships').doc(friendshipId).collection('expenses').add(doc.toCreateMap())`
+and returns the new auto-generated `expenseId`. The repository follows
+the `FriendshipRepository` precedent at
+`lib/features/friends/data/friendship_repository.dart` — abstract
+store interface, Firestore-backed concrete implementation, and a
+parse-failure sink for observability (when read paths are added in a
+later PR).
+
+`ExpenseDoc.toCreateMap()` MUST produce a document that satisfies every
+predicate in `firestore.rules` lines 153–302 — specifically
+`hasAllRequiredKeys`, `hasOnlyKnownKeys`, `isValidShape`,
+`isValidExtensionPointLocks`, `areValidSplitElements`, and
+`sumOfSharesEquals`. The exact field set:
+
+```dart
+Map<String, dynamic> toCreateMap() => {
+  'amountPaise': amountPaise,                   // int, > 0 (rules: isValidShape)
+  'description': description,                   // String (rules: size() <= 200; story tightens to 100 client-side)
+  'category': category.name,                    // snake_case enum value (rules: is string)
+  'date': Timestamp.fromDate(date),             // Timestamp (rules: is timestamp)
+  'payerId': payerId,                           // String, must be in parent memberIds (rules: data.payerId in members)
+  'splits': [
+    {'userId': splits[0].userId, 'sharePaise': splits[0].sharePaise},
+    {'userId': splits[1].userId, 'sharePaise': splits[1].sharePaise},
+  ],                                            // size in [1,2]; each share >= 0; sum == amountPaise
+  'splitMethod': splitMethod.name,              // 'equal' | 'exact' (others disabled in this PR)
+  'receiptUrl': null,                           // FR-EX-05 deferred; rules accept null
+  'createdBy': currentUserUid,                  // String == request.auth.uid (rules: isValidExpenseCreate)
+  'createdAt': FieldValue.serverTimestamp(),    // Timestamp == request.time
+  'updatedAt': FieldValue.serverTimestamp(),    // Timestamp == request.time
+  'deleted': false,                             // bool (rules: deleted == false on create)
+  'source': 'manual',                           // ARCH-EXT-07
+  'currency': 'INR',                            // ARCH-EXT-02
+};
+```
+
+`recurringRule` is **omitted** from the map per ARCH-EXT-03. The
+rules accept absent OR `null` (`firestore.rules` line 190:
+`!('recurringRule' in data) || data.recurringRule == null`). Omitting
+is simpler than setting `null` and is explicitly permitted by the
+rules; the schema doc lists `recurringRule` as optional with
+`null` default, which is the absent case.
+
+Note on schema vs screen-spec description length. The Firestore rules
+permit `description.size() <= 200`
+(`firestore.rules` line 197); the screen spec SCR-19 caps the client
+input at 100 characters
+(`docs/design/06-screen-specs/19-22-expenses.md` lines 71, 105). The
+client validator uses the stricter spec value (100) so that the user
+never composes a description the UI cannot re-display; the rules'
+looser bound is the defence-in-depth floor and is not relaxed by
+this PR.
+
+Typed-error wrapper. The repository wraps the Firestore write in a
+typed try/catch:
+
+```dart
+try {
+  final ref = await _firestore
+      .collection('friendships').doc(friendshipId)
+      .collection('expenses').add(doc.toCreateMap());
+  return ref.id;
+} on FirebaseException catch (e, st) {
+  throw ExpenseCreateError(
+    type: switch (e.code) {
+      'permission-denied' => ExpenseCreateErrorType.permissionDenied,
+      'unavailable'       => ExpenseCreateErrorType.network,
+      _                   => ExpenseCreateErrorType.unknown,
+    },
+    underlying: e,
+    stackTrace: st,
+  );
+}
+```
+
+`ExpenseCreateError` is a value type with three cases:
+`permissionDenied`, `network`, `unknown`. The controller catches
+`ExpenseCreateError`, fires `expense_save_failed { error_type, is_offline }`
+with the matching `error_type` parameter, and transitions to
+`Error(draft, errorType, message)`. The user-facing message follows
+SCR-19 / SCR-20 — "Couldn't add the expense. Try again."
+
+### 2.5 Reading the friendship for context binding
+
+The bottom sheet is opened from the Friend Detail placeholder
+(`lib/features/friends/presentation/friend_detail_placeholder_screen.dart`),
+which already holds the friendship doc via `friendsListProvider`
+(PR #35). The bottom sheet constructor accepts the friendship's
+identity directly — there is NO re-fetch inside the sheet:
+
+```dart
+class AddExpenseBottomSheet extends ConsumerWidget {
+  const AddExpenseBottomSheet({
+    super.key,
+    required this.friendshipId,
+    required this.currentUserUid,
+    required this.otherUserUid,
+  });
+  final String friendshipId;
+  final String currentUserUid;
+  final String otherUserUid;
+  // ...
+}
+```
+
+The controller (created via a `StateNotifierProvider.family` keyed on
+`friendshipId`) consumes the three values directly. The controller
+does NOT depend on `userProfileProvider`, `friendsListProvider`, or any
+other provider — its only injected dependencies are `expenseRepository`,
+the telemetry sink, and a deterministic clock (for `time_spent_ms`
+computation). This keeps controller tests pure and free of provider
+setup.
+
+**Payer dropdown labels — architect's call (PM Open Question 4).**
+Adopt the PM default: **"You" / "Friend" placeholders**, with no
+real-name resolution in this PR. Rationale: pulling `userProfileProvider`
+into the bottom sheet drags a provider dependency into the controller
+test surface, complicates the integration test setup, and would force
+PR #38's scope to absorb a profile-resolution failure-mode branch
+(deleted user; rules-denied; stale cache) that the FR-FR-03
+architect notes §4 already documented as a polish concern with a
+fallback to `displayName: "Unknown"`. The polish PR (likely paired
+with FR-FR-04 Friend Detail full screen) replaces the placeholders
+with real names; the bottom sheet's constructor gains an optional
+`Map<String, String>? memberNames` parameter at that point.
+Accessibility labels still read sensibly with the placeholders
+(`Semantics(label: 'Payer: You')`).
+
+### 2.6 No new ADR required
+
+All technical moves above are within the precedent of existing ADRs:
+
+- **ADR-0001** (simplified debts is the sole debt mechanism) — the
+  client writes to `expenses`; the trigger maintains
+  `simplifiedBalances`. No new debt model is introduced.
+- **ADR-0002** (paise integer arithmetic) — every monetary value on
+  the path from `OBTAmountInput.onChanged` to the Firestore write is
+  an `int`. No `double` anywhere.
+- **ADR-0006** (Riverpod state management) — `AddExpenseController`
+  is a `StateNotifier`, exposed via a `StateNotifierProvider.family`
+  keyed on `friendshipId`. The `MatchAndInviteController` precedent
+  is followed unmodified.
+- **ADR-0007** (feature-first folder layout) — `lib/features/expenses/`
+  follows the same `application/` + `data/` + `domain/` +
+  `presentation/` partition used by `lib/features/friends/`.
+- **ADR-0013** (PII / telemetry hashing) — every event parameter
+  carrying `friendship_id` or `expense_id` is hashed at the emit
+  boundary via `hashFriendshipId()` / `hashId()` from
+  `lib/core/telemetry/event_id_hash.dart`. The PII-leak test
+  (AC-17) enforces.
+
+The chore #25 decision (§2.0) is a naming-convention ratification —
+too small to warrant a fresh ADR. It is recorded here, propagated
+through the telemetry plan, and tracked by the audit's SR8 closure.
+
+### 2.7 Coverage gate posture
+
+- `lib/features/expenses/**` is a NEW feature folder. Per-module
+  coverage gate is ≥ 70 %. Target ≥ 80 % on the controller
+  (`add_expense_controller.dart`) and the splitter
+  (`split_calculator.dart`) — both are pure / mostly pure and
+  exhaustively testable.
+- `lib/features/expenses/presentation/**` widgets target ≥ 70 % via
+  the bottom sheet widget tests in
+  `test/features/expenses/add_expense_bottom_sheet_widget_test.dart`.
+- `lib/core/**` sees no changes; its coverage is unchanged.
+- The integration test
+  `test/integration/expenses/expense_creation_flow_test.dart` runs
+  against the emulator and exercises the round-trip via the
+  registered PR #36 trigger. It does not contribute to the per-module
+  coverage gate (integration tests run separately under
+  `firebase emulators:exec`) but is mandatory for AC-14.
+- The property tests at
+  `test/features/expenses/split_calculator_property_test.dart`
+  extend the property-test discipline already established on the
+  server splitter (`functions/test/simplified-debts/algorithm.property.test.ts`).
+
+### 2.8 `OBTAmountInput` extract vs inline — Option E (extract)
+
+**Decision: Option E.** Extract `OBTAmountInput` to
+`lib/core/widgets/inputs/obt_amount_input.dart` with the contract that
+it emits paise via `onChanged: ValueChanged<int>`.
+
+Path rationale. The source prompt's preferred path is
+`lib/core/design_system/inputs/obt_amount_input.dart`, but that
+namespace does NOT exist in the codebase today —
+`lib/core/widgets/` is the established location for shared widgets and
+currently contains only `india_phone_input_formatter.dart` (a
+`TextInputFormatter`, not a widget). The codebase-aligned choice is to
+extend the existing `lib/core/widgets/` namespace with a new sub-folder
+`inputs/` rather than create a parallel `lib/core/design_system/`
+namespace that does not exist anywhere else in the tree. This avoids
+two divergent conventions and keeps the import paths consistent with
+the existing `import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';`
+pattern. When the design-system catalogue grows (FR-SE-08 settle-up
+will need the same widget; future PRs introducing `OBTCategoryChip`,
+`OBTRupeeText`, `OBTBalancePill`, etc. will follow), they all land in
+sub-folders under `lib/core/widgets/` (e.g. `chips/`, `text/`).
+The conflict with the source prompt is recorded; the codebase-aligned
+path wins per the task brief's hard constraint.
+
+Contract:
+
+```dart
+class OBTAmountInput extends StatefulWidget {
+  const OBTAmountInput({
+    super.key,
+    this.initialAmountPaise,
+    required this.onChanged,
+    this.autoFocus = true,
+    this.errorText,
+    this.enabled = true,
+  });
+
+  /// Pre-filled amount in paise for edit flows; null shows the empty placeholder.
+  final int? initialAmountPaise;
+
+  /// Fires on every valid change with the current value in PAISE (int).
+  /// Never emits a double; never emits a rupee value. Per Invariant 1, paise
+  /// is the integer unit on every monetary boundary above the rendering layer.
+  final ValueChanged<int> onChanged;
+
+  final bool autoFocus;
+  final String? errorText;
+  final bool enabled;
+}
+```
+
+Implementation contract:
+
+- `keyboardType: TextInputType.numberWithOptions(decimal: true)`.
+- A `TextInputFormatter` that (a) refuses non-numeric input, (b)
+  enforces at most two digits after the decimal point, (c)
+  live-formats the integer rupee component with Indian numbering via
+  `NumberFormat.decimalPattern('en_IN')` (the same package
+  `lib/core/formatters/inr_formatter.dart` uses for the read side).
+- The `₹` prefix is rendered as a fixed `Text` widget inside the
+  input decoration; it is never part of the editable text.
+- The emitted `int` value is computed as
+  `(rupees * 100) + paiseFractional` using integer arithmetic only.
+  No `double.parse`, no `toDouble()`, no division by 100.
+- Maximum value enforced: `99999999` paise (₹99,99,999.99 per the
+  catalogue and SCR-19); any keystroke that would exceed the cap is
+  silently rejected and the `errorText` is rendered as supplied by
+  the caller (the controller hosts the error message — the widget is
+  presentation-only).
+
+Tests live at `test/core/widgets/inputs/obt_amount_input_test.dart`
+and cover: integer-only emission contract (typing "12.34" emits
+`1234` after each valid keystroke); cap enforcement (typing
+"100000000.00" tops at the cap and never emits an out-of-range value);
+backspace re-emits the lower value; disabled state suppresses
+`onChanged`; the `₹` prefix is non-editable; the formatter rejects
+multiple decimal points and non-numeric input.
+
+Coverage impact. The widget contributes a new module under
+`lib/core/widgets/inputs/**`; per the existing per-module 70 % gate,
+the widget tests must clear that bar. Aim for full branch coverage on
+the formatter logic since it is the boundary at which user rupee
+input becomes the paise integer that flows through every downstream
+layer to Firestore.
+
+### 2.9 `expense_category.dart` enum + label / icon map
+
+Eight values from FR-EX-08 per
+`docs/design/06-screen-specs/19-22-expenses.md` line 33. Snake-case
+strings on Firestore (`expense_category.dart` uses Dart enum
+`.name` which is the snake-case value — Dart enums preserve the
+declared identifier verbatim). The screen spec lists icon names
+informally; the architect-ratified Material Icons set is below.
+
+```dart
+enum ExpenseCategory {
+  food,
+  travel,
+  rent,
+  utilities,
+  groceries,
+  entertainment,
+  shopping,
+  other,
+}
+
+const Map<ExpenseCategory, String> expenseCategoryLabel = {
+  ExpenseCategory.food:          'Food',
+  ExpenseCategory.travel:        'Travel',
+  ExpenseCategory.rent:          'Rent',
+  ExpenseCategory.utilities:     'Utilities',
+  ExpenseCategory.groceries:     'Groceries',
+  ExpenseCategory.entertainment: 'Entertainment',
+  ExpenseCategory.shopping:      'Shopping',
+  ExpenseCategory.other:         'Other',
+};
+
+const Map<ExpenseCategory, IconData> expenseCategoryIcon = {
+  ExpenseCategory.food:          Icons.restaurant,
+  ExpenseCategory.travel:        Icons.flight,
+  ExpenseCategory.rent:          Icons.home,
+  ExpenseCategory.utilities:     Icons.bolt,
+  ExpenseCategory.groceries:     Icons.local_grocery_store,
+  ExpenseCategory.entertainment: Icons.movie,
+  ExpenseCategory.shopping:      Icons.shopping_bag,
+  ExpenseCategory.other:         Icons.more_horiz,
+};
+```
+
+Rationale for the icon picks: each icon is a single-glyph Material
+Icon that reads at 24 dp without ambiguity on both light and dark
+backgrounds. `restaurant` (not `fastfood` or `local_dining`) is
+the broadest food affordance; `flight` (not `directions_car`)
+generalises across travel modes; `home` is the universal rent /
+housing affordance; `bolt` (not `flash_on` which is deprecated)
+covers electricity, water, internet; `local_grocery_store` is
+unambiguous; `movie` (not `theaters`) reads as entertainment
+broadly; `shopping_bag` (not `shopping_cart` which conflates with
+groceries) keeps shopping visually distinct from groceries;
+`more_horiz` is the standard "other / overflow" affordance.
+
+The Firestore `category` field is a `string` (per the schema, line 138
+of `docs/design/07-technical/firestore-schema.md`); the rules do NOT
+enumerate the allowed values (`firestore.rules` line 198 is just
+`data.category is string`). The client enum is therefore the gate —
+the validator only accepts an `ExpenseCategory` instance; the
+`toCreateMap()` serialises via `.name`; an unknown server-side value
+read in a future PR (read paths are out of scope here) will need a
+`ExpenseCategory? tryParseExpenseCategory(String)` companion. The
+parse helper is NOT shipped in PR #38; it is added when the first
+read path lands (likely FR-FR-04 Friend Detail full screen).
+
+### 2.10 Entry-point scope — FAB on `friends_list_screen.dart` (PM Open Question 3)
+
+**Decision: no-op for PR #38.** The only entry point to the Add
+Expense flow shipped in this PR is the FAB on
+`lib/features/friends/presentation/friend_detail_placeholder_screen.dart`
+(the per-friend Friend Detail placeholder, which has the friendship
+identity pre-bound from the route argument). The FAB on
+`lib/features/friends/presentation/friends_list_screen.dart` remains a
+no-op — tapping it does nothing visible.
+
+Rationale. The trivial "Pick a friend first" snackbar variant would
+itself need its own telemetry event, its own copy review, its own
+accessibility label, and would create a UX dead-end (the user
+expects the FAB to do something useful, sees a snackbar that tells
+them they have to do something else first, and is left to navigate
+on their own). The right answer to "I want to add an expense from
+the friends list" is a friend picker — which is the SCR-08
+multi-context entry-point chooser, and that is its own story per
+the Out of Scope list. Shipping the snackbar half-measure here would
+either be retired when the chooser arrives (sunk work) or harden
+into a long-lived placeholder (a worse UX than no-op). The no-op is
+honest: the FAB on the friends list is reserved for the chooser PR,
+and the only producer of expense writes in PR #38 is the FAB on the
+per-friend placeholder where the friendship context is already
+bound.
+
+A `// TODO(SCR-08): wire the multi-context FAB chooser` comment is
+placed in `friends_list_screen.dart` next to the FAB's `onPressed`
+to make the deferred work discoverable. No telemetry event is
+emitted for the no-op (Firebase Analytics does not record events that
+do not fire, and adding a `fab_tapped_unwired` would breach the
+"events fire on real user-visible state changes" rule from the
+telemetry plan section 3 privacy rules).
