@@ -62,9 +62,7 @@ class OBTSettleUpCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -72,7 +70,6 @@ class OBTSettleUpCard extends StatelessWidget {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 _AvatarLabel(
                   displayName: payerDisplayName,
@@ -130,15 +127,11 @@ class _AvatarLabel extends StatelessWidget {
         CircleAvatar(
           radius: 24,
           backgroundColor: theme.colorScheme.surface,
-          backgroundImage:
-              (photoUrl != null && photoUrl!.isNotEmpty)
-                  ? NetworkImage(photoUrl!)
-                  : null,
+          backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
+              ? NetworkImage(photoUrl!)
+              : null,
           child: (photoUrl == null || photoUrl!.isEmpty)
-              ? Text(
-                  _initials(displayName),
-                  style: theme.textTheme.titleSmall,
-                )
+              ? Text(_initials(displayName), style: theme.textTheme.titleSmall)
               : null,
         ),
         const SizedBox(height: 4),

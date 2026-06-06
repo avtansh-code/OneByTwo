@@ -21,8 +21,6 @@ import 'package:onebytwo/features/settlements/application/settle_up_controller.d
 import 'package:onebytwo/features/settlements/application/settle_up_state.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
-import 'package:onebytwo/features/settlements/domain/settle_up_draft.dart';
-import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 // ---------------------------------------------------------------------------
@@ -277,16 +275,16 @@ void main() {
       expect(repo.capturedDoc!.note, isNull);
     });
 
-    test('fires settlement_recorded exactly once with the payload',
-        () async {
+    test('fires settlement_recorded exactly once with the payload', () async {
       repo.returnSettlementId = 'sid-1';
       final controller = _buildController(repo: repo, analytics: analytics);
       controller.setAmount(3000); // partial
       await controller.save();
 
       expect(analytics.countOf(SettleUpTelemetry.settlementRecorded), 1);
-      final params =
-          analytics.lastParamsFor(SettleUpTelemetry.settlementRecorded)!;
+      final params = analytics.lastParamsFor(
+        SettleUpTelemetry.settlementRecorded,
+      )!;
       expect(params[SettleUpTelemetry.paramContextType], 'friendship');
       expect(params[SettleUpTelemetry.paramIsPartial], true);
       expect(params[SettleUpTelemetry.paramAmountRange], isA<String>());
@@ -304,8 +302,9 @@ void main() {
       final controller = _buildController(repo: repo, analytics: analytics);
       // amount == suggested → not partial
       await controller.save();
-      final params =
-          analytics.lastParamsFor(SettleUpTelemetry.settlementRecorded)!;
+      final params = analytics.lastParamsFor(
+        SettleUpTelemetry.settlementRecorded,
+      )!;
       expect(params[SettleUpTelemetry.paramIsPartial], false);
     });
   });
@@ -322,14 +321,10 @@ void main() {
       expect(controller.state, isA<SettleUpError>());
       final err = controller.state as SettleUpError;
       expect(err.errorType, SettlementCreateErrorType.permissionDenied);
-      expect(
-        err.message,
-        "Couldn't record the settlement. Please try again.",
-      );
+      expect(err.message, "Couldn't record the settlement. Please try again.");
     });
 
-    test('fires settle_up_error { error_code: permission_denied }',
-        () async {
+    test('fires settle_up_error { error_code: permission_denied }', () async {
       repo.throwError = const SettlementCreateError(
         type: SettlementCreateErrorType.permissionDenied,
       );
@@ -357,7 +352,7 @@ void main() {
 
       final err = controller.state as SettleUpError;
       expect(err.errorType, SettlementCreateErrorType.network);
-      expect(err.message, contains("offline"));
+      expect(err.message, contains('offline'));
 
       final params = analytics.lastParamsFor(SettleUpTelemetry.errorEvent)!;
       expect(params[SettleUpTelemetry.paramErrorCode], 'network');
@@ -379,38 +374,38 @@ void main() {
   });
 
   group('save() validation failure path', () {
-    test('save with amount==0 is a no-op + fires settle_up_validation_failed',
-        () async {
-      final controller = _buildController(repo: repo, analytics: analytics);
-      controller.setAmount(0);
-      await controller.save();
+    test(
+      'save with amount==0 is a no-op + fires settle_up_validation_failed',
+      () async {
+        final controller = _buildController(repo: repo, analytics: analytics);
+        controller.setAmount(0);
+        await controller.save();
 
-      expect(repo.called, isFalse);
-      expect(controller.state, isA<SettleUpEditing>());
-      expect(
-        analytics.countOf(SettleUpTelemetry.validationFailed),
-        1,
-      );
-      final params =
-          analytics.lastParamsFor(SettleUpTelemetry.validationFailed)!;
-      expect(params[SettleUpTelemetry.paramField], 'amount');
-    });
+        expect(repo.called, isFalse);
+        expect(controller.state, isA<SettleUpEditing>());
+        expect(analytics.countOf(SettleUpTelemetry.validationFailed), 1);
+        final params = analytics.lastParamsFor(
+          SettleUpTelemetry.validationFailed,
+        )!;
+        expect(params[SettleUpTelemetry.paramField], 'amount');
+      },
+    );
 
-    test('save with note > 200 chars is a no-op + fires validation_failed',
-        () async {
-      final controller = _buildController(repo: repo, analytics: analytics);
-      controller.setNote('a' * 201);
-      await controller.save();
+    test(
+      'save with note > 200 chars is a no-op + fires validation_failed',
+      () async {
+        final controller = _buildController(repo: repo, analytics: analytics);
+        controller.setNote('a' * 201);
+        await controller.save();
 
-      expect(repo.called, isFalse);
-      expect(
-        analytics.countOf(SettleUpTelemetry.validationFailed),
-        1,
-      );
-      final params =
-          analytics.lastParamsFor(SettleUpTelemetry.validationFailed)!;
-      expect(params[SettleUpTelemetry.paramField], 'note');
-    });
+        expect(repo.called, isFalse);
+        expect(analytics.countOf(SettleUpTelemetry.validationFailed), 1);
+        final params = analytics.lastParamsFor(
+          SettleUpTelemetry.validationFailed,
+        )!;
+        expect(params[SettleUpTelemetry.paramField], 'note');
+      },
+    );
   });
 
   group('SettleUpTelemetry.amountRangeFor', () {
@@ -426,21 +421,23 @@ void main() {
   });
 
   group('Settle Up controller retry after failure', () {
-    test('retry from SettleUpError transitions back to Saving → Success',
-        () async {
-      repo.throwError = const SettlementCreateError(
-        type: SettlementCreateErrorType.network,
-      );
-      final controller = _buildController(repo: repo, analytics: analytics);
-      await controller.save();
-      expect(controller.state, isA<SettleUpError>());
+    test(
+      'retry from SettleUpError transitions back to Saving → Success',
+      () async {
+        repo.throwError = const SettlementCreateError(
+          type: SettlementCreateErrorType.network,
+        );
+        final controller = _buildController(repo: repo, analytics: analytics);
+        await controller.save();
+        expect(controller.state, isA<SettleUpError>());
 
-      // Clear failure; the user taps "Retry" on the snackbar which
-      // calls save() again.
-      repo.throwError = null;
-      repo.returnSettlementId = 'sid-retry';
-      await controller.save();
-      expect(controller.state, isA<SettleUpSuccess>());
-    });
+        // Clear failure; the user taps "Retry" on the snackbar which
+        // calls save() again.
+        repo.throwError = null;
+        repo.returnSettlementId = 'sid-retry';
+        await controller.save();
+        expect(controller.state, isA<SettleUpSuccess>());
+      },
+    );
   });
 }

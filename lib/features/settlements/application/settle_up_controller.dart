@@ -7,7 +7,6 @@ import 'package:onebytwo/features/settlements/application/settle_up_state.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settle_up_draft.dart';
-import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 /// Driver for the Settle Up bottom sheet (FR-SE-05 / FR-SE-06 /
@@ -193,9 +192,7 @@ class SettleUpController extends StateNotifier<SettleUpState> {
           draft.amountPaise,
         ),
         SettleUpTelemetry.paramIsPartial: draft.isPartial,
-        SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
-          friendshipId,
-        ),
+        SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
         SettleUpTelemetry.paramSettlementIdHash: hashId(settlementId),
       },
     );
@@ -207,9 +204,7 @@ class SettleUpController extends StateNotifier<SettleUpState> {
       parameters: <String, Object>{
         SettleUpTelemetry.paramErrorCode: type.telemetryErrorCode,
         SettleUpTelemetry.paramContextType: 'friendship',
-        SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
-          friendshipId,
-        ),
+        SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
       },
     );
   }
@@ -218,9 +213,7 @@ class SettleUpController extends StateNotifier<SettleUpState> {
     // Fire ONCE for the first failing field, in priority order. The
     // controller does not emit multiple events per Save tap because
     // the UI surfaces all errors inline already.
-    final field = errors.containsKey('amount')
-        ? 'amount'
-        : errors.keys.first;
+    final field = errors.containsKey('amount') ? 'amount' : errors.keys.first;
     _analytics.logEvent(
       name: SettleUpTelemetry.validationFailed,
       parameters: <String, Object>{

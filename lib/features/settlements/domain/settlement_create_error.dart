@@ -77,7 +77,7 @@ extension SettlementCreateErrorTypeX on SettlementCreateErrorType {
   }
 }
 
-/// Exception thrown by [SettlementRepository.createSettlement] on
+/// Exception thrown by `SettlementRepository.createSettlement` on
 /// failure. Mirrors `ExpenseCreateError` (PR #38) 1:1.
 ///
 /// Carries the typed [type] for the controller to classify the user

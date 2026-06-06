@@ -44,7 +44,7 @@ void main() {
     });
 
     test('toString includes the type name', () {
-      final err = SettlementCreateError(
+      const err = SettlementCreateError(
         type: SettlementCreateErrorType.network,
       );
       expect(err.toString(), contains('network'));
@@ -104,10 +104,7 @@ void main() {
     });
 
     test('network → "network"', () {
-      expect(
-        SettlementCreateErrorType.network.telemetryErrorCode,
-        'network',
-      );
+      expect(SettlementCreateErrorType.network.telemetryErrorCode, 'network');
     });
 
     test('balanceChanged → "balance_changed"', () {
@@ -125,10 +122,7 @@ void main() {
     });
 
     test('unknown → "unknown"', () {
-      expect(
-        SettlementCreateErrorType.unknown.telemetryErrorCode,
-        'unknown',
-      );
+      expect(SettlementCreateErrorType.unknown.telemetryErrorCode, 'unknown');
     });
   });
 }

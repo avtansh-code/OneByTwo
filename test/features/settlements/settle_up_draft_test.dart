@@ -69,7 +69,7 @@ void main() {
         ).copyWith(amountPaise: amountPaise);
 
     test('valid amount produces empty error map', () {
-      final errors = baseDraft(amountPaise: 5000).validate();
+      final errors = baseDraft().validate();
       expect(errors, isEmpty);
     });
 
@@ -79,28 +79,27 @@ void main() {
     });
 
     test('amount > suggested → "cannot exceed outstanding balance"', () {
-      final errors = baseDraft(amountPaise: 6000, suggested: 5000).validate();
+      final errors = baseDraft(amountPaise: 6000).validate();
       expect(errors['amount'], contains('cannot exceed the outstanding'));
       expect(errors['amount'], contains('₹50.00'));
     });
 
     test('amount == suggested is allowed (full settlement)', () {
-      final errors = baseDraft(amountPaise: 5000, suggested: 5000).validate();
+      final errors = baseDraft().validate();
       expect(errors, isEmpty);
     });
 
     test('partial amount (1 paise less than suggested) is allowed', () {
-      final errors = baseDraft(amountPaise: 4999, suggested: 5000).validate();
+      final errors = baseDraft(amountPaise: 4999).validate();
       expect(errors, isEmpty);
     });
   });
 
   group('SettleUpDraft.validate — note', () {
-    SettleUpDraft draftWithNote(String? note) =>
-        SettleUpDraft.initial(
-          suggestedAmountPaise: 5000,
-          date: DateTime(2026, 6),
-        ).copyWith(note: note);
+    SettleUpDraft draftWithNote(String? note) => SettleUpDraft.initial(
+      suggestedAmountPaise: 5000,
+      date: DateTime(2026, 6),
+    ).copyWith(note: note);
 
     test('null note is valid', () {
       final errors = draftWithNote(null).validate();

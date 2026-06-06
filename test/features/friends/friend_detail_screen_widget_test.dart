@@ -612,33 +612,29 @@ void main() {
       },
     );
 
-    testWidgets(
-      'does NOT render the OBTSettleUpCard when settled (AC-2)',
-      (tester) async {
-        final state = FriendDetailStatePopulated(
-          header: _header(),
-          timeline: [
-            TimelineExpense(
-              doc: _expense(
-                description: 'Old',
-                date: DateTime(2026, 5, 30),
-              ),
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          _buildSubject(
-            initialValue: AsyncData(state),
-            analytics: analytics,
-            settlementRepository: FakeSettlementRepository(),
+    testWidgets('does NOT render the OBTSettleUpCard when settled (AC-2)', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(),
+        timeline: [
+          TimelineExpense(
+            doc: _expense(description: 'Old', date: DateTime(2026, 5, 30)),
           ),
-        );
-        await tester.pumpAndSettle();
+        ],
+      );
 
-        expect(find.byType(OBTSettleUpCard), findsNothing);
-      },
-    );
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OBTSettleUpCard), findsNothing);
+    });
 
     testWidgets(
       'tapping the card opens SettleUpBottomSheet + fires settle_up_tapped',
@@ -668,10 +664,7 @@ void main() {
         final params = analytics.lastParamsFor(
           SettleUpTelemetry.settleUpTapped,
         );
-        expect(
-          params?[SettleUpTelemetry.paramSource],
-          'friend_detail',
-        );
+        expect(params?[SettleUpTelemetry.paramSource], 'friend_detail');
         expect(
           params?[SettleUpTelemetry.paramFriendshipIdHash],
           equals(hashFriendshipId('uid-friend_uid-me')),
@@ -685,70 +678,58 @@ void main() {
   // ===================================================================
 
   group('Settlement row payer context (review §R3)', () {
-    testWidgets(
-      'fromUserId == currentUid → "You paid Bina ₹X.XX"',
-      (tester) async {
-        final state = FriendDetailStatePopulated(
-          header: _header(
-            netBalancePaise: -5000,
-            balanceState: BalanceState.owes,
+    testWidgets('fromUserId == currentUid → "You paid Bina ₹X.XX"', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(
+          netBalancePaise: -5000,
+          balanceState: BalanceState.owes,
+        ),
+        timeline: [
+          TimelineSettlement(
+            doc: _settlement(id: 'sid-me-paid', date: DateTime(2026, 6, 5)),
           ),
-          timeline: [
-            TimelineSettlement(
-              doc: _settlement(
-                id: 'sid-me-paid',
-                date: DateTime(2026, 6, 5),
-                amountPaise: 5000,
-                fromUserId: 'uid-me',
-                toUserId: 'uid-friend',
-              ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('You paid Bina ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('fromUserId == otherUid → "Bina paid you ₹X.XX"', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
+        timeline: [
+          TimelineSettlement(
+            doc: _settlement(
+              id: 'sid-friend-paid',
+              date: DateTime(2026, 6, 5),
+              fromUserId: 'uid-friend',
+              toUserId: 'uid-me',
             ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          _buildSubject(initialValue: AsyncData(state), analytics: analytics),
-        );
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text('You paid Bina ${formatInrFromPaise(5000)}'),
-          findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets(
-      'fromUserId == otherUid → "Bina paid you ₹X.XX"',
-      (tester) async {
-        final state = FriendDetailStatePopulated(
-          header: _header(
-            netBalancePaise: 5000,
-            balanceState: BalanceState.owed,
           ),
-          timeline: [
-            TimelineSettlement(
-              doc: _settlement(
-                id: 'sid-friend-paid',
-                date: DateTime(2026, 6, 5),
-                amountPaise: 5000,
-                fromUserId: 'uid-friend',
-                toUserId: 'uid-me',
-              ),
-            ),
-          ],
-        );
+        ],
+      );
 
-        await tester.pumpWidget(
-          _buildSubject(initialValue: AsyncData(state), analytics: analytics),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
 
-        expect(
-          find.text('Bina paid you ${formatInrFromPaise(5000)}'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(
+        find.text('Bina paid you ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
+    });
   });
 }

@@ -578,20 +578,23 @@ void main() {
 
     test('contains exactly the keys whitelisted by hasOnlyKnownKeys', () {
       final map = baseDoc().toCreateMap();
-      expect(map.keys.toSet(), equals(<String>{
-        'fromUserId',
-        'toUserId',
-        'amountPaise',
-        'contextType',
-        'contextId',
-        'date',
-        'note',
-        'method',
-        'verificationStatus',
-        'currency',
-        'createdAt',
-        'deleted',
-      }));
+      expect(
+        map.keys.toSet(),
+        equals(<String>{
+          'fromUserId',
+          'toUserId',
+          'amountPaise',
+          'contextType',
+          'contextId',
+          'date',
+          'note',
+          'method',
+          'verificationStatus',
+          'currency',
+          'createdAt',
+          'deleted',
+        }),
+      );
     });
 
     test('amountPaise is int (Invariant 1)', () {
@@ -648,7 +651,6 @@ void main() {
       final map = baseDoc(
         fromUserId: 'uid-me',
         toUserId: 'uid-friend',
-        contextType: 'friendship',
         contextId: 'uid-friend_uid-me',
       ).toCreateMap();
       expect(map['fromUserId'], 'uid-me');

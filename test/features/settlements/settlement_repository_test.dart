@@ -22,7 +22,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart'
     show firebaseFirestoreProvider;
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
-import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 class FakeSettlementStore implements SettlementStore {
@@ -51,9 +50,7 @@ class FakeSettlementStore implements SettlementStore {
   }
 
   @override
-  Future<String> createSettlement({
-    required Map<String, dynamic> data,
-  }) async {
+  Future<String> createSettlement({required Map<String, dynamic> data}) async {
     lastCreatedData = data;
     if (throwOnCreate != null) {
       throw throwOnCreate!;
@@ -272,7 +269,7 @@ void main() {
   });
 
   group('SettlementRepository.createSettlement — write path (FR-SE-05)', () {
-    SettlementDoc _docToCreate({
+    SettlementDoc docToCreate({
       String fromUserId = 'uid-me',
       String toUserId = 'uid-friend',
       int amountPaise = 5000,
@@ -299,13 +296,13 @@ void main() {
 
     test('happy path returns the generated settlement ID', () async {
       store.returnSettlementId = 'sid-generated';
-      final id = await repository.createSettlement(doc: _docToCreate());
+      final id = await repository.createSettlement(doc: docToCreate());
       expect(id, 'sid-generated');
     });
 
     test('passes the toCreateMap() shape to the store', () async {
       await repository.createSettlement(
-        doc: _docToCreate(amountPaise: 12345, note: 'Pizza'),
+        doc: docToCreate(amountPaise: 12345, note: 'Pizza'),
       );
       expect(store.lastCreatedData, isNotNull);
       expect(store.lastCreatedData!['amountPaise'], 12345);
@@ -325,7 +322,7 @@ void main() {
       );
 
       await expectLater(
-        repository.createSettlement(doc: _docToCreate()),
+        repository.createSettlement(doc: docToCreate()),
         throwsA(
           isA<SettlementCreateError>().having(
             (e) => e.type,
@@ -344,7 +341,7 @@ void main() {
       );
 
       await expectLater(
-        repository.createSettlement(doc: _docToCreate()),
+        repository.createSettlement(doc: docToCreate()),
         throwsA(
           isA<SettlementCreateError>().having(
             (e) => e.type,
@@ -355,30 +352,32 @@ void main() {
       );
     });
 
-    test('FirebaseException(other code) → SettlementCreateError(unknown)',
-        () async {
-      store.throwOnCreate = FirebaseException(
-        plugin: 'cloud_firestore',
-        code: 'cancelled',
-      );
+    test(
+      'FirebaseException(other code) → SettlementCreateError(unknown)',
+      () async {
+        store.throwOnCreate = FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'cancelled',
+        );
 
-      await expectLater(
-        repository.createSettlement(doc: _docToCreate()),
-        throwsA(
-          isA<SettlementCreateError>().having(
-            (e) => e.type,
-            'type',
-            SettlementCreateErrorType.unknown,
+        await expectLater(
+          repository.createSettlement(doc: docToCreate()),
+          throwsA(
+            isA<SettlementCreateError>().having(
+              (e) => e.type,
+              'type',
+              SettlementCreateErrorType.unknown,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('non-FirebaseException → SettlementCreateError(unknown)', () async {
       store.throwUnknownOnCreate = Exception('boom');
 
       await expectLater(
-        repository.createSettlement(doc: _docToCreate()),
+        repository.createSettlement(doc: docToCreate()),
         throwsA(
           isA<SettlementCreateError>().having(
             (e) => e.type,
@@ -391,7 +390,7 @@ void main() {
 
     test('repository never writes the simplifiedBalances field '
         '(Invariant 2)', () async {
-      await repository.createSettlement(doc: _docToCreate());
+      await repository.createSettlement(doc: docToCreate());
       expect(store.lastCreatedData, isNotNull);
       expect(
         store.lastCreatedData!.containsKey('simplifiedBalances'),

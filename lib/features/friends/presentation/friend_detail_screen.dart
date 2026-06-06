@@ -103,8 +103,8 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                         payerPhotoUrl: null,
                         payeeDisplayName: state.header.displayName,
                         payeePhotoUrl: state.header.photoUrl,
-                        suggestedAmountPaise:
-                            state.header.netBalancePaise.abs(),
+                        suggestedAmountPaise: state.header.netBalancePaise
+                            .abs(),
                         onSettleUp: () => _onSettleUpTapped(context, state),
                       ),
                     FriendDetailTimelineWidget(
@@ -196,8 +196,9 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
             name: SettleUpTelemetry.settleUpTapped,
             parameters: <String, Object>{
               SettleUpTelemetry.paramSource: 'friend_detail',
-              SettleUpTelemetry.paramFriendshipIdHash:
-                  hashFriendshipId(widget.friendshipId),
+              SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
+                widget.friendshipId,
+              ),
             },
           ),
     );

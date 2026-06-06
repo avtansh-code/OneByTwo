@@ -45,7 +45,6 @@ class SettleUpHeader extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _AvatarColumn(
                 displayName: payerDisplayName,
@@ -95,15 +94,11 @@ class _AvatarColumn extends StatelessWidget {
         CircleAvatar(
           radius: 28,
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          backgroundImage:
-              (photoUrl != null && photoUrl!.isNotEmpty)
-                  ? NetworkImage(photoUrl!)
-                  : null,
+          backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
+              ? NetworkImage(photoUrl!)
+              : null,
           child: (photoUrl == null || photoUrl!.isEmpty)
-              ? Text(
-                  _initials(displayName),
-                  style: theme.textTheme.titleMedium,
-                )
+              ? Text(_initials(displayName), style: theme.textTheme.titleMedium)
               : null,
         ),
         const SizedBox(height: 6),

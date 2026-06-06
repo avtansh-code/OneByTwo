@@ -18,10 +18,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/settlements/application/settle_up_controller.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
-import 'package:onebytwo/features/settlements/domain/settlement_create_error.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 
@@ -126,10 +124,7 @@ void main() {
     testWidgets('renders the suggested amount echo', (tester) async {
       await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
       await tester.pump();
-      expect(
-        find.textContaining(formatInrFromPaise(_suggested)),
-        findsWidgets,
-      );
+      expect(find.textContaining(formatInrFromPaise(_suggested)), findsWidgets);
     });
 
     testWidgets('renders the Record Settlement button', (tester) async {
@@ -249,9 +244,7 @@ void main() {
   });
 
   group('Save failure paths', () {
-    testWidgets('permission-denied shows the danger snackbar', (
-      tester,
-    ) async {
+    testWidgets('permission-denied shows the danger snackbar', (tester) async {
       repo.throwError = const SettlementCreateError(
         type: SettlementCreateErrorType.permissionDenied,
       );

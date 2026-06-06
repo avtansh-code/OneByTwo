@@ -152,41 +152,38 @@ void main() {
     }
   });
 
-  testWidgets(
-    'settlement_recorded carries hashed friendship_id_hash + '
-    'settlement_id_hash (not raw values)',
-    (tester) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Record Settlement'));
-      await tester.pumpAndSettle();
+  testWidgets('settlement_recorded carries hashed friendship_id_hash + '
+      'settlement_id_hash (not raw values)', (tester) async {
+    await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Record Settlement'));
+    await tester.pumpAndSettle();
 
-      final recorded = analytics.loggedEvents
-          .where((e) => e.name == SettleUpTelemetry.settlementRecorded)
-          .toList();
-      expect(recorded, hasLength(1));
+    final recorded = analytics.loggedEvents
+        .where((e) => e.name == SettleUpTelemetry.settlementRecorded)
+        .toList();
+    expect(recorded, hasLength(1));
 
-      final params = recorded.first.parameters!;
-      expect(
-        params[SettleUpTelemetry.paramFriendshipIdHash],
-        equals(hashFriendshipId(_friendshipId)),
-      );
-      expect(
-        params[SettleUpTelemetry.paramSettlementIdHash],
-        equals(hashId(repo.returnSettlementId)),
-      );
+    final params = recorded.first.parameters!;
+    expect(
+      params[SettleUpTelemetry.paramFriendshipIdHash],
+      equals(hashFriendshipId(_friendshipId)),
+    );
+    expect(
+      params[SettleUpTelemetry.paramSettlementIdHash],
+      equals(hashId(repo.returnSettlementId)),
+    );
 
-      // Hashed values are length-16 hex strings.
-      expect(
-        (params[SettleUpTelemetry.paramFriendshipIdHash]! as String).length,
-        16,
-      );
-      expect(
-        (params[SettleUpTelemetry.paramSettlementIdHash]! as String).length,
-        16,
-      );
-    },
-  );
+    // Hashed values are length-16 hex strings.
+    expect(
+      (params[SettleUpTelemetry.paramFriendshipIdHash]! as String).length,
+      16,
+    );
+    expect(
+      (params[SettleUpTelemetry.paramSettlementIdHash]! as String).length,
+      16,
+    );
+  });
 
   testWidgets('screen_viewed carries hashed friendship_id_hash', (
     tester,

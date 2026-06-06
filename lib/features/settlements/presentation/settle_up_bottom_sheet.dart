@@ -24,7 +24,7 @@ import 'package:onebytwo/features/settlements/presentation/widgets/settle_up_hea
 ///
 /// Telemetry single-fire discipline (Architect Notes §2.7):
 /// `settle_up_screen_viewed` fires exactly once on first paint of the
-/// body via a post-frame callback, gated by [_loggedView].
+/// body via a post-frame callback, gated by `_loggedView`.
 class SettleUpBottomSheet extends ConsumerStatefulWidget {
   /// Creates a [SettleUpBottomSheet].
   const SettleUpBottomSheet({
@@ -92,8 +92,9 @@ class _SettleUpBottomSheetState extends ConsumerState<SettleUpBottomSheet> {
             parameters: <String, Object>{
               SettleUpTelemetry.paramContextType: 'friendship',
               SettleUpTelemetry.paramSource: 'friend_detail',
-              SettleUpTelemetry.paramFriendshipIdHash:
-                  hashFriendshipId(widget.friendshipId),
+              SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
+                widget.friendshipId,
+              ),
             },
           ),
     );

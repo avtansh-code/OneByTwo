@@ -111,9 +111,7 @@ class FirestoreSettlementStore implements SettlementStore {
   }
 
   @override
-  Future<String> createSettlement({
-    required Map<String, dynamic> data,
-  }) async {
+  Future<String> createSettlement({required Map<String, dynamic> data}) async {
     final ref = await _collection.add(data);
     return ref.id;
   }

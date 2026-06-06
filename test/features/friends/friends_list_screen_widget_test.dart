@@ -292,10 +292,7 @@ void main() {
         equals(hashFriendshipId('uid-aaa_uid-me')),
       );
       // The raw friendshipId must NOT be present anywhere in the event.
-      expect(
-        params['friendship_id_hash'],
-        isNot(equals('uid-aaa_uid-me')),
-      );
+      expect(params['friendship_id_hash'], isNot(equals('uid-aaa_uid-me')));
       expect(
         params.values.any((v) => v.toString().contains('uid-aaa_uid-me')),
         isFalse,
