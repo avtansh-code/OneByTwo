@@ -52,7 +52,11 @@ class FriendDetailTimelineWidget extends StatelessWidget {
               friendDisplayName: friendDisplayName,
             );
           case TimelineSettlement(:final doc):
-            return _SettlementRow(doc: doc);
+            return _SettlementRow(
+              doc: doc,
+              currentUserUid: currentUserUid,
+              friendDisplayName: friendDisplayName,
+            );
         }
       },
     );
@@ -148,15 +152,27 @@ class _ExpenseRow extends StatelessWidget {
 }
 
 class _SettlementRow extends StatelessWidget {
-  const _SettlementRow({required this.doc});
+  const _SettlementRow({
+    required this.doc,
+    required this.currentUserUid,
+    required this.friendDisplayName,
+  });
 
   final SettlementDoc doc;
+  final String currentUserUid;
+  final String friendDisplayName;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dateFmt = DateFormat.yMMMd();
     final amount = formatInrFromPaise(doc.amountPaise);
+    final isMine = doc.fromUserId == currentUserUid;
+    final friendFirstName = _firstName(friendDisplayName);
+    final label = isMine
+        ? 'You paid $friendFirstName $amount'
+        : '$friendFirstName paid you $amount';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -174,7 +190,12 @@ class _SettlementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Settlement', style: theme.textTheme.titleSmall),
+                Text(
+                  label,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   dateFmt.format(doc.date),
@@ -185,16 +206,14 @@ class _SettlementRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            amount,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
         ],
       ),
     );
+  }
+
+  static String _firstName(String full) {
+    final trimmed = full.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed.split(' ').first;
   }
 }
