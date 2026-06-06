@@ -5,6 +5,11 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/split_calculator.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 
+// Re-export Split so callers (UI, tests) that only import
+// `expense_doc.dart` can construct shares without a second import.
+export 'package:onebytwo/features/expenses/domain/split_calculator.dart'
+    show Split;
+
 /// Firestore-shaped expense document.
 ///
 /// `toCreateMap()` produces the map that satisfies every predicate in

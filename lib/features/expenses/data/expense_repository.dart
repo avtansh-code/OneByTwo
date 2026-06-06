@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/features/auth/data/user_repository.dart'
+    show firebaseFirestoreProvider;
 import 'package:onebytwo/features/expenses/domain/expense_create_error.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 
@@ -8,32 +11,114 @@ import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 // definition.
 export 'package:onebytwo/features/expenses/domain/expense_create_error.dart';
 
-/// Repository contract for the expense feature. The controller depends
-/// on this interface; production code uses the Firestore-backed impl
-/// (added in a follow-up commit), tests inject a fake.
-///
-/// The repository is the sole client-side producer of writes to the
-/// `friendships/{fid}/expenses/{eid}` subcollection. It MUST NOT touch
-/// `simplifiedBalances` — that field is server-maintained
-/// (invariant 2).
+// ---------------------------------------------------------------------------
+// Store interface
+// ---------------------------------------------------------------------------
+
+/// Thin abstraction over Firestore writes for expense documents.
+/// Mirrors the [`FriendshipStore`](../../friends/data/friendship_repository.dart)
+/// pattern: the production implementation hits the real Firestore SDK;
+/// tests inject a recording fake (no `fake_cloud_firestore` dependency
+/// in `pubspec.yaml`).
 // ignore: one_member_abstracts
-abstract class ExpenseRepository {
-  /// Creates an expense document under the given friendship and
-  /// returns the auto-generated document ID. Throws an
-  /// [ExpenseCreateError] on any failure; the controller catches
-  /// that typed error and classifies the user experience.
-  Future<String> createExpense({
+abstract class ExpenseStore {
+  /// Adds the expense document at
+  /// `friendships/{friendshipId}/expenses/{auto-id}` and returns the
+  /// generated document ID.
+  Future<String> addExpense({
     required String friendshipId,
-    required ExpenseDoc doc,
+    required Map<String, dynamic> data,
   });
 }
 
-/// Provider override-point. The production binding lives in
-/// `data/firestore_expense_repository.dart` (added in a follow-up
-/// commit); tests override this provider with a fake.
+/// Production [ExpenseStore] backed by [FirebaseFirestore].
+class FirestoreExpenseStore implements ExpenseStore {
+  /// Creates a [FirestoreExpenseStore].
+  FirestoreExpenseStore({required FirebaseFirestore firestore})
+      : _firestore = firestore;
+
+  final FirebaseFirestore _firestore;
+
+  @override
+  Future<String> addExpense({
+    required String friendshipId,
+    required Map<String, dynamic> data,
+  }) async {
+    final ref = await _firestore
+        .collection('friendships')
+        .doc(friendshipId)
+        .collection('expenses')
+        .add(data);
+    return ref.id;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Repository
+// ---------------------------------------------------------------------------
+
+/// Repository for the expense feature. The controller depends on this
+/// concrete class via constructor injection; tests inject a fake that
+/// `implements ExpenseRepository`.
+///
+/// Sole client-side producer of writes to
+/// `friendships/{fid}/expenses/{eid}`. Never touches
+/// `simplifiedBalances` (invariant 2) — that field is server-maintained
+/// by the `onExpenseWriteFriendship` Cloud Function.
+class ExpenseRepository {
+  /// Creates an [ExpenseRepository].
+  ExpenseRepository({required ExpenseStore store}) : _store = store;
+
+  final ExpenseStore _store;
+
+  /// Persists the expense document and returns the generated ID.
+  /// Translates [FirebaseException]s into [ExpenseCreateError] with a
+  /// typed [ExpenseCreateErrorType] so the controller never has to
+  /// interpret raw Firebase codes.
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  }) async {
+    try {
+      return await _store.addExpense(
+        friendshipId: friendshipId,
+        data: doc.toCreateMap(),
+      );
+    } on FirebaseException catch (e, st) {
+      throw ExpenseCreateError(
+        type: _mapFirebaseCode(e.code),
+        underlying: e,
+        stackTrace: st,
+      );
+    } catch (e, st) {
+      throw ExpenseCreateError(
+        type: ExpenseCreateErrorType.unknown,
+        underlying: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  ExpenseCreateErrorType _mapFirebaseCode(String code) {
+    switch (code) {
+      case 'permission-denied':
+        return ExpenseCreateErrorType.permissionDenied;
+      case 'unavailable':
+        return ExpenseCreateErrorType.network;
+      default:
+        return ExpenseCreateErrorType.unknown;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
+/// Production binding: wraps a [FirestoreExpenseStore] around the
+/// app-wide [firebaseFirestoreProvider]. Tests override this provider
+/// with a fake.
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
-  throw UnimplementedError(
-    'expenseRepositoryProvider must be overridden; the production '
-    'Firestore binding lands in a follow-up commit.',
-  );
+  final firestore = ref.watch(firebaseFirestoreProvider);
+  return ExpenseRepository(store: FirestoreExpenseStore(firestore: firestore));
 });
