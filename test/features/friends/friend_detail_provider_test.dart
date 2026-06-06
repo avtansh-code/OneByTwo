@@ -69,8 +69,7 @@ class FakeFriendshipStore implements FriendshipStore {
     if (documents.containsKey(friendshipId)) {
       final data = documents[friendshipId]!;
       final doc = FriendshipDoc.fromFirestore(id: friendshipId, data: data);
-      return Stream<FriendshipDoc?>.value(doc)
-          .asyncExpand((first) async* {
+      return Stream<FriendshipDoc?>.value(doc).asyncExpand((first) async* {
         yield first;
         yield* _watchController.stream;
       });
@@ -148,7 +147,8 @@ ExpenseDoc _expense({
     category: ExpenseCategory.food,
     date: date,
     payerId: payerId,
-    splits: splits ??
+    splits:
+        splits ??
         const [
           Split(userId: 'uid-me', sharePaise: 500),
           Split(userId: 'uid-friend', sharePaise: 500),
@@ -227,23 +227,25 @@ void main() {
   });
 
   group('friendDetailProvider', () {
-    test('queries the expense + settlement streams with the right arguments',
-        () async {
-      friendshipStore.documents['uid-friend_uid-me'] = {
-        'memberIds': const ['uid-friend', 'uid-me'],
-        'simplifiedBalances': const <String, dynamic>{},
-        'lastActivityAt': null,
-      };
+    test(
+      'queries the expense + settlement streams with the right arguments',
+      () async {
+        friendshipStore.documents['uid-friend_uid-me'] = {
+          'memberIds': const ['uid-friend', 'uid-me'],
+          'simplifiedBalances': const <String, dynamic>{},
+          'lastActivityAt': null,
+        };
 
-      container.listen(friendDetailProvider(_args), (_, __) {});
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        container.listen(friendDetailProvider(_args), (_, __) {});
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(expenseStore.lastWatchedFriendshipId, 'uid-friend_uid-me');
-      expect(expenseStore.lastWatchedLimit, 5);
-      expect(settlementStore.lastWatchedContextType, 'friendship');
-      expect(settlementStore.lastWatchedContextId, 'uid-friend_uid-me');
-    });
+        expect(expenseStore.lastWatchedFriendshipId, 'uid-friend_uid-me');
+        expect(expenseStore.lastWatchedLimit, 5);
+        expect(settlementStore.lastWatchedContextType, 'friendship');
+        expect(settlementStore.lastWatchedContextId, 'uid-friend_uid-me');
+      },
+    );
 
     test('emits loading initially', () async {
       final sub = container.listen(
@@ -306,13 +308,13 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      final expense1 =
-          _expense(description: 'Coffee', date: DateTime(2026, 6, 5));
-      final expense2 =
-          _expense(description: 'Dinner', date: DateTime(2026, 6));
+      final expense1 = _expense(
+        description: 'Coffee',
+        date: DateTime(2026, 6, 5),
+      );
+      final expense2 = _expense(description: 'Dinner', date: DateTime(2026, 6));
       expenseStore.controller.add([expense1, expense2]);
-      final settlement1 =
-          _settlement(id: 'sid-1', date: DateTime(2026, 6, 3));
+      final settlement1 = _settlement(id: 'sid-1', date: DateTime(2026, 6, 3));
       settlementStore.controller.add([settlement1]);
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
@@ -328,57 +330,65 @@ void main() {
       // Combined timeline ordered: Coffee (6/5), Settlement (6/3), Dinner (6/1).
       expect(populated.timeline, hasLength(3));
       expect(populated.timeline[0], isA<TimelineExpense>());
-      expect((populated.timeline[0] as TimelineExpense).doc.description,
-          'Coffee');
-      expect(populated.timeline[1], isA<TimelineSettlement>());
-      expect((populated.timeline[1] as TimelineSettlement).doc.settlementId,
-          'sid-1');
-      expect(populated.timeline[2], isA<TimelineExpense>());
-      expect((populated.timeline[2] as TimelineExpense).doc.description,
-          'Dinner');
-    });
-
-    test('caps the combined timeline at 5 events even when more exist',
-        () async {
-      friendshipStore.documents['uid-friend_uid-me'] = {
-        'memberIds': const ['uid-friend', 'uid-me'],
-        'simplifiedBalances': const <String, dynamic>{},
-        'lastActivityAt': null,
-      };
-      profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
-
-      final sub = container.listen(
-        friendDetailProvider(_args),
-        (_, __) {},
-        fireImmediately: true,
-      );
-
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-
-      expenseStore.controller.add([
-        _expense(description: 'E1', date: DateTime(2026, 6, 10)),
-        _expense(description: 'E2', date: DateTime(2026, 6, 9)),
-        _expense(description: 'E3', date: DateTime(2026, 6, 8)),
-        _expense(description: 'E4', date: DateTime(2026, 6, 7)),
-        _expense(description: 'E5', date: DateTime(2026, 6, 6)),
-      ]);
-      settlementStore.controller.add([
-        _settlement(id: 'sid-1', date: DateTime(2026, 6, 11)),
-        _settlement(id: 'sid-2', date: DateTime(2026, 6, 5)),
-      ]);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-
-      final state = sub.read().value! as FriendDetailStatePopulated;
-      expect(state.timeline, hasLength(5));
-      // Top is the most recent settlement.
-      expect(state.timeline.first, isA<TimelineSettlement>());
       expect(
-        (state.timeline.first as TimelineSettlement).doc.settlementId,
+        (populated.timeline[0] as TimelineExpense).doc.description,
+        'Coffee',
+      );
+      expect(populated.timeline[1], isA<TimelineSettlement>());
+      expect(
+        (populated.timeline[1] as TimelineSettlement).doc.settlementId,
         'sid-1',
       );
+      expect(populated.timeline[2], isA<TimelineExpense>());
+      expect(
+        (populated.timeline[2] as TimelineExpense).doc.description,
+        'Dinner',
+      );
     });
+
+    test(
+      'caps the combined timeline at 5 events even when more exist',
+      () async {
+        friendshipStore.documents['uid-friend_uid-me'] = {
+          'memberIds': const ['uid-friend', 'uid-me'],
+          'simplifiedBalances': const <String, dynamic>{},
+          'lastActivityAt': null,
+        };
+        profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
+
+        final sub = container.listen(
+          friendDetailProvider(_args),
+          (_, __) {},
+          fireImmediately: true,
+        );
+
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expenseStore.controller.add([
+          _expense(description: 'E1', date: DateTime(2026, 6, 10)),
+          _expense(description: 'E2', date: DateTime(2026, 6, 9)),
+          _expense(description: 'E3', date: DateTime(2026, 6, 8)),
+          _expense(description: 'E4', date: DateTime(2026, 6, 7)),
+          _expense(description: 'E5', date: DateTime(2026, 6, 6)),
+        ]);
+        settlementStore.controller.add([
+          _settlement(id: 'sid-1', date: DateTime(2026, 6, 11)),
+          _settlement(id: 'sid-2', date: DateTime(2026, 6, 5)),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        final state = sub.read().value! as FriendDetailStatePopulated;
+        expect(state.timeline, hasLength(5));
+        // Top is the most recent settlement.
+        expect(state.timeline.first, isA<TimelineSettlement>());
+        expect(
+          (state.timeline.first as TimelineSettlement).doc.settlementId,
+          'sid-1',
+        );
+      },
+    );
 
     test('balanceState owes when current user is the debtor', () async {
       friendshipStore.documents['uid-friend_uid-me'] = {
@@ -434,34 +444,35 @@ void main() {
       expect(state.header.balanceState, BalanceState.settled);
     });
 
-    test('falls back to "Unknown" when the user profile lookup returns null',
-        () async {
-      friendshipStore.documents['uid-friend_uid-me'] = {
-        'memberIds': const ['uid-friend', 'uid-me'],
-        'simplifiedBalances': const <String, dynamic>{},
-        'lastActivityAt': null,
-      };
-      profileBehaviour['uid-friend'] = () async => null;
+    test(
+      'falls back to "Unknown" when the user profile lookup returns null',
+      () async {
+        friendshipStore.documents['uid-friend_uid-me'] = {
+          'memberIds': const ['uid-friend', 'uid-me'],
+          'simplifiedBalances': const <String, dynamic>{},
+          'lastActivityAt': null,
+        };
+        profileBehaviour['uid-friend'] = () async => null;
 
-      final sub = container.listen(
-        friendDetailProvider(_args),
-        (_, __) {},
-        fireImmediately: true,
-      );
+        final sub = container.listen(
+          friendDetailProvider(_args),
+          (_, __) {},
+          fireImmediately: true,
+        );
 
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-      expenseStore.controller.add(const []);
-      settlementStore.controller.add(const []);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expenseStore.controller.add(const []);
+        settlementStore.controller.add(const []);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      final state = sub.read().value! as FriendDetailStateEmpty;
-      expect(state.header.displayName, 'Unknown');
-    });
+        final state = sub.read().value! as FriendDetailStateEmpty;
+        expect(state.header.displayName, 'Unknown');
+      },
+    );
 
-    test('emits error when the friendship doc stream emits an error',
-        () async {
+    test('emits error when the friendship doc stream emits an error', () async {
       friendshipStore.watchError = Exception('boom');
       profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
 
@@ -521,8 +532,7 @@ void main() {
       expect(sub.read(), isA<AsyncError<FriendDetailState>>());
     });
 
-    test('emits error when the friendship document does not exist',
-        () async {
+    test('emits error when the friendship document does not exist', () async {
       // friendshipStore.documents is empty — watchById emits null.
       profileBehaviour['uid-friend'] = () async => _user(displayName: 'Bina');
 

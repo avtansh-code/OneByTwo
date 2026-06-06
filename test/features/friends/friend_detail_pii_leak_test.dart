@@ -80,8 +80,9 @@ Widget _buildSubject({
   return ProviderScope(
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
-      friendDetailProvider(_piiArgs)
-          .overrideWith((ref) => Stream.value(seedState)),
+      friendDetailProvider(
+        _piiArgs,
+      ).overrideWith((ref) => Stream.value(seedState)),
     ],
     child: const MaterialApp(
       home: FriendDetailScreen(
@@ -129,10 +130,7 @@ void main() {
       equals(hashFriendshipId('uid-priyalakshmi_uid-rahulagarwal')),
     );
     // The hash is 16 hex chars per the canonical contract.
-    expect(
-      (params['friendship_id_hash']! as String).length,
-      16,
-    );
+    expect((params['friendship_id_hash']! as String).length, 16);
 
     // The raw friendshipId must NOT appear anywhere in the event.
     for (final pii in _piiStrings) {

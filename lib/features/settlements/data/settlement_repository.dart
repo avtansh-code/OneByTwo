@@ -67,8 +67,8 @@ class FirestoreSettlementStore implements SettlementStore {
   const FirestoreSettlementStore({
     required FirebaseFirestore firestore,
     SettlementParseFailureSink onParseFailure = logSettlementParseFailure,
-  })  : _firestore = firestore,
-        _onParseFailure = onParseFailure;
+  }) : _firestore = firestore,
+       _onParseFailure = onParseFailure;
 
   final FirebaseFirestore _firestore;
   final SettlementParseFailureSink _onParseFailure;
@@ -128,9 +128,7 @@ class SettlementRepository {
     return _store
         .watchByContext(contextType: contextType, contextId: contextId)
         .map(
-          (docs) => docs
-              .where((doc) => !doc.deleted)
-              .toList(growable: false),
+          (docs) => docs.where((doc) => !doc.deleted).toList(growable: false),
         );
   }
 }

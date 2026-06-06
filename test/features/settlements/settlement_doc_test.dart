@@ -75,10 +75,7 @@ void main() {
     });
 
     test('null note is allowed (schema default)', () {
-      final doc = SettlementDoc.fromFirestore(
-        id: 'sid-1',
-        data: _validData(),
-      );
+      final doc = SettlementDoc.fromFirestore(id: 'sid-1', data: _validData());
       expect(doc, isNotNull);
       expect(doc!.note, isNull);
     });
@@ -147,20 +144,22 @@ void main() {
       expect(failures, hasLength(1));
     });
 
-    test('amountPaise == 0 returns null (must be positive per Invariant 1)',
-        () {
-      final failures = <String>[];
+    test(
+      'amountPaise == 0 returns null (must be positive per Invariant 1)',
+      () {
+        final failures = <String>[];
 
-      final doc = SettlementDoc.fromFirestore(
-        id: 'sid-1',
-        data: _validData(amountPaise: 0),
-        onParseFailure: failures.add,
-      );
+        final doc = SettlementDoc.fromFirestore(
+          id: 'sid-1',
+          data: _validData(amountPaise: 0),
+          onParseFailure: failures.add,
+        );
 
-      expect(doc, isNull);
-      expect(failures, hasLength(1));
-      expect(failures.single, contains('amountPaise'));
-    });
+        expect(doc, isNull);
+        expect(failures, hasLength(1));
+        expect(failures.single, contains('amountPaise'));
+      },
+    );
 
     test('amountPaise negative returns null', () {
       final failures = <String>[];
@@ -226,18 +225,20 @@ void main() {
       );
     });
 
-    test('DateTime value (not Timestamp) is also accepted for date / createdAt',
-        () {
-      final doc = SettlementDoc.fromFirestore(
-        id: 'sid-1',
-        data: _validData()
-          ..['date'] = DateTime(2026, 6, 5)
-          ..['createdAt'] = DateTime(2026, 6, 5, 10),
-      );
-      expect(doc, isNotNull);
-      expect(doc!.date, DateTime(2026, 6, 5));
-      expect(doc.createdAt, DateTime(2026, 6, 5, 10));
-    });
+    test(
+      'DateTime value (not Timestamp) is also accepted for date / createdAt',
+      () {
+        final doc = SettlementDoc.fromFirestore(
+          id: 'sid-1',
+          data: _validData()
+            ..['date'] = DateTime(2026, 6, 5)
+            ..['createdAt'] = DateTime(2026, 6, 5, 10),
+        );
+        expect(doc, isNotNull);
+        expect(doc!.date, DateTime(2026, 6, 5));
+        expect(doc.createdAt, DateTime(2026, 6, 5, 10));
+      },
+    );
 
     test('non-string note (when present) returns null', () {
       final failures = <String>[];

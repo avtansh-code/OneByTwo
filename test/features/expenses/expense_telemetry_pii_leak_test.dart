@@ -69,8 +69,7 @@ class FakeExpenseRepository implements ExpenseRepository {
   Stream<List<ExpenseDoc>> watchExpensesByFriendship({
     required String friendshipId,
     int limit = 5,
-  }) =>
-      const Stream<List<ExpenseDoc>>.empty();
+  }) => const Stream<List<ExpenseDoc>>.empty();
 }
 
 class FakeAnalyticsService implements AnalyticsService {

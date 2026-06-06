@@ -57,49 +57,52 @@ void main() {
     }
   });
 
-  group('Inv-2 (simplifiedBalances client-read-only): no write to the field',
-      () {
-    for (final path in sourceFiles) {
-      test('$path contains no assignment to simplifiedBalances', () {
-        final file = File(path);
-        if (!file.existsSync()) {
-          fail('Expected source file $path to exist for boundary grep');
-        }
-        final content = file.readAsLinesSync();
-        // Forbid: (a) Dart-style assignment `simplifiedBalances = X` where
-        // the `=` is not the `==` equality operator, and (b) the quoted
-        // map-literal key `'simplifiedBalances':` or `"simplifiedBalances":`
-        // which would indicate a write payload field.
-        //
-        // We deliberately ALLOW `simplifiedBalances:` (without quotes) as
-        // a named argument, e.g. the call site of `netBalancePaise(
-        // simplifiedBalances: ..., currentUserId: ..., otherUserId: ...)`
-        // — this is a READ contract, not a write.
-        final assignmentPattern = RegExp(r'simplifiedBalances\s*=[^=]');
-        final mapLiteralPattern =
-            RegExp(r"""['"]simplifiedBalances['"]\s*:""");
-        for (var i = 0; i < content.length; i++) {
-          final line = content[i];
-          if (_isCommentLine(line)) continue;
-          expect(
-            assignmentPattern.hasMatch(line),
-            isFalse,
-            reason:
-                'Forbidden simplifiedBalances assignment in $path:${i + 1}; '
-                'this field is server-maintained (Invariant 2)',
+  group(
+    'Inv-2 (simplifiedBalances client-read-only): no write to the field',
+    () {
+      for (final path in sourceFiles) {
+        test('$path contains no assignment to simplifiedBalances', () {
+          final file = File(path);
+          if (!file.existsSync()) {
+            fail('Expected source file $path to exist for boundary grep');
+          }
+          final content = file.readAsLinesSync();
+          // Forbid: (a) Dart-style assignment `simplifiedBalances = X` where
+          // the `=` is not the `==` equality operator, and (b) the quoted
+          // map-literal key `'simplifiedBalances':` or `"simplifiedBalances":`
+          // which would indicate a write payload field.
+          //
+          // We deliberately ALLOW `simplifiedBalances:` (without quotes) as
+          // a named argument, e.g. the call site of `netBalancePaise(
+          // simplifiedBalances: ..., currentUserId: ..., otherUserId: ...)`
+          // — this is a READ contract, not a write.
+          final assignmentPattern = RegExp(r'simplifiedBalances\s*=[^=]');
+          final mapLiteralPattern = RegExp(
+            r"""['"]simplifiedBalances['"]\s*:""",
           );
-          expect(
-            mapLiteralPattern.hasMatch(line),
-            isFalse,
-            reason:
-                'Forbidden simplifiedBalances map-literal key in '
-                '$path:${i + 1}; this field is server-maintained '
-                '(Invariant 2)',
-          );
-        }
-      });
-    }
-  });
+          for (var i = 0; i < content.length; i++) {
+            final line = content[i];
+            if (_isCommentLine(line)) continue;
+            expect(
+              assignmentPattern.hasMatch(line),
+              isFalse,
+              reason:
+                  'Forbidden simplifiedBalances assignment in $path:${i + 1}; '
+                  'this field is server-maintained (Invariant 2)',
+            );
+            expect(
+              mapLiteralPattern.hasMatch(line),
+              isFalse,
+              reason:
+                  'Forbidden simplifiedBalances map-literal key in '
+                  '$path:${i + 1}; this field is server-maintained '
+                  '(Invariant 2)',
+            );
+          }
+        });
+      }
+    },
+  );
 }
 
 bool _isCommentLine(String raw) {

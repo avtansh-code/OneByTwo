@@ -59,10 +59,10 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
   bool _loggedView = false;
 
   FriendDetailArgs get _args => FriendDetailArgs(
-        friendshipId: widget.friendshipId,
-        currentUserUid: widget.currentUserUid,
-        otherUserUid: widget.otherUserUid,
-      );
+    friendshipId: widget.friendshipId,
+    currentUserUid: widget.currentUserUid,
+    otherUserUid: widget.otherUserUid,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -135,13 +135,15 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
       FriendDetailStatePopulated(:final header) => header.balanceState,
     };
     unawaited(
-      ref.read(analyticsServiceProvider).logEvent(
-        name: 'friend_detail_viewed',
-        parameters: {
-          'friendship_id_hash': hashFriendshipId(widget.friendshipId),
-          'balance_state': _balanceStateLabel(balanceState),
-        },
-      ),
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'friend_detail_viewed',
+            parameters: {
+              'friendship_id_hash': hashFriendshipId(widget.friendshipId),
+              'balance_state': _balanceStateLabel(balanceState),
+            },
+          ),
     );
   }
 

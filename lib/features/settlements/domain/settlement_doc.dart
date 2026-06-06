@@ -80,9 +80,7 @@ class SettlementDoc {
     bool? requireBool(String field) {
       final value = data[field];
       if (value is bool) return value;
-      onParseFailure?.call(
-        'settlement $id: $field is not a bool; dropped',
-      );
+      onParseFailure?.call('settlement $id: $field is not a bool; dropped');
       return null;
     }
 
@@ -125,9 +123,7 @@ class SettlementDoc {
     if (data.containsKey('note')) {
       final rawNote = data['note'];
       if (rawNote != null && rawNote is! String) {
-        onParseFailure?.call(
-          'settlement $id: note is not a String; dropped',
-        );
+        onParseFailure?.call('settlement $id: note is not a String; dropped');
         return null;
       }
       note = rawNote as String?;
@@ -212,18 +208,18 @@ class SettlementDoc {
 
   @override
   int get hashCode => Object.hash(
-        settlementId,
-        fromUserId,
-        toUserId,
-        amountPaise,
-        contextType,
-        contextId,
-        date,
-        note,
-        method,
-        verificationStatus,
-        currency,
-        createdAt,
-        deleted,
-      );
+    settlementId,
+    fromUserId,
+    toUserId,
+    amountPaise,
+    contextType,
+    contextId,
+    date,
+    note,
+    method,
+    verificationStatus,
+    currency,
+    createdAt,
+    deleted,
+  );
 }

@@ -79,7 +79,8 @@ ExpenseDoc _expense({
     category: ExpenseCategory.food,
     date: date,
     payerId: payerId,
-    splits: splits ??
+    splits:
+        splits ??
         const [
           Split(userId: 'uid-me', sharePaise: 500),
           Split(userId: 'uid-friend', sharePaise: 500),
@@ -179,8 +180,9 @@ void main() {
   });
 
   group('Loading state', () {
-    testWidgets('shows skeleton placeholders before first emission',
-        (tester) async {
+    testWidgets('shows skeleton placeholders before first emission', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: const AsyncLoading<FriendDetailState>(),
@@ -189,14 +191,12 @@ void main() {
       );
       await tester.pump();
 
-      expect(
-        find.byKey(const Key('friend_detail_skeleton')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('friend_detail_skeleton')), findsOneWidget);
     });
 
-    testWidgets('does NOT fire friend_detail_viewed while loading',
-        (tester) async {
+    testWidgets('does NOT fire friend_detail_viewed while loading', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: const AsyncLoading<FriendDetailState>(),
@@ -211,60 +211,47 @@ void main() {
 
   group('Populated state (non-zero balance — owed)', () {
     final state = FriendDetailStatePopulated(
-      header: _header(
-        netBalancePaise: 12345,
-        balanceState: BalanceState.owed,
-      ),
+      header: _header(netBalancePaise: 12345, balanceState: BalanceState.owed),
       timeline: [
         TimelineExpense(
-          doc: _expense(
-            description: 'Coffee',
-            date: DateTime(2026, 6, 5),
-          ),
+          doc: _expense(description: 'Coffee', date: DateTime(2026, 6, 5)),
         ),
         TimelineSettlement(
-          doc: _settlement(
-            id: 'sid-1',
-            date: DateTime(2026, 6, 3),
-          ),
+          doc: _settlement(id: 'sid-1', date: DateTime(2026, 6, 3)),
         ),
       ],
     );
 
-    testWidgets('renders the friend display name in the header',
-        (tester) async {
+    testWidgets('renders the friend display name in the header', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Bina'), findsWidgets);
     });
 
-    testWidgets('renders the owed balance pill copy and INR amount',
-        (tester) async {
+    testWidgets('renders the owed balance pill copy and INR amount', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('You are owed ${formatInrFromPaise(12345)}'),
-          findsOneWidget);
+      expect(
+        find.text('You are owed ${formatInrFromPaise(12345)}'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('renders the intermixed timeline rows in order',
-        (tester) async {
+    testWidgets('renders the intermixed timeline rows in order', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
@@ -274,13 +261,11 @@ void main() {
       expect(find.text(formatInrFromPaise(5000)), findsWidgets);
     });
 
-    testWidgets('friend_detail_viewed fires once with owed balance_state',
-        (tester) async {
+    testWidgets('friend_detail_viewed fires once with owed balance_state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
@@ -297,10 +282,7 @@ void main() {
 
   group('Populated state (non-zero balance — owes)', () {
     final state = FriendDetailStatePopulated(
-      header: _header(
-        netBalancePaise: -5000,
-        balanceState: BalanceState.owes,
-      ),
+      header: _header(netBalancePaise: -5000, balanceState: BalanceState.owes),
       timeline: [
         TimelineExpense(
           doc: _expense(
@@ -319,36 +301,31 @@ void main() {
 
     testWidgets('renders the owes balance pill copy', (tester) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('You owe ${formatInrFromPaise(-5000)}'), findsOneWidget);
     });
 
-    testWidgets('friend_detail_viewed fires with owes balance_state',
-        (tester) async {
+    testWidgets('friend_detail_viewed fires with owes balance_state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      expect(analytics.lastParamsFor('friend_detail_viewed')?['balance_state'],
-          'owes');
+      expect(
+        analytics.lastParamsFor('friend_detail_viewed')?['balance_state'],
+        'owes',
+      );
     });
   });
 
   group('Populated state (settled up)', () {
     final state = FriendDetailStatePopulated(
-      header: _header(
-        
-      ),
+      header: _header(),
       timeline: [
         TimelineExpense(
           doc: _expense(
@@ -361,42 +338,34 @@ void main() {
 
     testWidgets('renders the settled-up pill copy', (tester) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Settled up'), findsOneWidget);
     });
 
-    testWidgets('friend_detail_viewed fires with settled balance_state',
-        (tester) async {
+    testWidgets('friend_detail_viewed fires with settled balance_state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      expect(analytics.lastParamsFor('friend_detail_viewed')?['balance_state'],
-          'settled');
+      expect(
+        analytics.lastParamsFor('friend_detail_viewed')?['balance_state'],
+        'settled',
+      );
     });
   });
 
   group('Empty state', () {
-    final state = FriendDetailStateEmpty(
-      header: _header(),
-    );
+    final state = FriendDetailStateEmpty(header: _header());
 
     testWidgets('renders the no-expenses placeholder', (tester) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
@@ -407,8 +376,9 @@ void main() {
       );
     });
 
-    testWidgets('FAB remains visible and opens AddExpenseBottomSheet',
-        (tester) async {
+    testWidgets('FAB remains visible and opens AddExpenseBottomSheet', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: AsyncData(state),
@@ -426,13 +396,11 @@ void main() {
       expect(find.byType(AddExpenseBottomSheet), findsOneWidget);
     });
 
-    testWidgets('friend_detail_viewed fires once on the empty state',
-        (tester) async {
+    testWidgets('friend_detail_viewed fires once on the empty state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
@@ -461,8 +429,9 @@ void main() {
       expect(find.text('Retry'), findsOneWidget);
     });
 
-    testWidgets('does NOT fire friend_detail_viewed in error state',
-        (tester) async {
+    testWidgets('does NOT fire friend_detail_viewed in error state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildSubject(
           initialValue: AsyncError<FriendDetailState>(
@@ -479,8 +448,9 @@ void main() {
   });
 
   group('Telemetry single-fire discipline', () {
-    testWidgets('does NOT re-fire on subsequent state emissions',
-        (tester) async {
+    testWidgets('does NOT re-fire on subsequent state emissions', (
+      tester,
+    ) async {
       // Provider override that emits two states in sequence.
       final first = FriendDetailStateEmpty(header: _header());
       final second = FriendDetailStatePopulated(
@@ -516,8 +486,9 @@ void main() {
   });
 
   group('Accessibility', () {
-    testWidgets('every interactive widget has a semantics label',
-        (tester) async {
+    testWidgets('every interactive widget has a semantics label', (
+      tester,
+    ) async {
       final state = FriendDetailStatePopulated(
         header: _header(
           netBalancePaise: 12345,
@@ -531,10 +502,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        _buildSubject(
-          initialValue: AsyncData(state),
-          analytics: analytics,
-        ),
+        _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 

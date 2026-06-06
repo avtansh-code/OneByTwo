@@ -217,33 +217,35 @@ class FriendDetailStatePopulated extends FriendDetailState {
 /// **Invariant 2 (`simplifiedBalances` server-maintained).** This
 /// provider READS `simplifiedBalances` via the shared helper; it never
 /// writes the field.
-final friendDetailProvider = StreamProvider.family<
-  FriendDetailState,
-  FriendDetailArgs
->((ref, args) {
-  final friendshipRepository = ref.watch(friendshipRepositoryProvider);
-  final expenseRepository = ref.watch(expenseRepositoryProvider);
-  final settlementRepository = ref.watch(settlementRepositoryProvider);
+final friendDetailProvider =
+    StreamProvider.family<FriendDetailState, FriendDetailArgs>((ref, args) {
+      final friendshipRepository = ref.watch(friendshipRepositoryProvider);
+      final expenseRepository = ref.watch(expenseRepositoryProvider);
+      final settlementRepository = ref.watch(settlementRepositoryProvider);
 
-  return _friendDetailStream(
-    args: args,
-    friendshipStream: friendshipRepository.watchFriendship(args.friendshipId),
-    expenseStream: expenseRepository.watchExpensesByFriendship(
-      friendshipId: args.friendshipId,
-    ),
-    settlementStream: settlementRepository.watchByContext(
-      contextType: 'friendship',
-      contextId: args.friendshipId,
-    ),
-    profileLookup: () async {
-      try {
-        return await ref.read(userProfileProvider(args.otherUserUid).future);
-      } on Object {
-        return null;
-      }
-    },
-  );
-});
+      return _friendDetailStream(
+        args: args,
+        friendshipStream: friendshipRepository.watchFriendship(
+          args.friendshipId,
+        ),
+        expenseStream: expenseRepository.watchExpensesByFriendship(
+          friendshipId: args.friendshipId,
+        ),
+        settlementStream: settlementRepository.watchByContext(
+          contextType: 'friendship',
+          contextId: args.friendshipId,
+        ),
+        profileLookup: () async {
+          try {
+            return await ref.read(
+              userProfileProvider(args.otherUserUid).future,
+            );
+          } on Object {
+            return null;
+          }
+        },
+      );
+    });
 
 /// Returns the combined Friend Detail stream. Extracted to top level so
 /// the unit tests can exercise the join logic without a full Riverpod

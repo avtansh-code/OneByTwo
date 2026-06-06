@@ -136,8 +136,7 @@ void main() {
       await sub.cancel();
     });
 
-    test('soft-deleted entries are excluded from the projected list',
-        () async {
+    test('soft-deleted entries are excluded from the projected list', () async {
       final stream = repository.watchByContext(
         contextType: 'friendship',
         contextId: 'fid',

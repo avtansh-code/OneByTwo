@@ -352,9 +352,7 @@ void main() {
     }
 
     test('queries with the supplied friendshipId and limit', () async {
-      repo.watchExpensesByFriendship(
-        friendshipId: 'uid-a_uid-b',
-      );
+      repo.watchExpensesByFriendship(friendshipId: 'uid-a_uid-b');
       await Future<void>.delayed(Duration.zero);
 
       expect(store.lastWatchedFriendshipId, 'uid-a_uid-b');

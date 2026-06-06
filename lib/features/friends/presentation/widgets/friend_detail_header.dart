@@ -26,8 +26,7 @@ class FriendDetailHeaderWidget extends StatelessWidget {
     final fallbackInitial = header.displayName.isNotEmpty
         ? header.displayName[0].toUpperCase()
         : '?';
-    final hasPhoto =
-        header.photoUrl != null && header.photoUrl!.isNotEmpty;
+    final hasPhoto = header.photoUrl != null && header.photoUrl!.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -37,8 +36,7 @@ class FriendDetailHeaderWidget extends StatelessWidget {
           ExcludeSemantics(
             child: CircleAvatar(
               radius: 40,
-              backgroundImage:
-                  hasPhoto ? NetworkImage(header.photoUrl!) : null,
+              backgroundImage: hasPhoto ? NetworkImage(header.photoUrl!) : null,
               onBackgroundImageError: hasPhoto
                   ? (Object _, StackTrace? __) {
                       // Silently fall back; the initial is the placeholder.

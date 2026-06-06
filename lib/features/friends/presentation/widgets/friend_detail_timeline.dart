@@ -174,10 +174,7 @@ class _SettlementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Settlement',
-                  style: theme.textTheme.titleSmall,
-                ),
+                Text('Settlement', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 4),
                 Text(
                   dateFmt.format(doc.date),
