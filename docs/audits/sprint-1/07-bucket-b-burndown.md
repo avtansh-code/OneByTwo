@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #36.
+> Last updated: PR #38.
 
 ---
 
@@ -15,11 +15,11 @@
 | Category | Original | Resolved | Remaining |
 |---|---|---|---|
 | Code chores | 12 | 0 | 12 |
-| Documentation chores | 8 | 0 | 8 |
+| Documentation chores | 8 | 1 | 7 |
 | Dependency upgrades | 6 | 0 | 6 |
 | Test coverage gaps | 8 | 4 | 4 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **4** | **33** |
+| **Total** | **37** | **5** | **32** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
@@ -114,7 +114,7 @@ so INV2 remains partially addressed pending the dedicated chore.
 | CN3 | Jest config separation in conventions doc | Review for closure (may be folded into PR #14 CN1) |
 | CN4 | CF-specific PR checklist items | Sprint 2 CF PR |
 | SR3 | Friends HTML mockup missing | Screen spec compensates; low urgency |
-| SR8 | Expense event naming asymmetry | Before first expense PR |
+| ~~SR8~~ | ~~Expense event naming asymmetry~~ | **Closed by PR #38** (Camp B adopted — `expense_save_succeeded` / `expense_save_failed`) |
 
 ### Dependency Upgrades (6 remaining)
 
@@ -162,6 +162,8 @@ PR #33 (ADR reconcile):34 remaining  ██████████████�
 PR #34 (FR-FR-01 ME):  34 remaining  █████████████████████████████████░░░░░  34/37
 PR #35 (FR-FR-03 list):34 remaining  █████████████████████████████████░░░░░  34/37
 PR #36 (FR-SE-03/04):  33 remaining  ████████████████████████████████░░░░░░  33/37
+PR #37 (FR-SE-05/06):  33 remaining  ████████████████████████████████░░░░░░  33/37
+PR #38 (FR-EX-01):     32 remaining  ███████████████████████████████░░░░░░░  32/37
 ```
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
@@ -208,4 +210,63 @@ Other notes by ID for PR #36:
   surfaced by PR #36's CI workflow change. The five affected integration
   tests are marked `describe.skip` with a TODO. Tracked as a separate
   follow-up; NOT a Bucket-B audit item.
+- All other items unchanged.
+
+PR #37 (FR-SE-05/06 `onSettlementWrite` trigger) closes **no
+additional bucket-B items**. Notes by ID:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #37 added
+  the settlement-trigger integration test
+  (`functions/test/integration/on-settlement-write.integration.test.ts`)
+  to the suite that PR #36 enabled in CI. Partial credit only; PY3
+  remains open pending the Flutter integration harness.
+- **R5-R6 — Group rules test gaps:** out of scope (Sprint 3 groups epic).
+- **R7-R8 — Storage rules tests:** out of scope.
+- **NEW finding pre-existing:** the `lookup-user-by-phone-number`
+  rate-limit doc-path bug surfaced by PR #36 is still open. PR #37
+  did not touch the lookup gateway; the five `describe.skip`'d
+  integration tests remain skipped. Candidate for PR #41 per
+  `docs/sprint-zero/next-three-prs.md`.
+- All other items unchanged.
+
+PR #38 (FR-EX-01 expense creation UI + chore #25) closes **SR8**:
+
+- **SR8 — Expense event naming asymmetry:** the architect ratified
+  Camp B (`expense_save_succeeded` / `expense_save_failed`) at PR #38
+  kickoff per Architect Notes §2.0 of
+  `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`. Five
+  occurrences in `docs/design/07-technical/telemetry-plan.md` were
+  renamed in the same PR (SCR-19 success row, SCR-08 failure row,
+  SCR-21 row, amount-bucketing note, funnel diagram).
+  `lib/features/expenses/application/expense_telemetry.dart` ships
+  `expenseSaveSucceeded` / `expenseSaveFailed` constants. Every test
+  in `test/features/expenses/` that asserts an event name uses the
+  new strings. **Resolved.** Issue #25 closed via `Closes #25` in
+  the PR #38 body.
+
+Other notes by ID for PR #38:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #38
+  exercises the full friendship-expense round-trip
+  (`test/integration/expenses/expense_creation_flow_test.dart`):
+  write via the bottom sheet → assert `simplifiedBalances` updates
+  after the `onExpenseWriteFriendship` trigger fires. Partial credit;
+  PY3 remains open pending broader Flutter integration harness
+  coverage (friends list, auth, profile).
+- **SC1 — Concurrent submit guard test:** PR #38's
+  `add_expense_controller_test.dart` includes a concurrent-Save
+  guard test (rapid double-tap of Save emits exactly one Firestore
+  write and exactly one `expense_save_succeeded`). The pattern is
+  proven for the expense flow; SC1 remains open for the phone-entry
+  surface as originally scoped.
+- **SC3 — `MAX_SAFE_INTEGER` overflow test:** PR #38's split
+  calculator property tests
+  (`test/features/expenses/split_calculator_property_test.dart`)
+  bound `totalPaise` at the SCR-19 cap (`999999999` paise =
+  ₹99,99,999.99) — well below `MAX_SAFE_INTEGER`. SC3 remains open
+  for the simplified-debts algorithm where the bound is
+  member count × per-share cap.
+- **NEW finding pre-existing:** the `lookup-user-by-phone-number`
+  rate-limit doc-path bug remains untouched by PR #38. Candidate
+  for PR #41 per `docs/sprint-zero/next-three-prs.md`.
 - All other items unchanged.

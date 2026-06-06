@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #37 + chore-backlog audit (issues #15-#28).
+> Last updated: PR #38 (FR-EX-01 expense creation UI + chore #25 closure).
 
 ---
 
@@ -44,6 +44,28 @@ rework cost for zero benefit.
 kickoff. The orchestrator MUST refuse to start FR-EX-01 implementation
 work until the decision is recorded in the story file's Architect Notes.
 
+**Status: RESOLVED (PR #38, merged 2026-06-06).**
+
+- **Decision:** Camp B — `expense_save_succeeded` / `expense_save_failed`.
+  PM had recommended Camp B on consistency grounds with the SCR-21
+  edit / delete cluster already in `telemetry-plan.md` §1.6; the
+  architect ratified the recommendation at PR #38 kickoff.
+- **Rationale citation:** `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`
+  §2.0 (Architect Notes — one-paragraph rationale and rollout plan).
+- **Files updated in PR #38:**
+  - `docs/design/07-technical/telemetry-plan.md` — 5 occurrences
+    renamed (the SCR-19 success row, the SCR-08 failure row, the
+    SCR-21 row, the amount-bucketing note, and the funnel diagram).
+  - `lib/features/expenses/application/expense_telemetry.dart` —
+    `expenseSaveSucceeded` / `expenseSaveFailed` constants.
+  - All expense test files under `test/features/expenses/` that
+    assert event names.
+- **Issue closure:** [#25](https://github.com/avtansh-code/OneByTwo/issues/25)
+  closed by `Closes #25` in the PR #38 body.
+- **Downstream effect:** SR8 is now CLOSED in
+  `docs/audits/sprint-1/07-bucket-b-burndown.md`; the Documentation
+  chores bucket drops from 8 remaining to 7.
+
 ---
 
 ## PR Tracking
@@ -55,7 +77,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | Merged |
 | #35 | FR-FR-03 | Friends list with simplified net balance | 3 | Merged |
 | #36 | FR-SE-03/04 | `onExpenseWriteFriendship` Firestore trigger | 3 | Merged |
-| #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | In review |
+| #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | Merged |
+| #38 | FR-EX-01 + chore #25 | Expense creation UI (friendship) + adopt `expense_save_*` event names | 5 | Merged |
 
 ---
 
@@ -68,8 +91,9 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | 2 | Merged |
 | #35 | 3 | Merged |
 | #36 | 3 | Merged |
-| #37 | 5 | In review |
-| **Total** | **19** | **6 PRs so far** |
+| #37 | 5 | Merged |
+| #38 | 5 | Merged |
+| **Total** | **24** | **7 PRs so far** |
 
 Sprint 1 reference:
 
@@ -230,6 +254,87 @@ ratify the PR #37 design decisions.
 
 ---
 
+## Post-Merge Cleanup Backlog
+
+Small follow-up items surfaced during a feature PR's QA sign-off that
+were judged too minor to block merge. Listed here so they are not lost
+between sprints. Severity per the project bug grading scale: **S4 =
+nice-to-have, no functional impact**.
+
+### From PR #38 (FR-EX-01 expense creation UI)
+
+QA sign-off was APPROVED WITH CAVEATS — see the "QA Sign-Off" section in
+`docs/sprint-zero/stories/FR-EX-01-expense-creation.md`. Three S4 items
+are deferred to a follow-up cleanup PR. Recommended bundling: a single
+`chore(docs): post-PR-#38 cleanup` PR (~10 lines diff total), or attach
+to a Bucket-B chore PR (see `docs/sprint-zero/next-three-prs.md` PR #42
+slot).
+
+1. **Stale `expense_added` / `expense_add_failed` references in 3 design docs.**
+   The architect notes §2.0 propagation scope for the Camp B rename was
+   explicitly `telemetry-plan.md` + `expense_telemetry.dart` + tests.
+   Six legacy references survived in screen specs and the NFD doc:
+   - `docs/design/03-architecture/non-functional-design.md:399`
+   - `docs/design/06-screen-specs/06-08-home-and-search.md:152, 517, 519`
+   - `docs/design/06-screen-specs/19-22-expenses.md:360, 386`
+
+   **Fix:** find-and-replace `expense_added` → `expense_save_succeeded`
+   and `expense_add_failed` → `expense_save_failed` across those three
+   files. Verify `grep -rn 'expense_added\|expense_add_failed' docs/`
+   returns zero matches post-fix.
+
+   **Why deferred:** the operative sources of truth (telemetry plan, code,
+   tests) all use the Camp B names; runtime behaviour and analytics
+   dashboards are correct. The stale references are documentation drift
+   only.
+
+2. **Splitter test descriptions still label `99999999` as "the maximum
+   permitted total".** The amount-cap typo fix in commit `684cd09`
+   (story-only: 8-nines → 9-nines, matching screen-spec SCR-19's
+   `999999999` paise = ₹99,99,999.99) was not propagated to the splitter
+   tests. Eleven occurrences in two files:
+   - `test/features/expenses/split_calculator_test.dart` (lines 86, 90,
+     191, 215)
+   - `test/features/expenses/split_calculator_property_test.dart` (lines
+     10, 37, 40, 62, 64, 86)
+
+   **Fix:** find-and-replace `99999999` → `999999999` in both files +
+   update the description string at `split_calculator_test.dart:86`.
+
+   **Why deferred:** the splitter is provably correct by construction
+   (integer `~/` and `%`, no overflow at any positive `int`). The
+   `OBTAmountInput` widget tests
+   (`test/core/widgets/inputs/obt_amount_input_test.dart`) correctly
+   assert behaviour at the *real* cap (`_kMaxPaise = 999999999`), so the
+   live boundary is covered. The property tests under-sample the upper
+   90% of the legal cap range but do not miss any defect — they just
+   leave the upper range less exercised.
+
+3. **Missing `// TODO(SCR-08)` comment in `friends_list_screen.dart`.**
+   Architect Notes §2.10 prescribed a no-op FAB on
+   `friends_list_screen.dart` with a top-of-file TODO comment for the
+   deferred multi-context FAB chooser. The implementation chose to add no
+   FAB at all (functionally equivalent to no-op), so the TODO is also
+   absent. The deferred chooser remains discoverable via Architect Notes
+   §2.10, the SCR-08 screen spec, and `lib/features/expenses/README.md`'s
+   Hand-off Seams section, but in-source discoverability is reduced.
+
+   **Fix:** add at the top of `friends_list_screen.dart`:
+   ```dart
+   // TODO(SCR-08): wire the multi-context FAB chooser when the SCR-08
+   // home dashboard ships. Today the only Add Expense entry point is the
+   // FAB on FriendDetailPlaceholderScreen (FR-EX-01).
+   ```
+
+   **Why deferred:** does not affect runtime; reduced in-source
+   discoverability only.
+
+**Recommended priority order:** item 2 (test quality) → item 1 (docs
+hygiene) → item 3 (discoverability nicety). All three can ship in a
+single docs/tests-only PR.
+
+---
+
 ## Sprint 2 Chore Backlog (open GitHub issues)
 
 The Sprint 1 boundary audit (PR #14) deferred 37 findings into Bucket B.
@@ -260,7 +365,7 @@ Status legend:
 | [#22](https://github.com/avtansh-code/OneByTwo/issues/22) | Dependency upgrades — Riverpod 3.x, share_plus, firebase-functions 7.x | D1, D2, D4, D5, D6, D7 | Open | No upgrade PRs merged. Firebase deploy warnings surfaced D5 (`firebase-functions` 6→7) and the Node 20 deprecation deadline (Oct 2026). |
 | [#23](https://github.com/avtansh-code/OneByTwo/issues/23) | Expand integration tests for Sprint 2 flows | PY3, RT2, INV2 | Partially addressed | **PR #36 enabled `npm run test:integration` inside `firebase emulators:exec`** — every future trigger PR exercises its actual registration in CI (helps PY3). Friend-add stub `test/integration/friends/friends_list_flow_test.dart` shipped in PR #35 (still skipped). RT2 (CI step duration logging) not yet added. INV2 (share-sheet verification) — system share sheet is the only path, but no test asserts the package-import boundary. Expense-create flow integration tests blocked on FR-EX-01. |
 | [#24](https://github.com/avtansh-code/OneByTwo/issues/24) | Conventions doc — CF PR checklist and Jest config separation | CN3, CN4 | Open | `feature-pr-conventions.md` does not yet enumerate the Jest config split (`jest.config.js` vs `jest.rules.config.js` vs `jest.integration.config.js`) nor CF-specific PR checklist items (region pinning, error-code mapping, transaction usage, idempotency). |
-| [#25](https://github.com/avtansh-code/OneByTwo/issues/25) | Expense event naming convention decision | SR8 | **Open — blocking PR #38 (see Critical Constraint C-1 above)** | Decision must be taken before FR-EX-01 ships. No expense events shipped yet; `lib/` grep for `expense_added` / `expense_save_succeeded` returns zero matches. |
+| [#25](https://github.com/avtansh-code/OneByTwo/issues/25) | Expense event naming convention decision | SR8 | **Closed by PR #38** (Camp B adopted — see Critical Constraint C-1 above, marked RESOLVED) | Decision: `expense_save_succeeded` / `expense_save_failed` per Architect Notes §2.0 of FR-EX-01. Five telemetry-plan occurrences renamed; `lib/features/expenses/application/expense_telemetry.dart` ships the matching constants. `Closes #25` recorded in PR #38 body. |
 | [#26](https://github.com/avtansh-code/OneByTwo/issues/26) | Release pipeline secrets + DPDP legal sign-off | S2_sec, SR12 | Open | Sprint 6 work — explicit tracking required before release execution. |
 | [#27](https://github.com/avtansh-code/OneByTwo/issues/27) | Float/double rejection hook for Invariant 1 | INV3 | Open — low priority | The type system already enforces Invariant 1; a hook would be belt-and-braces. DoD grep across `lib/**` and `functions/src/**` for `double.*amountPaise` returns 0 in PR #36, so the gap is theoretical. |
 | [#28](https://github.com/avtansh-code/OneByTwo/issues/28) | Friends HTML mockup | SR3 | Open | `docs/design/05-mockups/` has 8 HTML mockups but no friends-flow mockup. Wireframes and screen specs exist; only the HTML is missing. |
@@ -289,6 +394,7 @@ batched into a standalone chore PR. The orchestrator's recommendation:
 |---|---|---|
 | **PR #37 (`onSettlementWrite`)** | none required | Settlements work has its own scope; do not bundle chores. |
 | **PR #38 (FR-EX-01 expense creation UI)** | **#25** | **MANDATORY bundle — see Critical Constraint C-1 at the top of this document.** Naming convention MUST be decided before the first expense event is logged; bundling avoids retrofitting every downstream funnel chart, alert, and test. |
+| **Post-PR #38 cleanup PR (1 SP, candidate for PR #42)** | none required | The three S4 items from the PR #38 QA sign-off (stale event names in 3 design docs; splitter test cap labels; missing `// TODO(SCR-08)` comment). Pure docs + test-description fixes; ~10 lines diff total. See "Post-Merge Cleanup Backlog" section above and `docs/sprint-zero/next-three-prs.md` PR #42 slot for full detail. |
 | **Standalone chore PR (Sprint 2 polish — 3 SP)** | **#15, #17, #19** | Pure mechanical refactor + template edit. Low risk. Fast feedback. |
 | **Standalone chore PR (telemetry sweep — 2 SP)** | **#16, #18 (S5 only)** | Both touch auth/OTP screens; one PR keeps the analytics changes coherent. |
 | **Pre-FR-EX-01 design polish PR (2 SP)** | **#18 (S1, S3, S4), #28** | Spec alignment + friends mockup before the expense screens land so the design system stabilises. |
