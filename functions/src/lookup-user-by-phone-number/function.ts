@@ -105,7 +105,15 @@ export function createLookupHandler(
     // ------------------------------------------------------------------
     // 3. Rate limiting
     // ------------------------------------------------------------------
-    const rateLimitDocRef = db.doc(`_rateLimits/${callerUid}/lookups`);
+    // Architect-canonical 4-segment subcollection doc path
+    // (`_rateLimits/{userId}/{category}/counter`) — extends naturally to
+    // future rate-limit categories without schema migration. See
+    // `.github/shared/decision-log.md` lines 695-765 and
+    // `docs/sprint-zero/stories/CHORE-pr45-lookup-rate-limit-and-pr38-cleanup.md`
+    // Architect Notes section 2.1 / 2.9.
+    const rateLimitDocRef = db.doc(
+      `_rateLimits/${callerUid}/lookups/counter`,
+    );
     const rateLimitSnap = await rateLimitDocRef.get();
 
     if (rateLimitSnap.exists) {

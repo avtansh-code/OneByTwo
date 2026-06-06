@@ -109,28 +109,7 @@ function makeUser(opts: {
 // Test Suite
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Test Suite
-//
-// SKIPPED until the rate-limit document-path bug in
-// `functions/src/lookup-user-by-phone-number/function.ts:108` is fixed.
-//
-// Repro: `db.doc('_rateLimits/{callerUid}/lookups')` is an odd-component
-// path; Firestore requires document paths to have an even number of
-// components. Every invocation throws at the rate-limit pre-check step.
-// This bug was introduced in PR #32/#34 (FR-FR-01) but was not surfaced
-// because the PR pipeline never ran `npm run test:integration`.
-//
-// PR #36 (FR-SE-03/04 expense trigger) enabled
-// `npm run test:integration` inside `emulators:exec` so that the new
-// trigger's end-to-end registration is verified in CI. The above bug
-// then surfaced. Fixing it is out of scope for PR #36 (different
-// concern, different module). Tracked as a separate follow-up.
-//
-// Once the bug is fixed, change `describe.skip` back to `describe`.
-// ---------------------------------------------------------------------------
-
-describe.skip("lookupUserByPhoneNumber — integration", () => {
+describe("lookupUserByPhoneNumber — integration", () => {
   // -------------------------------------------------------------------------
   // 1. Successful lookup — phone number found
   // -------------------------------------------------------------------------
