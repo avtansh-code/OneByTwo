@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #37 + chore-backlog audit (issues #15-#28).
+> Last updated: PR #38 (FR-EX-01 expense creation UI + chore #25 closure).
 
 ---
 
@@ -44,6 +44,28 @@ rework cost for zero benefit.
 kickoff. The orchestrator MUST refuse to start FR-EX-01 implementation
 work until the decision is recorded in the story file's Architect Notes.
 
+**Status: RESOLVED (PR #38, merged 2026-06-06).**
+
+- **Decision:** Camp B — `expense_save_succeeded` / `expense_save_failed`.
+  PM had recommended Camp B on consistency grounds with the SCR-21
+  edit / delete cluster already in `telemetry-plan.md` §1.6; the
+  architect ratified the recommendation at PR #38 kickoff.
+- **Rationale citation:** `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`
+  §2.0 (Architect Notes — one-paragraph rationale and rollout plan).
+- **Files updated in PR #38:**
+  - `docs/design/07-technical/telemetry-plan.md` — 5 occurrences
+    renamed (the SCR-19 success row, the SCR-08 failure row, the
+    SCR-21 row, the amount-bucketing note, and the funnel diagram).
+  - `lib/features/expenses/application/expense_telemetry.dart` —
+    `expenseSaveSucceeded` / `expenseSaveFailed` constants.
+  - All expense test files under `test/features/expenses/` that
+    assert event names.
+- **Issue closure:** [#25](https://github.com/avtansh-code/OneByTwo/issues/25)
+  closed by `Closes #25` in the PR #38 body.
+- **Downstream effect:** SR8 is now CLOSED in
+  `docs/audits/sprint-1/07-bucket-b-burndown.md`; the Documentation
+  chores bucket drops from 8 remaining to 7.
+
 ---
 
 ## PR Tracking
@@ -55,7 +77,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | FR-FR-01 (Manual Entry) | Manual phone-number friend-add | 2 | Merged |
 | #35 | FR-FR-03 | Friends list with simplified net balance | 3 | Merged |
 | #36 | FR-SE-03/04 | `onExpenseWriteFriendship` Firestore trigger | 3 | Merged |
-| #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | In review |
+| #37 | FR-SE-05/06 | `onSettlementWrite` Firestore trigger + settlements rules + algorithm extension | 5 | Merged |
+| #38 | FR-EX-01 + chore #25 | Expense creation UI (friendship) + adopt `expense_save_*` event names | 5 | Merged |
 
 ---
 
@@ -68,8 +91,9 @@ work until the decision is recorded in the story file's Architect Notes.
 | #34 | 2 | Merged |
 | #35 | 3 | Merged |
 | #36 | 3 | Merged |
-| #37 | 5 | In review |
-| **Total** | **19** | **6 PRs so far** |
+| #37 | 5 | Merged |
+| #38 | 5 | Merged |
+| **Total** | **24** | **7 PRs so far** |
 
 Sprint 1 reference:
 
@@ -260,7 +284,7 @@ Status legend:
 | [#22](https://github.com/avtansh-code/OneByTwo/issues/22) | Dependency upgrades — Riverpod 3.x, share_plus, firebase-functions 7.x | D1, D2, D4, D5, D6, D7 | Open | No upgrade PRs merged. Firebase deploy warnings surfaced D5 (`firebase-functions` 6→7) and the Node 20 deprecation deadline (Oct 2026). |
 | [#23](https://github.com/avtansh-code/OneByTwo/issues/23) | Expand integration tests for Sprint 2 flows | PY3, RT2, INV2 | Partially addressed | **PR #36 enabled `npm run test:integration` inside `firebase emulators:exec`** — every future trigger PR exercises its actual registration in CI (helps PY3). Friend-add stub `test/integration/friends/friends_list_flow_test.dart` shipped in PR #35 (still skipped). RT2 (CI step duration logging) not yet added. INV2 (share-sheet verification) — system share sheet is the only path, but no test asserts the package-import boundary. Expense-create flow integration tests blocked on FR-EX-01. |
 | [#24](https://github.com/avtansh-code/OneByTwo/issues/24) | Conventions doc — CF PR checklist and Jest config separation | CN3, CN4 | Open | `feature-pr-conventions.md` does not yet enumerate the Jest config split (`jest.config.js` vs `jest.rules.config.js` vs `jest.integration.config.js`) nor CF-specific PR checklist items (region pinning, error-code mapping, transaction usage, idempotency). |
-| [#25](https://github.com/avtansh-code/OneByTwo/issues/25) | Expense event naming convention decision | SR8 | **Open — blocking PR #38 (see Critical Constraint C-1 above)** | Decision must be taken before FR-EX-01 ships. No expense events shipped yet; `lib/` grep for `expense_added` / `expense_save_succeeded` returns zero matches. |
+| [#25](https://github.com/avtansh-code/OneByTwo/issues/25) | Expense event naming convention decision | SR8 | **Closed by PR #38** (Camp B adopted — see Critical Constraint C-1 above, marked RESOLVED) | Decision: `expense_save_succeeded` / `expense_save_failed` per Architect Notes §2.0 of FR-EX-01. Five telemetry-plan occurrences renamed; `lib/features/expenses/application/expense_telemetry.dart` ships the matching constants. `Closes #25` recorded in PR #38 body. |
 | [#26](https://github.com/avtansh-code/OneByTwo/issues/26) | Release pipeline secrets + DPDP legal sign-off | S2_sec, SR12 | Open | Sprint 6 work — explicit tracking required before release execution. |
 | [#27](https://github.com/avtansh-code/OneByTwo/issues/27) | Float/double rejection hook for Invariant 1 | INV3 | Open — low priority | The type system already enforces Invariant 1; a hook would be belt-and-braces. DoD grep across `lib/**` and `functions/src/**` for `double.*amountPaise` returns 0 in PR #36, so the gap is theoretical. |
 | [#28](https://github.com/avtansh-code/OneByTwo/issues/28) | Friends HTML mockup | SR3 | Open | `docs/design/05-mockups/` has 8 HTML mockups but no friends-flow mockup. Wireframes and screen specs exist; only the HTML is missing. |
