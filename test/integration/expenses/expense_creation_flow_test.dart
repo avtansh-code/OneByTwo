@@ -23,7 +23,7 @@ void main() {
   group('AddExpense integration (FR-EX-01) — round-trip via the PR #36 '
       'trigger', () {
     test('end-to-end (AC-14): user A creates ₹100 equal split with friend B '
-        '→ friendship\'s simplifiedBalances updates to {B: {A: 5000}} '
+        "→ friendship's simplifiedBalances updates to {B: {A: 5000}} "
         '→ friends list re-renders "₹50.00"', () {
       // TODO(flutter-dev): implement once the emulator harness is
       // wired up. Mirrors the existing skipped-stub precedent from

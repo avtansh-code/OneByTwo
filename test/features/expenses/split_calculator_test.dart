@@ -43,7 +43,9 @@ void main() {
       expect(result[1].sharePaise, 1);
     });
 
-    test('the maximum permitted total (99999998 paise, even) splits cleanly', () {
+    test(
+        'the maximum permitted total (99999998 paise, even) splits cleanly',
+        () {
       // 99999998 is the largest even value at or below the AC-2 cap.
       final result = computeSplits(
         method: SplitMethod.equal,

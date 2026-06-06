@@ -170,7 +170,10 @@ void main() {
         'expense_category_selected', () {
       final controller = buildController(repo: repo, analytics: analytics);
       controller.setCategory(ExpenseCategory.food);
-      expect((controller.state as Editing).draft.category, ExpenseCategory.food);
+      expect(
+        (controller.state as Editing).draft.category,
+        ExpenseCategory.food,
+      );
 
       final categoryEvents = analytics.loggedEvents
           .where((e) => e.name == ExpenseTelemetry.categorySelected)
@@ -438,7 +441,9 @@ void main() {
       controller.dispose();
     });
 
-    test('network error transitions to Error state with network type', () async {
+    test(
+        'network error transitions to Error state with network type',
+        () async {
       repo.throwError = const ExpenseCreateError(
         type: ExpenseCreateErrorType.network,
       );

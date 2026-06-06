@@ -115,9 +115,14 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
             parameters: {'friendship_id': hashFriendshipId(item.friendshipId)},
           ),
     );
+    final currentUid = ref.read(currentUserIdProvider);
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => const FriendDetailPlaceholderScreen(),
+        builder: (_) => FriendDetailPlaceholderScreen(
+          friendshipId: item.friendshipId,
+          currentUserUid: currentUid,
+          otherUserUid: item.otherUserId,
+        ),
       ),
     );
   }

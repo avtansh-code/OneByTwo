@@ -98,6 +98,7 @@ void main() {
         analyticsServiceProvider.overrideWithValue(analytics),
         contactServiceProvider.overrideWithValue(contactService),
         friendsListProvider.overrideWith((ref) => streamController.stream),
+        currentUserIdProvider.overrideWithValue('current_user_uid'),
       ],
       child: const MaterialApp(home: FriendsListScreen()),
     );
