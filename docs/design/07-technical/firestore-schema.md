@@ -170,18 +170,24 @@ Top-level collection. The `settlementId` is an auto-generated Firestore document
 | `contextType` | `string` | Yes | — | One of `'friendship'` or `'group'` (SRS section 7.2). Identifies the context in which the settlement occurs. | Composite (see Composite Indexes) |
 | `contextId` | `string` | Yes | — | The document ID of the friendship or group to which this settlement belongs. | Composite (see Composite Indexes) |
 | `date` | `timestamp` | Yes | — | The date the settlement was made (user-specified). | Composite (see Composite Indexes) |
-| `note` | `string \| null` | No | `null` | Optional free-text note. Maximum 200 characters. | No |
+| `note` | `string \| null` | No | `null` | Optional free-text note. Maximum 200 characters. Immutable after create. | No |
 | `method` | `string` | Yes | `'manual'` | Settlement method discriminator. v1.0 value is always `'manual'`. Written explicitly per ARCH-EXT-01; supports future `'upi'` value without backfill. | No |
 | `verificationStatus` | `string` | Yes | `'unverified'` | Settlement verification state. v1.0 value is always `'unverified'`. **Client-read-only**; only the Cloud Functions service account may write to this field (ARCH-EXT-06, SRS section 7.5). | No |
 | `currency` | `string` | Yes | `'INR'` | ISO 4217 currency code. v1.0 value is always `'INR'`. Written explicitly per ARCH-EXT-02; supports future multi-currency without backfill. | No |
+| `createdAt` | `timestamp` | Yes | — | Server timestamp (`request.time` on create). Immutable after create. Required for audit history. | No |
+| `deleted` | `boolean` | Yes | `false` | Soft-delete flag. The simplified-debts algorithm (PR #37 `recomputeAndWrite` extension) excludes settlements where `deleted == true` from the net-balance fold. The only field a client may mutate after create; un-delete is admin-only. | No |
 
 **Security rules summary (SRS section 7.5):**
 
 - Creatable only when `fromUserId == request.auth.uid`.
 - Readable by both `fromUserId` and `toUserId`.
+- Updatable only via soft-delete (`deleted: false → true`) by either party.
+  Every other field — including `note` — is immutable.
 - The `verificationStatus` field is **read-only to clients**; only the Cloud
   Functions service account may write to it (mirrors the `simplifiedBalances`
-  enforcement pattern).
+  enforcement pattern — the Invariant-2 parallel for settlements per
+  ARCH-EXT-06).
+- Hard-delete is denied; admin SDK bypasses for cleanup paths.
 
 ---
 

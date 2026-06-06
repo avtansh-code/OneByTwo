@@ -7,6 +7,14 @@
         {"fieldPath": "memberIds", "arrayConfig": "CONTAINS"},
         {"fieldPath": "lastActivityAt", "order": "DESCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "settlements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "contextType", "order": "ASCENDING"},
+        {"fieldPath": "contextId", "order": "ASCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []

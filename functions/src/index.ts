@@ -38,3 +38,10 @@ export {lookupUserByPhoneNumber} from "./lookup-user-by-phone-number/index";
 // created, updated, or deleted under a friendship (FR-SE-03/04).
 // First non-callable producer of simplifiedBalances (Invariant 2).
 export {onExpenseWriteFriendship} from "./triggers/on-expense-write/index";
+
+// Firestore trigger: recompute simplifiedBalances when a settlement is
+// created, updated, or deleted at settlements/{settlementId} (FR-SE-05/06).
+// First trigger on a top-level collection. Reads contextType + contextId
+// from the document data (the settlements collection is top-level so the
+// discriminator is not in the trigger path).
+export {onSettlementWrite} from "./triggers/on-settlement-write/index";

@@ -149,7 +149,7 @@ service cloud.firestore {
     // Expenses subcollection under a friendship — member-only read/write
     // with strict invariant-1 enforcement at the write boundary
     // (FR-EX-04: splits[*].sharePaise must sum to amountPaise).
-    // First subcollection rules for the friendships graph (PR #36 / FR-SE-03/04).
+    // First subcollection rules for the friendships graph (FR-SE-03/04).
     match /friendships/{friendshipId}/expenses/{expenseId} {
 
       // Loaders for cross-doc checks (parent friendship membership)
@@ -354,6 +354,138 @@ service cloud.firestore {
     // Written and read exclusively by Cloud Functions (ADR-0014).
     match /_rateLimits/{document=**} {
       allow read, write: if false;
+    }
+
+    // Settlements collection — top-level (FR-SE-05/06).
+    //
+    // A settlement document represents a cash payment from `fromUserId`
+    // (the debtor) to `toUserId` (the recipient) within a context
+    // (friendship or group). The trigger `onSettlementWrite` consumes
+    // these to recompute `simplifiedBalances` on the parent context doc.
+    //
+    // Schema invariants enforced here:
+    //   - `fromUserId == request.auth.uid` on create (FR-SE-05).
+    //   - Both `fromUserId` and `toUserId` must be members of the
+    //     context (`memberIds` on the friendship/group doc).
+    //   - `amountPaise` is a positive integer (Invariant 1).
+    //   - Extension-point locks: `method == 'manual'` (ARCH-EXT-01),
+    //     `currency == 'INR'` (ARCH-EXT-02),
+    //     `verificationStatus == 'unverified'` (ARCH-EXT-06).
+    //   - `verificationStatus` is server-only on update (Invariant-2
+    //     parallel for settlements).
+    //   - Historical fields are immutable; only `deleted` may flip
+    //     true on update (monotonic soft-delete).
+    //   - Hard delete is admin-only.
+    match /settlements/{settlementId} {
+
+      // Resolve the parent context's memberIds. The context is either
+      // a friendship or a group; the discriminator lives in the doc.
+      function friendshipMemberIds(contextId) {
+        return get(/databases/$(database)/documents/friendships/$(contextId))
+          .data.memberIds;
+      }
+
+      function groupMemberIds(contextId) {
+        return get(/databases/$(database)/documents/groups/$(contextId))
+          .data.memberIds;
+      }
+
+      function contextMemberIds(contextType, contextId) {
+        return contextType == 'friendship'
+          ? friendshipMemberIds(contextId)
+          : groupMemberIds(contextId);
+      }
+
+      function isContextMember(contextType, contextId, uid) {
+        return uid in contextMemberIds(contextType, contextId);
+      }
+
+      // Whitelisted top-level keys on every write.
+      function hasOnlyKnownKeys(data) {
+        return data.keys().hasOnly([
+          'fromUserId', 'toUserId', 'amountPaise',
+          'contextType', 'contextId',
+          'date', 'note', 'method', 'verificationStatus',
+          'currency', 'createdAt', 'deleted'
+        ]);
+      }
+
+      function hasAllRequiredKeys(data) {
+        return data.keys().hasAll([
+          'fromUserId', 'toUserId', 'amountPaise',
+          'contextType', 'contextId',
+          'date', 'method', 'verificationStatus',
+          'currency', 'createdAt', 'deleted'
+        ]);
+      }
+
+      // Extension-point locks (v1.0 fixed values per
+      // extension-points-register.md ARCH-EXT-01/02/06).
+      function isValidExtensionPointLocks(data) {
+        return data.method == 'manual'
+          && data.currency == 'INR'
+          && data.verificationStatus == 'unverified';
+      }
+
+      // Per-field shape and value invariants.
+      function isValidShape(data) {
+        return data.fromUserId is string
+          && data.toUserId is string
+          && data.amountPaise is int
+          && data.amountPaise > 0
+          && data.contextType in ['friendship', 'group']
+          && data.contextId is string
+          && data.contextId.size() > 0
+          && data.date is timestamp
+          && (!('note' in data) || data.note == null || data.note is string)
+          && data.createdAt is timestamp
+          && data.deleted is bool;
+      }
+
+      function isValidSettlementCreate() {
+        let data = request.resource.data;
+        return hasOnlyKnownKeys(data)
+          && hasAllRequiredKeys(data)
+          && isValidShape(data)
+          && isValidExtensionPointLocks(data)
+          && data.fromUserId != data.toUserId
+          && isContextMember(data.contextType, data.contextId, data.fromUserId)
+          && isContextMember(data.contextType, data.contextId, data.toUserId)
+          && data.deleted == false
+          && data.createdAt == request.time;
+      }
+
+      // Update: ONLY soft-delete (deleted: false → true) is permitted
+      // for clients. Every other field is immutable; verificationStatus
+      // is server-only (Invariant-2 parallel per ARCH-EXT-06).
+      function isValidSettlementUpdate() {
+        let data = request.resource.data;
+        let prev = resource.data;
+        let changedKeys = data.diff(prev).affectedKeys();
+        return changedKeys.hasOnly(['deleted'])
+          && changedKeys.hasAny(['deleted'])
+          && data.deleted == true
+          && prev.deleted == false;
+      }
+
+      // Read: either party may read.
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.fromUserId
+            || request.auth.uid == resource.data.toUserId);
+
+      // Create: caller MUST be the fromUserId (Invariant per SRS 7.5).
+      allow create: if request.auth != null
+        && request.resource.data.fromUserId == request.auth.uid
+        && isValidSettlementCreate();
+
+      // Update: either party may soft-delete; nothing else changes.
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.fromUserId
+            || request.auth.uid == resource.data.toUserId)
+        && isValidSettlementUpdate();
+
+      // Hard delete is admin-only.
+      allow delete: if false;
     }
   }
 }

@@ -28,17 +28,38 @@ function createMockLogger() {
 /**
  * Creates a minimal mock Firestore that returns the provided context document
  * and expense documents inside a transaction.
+ *
+ * FR-SE-05/06 extension: also returns settlement documents from the top-level
+ * `settlements` collection. The mock dispatches by the FIRST argument to
+ * `db.collection()`:
+ *   - `'friendships'` / `'groups'` → context doc + expenses subcollection
+ *     (existing chain — `tx.get(docRef)` for context, `tx.get(query)` for
+ *     expenses where the query carries `_queryKind: 'expenses'`).
+ *   - `'settlements'` → top-level settlements query
+ *     (`tx.get(query)` where the query carries `_queryKind: 'settlements'`).
+ *
+ * If `settlements` is omitted, the settlements query returns an empty list —
+ * preserves backward compatibility with existing tests that never seeded
+ * settlements.
  */
 function createMockDb(opts: {
   contextExists: boolean;
   contextData?: Record<string, unknown>;
   expenses?: Array<{id: string; data: Record<string, unknown>}>;
+  settlements?: Array<{id: string; data: Record<string, unknown>}>;
 }): FirebaseFirestore.Firestore {
   const expenseDocs = (opts.expenses ?? []).map((e) => ({
     id: e.id,
     exists: true,
     data: () => e.data,
     ref: {path: `mock/expenses/${e.id}`},
+  }));
+
+  const settlementDocs = (opts.settlements ?? []).map((s) => ({
+    id: s.id,
+    exists: true,
+    data: () => s.data,
+    ref: {path: `settlements/${s.id}`},
   }));
 
   const contextSnap = {
@@ -49,28 +70,42 @@ function createMockDb(opts: {
 
   const updateFn = jest.fn();
 
-  // Build mock query/collection/doc chain
-  const mockDb = {
-    collection: jest.fn().mockReturnValue({
-      doc: jest.fn().mockReturnValue({
-        collection: jest.fn().mockReturnValue({
-          where: jest.fn().mockReturnValue({
-            // This object is passed to tx.get() for expenses
-            _isQuery: true,
-          }),
-        }),
-        // This ref is passed to tx.get() for context document
-        _isDocRef: true,
+  // Settlements chain: db.collection('settlements').where(...).where(...)
+  const settlementsQuery = {_queryKind: "settlements"};
+  const settlementsChain = {
+    where: jest.fn().mockReturnValue({
+      where: jest.fn().mockReturnValue(settlementsQuery),
+    }),
+  };
+
+  // Friendships/groups chain: db.collection(X).doc(Y).collection('expenses').where('deleted','!=',true)
+  const expensesQuery = {_queryKind: "expenses"};
+  const contextChain = {
+    doc: jest.fn().mockReturnValue({
+      collection: jest.fn().mockReturnValue({
+        where: jest.fn().mockReturnValue(expensesQuery),
       }),
+      _isDocRef: true,
+    }),
+  };
+
+  const mockDb = {
+    collection: jest.fn((name: string) => {
+      if (name === "settlements") {
+        return settlementsChain;
+      }
+      return contextChain;
     }),
     runTransaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
       const tx = {
         get: jest.fn((ref: unknown) => {
-          // If ref is the query, return expenses
-          if ((ref as Record<string, boolean>)._isQuery) {
+          const r = ref as Record<string, unknown>;
+          if (r._queryKind === "expenses") {
             return Promise.resolve({docs: expenseDocs});
           }
-          // Otherwise return context document
+          if (r._queryKind === "settlements") {
+            return Promise.resolve({docs: settlementDocs});
+          }
           return Promise.resolve(contextSnap);
         }),
         update: updateFn,
@@ -414,5 +449,322 @@ describe("recomputeAndWrite — alsoSet reserved-key guard", () => {
         alsoSet: {lastActivityAt: "2026-01-01T00:00:00.000Z"},
       }),
     ).rejects.toThrow(/lastActivityAt must be a Firestore Timestamp/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FR-SE-05/06 — recomputeAndWrite settlement-read extension
+//
+// Validates that the shared core now reads settlements in the same
+// transaction as expenses and folds them into the net-balance map. The
+// public signature of recomputeAndWrite stays the same; settlements are an
+// internal implementation detail of the algorithm's reading shape.
+// ---------------------------------------------------------------------------
+
+describe("recomputeAndWrite — settlement-read extension", () => {
+  // -----------------------------------------------------------------------
+  // 1. Settlement-only context: credit fromUserId / debit toUserId
+  //
+  // A pays B 5000 (no expenses). Net balances: A = +5000, B = -5000.
+  // simplifiedBalances = {B: {A: 5000}} (debtor B owes creditor A 5000 —
+  // because A is positive, A is the creditor in the simplified graph).
+  // -----------------------------------------------------------------------
+  it("returns expected balances for a settlement-only context (credit-from/debit-to)", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [
+        {
+          id: "set1",
+          data: {
+            fromUserId: "userA",
+            toUserId: "userB",
+            amountPaise: 5000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    expect(result.simplifiedBalances).toEqual({userB: {userA: 5000}});
+  });
+
+  // -----------------------------------------------------------------------
+  // 2. Mixed expense + settlement: settlement reduces the existing debt
+  //
+  // A paid 10000 (split equally) → B owes A 5000.
+  // B then pays A 3000 (a partial settlement).
+  // Residual: B owes A 2000.
+  // -----------------------------------------------------------------------
+  it("folds settlements alongside expenses (partial-settlement reduces debt)", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {
+          id: "set1",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 3000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    expect(result.simplifiedBalances).toEqual({userB: {userA: 2000}});
+  });
+
+  // -----------------------------------------------------------------------
+  // 3. Settlement zeroes the debt exactly
+  // -----------------------------------------------------------------------
+  it("produces empty simplifiedBalances when a settlement fully zeroes the debt", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {
+          id: "set1",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 5000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    expect(result.simplifiedBalances).toEqual({});
+  });
+
+  // -----------------------------------------------------------------------
+  // 4. Settlement overshoot: debtor pays more than owed → net flips sign
+  //
+  // B owed A 5000; B pays A 8000 → A now owes B 3000.
+  // simplifiedBalances = {A: {B: 3000}}.
+  // -----------------------------------------------------------------------
+  it("flips the net balance sign on overshoot (debtor overpays)", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {
+          id: "set1",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 8000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    expect(result.simplifiedBalances).toEqual({userA: {userB: 3000}});
+  });
+
+  // -----------------------------------------------------------------------
+  // 5. Soft-deleted settlements are excluded from the fold
+  //
+  // The implementation filters `deleted === true` settlements in code
+  // (because the cross-field `==`,`==`,`!=` query would require an
+  // unnecessary composite index; see Architect Notes §2).
+  // -----------------------------------------------------------------------
+  it("excludes settlements with deleted=true from the net-balance fold", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {
+          id: "set1",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 5000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: true, // soft-deleted — must be filtered out
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    // The soft-deleted settlement is ignored ⇒ residual debt remains.
+    expect(result.simplifiedBalances).toEqual({userB: {userA: 5000}});
+  });
+
+  // -----------------------------------------------------------------------
+  // 6. Multiple settlements accumulate correctly
+  //
+  // B owes A 10000 → B pays A 3000 + B pays A 4000 + A pays B 1000 →
+  // residual: B owes A (10000 - 3000 - 4000 + 1000) = 4000.
+  // -----------------------------------------------------------------------
+  it("accumulates multiple settlements in the same fold", async () => {
+    const {deps} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 20000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 10000},
+              {userId: "userB", sharePaise: 10000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {
+          id: "s1",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 3000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+        {
+          id: "s2",
+          data: {
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 4000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+        {
+          id: "s3",
+          data: {
+            fromUserId: "userA",
+            toUserId: "userB",
+            amountPaise: 1000,
+            contextType: "friendship",
+            contextId: "ctx1",
+            deleted: false,
+          },
+        },
+      ],
+    });
+
+    const handler = createHandler(deps);
+    const result = await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(result.ok).toBe(true);
+    expect(result.simplifiedBalances).toEqual({userB: {userA: 4000}});
+  });
+
+  // -----------------------------------------------------------------------
+  // 7. Settlements query is invoked against the top-level 'settlements'
+  //    collection (not a subcollection)
+  // -----------------------------------------------------------------------
+  it("reads from the top-level 'settlements' collection", async () => {
+    const {deps, db} = createDeps({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [],
+    });
+
+    const handler = createHandler(deps);
+    await handler({contextType: "friendship", contextId: "ctx1"});
+
+    expect(
+      (db as unknown as {collection: jest.Mock}).collection,
+    ).toHaveBeenCalledWith("settlements");
   });
 });

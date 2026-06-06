@@ -1,27 +1,32 @@
 /**
- * Function-boundary tests for the onExpenseWriteFriendship trigger.
+ * Function-boundary tests for the onSettlementWrite trigger.
  *
  * These tests exercise `createTriggerHandler(deps)` directly with mocked
- * Firestore + logger — no emulator required. The trigger handler is the thin
- * orchestration layer wrapping the shared `recomputeAndWrite` core; this
- * suite asserts the trigger-specific concerns: change-type discrimination,
+ * Firestore + logger — no emulator required. The trigger handler is the
+ * thin orchestration layer wrapping the shared `recomputeAndWrite` core
+ * (extended in this story to read settlements alongside expenses); this
+ * suite asserts the trigger-specific concerns: discriminator-from-doc-data
+ * extraction (after-side on create/update; before-side on hard delete),
  * stale-event guard, `lastActivityAt` monotonicity, error-policy mapping,
  * structured telemetry, and PII-free logging.
  *
  * Coverage target per the per-module gate: >= 70% of
- * functions/src/triggers/on-expense-write/.
+ * functions/src/triggers/on-settlement-write/.
  *
- * @module test/triggers/on-expense-write/function.test.ts
+ * @module test/triggers/on-settlement-write/function.test.ts
  */
 
 import {Timestamp} from "firebase-admin/firestore";
 import type {Change, DocumentSnapshot, FirestoreEvent} from
   "firebase-functions/v2/firestore";
 import {createTriggerHandler} from
-  "../../../src/triggers/on-expense-write/function";
+  "../../../src/triggers/on-settlement-write/function";
 
 // ---------------------------------------------------------------------------
-// Mock helpers — copy the simplified-debts/function.test.ts pattern
+// Mock helpers — copy the function.test.ts pattern with the settlements
+// extension (FR-SE-05/06). The mock dispatches by collection name:
+//   - 'friendships' / 'groups' → context doc + expenses subcollection.
+//   - 'settlements' → top-level settlements query.
 // ---------------------------------------------------------------------------
 
 interface LoggerCall {
@@ -46,15 +51,6 @@ function createMockLogger() {
   };
 }
 
-/**
- * Builds a mock Firestore where the friendship doc and its expenses
- * subcollection can be configured per-test. Records every `tx.update(...)`
- * call for assertion.
- *
- * FR-SE-05/06: also handles the top-level `settlements` collection query
- * introduced by the `recomputeAndWrite` settlement-read extension. When
- * `settlements` is omitted, the settlements query returns an empty list.
- */
 function createMockDb(opts: {
   contextExists: boolean;
   contextData?: Record<string, unknown>;
@@ -127,24 +123,46 @@ function createMockDb(opts: {
 }
 
 /**
- * Builds a minimal FirestoreEvent for a friendship expense write. The
- * runtime `Change<DocumentSnapshot>` shape uses `.exists` on each side;
- * passing `undefined` for change.before models "create"; passing
- * `undefined` for change.after models "delete".
+ * Settlement document data — a typed shape that the trigger reads from
+ * `change.after.data()` (create/update) or `change.before.data()` (hard
+ * delete) to extract `contextType` and `contextId`.
+ */
+function validSettlementData(overrides: Record<string, unknown> = {}) {
+  return {
+    fromUserId: "userA",
+    toUserId: "userB",
+    amountPaise: 5000,
+    contextType: "friendship",
+    contextId: "fid",
+    date: Timestamp.now(),
+    note: null,
+    method: "manual",
+    verificationStatus: "unverified",
+    currency: "INR",
+    createdAt: Timestamp.now(),
+    deleted: false,
+    ...overrides,
+  };
+}
+
+/**
+ * Builds a minimal FirestoreEvent for a top-level settlement write. Unlike
+ * the expense trigger event (which carries `friendshipId` + `expenseId` in
+ * event.params), the settlement trigger only carries `settlementId`. The
+ * context discriminator (`contextType`, `contextId`) is read from the doc
+ * data instead.
  */
 function makeEvent(opts: {
   changeType: "create" | "update" | "delete";
-  friendshipId?: string;
-  expenseId?: string;
+  settlementId?: string;
   eventTime?: string;
   beforeData?: Record<string, unknown>;
   afterData?: Record<string, unknown>;
 }): FirestoreEvent<
   Change<DocumentSnapshot> | undefined,
-  {friendshipId: string; expenseId: string}
+  {settlementId: string}
 > {
-  const friendshipId = opts.friendshipId ?? "fid";
-  const expenseId = opts.expenseId ?? "eid";
+  const settlementId = opts.settlementId ?? "sid";
   const eventTime = opts.eventTime ?? new Date().toISOString();
 
   const beforeExists =
@@ -155,13 +173,13 @@ function makeEvent(opts: {
   const beforeSnap = {
     exists: beforeExists,
     data: () => opts.beforeData ?? {},
-    ref: {path: `friendships/${friendshipId}/expenses/${expenseId}`},
+    ref: {path: `settlements/${settlementId}`},
   } as unknown as DocumentSnapshot;
 
   const afterSnap = {
     exists: afterExists,
     data: () => opts.afterData ?? {},
-    ref: {path: `friendships/${friendshipId}/expenses/${expenseId}`},
+    ref: {path: `settlements/${settlementId}`},
   } as unknown as DocumentSnapshot;
 
   const change = {before: beforeSnap, after: afterSnap} as unknown as Change<
@@ -174,8 +192,8 @@ function makeEvent(opts: {
     specversion: "1.0",
     source: "//firestore.googleapis.com/projects/demo-onebytwo",
     time: eventTime,
-    document: `friendships/${friendshipId}/expenses/${expenseId}`,
-    params: {friendshipId, expenseId},
+    document: `settlements/${settlementId}`,
+    params: {settlementId},
     data: change,
     location: "asia-south1",
     project: "demo-onebytwo",
@@ -183,32 +201,21 @@ function makeEvent(opts: {
     namespace: "(default)",
   } as unknown as FirestoreEvent<
     Change<DocumentSnapshot> | undefined,
-    {friendshipId: string; expenseId: string}
+    {settlementId: string}
   >;
-}
-
-/** Convenience: a valid two-person expense seed. */
-function validExpenseData(overrides: Record<string, unknown> = {}) {
-  return {
-    payerId: "userA",
-    amountPaise: 10000,
-    splits: [
-      {userId: "userA", sharePaise: 5000},
-      {userId: "userB", sharePaise: 5000},
-    ],
-    deleted: false,
-    description: "Test",
-    ...overrides,
-  };
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("onExpenseWriteFriendship handler — boundary", () => {
+describe("onSettlementWrite handler — boundary", () => {
   // -------------------------------------------------------------------------
   // 1. CREATE event recomputes balances and writes lastActivityAt
+  //
+  // A settlement of {fromA: 5000, toB: 5000} on a context with one expense
+  // (A paid 10000 split equally — B owes A 5000) → settlement zeroes the
+  // debt → simplifiedBalances = {}.
   // -------------------------------------------------------------------------
   it("recomputes simplifiedBalances on create and writes lastActivityAt atomically", async () => {
     const eventTime = new Date(Date.now() - 30 * 1000).toISOString();
@@ -221,7 +228,23 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
           new Date(Date.now() - 24 * 60 * 60 * 1000),
         ),
       },
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
+            ],
+          },
+        },
+      ],
+      settlements: [
+        {id: "sid", data: validSettlementData({fromUserId: "userB", toUserId: "userA", amountPaise: 5000})},
+      ],
     });
     const logger = createMockLogger();
 
@@ -230,7 +253,11 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
       makeEvent({
         changeType: "create",
         eventTime,
-        afterData: validExpenseData(),
+        afterData: validSettlementData({
+          fromUserId: "userB",
+          toUserId: "userA",
+          amountPaise: 5000,
+        }),
       }),
     );
 
@@ -238,27 +265,82 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     expect(updateFn).toHaveBeenCalledTimes(1);
     const [, payload] = updateFn.mock.calls[0];
     expect(payload).toEqual({
-      simplifiedBalances: {userB: {userA: 5000}},
+      simplifiedBalances: {},
       lastActivityAt: expectedTimestamp,
     });
   });
 
   // -------------------------------------------------------------------------
-  // 2. UPDATE event recomputes from current expense set
+  // 2. UPDATE event reads contextType/contextId from the after-side
+  //
+  // No prior expenses. A settlement of {fromA: 7000, toB: 7000} means A
+  // paid B 7000 in cash. With no prior debt, A now has positive net
+  // (+7000) — A is the creditor; B owes A 7000 ⇒ {userB: {userA: 7000}}.
   // -------------------------------------------------------------------------
-  it("recomputes on update with the post-edit expense set", async () => {
+  it("extracts contextType/contextId from change.after on update", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [
+        {id: "sid", data: validSettlementData({amountPaise: 7000})},
+      ],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "update",
+        beforeData: validSettlementData({amountPaise: 5000}),
+        afterData: validSettlementData({amountPaise: 7000}),
+      }),
+    );
+
+    const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
+    expect(updateFn).toHaveBeenCalledTimes(1);
+    expect(updateFn.mock.calls[0][1].simplifiedBalances).toEqual({
+      userB: {userA: 7000},
+    });
+    // db.collection('friendships').doc('fid') should have been resolved
+    // from the doc data's {contextType: 'friendship', contextId: 'fid'}.
+    expect(
+      (db as unknown as {collection: jest.Mock}).collection,
+    ).toHaveBeenCalledWith("friendships");
+  });
+
+  // -------------------------------------------------------------------------
+  // 3. SOFT-DELETE: the soft-deleted settlement is filtered out of the
+  //    in-code soft-delete filter, so balances reflect the state WITHOUT
+  //    the settlement.
+  // -------------------------------------------------------------------------
+  it("recomputes on soft-delete (deleted=true settlement is filtered in-code)", async () => {
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
       expenses: [
         {
-          id: "eid",
-          data: validExpenseData({
-            amountPaise: 20000,
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
             splits: [
-              {userId: "userA", sharePaise: 10000},
-              {userId: "userB", sharePaise: 10000},
+              {userId: "userA", sharePaise: 5000},
+              {userId: "userB", sharePaise: 5000},
             ],
+          },
+        },
+      ],
+      // Settlement marked deleted=true — algorithm should ignore it.
+      settlements: [
+        {
+          id: "sid",
+          data: validSettlementData({
+            fromUserId: "userB",
+            toUserId: "userA",
+            amountPaise: 5000,
+            deleted: true,
           }),
         },
       ],
@@ -269,55 +351,29 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     await handler(
       makeEvent({
         changeType: "update",
-        beforeData: validExpenseData(),
-        afterData: validExpenseData({amountPaise: 20000}),
+        beforeData: validSettlementData({deleted: false}),
+        afterData: validSettlementData({deleted: true}),
       }),
     );
 
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(1);
+    // Settlement excluded → residual debt remains.
     expect(updateFn.mock.calls[0][1].simplifiedBalances).toEqual({
-      userB: {userA: 10000},
+      userB: {userA: 5000},
     });
   });
 
   // -------------------------------------------------------------------------
-  // 3. SOFT-DELETE: expense is removed from the active set (the query filter)
+  // 4. HARD-DELETE: change.after.exists === false; discriminator must come
+  //    from change.before.data().
   // -------------------------------------------------------------------------
-  it("recomputes on soft-delete (deleted=true in current set is filtered by the query)", async () => {
-    // The trigger's transaction query is `where('deleted', '!=', true)`.
-    // Our mock query returns whatever the test provides; here we simulate
-    // the post-soft-delete state by passing an empty expenses array (the
-    // single expense was soft-deleted and excluded by the query).
+  it("extracts contextType/contextId from change.before on hard delete", async () => {
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
       expenses: [],
-    });
-    const logger = createMockLogger();
-
-    const handler = createTriggerHandler({db, logger});
-    await handler(
-      makeEvent({
-        changeType: "update",
-        beforeData: validExpenseData(),
-        afterData: validExpenseData({deleted: true}),
-      }),
-    );
-
-    const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
-    expect(updateFn).toHaveBeenCalledTimes(1);
-    expect(updateFn.mock.calls[0][1].simplifiedBalances).toEqual({});
-  });
-
-  // -------------------------------------------------------------------------
-  // 4. HARD-DELETE: change.after is undefined; trigger still recomputes
-  // -------------------------------------------------------------------------
-  it("recomputes on hard-delete (change.after undefined) with current expense set", async () => {
-    const db = createMockDb({
-      contextExists: true,
-      contextData: {memberIds: ["userA", "userB"]},
-      expenses: [],
+      settlements: [],
     });
     const logger = createMockLogger();
 
@@ -325,35 +381,38 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     await handler(
       makeEvent({
         changeType: "delete",
-        beforeData: validExpenseData(),
+        beforeData: validSettlementData(),
       }),
     );
 
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(1);
+    // No expenses, no settlements ⇒ empty balances.
     expect(updateFn.mock.calls[0][1].simplifiedBalances).toEqual({});
+    expect(
+      (db as unknown as {collection: jest.Mock}).collection,
+    ).toHaveBeenCalledWith("friendships");
   });
 
   // -------------------------------------------------------------------------
   // 5. Idempotency: second invocation with the same event produces identical
-  //    simplifiedBalances. lastActivityAt may match or be later (monotonic).
+  //    simplifiedBalances.
   // -------------------------------------------------------------------------
   it("is idempotent: identical second invocation yields identical balances", async () => {
     const eventTime = new Date(Date.now() - 30 * 1000).toISOString();
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [
+        {id: "sid", data: validSettlementData()},
+      ],
     });
     const logger = createMockLogger();
 
     const handler = createTriggerHandler({db, logger});
-    await handler(
-      makeEvent({changeType: "create", eventTime, afterData: validExpenseData()}),
-    );
-    await handler(
-      makeEvent({changeType: "create", eventTime, afterData: validExpenseData()}),
-    );
+    await handler(makeEvent({changeType: "create", eventTime, afterData: validSettlementData()}));
+    await handler(makeEvent({changeType: "create", eventTime, afterData: validSettlementData()}));
 
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(2);
@@ -372,7 +431,8 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
     });
     const logger = createMockLogger();
 
@@ -381,7 +441,7 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
       makeEvent({
         changeType: "create",
         eventTime: eightDaysAgo,
-        afterData: validExpenseData(),
+        afterData: validSettlementData(),
       }),
     );
 
@@ -389,13 +449,13 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     expect(updateFn).not.toHaveBeenCalled();
 
     const droppedLog = logger.calls.find(
-      (c) => c.data?.event === "expense_trigger_stale_event_dropped",
+      (c) => c.data?.event === "settlement_trigger_stale_event_dropped",
     );
     expect(droppedLog).toBeDefined();
     expect(droppedLog!.data!.contextType).toBe("friendship");
     expect(typeof droppedLog!.data!.contextIdHash).toBe("string");
     expect(droppedLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
-    expect(typeof droppedLog!.data!.expenseIdHash).toBe("string");
+    expect(typeof droppedLog!.data!.settlementIdHash).toBe("string");
     expect(typeof droppedLog!.data!.ageMs).toBe("number");
   });
 
@@ -403,14 +463,15 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
   // 7. CONTEXT_NOT_FOUND: friendship doc deleted → log and return, no throw
   // -------------------------------------------------------------------------
   it("logs CONTEXT_NOT_FOUND and returns successfully (no throw, no retry)", async () => {
-    const db = createMockDb({contextExists: false});
+    const db = createMockDb({
+      contextExists: false,
+      settlements: [],
+    });
     const logger = createMockLogger();
 
     const handler = createTriggerHandler({db, logger});
     await expect(
-      handler(
-        makeEvent({changeType: "create", afterData: validExpenseData()}),
-      ),
+      handler(makeEvent({changeType: "create", afterData: validSettlementData()})),
     ).resolves.toBeUndefined();
 
     const failedLog = logger.calls.find(
@@ -425,19 +486,17 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 8. BALANCE_INVARIANT_VIOLATED: trigger logs AND throws so CF retries
+  // 8. BALANCE_INVARIANT_VIOLATED: trigger logs AND throws so CF retries.
+  //
+  // Construct an expense where sharePaise sum != amountPaise.
   // -------------------------------------------------------------------------
   it("logs BALANCE_INVARIANT_VIOLATED and throws so Cloud Functions retries", async () => {
-    // Construct an expense where sharePaise sum != amountPaise:
-    // payer A paid 10000, but splits sum to 7000. Net balances:
-    // A: +10000 - 4000 = +6000, B: -3000. Residual: +3000 (non-zero) →
-    // the simplifyDebts algorithm throws "Balance invariant violation".
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
       expenses: [
         {
-          id: "eid",
+          id: "exp1",
           data: {
             payerId: "userA",
             amountPaise: 10000,
@@ -449,14 +508,13 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
           },
         },
       ],
+      settlements: [],
     });
     const logger = createMockLogger();
 
     const handler = createTriggerHandler({db, logger});
     await expect(
-      handler(
-        makeEvent({changeType: "create", afterData: validExpenseData()}),
-      ),
+      handler(makeEvent({changeType: "create", afterData: validSettlementData()})),
     ).rejects.toThrow();
 
     const failedLog = logger.calls.find(
@@ -468,32 +526,31 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 9. PII guard: structured logger NEVER receives payerId, splits[].userId,
-  //    amountPaise, sharePaise, or description values. The contextId
-  //    (friendshipId) is also PII (it's a composite of two UIDs) — the
-  //    trigger MUST hash it before logging.
+  // 9. PII guard: structured logger NEVER receives fromUserId, toUserId,
+  //    amountPaise, note, OR the raw composite friendship contextId. Only
+  //    hashed identifiers are loggable.
   // -------------------------------------------------------------------------
-  it("never logs PII (raw UIDs in friendshipId, payer/split userIds, amounts, description)", async () => {
+  it("never logs PII (raw UIDs in contextId, fromUserId/toUserId, amounts, note)", async () => {
     const uidAlice = "pii-uid-alice";
     const uidBob = "pii-uid-bob";
-    const realisticFriendshipId = `${uidAlice}_${uidBob}`; // schema's composite-UID pattern
-    const realisticExpenseId = "pii-expense-secret-id";
+    const realisticFriendshipId = `${uidAlice}_${uidBob}`;
+    const realisticSettlementId = "pii-settlement-secret-id";
 
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: [uidAlice, uidBob]},
-      expenses: [
+      expenses: [],
+      settlements: [
         {
-          id: "eid",
+          id: realisticSettlementId,
           data: {
-            payerId: uidAlice,
+            fromUserId: uidAlice,
+            toUserId: uidBob,
             amountPaise: 987654,
-            splits: [
-              {userId: uidAlice, sharePaise: 493827},
-              {userId: uidBob, sharePaise: 493827},
-            ],
+            contextType: "friendship",
+            contextId: realisticFriendshipId,
+            note: "PII-secret-note",
             deleted: false,
-            description: "PII-secret-dinner",
           },
         },
       ],
@@ -504,39 +561,36 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     await handler(
       makeEvent({
         changeType: "create",
-        friendshipId: realisticFriendshipId,
-        expenseId: realisticExpenseId,
+        settlementId: realisticSettlementId,
         afterData: {
-          payerId: uidAlice,
+          fromUserId: uidAlice,
+          toUserId: uidBob,
           amountPaise: 987654,
-          splits: [
-            {userId: uidAlice, sharePaise: 493827},
-            {userId: uidBob, sharePaise: 493827},
-          ],
+          contextType: "friendship",
+          contextId: realisticFriendshipId,
+          note: "PII-secret-note",
           deleted: false,
-          description: "PII-secret-dinner",
         },
       }),
     );
 
     for (const call of logger.calls) {
       const serialised = JSON.stringify(call.data);
-      // Raw UIDs (from friendshipId, payerId, splits[].userId)
+      // Raw UIDs (from contextId, fromUserId, toUserId)
       expect(serialised).not.toContain(uidAlice);
       expect(serialised).not.toContain(uidBob);
-      // The raw composite friendshipId
+      // The raw composite friendship contextId
       expect(serialised).not.toContain(realisticFriendshipId);
-      // Raw expenseId (also opaque-looking but treated PII-safe via hashing)
-      expect(serialised).not.toContain(realisticExpenseId);
-      // Monetary values
+      // Raw settlementId
+      expect(serialised).not.toContain(realisticSettlementId);
+      // Monetary value
       expect(serialised).not.toContain("987654");
-      expect(serialised).not.toContain("493827");
-      // Description text
-      expect(serialised).not.toContain("PII-secret-dinner");
+      // Note text
+      expect(serialised).not.toContain("PII-secret-note");
     }
 
-    // Affirmative check: the hashed contextIdHash IS present in every log
-    // line (so production ops still get correlation IDs).
+    // Affirmative check: hashed contextIdHash is present (production
+    // ops still get correlation IDs).
     for (const call of logger.calls) {
       const data = call.data ?? {};
       if ("contextIdHash" in data) {
@@ -544,43 +598,45 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
           /^[0-9a-f]{16}$/,
         );
       }
+      if ("settlementIdHash" in data) {
+        expect((data as Record<string, unknown>).settlementIdHash).toMatch(
+          /^[0-9a-f]{16}$/,
+        );
+      }
     }
   });
 
   // -------------------------------------------------------------------------
-  // 10. expense_trigger_fired is the FIRST log call (top of handler)
+  // 10. settlement_trigger_fired is the FIRST log call (top of handler)
   // -------------------------------------------------------------------------
-  it("emits expense_trigger_fired as the first log call with hashed IDs", async () => {
+  it("emits settlement_trigger_fired as the first log call with hashed IDs", async () => {
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
     });
     const logger = createMockLogger();
 
     const handler = createTriggerHandler({db, logger});
-    await handler(
-      makeEvent({changeType: "create", afterData: validExpenseData()}),
-    );
+    await handler(makeEvent({changeType: "create", afterData: validSettlementData()}));
 
     expect(logger.calls.length).toBeGreaterThan(0);
-    expect(logger.calls[0].data?.event).toBe("expense_trigger_fired");
+    expect(logger.calls[0].data?.event).toBe("settlement_trigger_fired");
     expect(logger.calls[0].data?.contextType).toBe("friendship");
     expect(logger.calls[0].data?.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
-    expect(logger.calls[0].data?.expenseIdHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(logger.calls[0].data?.settlementIdHash).toMatch(/^[0-9a-f]{16}$/);
     expect(logger.calls[0].data?.changeType).toBe("create");
     expect(typeof logger.calls[0].data?.eventTime).toBe("string");
     // Raw IDs MUST NOT appear in the fired log.
     expect(logger.calls[0].data).not.toHaveProperty("contextId");
-    expect(logger.calls[0].data).not.toHaveProperty("expenseId");
+    expect(logger.calls[0].data).not.toHaveProperty("settlementId");
   });
 
   // -------------------------------------------------------------------------
   // 11. lastActivityAt monotonicity: older event does NOT regress existing
   // -------------------------------------------------------------------------
   it("does not regress lastActivityAt when an older event arrives", async () => {
-    // Both timestamps must be within the 7-day stale-event window. We use
-    // recent relative times to avoid hitting the stale-event guard.
     const olderEventTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const existingNewerTimestamp = Timestamp.fromDate(
       new Date(Date.now() - 5 * 60 * 1000),
@@ -591,7 +647,8 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
         memberIds: ["userA", "userB"],
         lastActivityAt: existingNewerTimestamp,
       },
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
     });
     const logger = createMockLogger();
 
@@ -600,24 +657,19 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
       makeEvent({
         changeType: "create",
         eventTime: olderEventTime,
-        afterData: validExpenseData(),
+        afterData: validSettlementData(),
       }),
     );
 
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(1);
-    // lastActivityAt should remain the existing (newer) value
     expect(updateFn.mock.calls[0][1].lastActivityAt).toEqual(
       existingNewerTimestamp,
     );
-    // simplifiedBalances is still written
-    expect(updateFn.mock.calls[0][1].simplifiedBalances).toEqual({
-      userB: {userA: 5000},
-    });
   });
 
   // -------------------------------------------------------------------------
-  // 12. lastActivityAt is updated when the event is newer than existing
+  // 12. lastActivityAt updated when newer than existing
   // -------------------------------------------------------------------------
   it("updates lastActivityAt when the event is newer than the existing value", async () => {
     const newerEventTime = new Date(Date.now() - 60 * 1000).toISOString();
@@ -631,7 +683,8 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
         memberIds: ["userA", "userB"],
         lastActivityAt: existingOlderTimestamp,
       },
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
     });
     const logger = createMockLogger();
 
@@ -640,7 +693,7 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
       makeEvent({
         changeType: "create",
         eventTime: newerEventTime,
-        afterData: validExpenseData(),
+        afterData: validSettlementData(),
       }),
     );
 
@@ -650,7 +703,7 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 13. lastActivityAt is set when the existing value is absent
+  // 13. lastActivityAt set when existing is missing
   // -------------------------------------------------------------------------
   it("writes lastActivityAt when the existing value is missing", async () => {
     const eventTime = new Date(Date.now() - 60 * 1000).toISOString();
@@ -658,8 +711,8 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     const db = createMockDb({
       contextExists: true,
       contextData: {memberIds: ["userA", "userB"]},
-      // note: no lastActivityAt
-      expenses: [{id: "eid", data: validExpenseData()}],
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
     });
     const logger = createMockLogger();
 
@@ -668,12 +721,49 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
       makeEvent({
         changeType: "create",
         eventTime,
-        afterData: validExpenseData(),
+        afterData: validSettlementData(),
       }),
     );
 
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(1);
     expect(updateFn.mock.calls[0][1].lastActivityAt).toEqual(expectedTimestamp);
+  });
+
+  // -------------------------------------------------------------------------
+  // 14. Group context discriminator: trigger reads contextType='group' from
+  //     doc data and resolves to the 'groups' collection.
+  // -------------------------------------------------------------------------
+  it("resolves to 'groups' collection when contextType is 'group'", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB", "userC"]},
+      expenses: [],
+      settlements: [
+        {
+          id: "sid",
+          data: validSettlementData({
+            contextType: "group",
+            contextId: "gid",
+          }),
+        },
+      ],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "create",
+        afterData: validSettlementData({
+          contextType: "group",
+          contextId: "gid",
+        }),
+      }),
+    );
+
+    expect(
+      (db as unknown as {collection: jest.Mock}).collection,
+    ).toHaveBeenCalledWith("groups");
   });
 });
