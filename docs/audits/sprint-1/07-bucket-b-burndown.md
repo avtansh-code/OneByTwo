@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #44.
+> Last updated: PR #45.
 
 ---
 
@@ -212,8 +212,12 @@ Other notes by ID for PR #36:
   rate-limit document-path bug — `db.doc('_rateLimits/{uid}/lookups')` is
   an odd-component path which Firestore rejects. Introduced in PR #32/#34;
   surfaced by PR #36's CI workflow change. The five affected integration
-  tests are marked `describe.skip` with a TODO. Tracked as a separate
-  follow-up; NOT a Bucket-B audit item.
+  tests are marked `describe.skip` with a TODO. **CLOSED by PR #45** —
+  the production code now uses the architect-canonical 4-segment
+  subcollection doc path `_rateLimits/{userId}/lookups/counter` (matches
+  the integration-test seed path at line 243 and the decision-log
+  logical-container declaration). The five integration tests are
+  unskipped and pass end-to-end in CI. NOT a Bucket-B audit item.
 - All other items unchanged.
 
 PR #37 (FR-SE-05/06 `onSettlementWrite` trigger) closes **no
@@ -229,8 +233,8 @@ additional bucket-B items**. Notes by ID:
 - **NEW finding pre-existing:** the `lookup-user-by-phone-number`
   rate-limit doc-path bug surfaced by PR #36 is still open. PR #37
   did not touch the lookup gateway; the five `describe.skip`'d
-  integration tests remain skipped. Candidate for PR #44 (alternate)
-  or PR #45 per `docs/sprint-zero/next-three-prs.md`.
+  integration tests remain skipped. **Closed by PR #45** (see the
+  PR #45 section at the end of this document for details).
 - All other items unchanged.
 
 PR #38 (FR-EX-01 expense creation UI + chore #25) closes **SR8**:
@@ -335,7 +339,67 @@ Other notes by ID for PR #44:
   accepts 7.x). Bundling would double the breaking-change reconciliation
   surface for zero deadline reason.
 - **Pre-existing `lookup-user-by-phone-number` rate-limit doc-path
-  bug:** still untouched. The five `describe.skip`'d integration
-  tests remain skipped. Candidate for PR #45 per
-  `docs/sprint-zero/next-three-prs.md`.
+  bug:** **Closed by PR #45** (see the PR #45 section below).
 - All other items unchanged.
+
+PR #45 (chore — lookup rate-limit doc-path fix + post-PR-#38 cleanup)
+closes **no Bucket-B items by ID** but resolves two open trackers:
+
+- **NEW finding pre-existing (rate-limit doc-path bug, NOT Bucket B):**
+  **CLOSED.** The production code at
+  `functions/src/lookup-user-by-phone-number/function.ts:108` now
+  uses the architect-canonical 4-segment subcollection doc path
+  `_rateLimits/{userId}/lookups/counter`. The five integration tests
+  at
+  `functions/test/integration/lookup-user-by-phone-number.integration.test.ts`
+  are unskipped and pass end-to-end in CI under
+  `firebase emulators:exec --only auth,firestore,functions,storage`,
+  including the load-bearing `RATE_LIMITED` rate-limit-window test
+  that exercises the gate the production code never reached pre-fix.
+  See `docs/sprint-zero/stories/CHORE-pr45-lookup-rate-limit-and-pr38-cleanup.md`
+  Architect Notes §2.1 for the canonical-path rationale.
+- **Three S4 items from PR #38 QA sign-off (NOT Bucket B):** the
+  three Post-Merge Cleanup Backlog items tracked in
+  `docs/sprint-zero/sprint-2-plan.md` lines 285–355 (stale
+  `expense_added` / `expense_add_failed` telemetry references in
+  three design docs; splitter test cap-label propagation; missing
+  `// TODO(SCR-08)` comment on `friends_list_screen.dart`) shipped
+  as PR #45 Stream B. Plan section condensed to a one-line
+  resolution note. NOT Bucket-B audit items.
+
+Other notes by ID for PR #45:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #45
+  unskips the five `lookup-user-by-phone-number` integration tests
+  (was 28 pass / 5 skipped; now 33 pass / 0 skipped at the
+  integration layer on Linux CI). Modest credit; PY3 remains open
+  pending the Flutter integration harness.
+- **D6 — npm audit moderate vulnerabilities:** unchanged (PR #45
+  did not touch `functions/package.json` or `package-lock.json` per
+  the chore-story Out of Scope; the runtime + SDK matrix is fixed
+  by PR #44).
+- **D1, D2, D4, D7:** unchanged (Sprint 4+ scope per the burndown).
+- **Rate-limit transaction race refactor (NEW deferred):** the
+  current rate-limit implementation has a known time-of-check-to-
+  time-of-use race; explicitly deferred from PR #45 per chore-story
+  Architect Notes §2.2. NOT a Bucket-B item; tracked in
+  `docs/sprint-zero/next-three-prs.md` as a PR #46+ candidate
+  (operational hardening chore).
+- **PR #44 §2.7 trigger-interference flake (NEW deferred,
+  observed-only):** during local Stream A verification on macOS the
+  10 trigger integration tests (`on-expense-write.integration.test.ts`
+  and `on-settlement-write.integration.test.ts`) timed out under
+  `firebase emulators:exec --only auth,firestore,functions,storage`
+  — consistent with the macOS-specific flake documented in
+  `docs/sprint-zero/stories/CHORE-d5-runtime-upgrade.md` Architect
+  Notes §2.7. Linux CI runners have historically been green for
+  these tests. The lookup-user suite passed cleanly in isolation
+  (`firebase emulators:exec ... npx jest test/integration/lookup-user-by-phone-number.integration.test.ts`).
+  Not a Bucket-B item; the cited PR #44 follow-up (move `test:rules`
+  to `--only firestore,storage`) remains a future test-hygiene
+  candidate.
+- All other items unchanged.
+
+Net contribution of PR #45 to Bucket-B totals: **zero**. The rate-limit
+bug was not a Bucket-B item; the three S4 items were not Bucket-B
+items. The remaining count stays at **30 / 37**.
