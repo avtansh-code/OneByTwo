@@ -487,5 +487,43 @@ service cloud.firestore {
       // Hard delete is admin-only.
       allow delete: if false;
     }
+
+    // ────────────────────────────────────────────────────────────────────
+    // Activity Feed (FR-EX-07, FR-AC-01) — `activity/{userId}/items/{itemId}`
+    //
+    // Member-read-only on the items subcollection, server-only-write on
+    // every path under `activity/**`. The Cloud Functions service account
+    // (admin SDK, rules-bypassing) is the SOLE writer of activity items —
+    // emitted by `onExpenseWriteFriendship` (PR #36; FR-EX-07 write-side
+    // shipped here) and, in a follow-on, by `onSettlementWrite`
+    // (FR-SE-05/06 trigger; FR-AC-01 settlement leg).
+    //
+    // The parent activity/{userId} document carries no semantic content;
+    // only the subcollection is the read surface. Explicit
+    // `allow read, write: if false` on the parent is defence-in-depth
+    // over the top-of-file default-deny.
+    //
+    // Mirrors the `simplifiedBalances` server-only enforcement pattern
+    // ratified in PR #12 and re-ratified by PR #36.
+    //
+    // Schema: docs/design/07-technical/firestore-schema.md lines 194-211.
+    // ────────────────────────────────────────────────────────────────────
+    match /activity/{userId} {
+
+      // Parent activity document: no client read or write.
+      allow read, write: if false;
+
+      match /items/{itemId} {
+
+        // Read: only the user whose UID matches the parent path.
+        allow read: if request.auth != null
+          && request.auth.uid == userId;
+
+        // Writes: never from clients. Only the Cloud Functions service
+        // account may create activity items (it bypasses rules entirely
+        // via the admin SDK).
+        allow create, update, delete: if false;
+      }
+    }
   }
 }
