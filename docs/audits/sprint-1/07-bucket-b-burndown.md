@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #46.
+> Last updated: PR #48.
 
 ---
 
@@ -17,9 +17,9 @@
 | Code chores | 12 | 0 | 12 |
 | Documentation chores | 8 | 1 | 7 |
 | Dependency upgrades | 6 | 2 | 4 |
-| Test coverage gaps | 8 | 4 | 4 |
+| Test coverage gaps | 8 | 6 | 2 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **7** | **30** |
+| **Total** | **37** | **9** | **28** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
@@ -133,7 +133,7 @@ so INV2 remains partially addressed pending the dedicated chore.
 | ID | Item | Timeline |
 |---|---|---|
 | R1-R6 | Firestore rules test gaps (friendships and groups) | Sprint 2 friendship PR / Sprint 3 groups PR |
-| R7-R8 | Storage rules test gaps (file size, content-type) | Sprint 2 chore |
+| ~~R7-R8~~ | ~~Storage rules test gaps (file size, content-type)~~ | **Closed by PR #48** (`functions/test/storage-rules/receipts.test.ts` — 23 tests covering size + MIME + membership + cross-collection predicate for friendship + group predicates) |
 | SC2 | OTP auto-retrieval timeout test | Android auto-read refinement |
 | SC4 | Large group (100+) scalability test | Sprint 3 groups |
 | INV2 | Share-sheet verification tests | When sharing features implemented |
@@ -452,3 +452,50 @@ Net contribution of PR #46 to Bucket-B totals: **zero**. The four
 new Firestore rules tests extend R4 coverage (closed by PR #36) but
 do not close any new audit IDs. The remaining count stays at
 **30 / 37**.
+
+PR #48 (FR-EX-05 receipt attachment, friendship context) closes
+**R7 + R8** and makes partial progress on **PY3**:
+
+- **R7 — Storage rules test gap (file size):** **CLOSED.** The new
+  `functions/test/storage-rules/receipts.test.ts` suite includes
+  dedicated oversize-rejection tests for both the friendship-
+  receipts and (defensive) group-receipts predicates — uploading
+  an 11 MB buffer is rejected by the `request.resource.size < 10 *
+  1024 * 1024` predicate at `storage.rules`.
+- **R8 — Storage rules test gap (content-type):** **CLOSED.** The
+  same suite includes dedicated MIME-rejection tests for both
+  predicates — uploading a `text/plain` (or `image/gif`) blob is
+  rejected by the `request.resource.contentType.matches('image/(jpeg|png)')`
+  predicate. Membership-positive (member can upload),
+  membership-negative (non-member rejected), unauthenticated
+  (anonymous rejected), and cross-collection `firestore.get()`
+  predicate verification tests are all included to make R7 + R8
+  the load-bearing tests for the new Storage surface.
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #48
+  adds three skipped integration-test stubs at
+  `test/integration/expenses/receipt_upload_flow_test.dart`
+  documenting the canonical steps for (a) create-with-receipt
+  upload-then-view round-trip, (b) edit-mode replace round-trip,
+  (c) edit-mode remove round-trip including the Storage delete.
+  Partial credit only; PY3 remains open pending the Flutter
+  emulator harness.
+- **D6 — npm audit moderate vulnerabilities:** unchanged (PR #48
+  did not touch `functions/package.json` or `package-lock.json`
+  per the story's Out of Scope negative-scope guard).
+- **D1, D2, D4, D7:** unchanged (Sprint 4+ scope per the burndown).
+- **Orphan-cleanup Cloud Function for receipts (NEW deferred):**
+  SRS schema doc line 312 calls for a 90-day reaper of unreferenced
+  files under `receipts/`. PR #48 architect §2.9 item 5 documents
+  this as a FUTURE-work item. NOT a Bucket-B item; tracked in
+  `docs/sprint-zero/next-three-prs.md` as a PR #49+ candidate
+  (operational hardening chore).
+- **Trigger no-op-recompute optimisation (NEW deferred):** PR #48
+  architect §2.9 item 4 documents that the
+  `onExpenseWriteFriendship` trigger re-fires on receipt-only
+  updates and runs `recomputeSimplifiedBalances` even though
+  balances do not change. Log noise + trivial CPU cost; FUTURE
+  optimisation. NOT a Bucket-B item; tracked in
+  `docs/sprint-zero/next-three-prs.md` as a PR #49+ candidate.
+
+Net contribution of PR #48 to Bucket-B totals: **+2**. R7 + R8
+both close. The remaining count drops to **28 / 37**.
