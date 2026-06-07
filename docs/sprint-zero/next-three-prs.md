@@ -1,126 +1,121 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #48 merged (FR-EX-05 — receipt attachment, friendship context).
+> Last updated: PR #51 merged (FR-EX-07 — activity feed write-side, friendship expenses).
 
 ---
 
-## GitHub issue / PR numbering note (post-PR #48)
+## GitHub issue / PR numbering note (post-PR #51)
 
 The numbering jumped because issues and PRs share the same sequential
-namespace on GitHub. The post-PR #38 sequence so far:
+namespace on GitHub. The post-PR #48 sequence so far:
 
 | Number | Type | What |
 |---|---|---|
-| #38 | PR | FR-EX-01 expense creation UI + chore #25 (merged 2026-06-06) |
-| #39 | Issue | Cloud Functions Node 20 decommissioned 2026-10-31 (**CLOSED by PR #44**) |
-| #40 | Issue | `firebase-functions` 6.x → 7.x (**CLOSED by PR #44**) |
-| #41 | PR | docs(plan) — D5 deadline backlog cross-refs (merged 2026-06-06) |
-| #42 | PR | FR-FR-04 friend detail full screen (merged 2026-06-06) |
-| #43 | PR | FR-SE-05/06/07 settle up flow (merged 2026-06-06) |
-| #44 | PR | CHORE-D5 runtime upgrade — Node 22 + firebase-functions 7.x (merged 2026-06-06; closes #39 #40) |
-| #45 | PR | CHORE-PR45 — lookup rate-limit doc-path fix + post-PR-#38 cleanup (merged 2026-06-06) |
 | #46 | PR | FR-EX-06 edit / delete expense, friendship context (merged 2026-06-07) |
 | #47 | Issue | Firestore rules-hardening for non-creator update/delete (OPEN — Sprint 3 hardening) |
 | #48 | PR | FR-EX-05 receipt attachment, friendship context (merged 2026-06-07) |
-| **#49** | **PR** | **Next feature PR — see below** |
+| #49 | Issue | Orphan-cleanup Cloud Function for unreferenced receipts (90-day reaper) — OPEN (FUTURE-work chore, 2 SP) |
+| #50 | Issue | Trigger no-op-recompute optimisation when update touches only `receiptUrl` + `updatedAt` — OPEN (FUTURE-work chore, 1 SP). **EXPLICITLY CANNOT BE CLOSED** by any FR-EX-07-consuming PR — the optimisation would skip activity emission on receipt-only updates, breaking the FR-EX-07 contract (AC-2). |
+| #51 | PR | FR-EX-07 activity feed write-side, friendship expenses (merged 2026-06-07) |
+| **#52** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #49, PR #50, PR #51. Their issue-number
-counterparts (when filed) will consume intermediate numbers; the orchestrator
-should not assume PR #49 = number 49 on GitHub.
+**pull requests** — i.e. PR #52, PR #53, PR #54. Their issue-number
+counterparts (when filed) will consume intermediate numbers; the
+orchestrator should not assume PR #52 = number 52 on GitHub.
 
 ---
 
-## PR #49 — TBD
+## PR #52 — TBD
 
-**Status:** Next up. Architect picks at PR #49 kickoff per Sprint 2 velocity.
+**Status:** Next up. Architect picks at PR #52 kickoff per Sprint 2 velocity.
 
-PR #48 shipped FR-EX-05 (receipt attachment for friendship-context
-expenses, SCR-21) — the first client uploader to Firebase Storage
-from the expense feature. The new Step 3 widget plus the extracted
-`ImagePickerService` (now at `lib/core/services/`) plus the new
-`ReceiptStorageService` give downstream features the building
-blocks for any future image-attachment surface (e.g. group-context
-receipts in the Sprint 3 groups epic). PR #48 also closed R7 + R8
-from the Sprint-1 Bucket-B burndown (Storage rules tests for file
-size + content type). The defensive group-receipts predicate is
-already in `storage.rules` — the Sprint 3 groups epic only needs
-to wire the UI.
+PR #51 shipped FR-EX-07 (activity-feed write-side for friendship
+expenses). The `onExpenseWriteFriendship` trigger now emits one
+`activity/{userId}/items/{auto-id}` document per friendship member
+on every create / edit / soft-delete. The new
+`activity-writer.ts` + `payload-builder.ts` + `activity-validator.ts`
+modules are reusable by the settlement-trigger activity-emission
+extension. The `firestore.rules` block at
+`match /activity/{userId}/items/{itemId}` enforces member-read /
+server-only-write, mirroring the `simplifiedBalances` posture.
+12 new rules tests (176 → 188) cover AC-6 through AC-12;
+41 new unit tests (100 → 141 boundary, plus 13 trigger-integration
+tests = 154 total); 5 boundary-contract tests guard against
+monetary float drift across `functions/src/**`. The
+client read-side (SCR-25 — Activity tab) is the natural
+follow-on story (FR-AC-01).
 
 Candidates (in rough priority order):
 
-- **FR-EX-07 — Activity feed.** The highest unplaced P0. The
-  `onExpenseWriteFriendship` trigger already emits activity entries
-  for create / update / soft-delete events; PR #48's receipt-only
-  update also fires the trigger (no-op recompute — log noise but
-  correct). The remaining work is the read-side screen + listener +
-  composite-index design.
+- **FR-AC-01 — Activity tab (SCR-25) + settlement-trigger
+  activity-emission extension.** The highest unplaced P0. PR #51
+  shipped the write-side schema and rules; FR-AC-01 ships the
+  client read-side (route `/activity`, `OBTActivityRow`, deep-link
+  routing for FR-AC-02). Pair with the symmetric settlement-trigger
+  activity emission (the TODO at
+  `functions/src/triggers/on-settlement-write/function.ts:231` is
+  ready to consume `writeExpenseActivity` from PR #51 with a sibling
+  settlement-payload builder) — both halves are needed for the
+  settlement leg of SCR-25 to render anything. 8-10 SP — may split
+  into two sub-PRs (client vs server) at architect's call.
 - **FR-SE-09 — Send Reminder.** Closes the receiving-direction
   branch of the OBTSettleUpCard (per PR #43 §2.5 default-omit).
   Requires FCM dependency + 24-hour rate-limit subcollection.
-  **Note:** this PR will exercise the
+  Now the highest unplaced P1. Will exercise the
   `_rateLimits/{uid}/sends/counter` subcollection pattern
   established by PR #45 Architect Notes §2.9.
+- **FR-AC-03 — FCM push notifications.** Separate P0 story;
+  introduces the FCM dependency + the `notificationPrefs` schema +
+  per-user `fcmTokens` plumbing. Requires FR-AC-01 client deep-link
+  surface as a prerequisite (paired by FR-AC-05 cold-start
+  deep-link).
 - **FR-SE-08 dedicated full-history screen** at
   `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
   v1.0 but the dedicated screen is still a backlog item).
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
-  documented — the `friendships/{fid}/expenses/{eid}` rules
-  currently permit update + soft-delete by any friendship member;
-  the client UI gates on `expense.createdBy == currentUser.uid`
-  but a defence-in-depth rules tightening is a follow-up.
+  documented.
 - **Concurrent-edit detection for FR-EX-06** (operational
   hardening; small standalone PR). Explicitly deferred from
-  PR #46 per the story's Out of Scope (AC-11 / AC-12 — full
-  transactional concurrent-edit detection).
-- **Orphan-cleanup Cloud Function for receipts** (FUTURE; filed
-  during PR #48 per SRS schema doc line 312 — 90-day reaper of
-  unreferenced files under `receipts/`). Out of v1.0 unless
-  required for compliance.
-- **Trigger no-op-recompute optimisation** (FUTURE; filed during
-  PR #48 — skip `recomputeSimplifiedBalances` when the update
-  touches only `receiptUrl` + `updatedAt`). Pure log-noise +
-  trivial CPU optimisation.
+  PR #46.
+- **Issue #49 — Orphan-cleanup Cloud Function for receipts**
+  (FUTURE; filed during PR #48 per SRS schema doc line 312).
+  Out of v1.0 unless required for compliance.
+- **Issue #50 — Trigger no-op-recompute optimisation** (FUTURE;
+  filed during PR #48). **EXPLICITLY CONSTRAINED** by FR-EX-07
+  (PR #51 AC-2): the optimisation must NOT skip activity emission
+  on receipt-only updates; a follow-up will update issue #50 with
+  this constraint.
 - **Rate-limit transaction race refactor** (operational hardening;
   small standalone PR). Deferred from PR #45 per chore-story
   Architect Notes §2.2.
 
 ---
 
-## PR #50 — TBD
+## PR #53 — TBD
 
-**Status:** Slot reserved. Architect picks at PR #49 kickoff.
+**Status:** Slot reserved. Architect picks at PR #52 kickoff.
 
-Candidates: whatever doesn't land in PR #49 from the list above, plus:
+Candidates: whatever doesn't land in PR #52 from the list above, plus:
 
-- A Bucket-B chore PR (remaining 28 / 37 items after PR #48
-  closed R7 + R8).
+- A Bucket-B chore PR (remaining 27 / 37 items after PR #51 closed
+  R5a — activity rules coverage).
 - Pre-Sprint 3 design polish (FR-FR-01 chore #28 Friends HTML
   mockup; SCR-09/10 wireframe alignment).
-- A test-hygiene chore to move `npm run test:rules` out of the
-  `--only auth,firestore,functions,storage` emulator invocation in
-  `.github/workflows/pr.yml` (noted as a side observation in
-  `docs/sprint-zero/stories/CHORE-d5-runtime-upgrade.md` Architect
-  Notes §2.7 — the trigger-interference flake is environment-
-  sensitive on macOS but not observed on Linux runners). **Note:**
-  PR #46 already split the rules tests into a dedicated emulator
-  session per architect chore-D5 §2.7, so this slot is partially
-  closed; the remaining work is updating the Architect Notes to
-  reflect the split.
 - The deferred rate-limit transaction race refactor (PR #45 §2.2).
 - The deferred concurrent-edit detection for FR-EX-06.
 - Issue #47 rules-hardening for the non-creator update/delete gate.
 
 ---
 
-## PR #51 — TBD
+## PR #54 — TBD
 
-**Status:** Slot reserved. Architect picks at PR #50 kickoff.
+**Status:** Slot reserved. Architect picks at PR #53 kickoff.
 
-Candidates: whatever doesn't land in PR #49 / PR #50 from the lists
+Candidates: whatever doesn't land in PR #52 / PR #53 from the lists
 above.
 
 ---
@@ -160,35 +155,39 @@ the `ImagePickerService` was extracted from `features/auth/data/`
 to `lib/core/services/` so the expense feature can import it
 without an auth → expenses dependency. The `storage.rules` predicate
 for friendship-receipts ships with the matching defensive
-group-receipts predicate (closes R7 + R8 in one shot). 23 new
-storage-rules tests (153 → 176 across 8 suites) cover the size /
-MIME / membership / cross-collection predicate paths;
-flutter tests grow 883 → 885 (the new step-3 widget tests, the
-extracted picker smoke test, and the helper-shared fakes);
-3 skipped integration-test stubs at
-`test/integration/expenses/receipt_upload_flow_test.dart` earn
-partial PY3 credit.
+group-receipts predicate (closes R7 + R8 in one shot).
 
-PR #49 picks up the highest-value backlog item per Sprint 2
-velocity at the PR #49 kickoff. FR-EX-07 (activity feed) is the
-natural next-feature given the trigger already emits the activity
-entries; FR-SE-09 / FR-SE-08 / issue #47 rules-hardening / the
-deferred concurrent-edit detection / the orphan-cleanup function /
-the trigger no-op-recompute optimisation / the rate-limit
-transaction race refactor are all plausible alternates; the
-architect's call at kickoff reflects the current priority signal.
+PR #51 then closed the long-standing
+`// TODO(FR-AC-01): write activity-feed item` hand-off seam at
+`functions/src/triggers/on-expense-write/function.ts:160-169` —
+the friendship-expense trigger now fans out an
+`activity/{userId}/items/{auto-id}` document per friendship member
+on every successful recompute (create / edit / soft-delete). The
+new `firestore.rules` block at `match /activity/{userId}/items/{itemId}`
+enforces member-read / server-only-write, the canonical posture
+mirroring `simplifiedBalances`. The `activity-writer.ts` module
+is reusable by the future settlement-trigger activity-emission
+extension (paired with FR-AC-01 client read-side).
+
+PR #52 picks up the highest-value backlog item per Sprint 2
+velocity at the PR #52 kickoff. FR-AC-01 client (SCR-25) +
+settlement-trigger activity emission is the natural next-feature
+pairing — the read-side schema PR #51 wrote is the contract
+FR-AC-01 reads, and the settlement-trigger half is needed for the
+settlement leg of SCR-25 to render anything. The architect's call
+at kickoff reflects the current priority signal.
 
 ---
 
-## Snapshot — Sprint 2 status at end of PR #48
+## Snapshot — Sprint 2 status at end of PR #51
 
 | Metric | Value |
 |---|---|
-| PRs merged in Sprint 2 | 14 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48) |
-| Story points delivered | 50 (PR #41 was 0 SP — pure docs cross-refs; PR #42, #43, #46, #48 were 5 SP each; PR #44 + PR #45 were 3 SP each — both chores) |
-| Bucket-B items closed | 9 (R1, R2, R3, R7, R8, CV3, SR8, D5a, D5b — PR #48 closed R7 + R8 with the new Storage rules predicates and the 23-test receipts.test.ts suite). Remaining: 28 / 37. |
+| PRs merged in Sprint 2 | 15 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51) |
+| Story points delivered | 55 (PR #41 was 0 SP — pure docs cross-refs; PR #42, #43, #46, #48, #51 were 5 SP each; PR #44 + PR #45 were 3 SP each — both chores) |
+| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b — PR #51 closed R5a with the new 12-test activity.test.ts suite). Remaining: 27 / 37. |
 | Critical Cross-PR Constraints | C-1 RESOLVED (chore #25 closed in PR #38) |
-| Open `sprint-2-chore` issues | 14 (PR #48 filed two new FUTURE-work issues: orphan-cleanup Cloud Function for receipts, and trigger no-op-recompute optimisation; plus issue #47 for non-creator rules hardening was filed during PR #46 review and remains open) |
-| Outstanding deadline-bound work | **None.** D5 shipped in PR #44; PR #45, PR #46, and PR #48 were non-deadline-bound. |
-| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. **Receipt attachment surface closed by PR #48**: optional JPEG/PNG upload to `gs://onebytwo-avtanshgupta.appspot.com/receipts/friendships/{fid}/{eid}` with the Expense Detail screen rendering the thumbnail on read. The `onExpenseWriteFriendship` trigger (PR #36) recomputes `simplifiedBalances` on every branch including receipt-only updates (no-op recompute; filed as FUTURE optimisation). |
+| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #51 did not file any new issues) |
+| Outstanding deadline-bound work | **None.** D5 shipped in PR #44; PR #45, PR #46, PR #48, PR #51 were non-deadline-bound. |
+| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. **Activity-feed WRITE-SIDE closed by PR #51** — every friendship-expense write now emits an `activity/{userId}/items/{auto-id}` document per member with type discriminator (`expense_added` / `expense_edited` / `expense_deleted`) and a payload sufficient for SCR-25 to render the row without additional reads. Read-side closure is the FR-AC-01 follow-on PR. |
 

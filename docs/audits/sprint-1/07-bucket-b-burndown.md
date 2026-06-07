@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #48.
+> Last updated: PR #51.
 
 ---
 
@@ -17,9 +17,9 @@
 | Code chores | 12 | 0 | 12 |
 | Documentation chores | 8 | 1 | 7 |
 | Dependency upgrades | 6 | 2 | 4 |
-| Test coverage gaps | 8 | 6 | 2 |
+| Test coverage gaps | 8 | 7 | 1 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **9** | **28** |
+| **Total** | **37** | **10** | **27** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
@@ -132,7 +132,8 @@ so INV2 remains partially addressed pending the dedicated chore.
 
 | ID | Item | Timeline |
 |---|---|---|
-| R1-R6 | Firestore rules test gaps (friendships and groups) | Sprint 2 friendship PR / Sprint 3 groups PR |
+| ~~R5a~~ | ~~Firestore rules test gap for activity collection~~ | **Closed by PR #51** (`functions/test/firestore-rules/activity.test.ts` — 12 tests covering AC-6 through AC-12 of the FR-EX-07 story: owner-read positive + non-owner / unauth / parent-doc negatives + client-create / update / delete denied) |
+| R1-R4, R5b, R6 | Remaining Firestore rules test gaps (friendships / groups halves) | Sprint 2 friendship PR / Sprint 3 groups PR |
 | ~~R7-R8~~ | ~~Storage rules test gaps (file size, content-type)~~ | **Closed by PR #48** (`functions/test/storage-rules/receipts.test.ts` — 23 tests covering size + MIME + membership + cross-collection predicate for friendship + group predicates) |
 | SC2 | OTP auto-retrieval timeout test | Android auto-read refinement |
 | SC4 | Large group (100+) scalability test | Sprint 3 groups |
@@ -168,6 +169,10 @@ PR #38 (FR-EX-01):     32 remaining  ██████████████�
 PR #42 (FR-FR-04):     32 remaining  ███████████████████████████████░░░░░░░  32/37
 PR #43 (FR-SE-05-07):  32 remaining  ███████████████████████████████░░░░░░░  32/37
 PR #44 (D5 upgrade):   30 remaining  █████████████████████████████░░░░░░░░░  30/37
+PR #45 (CHORE-PR45):   30 remaining  █████████████████████████████░░░░░░░░░  30/37
+PR #46 (FR-EX-06):     30 remaining  █████████████████████████████░░░░░░░░░  30/37
+PR #48 (FR-EX-05):     28 remaining  ███████████████████████████░░░░░░░░░░░  28/37
+PR #51 (FR-EX-07):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
 ```
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
@@ -499,3 +504,49 @@ PR #48 (FR-EX-05 receipt attachment, friendship context) closes
 
 Net contribution of PR #48 to Bucket-B totals: **+2**. R7 + R8
 both close. The remaining count drops to **28 / 37**.
+
+PR #51 (FR-EX-07 activity feed write-side, friendship expenses)
+closes **R5a** and makes partial progress on **PY3**:
+
+- **R5a — Firestore rules test gap for activity collection:**
+  **CLOSED.** The new `functions/test/firestore-rules/activity.test.ts`
+  suite (12 tests) covers AC-6 through AC-12 of the FR-EX-07
+  story:
+    - AC-6 (positive): authenticated owner reads own item — succeeds.
+    - AC-7 (negative): non-owner read of another user's item —
+      `permission-denied`; variant covers the no-item-present case.
+    - AC-8 (negative): unauthenticated read — `permission-denied`.
+    - AC-9 (negative, 3 variants): owner / non-owner / unauthenticated
+      client attempting to create an item — all `permission-denied`.
+    - AC-10 (negative): owner attempting to update an item — `permission-denied`.
+    - AC-11 (negative): owner attempting to delete an item — `permission-denied`.
+    - AC-12 (negative, 3 variants): parent `activity/{userId}` doc
+      read / create / unauthenticated read — all rejected via the
+      explicit `allow read, write: if false` defence-in-depth on
+      the parent doc.
+  Note: R5 in the original Bucket-B audit table was split into
+  R5a (activity rules; closed by PR #51) and R5b (groups rules;
+  Sprint 3 groups epic). The original R5 row in the Test Coverage
+  Gaps table is renumbered accordingly.
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #51
+  extends `functions/test/integration/on-expense-write.integration.test.ts`
+  with three new round-trip tests for AC-17 (create → both members
+  read; edit → both members read; soft-delete → both members
+  read). The tests run inside the existing
+  `firebase emulators:exec --only auth,firestore,functions,storage`
+  CI step. Partial credit only; PY3 remains open pending broader
+  Flutter integration harness coverage.
+- **R1, R2, R3, R4 — Friendship rules test gaps:** unchanged
+  (closed by earlier PRs).
+- **R5b — Groups rules test gap:** unchanged (Sprint 3 groups
+  epic).
+- **R6 — Settlement rules test gap:** unchanged (closed by PR #37
+  per resolution log).
+- **R7, R8 — Storage rules test gaps:** unchanged (closed by PR
+  #48).
+- **D1, D2, D4, D7, D6:** unchanged (Sprint 4+ scope).
+- **No new Bucket-B items filed by PR #51.** The PR is server-only
+  (no client surface), so no new test-coverage gaps appear.
+
+Net contribution of PR #51 to Bucket-B totals: **+1**. R5a closes.
+The remaining count drops to **27 / 37**.
