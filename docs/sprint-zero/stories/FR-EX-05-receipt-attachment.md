@@ -102,10 +102,13 @@ image-compression pipeline (out of scope — `image_picker`'s
 
 ## Status
 
-**Ready for Architect Notes.** PM authorship complete. Architect
-appends `## Architect Notes` (Phase 2 §2.1–§2.9 per the source
-prompt `docs/copilot_prompts/sprint_2/13.md`) in a separate commit
-before Phase 3 implementation begins.
+**Architect Notes ratified — Ready for Implementation.** PM and
+Architect authorship complete. Implementation begins at Phase 3 of
+the source prompt `docs/copilot_prompts/sprint_2/13.md`
+(test-first: write failing storage-rules tests; add the
+predicates; extract `ImagePickerService` to core; add
+`ReceiptStorageService`; extend the controller; add Step 3 widget;
+extend Expense Detail thumbnail; ship integration stub; roll docs).
 
 ## PR Target
 
@@ -1008,3 +1011,589 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`.
    the notification-type schema discriminator, `pubspec.yaml`,
    `pubspec.lock`, `analysis_options.yaml`, Android / iOS native
    shells.
+
+---
+
+## Architect Notes
+
+> Appended for PR #48 (Phase 2 of
+> `docs/copilot_prompts/sprint_2/13.md`). These notes ratify
+> the nine PM Notes (§1–§9 above), confirm the Storage rules
+> cross-collection predicate pattern is sound, and lock the
+> file-touch envelope before implementation begins. References:
+> `storage.rules` (existing avatars predicate as precedent);
+> `firestore.rules` line 205 (`receiptUrl` shape already
+> accepted); SCR-21 at
+> `docs/design/06-screen-specs/19-22-expenses.md` lines
+> 293-395; SCR-22 §Components Used line 429 ("All SCR-21
+> components"); FR-EX-06 architect-notes precedent at
+> `docs/sprint-zero/stories/FR-EX-06-edit-delete-expense.md`
+> lines 1308+; ADR-0013 (PII / telemetry hashing);
+> Invariants 1, 2, 4 from `.github/shared/invariants.md`.
+
+### Mapping of PM Notes to Architect Notes subsections
+
+| PM § | Topic | Ratified in | Verdict |
+|---|---|---|---|
+| 1 | Storage path schema + group-context defensive rule | §2.1 | RATIFY — single object per expense; ship group-receipts predicate in same PR |
+| 2 | Upload-then-save chain + `Uploading` state | §2.2 | RATIFY — new sealed-state variant; reuse `ExpenseCreateErrorType.unknown` |
+| 3 | `ReceiptStorageService` API surface | §2.3 | RATIFY — abstract + concrete; typed `ReceiptUploadError` enum |
+| 4 | `ImagePickerService` extraction to `lib/core/services/` | §2.4 | RATIFY — Option (a) extract + update auth imports |
+| 5 | Image compression — `image_picker` max dims | §2.5 | RATIFY — `maxWidth: 1920, maxHeight: 1920`; no WebP / OCR |
+| 6 | Telemetry constants — 4 events + 4 new params | §2.6 | RATIFY — Camp B verb-past + state; extend `paramHasReceipt` semantic |
+| 7 | `OBTReceiptThumbnail` extraction | §2.7 + §2.x | DEFER — inline first; extract on the SECOND new use site |
+| 8 | `OBTConfirmationDialog` for remove-receipt | §2.x (AC-23) | RATIFY — NO confirmation; remove is reversible until save |
+| 9 | Negative scope guardrails | §2.8 | RATIFY — `firestore.rules`, `functions/src/**`, deps all OFF-LIMITS |
+
+---
+
+### §2.1 — Storage path schema and group-context defensive rule
+
+**Decision.** Adopt the SRS canonical path
+`receipts/friendships/{friendshipId}/{expenseId}` (single object
+per expense; overwrite-on-replace; delete-on-remove). The
+group-context rule `receipts/groups/{groupId}/{expenseId}` ships
+in the SAME PR — same predicate shape; same review surface;
+closes R7 + R8 in one shot.
+
+**Rationale.**
+- The SRS schema doc at lines 298-313 specifies the path schema
+  unambiguously (`receipts/{contextType}/{contextId}/{expenseId}`);
+  the only architect choice is whether to ship the group-context
+  half of the rule now. Shipping both predicates now (a) closes
+  R7 + R8 in a single PR per the Sprint-1 Bucket-B burndown, (b)
+  avoids re-litigating the same predicate shape during the
+  Sprint 3 groups epic, (c) costs trivially more test surface
+  (the same 8 tests, mirrored).
+- The UI surface stays friendship-only per Phase 3 guardrails —
+  the bottom sheet does NOT launch from group surfaces in
+  PR #48; only the rules surface is defensive.
+- The `firestore.get()` predicate that reads the parent
+  `friendships/{friendshipId}.memberIds` document is a
+  non-trivial first for this codebase's Storage rules (avatars
+  don't cross-reference Firestore). The rules-tests verify the
+  predicate works end-to-end against the emulator before merge.
+
+**Single-object-per-expense.** The path has NO file-name
+suffix (no `.jpg`, no UUID) — replacing the receipt simply
+overwrites the object at the same path. Firebase Storage
+overwrite semantics are atomic; no client-side delete is needed
+before re-uploading. Removing the receipt calls
+`deleteFriendshipReceipt(...)` and clears `receiptUrl` in
+Firestore in the same `save()` transaction (architect-elected
+NOT a true atomic transaction — Firebase Storage operations
+can't be bundled with Firestore writes; the receipt is deleted
+FIRST, then the Firestore update fires; on Firestore failure
+the Storage object is GONE but a follow-up retry replays
+cleanly because `receiptUrl: null` reflects the user's intent).
+The architect's anticipated reconciliation list at §2.9 flags
+this as item 5.
+
+---
+
+### §2.2 — Upload-then-save chain and the new `Uploading` state
+
+**Decision.** RATIFY the two-phase `save()` chain in
+`AddExpenseController`:
+
+1. If `draft.receiptFile != null && (isCreateMode ||
+   receiptChanged)` → transition to `Uploading(draft: draft)`
+   → upload the file via `receiptStorageService.uploadFriendshipReceipt(...)`
+   → obtain the download URL.
+2. Transition to `Saving(draft: draft)` → repository call
+   (`createExpense` with `receiptUrl: <url>` baked into the
+   create-map, or `updateExpense` with `receiptUrl` in the
+   partial-update map).
+
+Add `Uploading` as a NEW sealed-state variant on
+`AddExpenseState` (does NOT replace `Saving`; both are distinct
+UI states per SCR-21 §State 3 + §State 4).
+
+```dart
+class Uploading extends AddExpenseState {
+  const Uploading({required this.draft});
+  final ExpenseDraft draft;
+}
+```
+
+**Error handling.** On `ReceiptUploadError` from the storage
+service:
+- Map to `AddExpenseError(draft: draft, errorType:
+  ExpenseCreateErrorType.unknown, message: <user-facing>)`.
+- Re-use the existing `ExpenseCreateErrorType.unknown` variant
+  rather than introducing a new `receiptUploadFailed` variant
+  — keeps the enum narrow and the failure surface uniform.
+- The user-facing message is the SCR-21 receipt-error wording:
+  `"Could not attach receipt. Try again."` (NOT the generic
+  save-failure copy — the user knows the receipt was the
+  problem). Surface this distinct message via the existing
+  `state.message` field; the snackbar already renders
+  `state.message` verbatim.
+
+**Telemetry on upload failure.** The existing `_emitSaveFailed`
+helper fires `expense_save_failed` with
+`error_type: 'unknown'` and `is_offline: false`. No new event
+is introduced for upload failure per the architect's call —
+SCR-21 §Telemetry lists 6 events and upload failures are
+folded under `expense_save_failed`; the only distinguishing
+parameter is the failure message at the UI surface.
+
+**No save attempt if upload fails.** If the upload throws, the
+Firestore write does NOT proceed — the user is left in
+`AddExpenseError` and can retry. The architect explicitly
+elects this over a "save without receipt" fallback because the
+user's intent (an expense WITH a receipt) is preserved across
+the retry.
+
+---
+
+### §2.3 — `ReceiptStorageService` API surface
+
+**Decision.** New file
+`lib/features/expenses/data/receipt_storage_service.dart`:
+
+```dart
+abstract class ReceiptStorageService {
+  Future<String> uploadFriendshipReceipt({
+    required String friendshipId,
+    required String expenseId,
+    required XFile file,
+  });
+
+  Future<void> deleteFriendshipReceipt({
+    required String friendshipId,
+    required String expenseId,
+  });
+}
+
+class FirebaseReceiptStorageService implements ReceiptStorageService {
+  const FirebaseReceiptStorageService({required FirebaseStorage storage})
+      : _storage = storage;
+  final FirebaseStorage _storage;
+  // ... implementation that maps FirebaseException → ReceiptUploadError ...
+}
+
+final receiptStorageServiceProvider = Provider<ReceiptStorageService>(
+  (ref) => FirebaseReceiptStorageService(
+    storage: ref.watch(firebaseStorageProvider),
+  ),
+);
+```
+
+**Typed error enum.**
+
+```dart
+enum ReceiptUploadErrorType {
+  permissionDenied,
+  oversize,
+  unsupportedType,
+  network,
+  unknown,
+}
+
+class ReceiptUploadError implements Exception {
+  const ReceiptUploadError({required this.type});
+  final ReceiptUploadErrorType type;
+}
+```
+
+**Belt-and-braces validation.** The size + MIME-type checks
+are performed CLIENT-SIDE in the controller before the upload
+starts (so the user gets immediate feedback via the SCR-21
+size / MIME snackbars) AND server-side by `storage.rules` (so a
+client bypass attempt is caught at the boundary). Both layers
+are load-bearing; the client checks are NOT defence-in-depth
+for the rules — they're the only path that surfaces the
+user-facing snackbars.
+
+**File path construction.** The service builds the path via
+`'receipts/friendships/$friendshipId/$expenseId'` — no escaping
+needed (friendship IDs are `{uidA}_{uidB}` composite ASCII;
+expense IDs are Firestore-generated `[A-Za-z0-9]{20}`).
+
+**`firebaseStorageProvider` reuse.** The existing
+`firebaseStorageProvider` at
+`lib/features/auth/data/user_repository.dart` lines 19-21 is
+the canonical instance provider. The architect elects to
+reuse it as-is (no extraction to `lib/core/firebase/` — that
+extraction belongs to a separate hygiene PR).
+
+---
+
+### §2.4 — `ImagePickerService` extraction to `lib/core/services/`
+
+**Decision.** RATIFY **Option (a)**: extract from
+`lib/features/auth/data/image_picker_service.dart` to
+`lib/core/services/image_picker_service.dart`. Update both:
+
+- `lib/features/auth/application/profile_setup_controller.dart`
+  (the avatar picker call site)
+- `lib/features/profile/application/edit_profile_controller.dart`
+  (the avatar edit call site)
+- The new `lib/features/expenses/application/add_expense_controller.dart`
+  (the receipt picker call site)
+
+so all three import from the core path. Test files for all
+three features inject the same `FakeImagePickerService`.
+
+**File extraction strategy.** Move the entire file (1:1) and
+delete the original. Update all imports. The existing
+`imagePickerServiceProvider` lives in the new core module; the
+auth feature's existing tests continue to work after import
+path updates.
+
+**Test files that need the import path update:**
+- `test/integration/auth/profile_setup_flow_test.dart`
+- `test/features/profile/profile_screen_test.dart`
+- `test/features/profile/edit_profile_controller_test.dart`
+- `test/features/profile/edit_profile_screen_test.dart`
+- `test/features/auth/profile_setup_screen_test.dart`
+- `test/features/auth/profile_setup_controller_test.dart`
+
+**Rationale.** Having the auth feature own the picker for the
+receipt flow is the wrong dependency direction — `expenses`
+would import from `features/auth/data/`, which would couple
+the two unrelated features. The picker is a domain-agnostic
+device-service abstraction; `lib/core/services/` is the
+natural home.
+
+---
+
+### §2.5 — Image compression strategy
+
+**Decision.** RATIFY relying on `image_picker`'s
+`maxWidth: 1920, maxHeight: 1920` (lossy-resize) as the v1.0
+strategy. Both `pickFromCamera` and `pickFromGallery` call
+sites in the new controller pass these dimensions explicitly
+(the default `maxWidth/maxHeight` in the existing
+`ImagePickerService` is 1024 — too aggressive for receipts;
+override at the receipt-flow call sites to 1920 to preserve
+legibility of small print on receipts).
+
+**Out-of-scope optimisations** (file as FUTURE issue at Phase 5
+step 12):
+- WebP conversion (smaller files but iOS support quirks);
+- Server-side OCR (out of SRS scope per §12.3);
+- Progressive upload / resume (out of scope; receipts are
+  small enough that a single PUT is acceptable).
+
+**P95 budget.** SRS §5.7 NFR-PE-04 sets a 2.5 s P95 on the
+save chain. The architect accepts that a receipt upload may
+breach this on slow connections — the user gets the
+`Uploading` state's overlay spinner as a progress signal; the
+budget is a target, not a contract, for the receipt-attached
+path. The architect's anticipated reconciliation list at §2.9
+item 7 flags this for QA acceptance.
+
+---
+
+### §2.6 — Telemetry constants
+
+**Decision.** Add to
+`lib/features/expenses/application/expense_telemetry.dart`:
+
+**New event constants:**
+
+```dart
+static const String step3Opened = 'expense_step3_opened';
+static const String receiptAttached = 'expense_receipt_attached';
+static const String receiptRemoved = 'expense_receipt_removed';
+static const String step3Abandoned = 'expense_step3_abandoned';
+```
+
+**New parameter-key constants:**
+
+```dart
+static const String paramSource = 'source';
+static const String paramFileSizeBytes = 'file_size_bytes';
+static const String paramHasReceiptFromEdit = 'has_receipt_from_edit';
+static const String paramReceiptSizeBytes = 'receipt_size_bytes';
+static const String paramHadReceipt = 'had_receipt';
+```
+
+**Extended `paramHasReceipt` semantic.** The existing
+`paramHasReceipt = 'has_receipt'` constant flips from
+"always false in FR-EX-01" to "true when a receipt is
+attached at save time". The constant itself stays; only the
+emission logic changes.
+
+**Saved payload schema extension.** `_emitSaveSucceeded`
+extends to include `has_receipt: <bool>` (already present —
+flip the literal from `false` to a computed value) AND, when
+`has_receipt: true`, a new `receipt_size_bytes: <int>` key.
+
+**Camp B naming.** All four new events follow the verb-past +
+state pattern (`expense_step3_opened`,
+`expense_receipt_attached`, `expense_receipt_removed`,
+`expense_step3_abandoned`) matching the FR-EX-01 / FR-EX-06
+precedent.
+
+**Step 3 abandonment payload.** When the user dismisses the
+sheet from Step 3:
+- `had_receipt: true|false` (whether the draft had a receipt
+  at dismiss time).
+- `time_spent_ms: <int>` (wall-clock time since Step 3 opened
+  — NOT since Step 1; the controller adds a new
+  `_step3OpenedAt: DateTime?` field).
+
+---
+
+### §2.7 — Files to touch (exhaustive — anything outside this set is scope creep)
+
+#### Storage rules
+
+- `storage.rules` — adds the friendship-receipts predicate
+  AND the group-receipts predicate (defensive — UI stays
+  friendship-only).
+
+#### Core services
+
+- `lib/core/services/image_picker_service.dart` — **NEW**
+  (moved from `lib/features/auth/data/`).
+- `lib/features/auth/data/image_picker_service.dart` —
+  **DELETED** (extracted to core).
+- `lib/features/auth/application/profile_setup_controller.dart`
+  — update import path.
+- `lib/features/profile/application/edit_profile_controller.dart`
+  — update import path.
+
+#### Expense feature — data layer
+
+- `lib/features/expenses/data/receipt_storage_service.dart`
+  — **NEW** (`ReceiptStorageService` abstract +
+  `FirebaseReceiptStorageService` concrete +
+  `receiptStorageServiceProvider`).
+
+#### Expense feature — domain layer
+
+- `lib/features/expenses/domain/expense_doc.dart` — add
+  `fieldReceiptUrl = 'receiptUrl'` constant; extend
+  `toUpdateMap` to write the URL when in `_changedFields`;
+  extend `fromMap` to parse `receiptUrl` from the document
+  data.
+- `lib/features/expenses/domain/expense_draft.dart` — add
+  `final XFile? receiptFile;` and `final String?
+  existingReceiptUrl;`; extend `copyWith` to support both
+  (use a sentinel for nullable replacement —
+  `Object? receiptFile = _sentinel` pattern).
+- `lib/features/expenses/domain/add_expense_state.dart` — add
+  the `Uploading` sealed variant.
+- `lib/features/expenses/domain/receipt_upload_error.dart` —
+  **NEW** (typed `ReceiptUploadErrorType` enum +
+  `ReceiptUploadError` exception class).
+
+#### Expense feature — application layer
+
+- `lib/features/expenses/application/expense_telemetry.dart`
+  — 4 new event constants + 5 new param-key constants;
+  extended `paramHasReceipt` semantic.
+- `lib/features/expenses/application/add_expense_controller.dart`
+  — add `setReceipt(XFile?)`, `removeReceipt()`,
+  `pickReceiptFromCamera()`, `pickReceiptFromGallery()`;
+  extend `proceedToStep3()` method; extend the `save()` chain
+  with the two-phase Upload → Save transition; add new
+  `_emitStep3Opened` / `_emitReceiptAttached` /
+  `_emitReceiptRemoved` / `_emitStep3Abandoned` emit helpers;
+  extend `_emitSaveSucceeded` with the new payload keys;
+  inject `ReceiptStorageService` + `ImagePickerService` via
+  constructor.
+
+#### Expense feature — presentation layer
+
+- `lib/features/expenses/presentation/add_expense_bottom_sheet.dart`
+  — flip the `_SheetHeader` title from `(N/2)` to `(N/3)`;
+  extend the step switch to `step == 3 →
+  Step3ReceiptAndConfirm`; update the discard / on-pop
+  handling for Step 3.
+- `lib/features/expenses/presentation/steps/step_2_split_and_payer.dart`
+  — flip the `_SaveButton` label from "Save" / "Save Changes"
+  to "Next"; the actual save fires from Step 3.
+- `lib/features/expenses/presentation/steps/step_3_receipt_and_confirm.dart`
+  — **NEW** (SCR-21 surface: receipt picker on top, summary
+  card in the middle, Save Expense / Save Changes CTA at the
+  bottom).
+- `lib/features/expenses/presentation/expense_detail_screen.dart`
+  — extend the body to render a 240 × 320 dp receipt
+  thumbnail when `doc.receiptUrl != null`; tap → fullscreen
+  viewer.
+- `lib/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart`
+  — **NEW** (simple `Dialog` + `InteractiveViewer` +
+  `Image.network`; tap-outside dismisses).
+
+#### Tests
+
+- `functions/test/storage-rules/receipts.test.ts` — **NEW**
+  (8+ tests for AC-13..18 + symmetric group-context tests).
+- `test/core/services/image_picker_service_test.dart` —
+  **NEW** (smoke test for the extracted service — provider
+  resolves; default impl returns a real `ImagePicker`).
+- `test/features/expenses/add_expense_controller_test.dart`
+  — extend with receipt-attach / receipt-remove / upload-success
+  / upload-failure tests; Step 3 transition tests.
+- `test/features/expenses/expense_telemetry_pii_leak_test.dart`
+  — extend with PII guards for the 4 new events.
+- `test/features/expenses/step_3_receipt_and_confirm_widget_test.dart`
+  — **NEW** (empty-state picker; attached-state thumbnail +
+  Replace + Remove; oversize / wrong-MIME rejection;
+  uploading overlay).
+- `test/features/expenses/expense_detail_screen_widget_test.dart`
+  — extend with thumbnail render test (present when
+  `receiptUrl != null`; absent when `null`); tap-opens-viewer
+  test.
+- `test/integration/expenses/receipt_upload_flow_test.dart`
+  — **NEW** (skipped stub per AC-22).
+
+#### Documentation + plan
+
+- `docs/sprint-zero/stories/FR-EX-05-receipt-attachment.md`
+  — **NEW** (Phase 1).
+- `docs/sprint-zero/sprint-2-plan.md` — add PR #48 row
+  (5 SP; cumulative 50 SP / 14 PRs).
+- `docs/sprint-zero/next-three-prs.md` — roll PR #48 to
+  merged; PR #49 / #50 / #51 candidates.
+- `docs/audits/sprint-1/07-bucket-b-burndown.md` — close
+  R7 + R8; remaining drops to 28 / 37.
+
+---
+
+### §2.8 — Files explicitly NOT to touch (negative scope guardrails)
+
+**MUST NOT TOUCH** in PR #48:
+
+- `firestore.rules` — no changes required (the `receiptUrl:
+  string | null` shape predicate at line 205 already covers
+  the field). Touching this file in PR #48 conflates the
+  receipt-attachment surface with issue #47 (rules hardening
+  for non-creator update / delete) which is a separate small
+  chore PR.
+- `firestore.indexes.json` — no new queries; no new indexes
+  required.
+- `functions/src/**` — the orphan-cleanup Cloud Function is
+  FUTURE work; the trigger no-op-recompute optimisation is
+  FUTURE work. Both filed as new tracking issues at Phase 5
+  step 12.
+- `functions/package.json`, `functions/package-lock.json` — no
+  new functions dependencies.
+- `firebase.json` — emulator config + storage rules path
+  unchanged.
+- `.github/workflows/*.yml` — no workflow changes (the rules
+  test runs inside the existing dedicated
+  `firebase emulators:exec --only firestore,storage` session
+  per PR #46's split).
+- `pubspec.yaml`, `pubspec.lock`, `analysis_options.yaml` —
+  `firebase_storage: ^13.3.0` and `image_picker: ^1.1.2` are
+  already pinned. No dependency bumps in PR #48; those stay
+  on issue #22 for Sprint 4+.
+- `lib/features/settlements/**`, `lib/features/friends/**` —
+  unrelated.
+- `lib/features/groups/**` (if it exists) — Sprint 3 epic.
+- `android/`, `ios/`, `web/` — no native shell changes.
+- `firestore-schema.md:202` notification-type schema
+  discriminator — AC-X4 carry-forward.
+
+---
+
+### §2.9 — Anticipated reconciliations
+
+Document EXACTLY the verification items the implementation
+phase must close before merge:
+
+1. **`firestore.get()` inside Storage rules works against the
+   emulator.** The friendship-membership check at
+   ```
+   request.auth.uid in
+     firestore.get(/databases/(default)/documents/friendships/$(friendshipId)).data.memberIds
+   ```
+   is a non-trivial first for this codebase. Verification: the
+   8 rules tests in §2.7 cover (i) authenticated member upload
+   succeeds (positive path — the predicate resolves true);
+   (ii) non-member upload rejected (negative path — the
+   predicate resolves false because the UID is not in the
+   array). Both must pass against the local Storage emulator
+   AND against the CI `firebase emulators:exec --only
+   firestore,storage` session.
+
+2. **Storage emulator local-dev gap.**
+   `scripts/dev/start-emulators.sh` already starts the Storage
+   emulator (port 9199 per `firebase.json`). Verification: a
+   smoke run of `cd functions && npm run test:rules` against
+   the local emulator suite returns 8 suites / 161+ tests
+   pass.
+
+3. **`image_picker` HEIC → JPEG auto-conversion (iOS-only).**
+   iOS's native camera captures HEIC by default. The
+   `image_picker` plugin auto-converts HEIC to JPEG when
+   returning the `XFile` (verified in upstream
+   documentation). Verification: the controller's MIME-type
+   check inspects `XFile.mimeType` (or falls back to file
+   extension) AFTER the picker returns; HEIC → JPEG happens
+   inside the picker so the post-pick MIME is `image/jpeg` and
+   the upload satisfies the JPEG/PNG rule. Android does NOT
+   have HEIC so no analogous concern.
+
+4. **Trigger no-op recompute on receipt-only updates.** File
+   as a FUTURE optimisation issue at Phase 5 step 12. NOT
+   fixed in PR #48. The trigger correctness is unchanged;
+   only the log noise + the trivial CPU cost of an unnecessary
+   recompute is the cost. Wait for the activity-feed work
+   (FR-EX-07) to converge before optimising.
+
+5. **Orphan-cleanup Cloud Function.** File as a FUTURE issue
+   at Phase 5 step 12 per SRS schema doc line 312 (90-day
+   reaper). NOT implemented in PR #48. The remove-receipt
+   path in PR #48 calls `deleteFriendshipReceipt(...)`
+   immediately on save (architect-elected — see §2.1 for the
+   atomicity reasoning), so the only orphan path is a
+   crash-mid-save scenario (Storage object uploaded, Firestore
+   write fails). The orphan reaper is the long-term solution.
+
+6. **PR #46 changed-field indicator integration.** The
+   receipt row in Step 3 surfaces the `ChangedFieldIndicator`
+   from
+   `lib/features/expenses/presentation/widgets/changed_field_indicator.dart`
+   when `controller.isFieldChanged(ExpenseDoc.fieldReceiptUrl)`
+   is true. The semantic label suffix ", changed." per
+   SCR-22 §449 carries over. Verification: the Step 3 widget
+   test covers the changed-field indicator render path.
+
+7. **NFR-PE-04 P95 budget on receipt-attached saves.** The
+   save chain has an additional Storage round-trip when a
+   receipt is attached; the 2.5 s P95 may be breached on slow
+   connections. QA flags this for acceptance: the `Uploading`
+   state provides a clear progress signal; the budget is
+   honoured for receipt-free saves (no regression). QA's
+   smoke matrix at Phase 5 step 11 includes a slow-network
+   reproduction to verify the user experience degrades
+   gracefully.
+
+8. **Storage object overwrite atomicity on Replace.** Firebase
+   Storage's PUT replaces the object atomically (no
+   intermediate empty state). The new download URL has the
+   SAME path as the old, so any cached read on the friend's
+   device would still hit the old object until the cache
+   expires. Verification: the `Image.network` widget uses the
+   download URL with a server-generated token query parameter
+   (`?alt=media&token=...`) that changes on overwrite, so the
+   cache key is invalidated automatically. Smoke test in Phase
+   5 step 11 (step v) confirms.
+
+9. **Receipt size on the abandonment payload.** SCR-21 line
+   362's `had_receipt` parameter is a bool (the receipt was
+   attached at sheet-dismiss time, regardless of whether it
+   was uploaded). The architect elects NOT to include
+   `receipt_size_bytes` on the abandonment event — only the
+   "did the user reach Step 3 with a receipt" signal is
+   needed for the funnel analysis.
+
+10. **Edit-mode receipt change detection.** `_markChanged`
+    extends to handle `fieldReceiptUrl` as a string compare.
+    The original snapshot captures `existingReceiptUrl: doc.receiptUrl`
+    (which may be `null`); the post-change draft carries either
+    a new `receiptFile: XFile?` (which means changed-to-attach
+    or changed-to-replace) OR a null clear (which means
+    changed-to-remove). The architect's call: the change is
+    "any of (file != null && !receiptChanged-from-original) ||
+    (file == null && existingReceiptUrl != null)". Spell this
+    out in the controller comment so the future maintainer
+    doesn't have to derive it.
+
