@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/expense_draft.dart';
 import 'package:onebytwo/features/expenses/domain/split_calculator.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
+import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_indicator.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/split_row.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/split_validation_message.dart';
 
@@ -39,27 +41,38 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
+    // FR-EX-06: in edit mode the CTA is additionally gated by
+    // changedFields.isNotEmpty so an unchanged edit cannot trigger
+    // a no-op write (the controller has the load-bearing guard).
+    final hasChanges =
+        !controller.isEditMode || controller.changedFields.isNotEmpty;
     final canSave =
-        !isSaving && (errors?['splits'] == null) && draft.amountPaise > 0;
+        !isSaving &&
+        (errors?['splits'] == null) &&
+        draft.amountPaise > 0 &&
+        hasChanges;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Split method', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: SplitMethod.values
-              .map(
-                (m) => _SplitMethodChip(
-                  method: m,
-                  selected: draft.splitMethod == m,
-                  enabled: isSplitMethodEnabled(m) && !isSaving,
-                  onTap: () => controller.setSplitMethod(m),
-                ),
-              )
-              .toList(growable: false),
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldSplitMethod),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: SplitMethod.values
+                .map(
+                  (m) => _SplitMethodChip(
+                    method: m,
+                    selected: draft.splitMethod == m,
+                    enabled: isSplitMethodEnabled(m) && !isSaving,
+                    onTap: () => controller.setSplitMethod(m),
+                  ),
+                )
+                .toList(growable: false),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -72,22 +85,30 @@ class Step2SplitAndPayer extends ConsumerWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        SplitRow(
-          label: 'You',
-          method: draft.splitMethod,
-          paise: _shareFor(args.currentUserUid, draft),
-          onChanged: draft.splitMethod == SplitMethod.exact
-              ? (paise) => _setExact(controller, draft, 0, paise)
-              : null,
-        ),
-        const SizedBox(height: 8),
-        SplitRow(
-          label: 'Friend',
-          method: draft.splitMethod,
-          paise: _shareFor(args.otherUserUid, draft),
-          onChanged: draft.splitMethod == SplitMethod.exact
-              ? (paise) => _setExact(controller, draft, 1, paise)
-              : null,
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldSplits),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SplitRow(
+                label: 'You',
+                method: draft.splitMethod,
+                paise: _shareFor(args.currentUserUid, draft),
+                onChanged: draft.splitMethod == SplitMethod.exact
+                    ? (paise) => _setExact(controller, draft, 0, paise)
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              SplitRow(
+                label: 'Friend',
+                method: draft.splitMethod,
+                paise: _shareFor(args.otherUserUid, draft),
+                onChanged: draft.splitMethod == SplitMethod.exact
+                    ? (paise) => _setExact(controller, draft, 1, paise)
+                    : null,
+              ),
+            ],
+          ),
         ),
         if (errors?['splits'] != null) ...[
           const SizedBox(height: 8),
@@ -98,26 +119,29 @@ class Step2SplitAndPayer extends ConsumerWidget {
         // Payer toggle.
         Text('Paid by', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _PayerChoice(
-                label: 'You',
-                selected: draft.payerId == args.currentUserUid,
-                enabled: !isSaving,
-                onTap: () => controller.setPayerId(args.currentUserUid),
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldPayerId),
+          child: Row(
+            children: [
+              Expanded(
+                child: _PayerChoice(
+                  label: 'You',
+                  selected: draft.payerId == args.currentUserUid,
+                  enabled: !isSaving,
+                  onTap: () => controller.setPayerId(args.currentUserUid),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _PayerChoice(
-                label: 'Friend',
-                selected: draft.payerId == args.otherUserUid,
-                enabled: !isSaving,
-                onTap: () => controller.setPayerId(args.otherUserUid),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _PayerChoice(
+                  label: 'Friend',
+                  selected: draft.payerId == args.otherUserUid,
+                  enabled: !isSaving,
+                  onTap: () => controller.setPayerId(args.otherUserUid),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -145,15 +169,12 @@ class Step2SplitAndPayer extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: FilledButton(
-                onPressed: canSave ? controller.save : null,
-                child: isSaving
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save'),
+              child: _SaveButton(
+                isEditMode: controller.isEditMode,
+                hasChanges: hasChanges,
+                canSave: canSave,
+                isSaving: isSaving,
+                onPressed: controller.save,
               ),
             ),
           ],
@@ -265,5 +286,50 @@ class _PayerChoice extends StatelessWidget {
       selected: selected,
       onSelected: enabled ? (_) => onTap() : null,
     );
+  }
+}
+
+/// Step-2 primary CTA. In create mode the label is "Save"; in edit mode
+/// it flips to "Save Changes". When the controller is in edit mode and
+/// the no-op guard has disabled the button (no fields changed), the
+/// button is wrapped in `Semantics(label: 'Save changes, no
+/// modifications made.')` per SCR-22 §Accessibility line 510 (AC-3).
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({
+    required this.isEditMode,
+    required this.hasChanges,
+    required this.canSave,
+    required this.isSaving,
+    required this.onPressed,
+  });
+
+  final bool isEditMode;
+  final bool hasChanges;
+  final bool canSave;
+  final bool isSaving;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = isEditMode ? 'Save Changes' : 'Save';
+    final button = FilledButton(
+      onPressed: canSave ? onPressed : null,
+      child: isSaving
+          ? const SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(label),
+    );
+    if (isEditMode && !hasChanges) {
+      return Semantics(
+        label: 'Save changes, no modifications made.',
+        button: true,
+        enabled: false,
+        child: button,
+      );
+    }
+    return button;
   }
 }

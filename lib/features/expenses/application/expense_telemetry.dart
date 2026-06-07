@@ -67,6 +67,56 @@ abstract final class ExpenseTelemetry {
   static const String saveFailed = 'expense_save_failed';
 
   // ---------------------------------------------------------------
+  // FR-EX-06 edit event constants — Camp B verb-past + state
+  // pattern, ratified in architect §2.6. SCR-22 §Telemetry is the
+  // screen-level authority for the verb tense (`_saved`, not
+  // `_succeeded`); see PM Q5.
+  // ---------------------------------------------------------------
+
+  /// Edit-mode controller constructed. Payload: `context_type`,
+  /// `friendship_id_hash`, `expense_id_hash`.
+  static const String editOpened = 'expense_edit_opened';
+
+  /// User changed a field from its original value (or restored it).
+  /// Payload: `field_name`.
+  static const String editFieldChanged = 'expense_edit_field_changed';
+
+  /// Edit save succeeded. Payload: `fields_changed` (comma-separated
+  /// keys), `split_method`, `friendship_id_hash`, `expense_id_hash`.
+  static const String editSaved = 'expense_edit_saved';
+
+  /// Edit save failed. Payload: `error_code`, `friendship_id_hash`,
+  /// `expense_id_hash`.
+  static const String editFailed = 'expense_edit_failed';
+
+  /// User dismissed the edit sheet without saving. Payload:
+  /// `had_changes`, `time_spent_ms`, `friendship_id_hash`,
+  /// `expense_id_hash`.
+  static const String editAbandoned = 'expense_edit_abandoned';
+
+  // ---------------------------------------------------------------
+  // FR-EX-06 delete event constants.
+  // ---------------------------------------------------------------
+
+  /// User tapped the Delete action; the confirmation dialog opens.
+  /// Payload: `context_type`, `friendship_id_hash`,
+  /// `expense_id_hash`.
+  static const String deleteInitiated = 'expense_delete_initiated';
+
+  /// User confirmed the delete; the soft-delete write succeeded.
+  /// Payload: `amount_paise`, `participant_count`,
+  /// `friendship_id_hash`, `expense_id_hash`.
+  static const String deleteConfirmed = 'expense_delete_confirmed';
+
+  /// User dismissed the confirmation dialog. Payload:
+  /// `friendship_id_hash`, `expense_id_hash`.
+  static const String deleteCancelled = 'expense_delete_cancelled';
+
+  /// Soft-delete write failed. Payload: `error_code`,
+  /// `friendship_id_hash`, `expense_id_hash`.
+  static const String deleteFailed = 'expense_delete_failed';
+
+  // ---------------------------------------------------------------
   // Parameter-key constants.
   // ---------------------------------------------------------------
 
@@ -126,6 +176,32 @@ abstract final class ExpenseTelemetry {
 
   /// `true` if the device is offline at save time.
   static const String paramIsOffline = 'is_offline';
+
+  // ---------------------------------------------------------------
+  // FR-EX-06 parameter-key additions (architect §2.6).
+  // ---------------------------------------------------------------
+
+  /// Name of the field the user just changed (e.g. `'amountPaise'`,
+  /// `'description'`). Used by [editFieldChanged].
+  static const String paramFieldName = 'field_name';
+
+  /// Comma-separated list of changed field names. Used by
+  /// [editSaved] (FA-friendly because the dashboards group on
+  /// string values directly).
+  static const String paramFieldsChanged = 'fields_changed';
+
+  /// `true` when the user dismissed an edit sheet with at least one
+  /// field changed. Used by [editAbandoned].
+  static const String paramHadChanges = 'had_changes';
+
+  /// Raw paise integer. Per-action telemetry, not bucketed (only
+  /// used by [deleteConfirmed]; the funnel events bucket via
+  /// `amount_range`).
+  static const String paramAmountPaise = 'amount_paise';
+
+  /// Typed error code name (e.g. `'permissionDenied'`, `'network'`).
+  /// Used by [editFailed] and [deleteFailed].
+  static const String paramErrorCode = 'error_code';
 
   // ---------------------------------------------------------------
   // Helpers.

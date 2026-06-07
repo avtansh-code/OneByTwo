@@ -97,6 +97,23 @@ class FakeExpenseStore implements ExpenseStore {
   }
 
   @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    throw UnimplementedError('update path not exercised here');
+  }
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    throw UnimplementedError('delete path not exercised here');
+  }
+
+  @override
   Stream<List<ExpenseDoc>> watchExpensesByFriendship({
     required String friendshipId,
     required int limit,

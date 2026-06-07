@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #45.
+> Last updated: PR #46.
 
 ---
 
@@ -403,3 +403,52 @@ Other notes by ID for PR #45:
 Net contribution of PR #45 to Bucket-B totals: **zero**. The rate-limit
 bug was not a Bucket-B item; the three S4 items were not Bucket-B
 items. The remaining count stays at **30 / 37**.
+
+PR #46 (FR-EX-06 edit / delete expense, friendship context) closes
+**no Bucket-B items by ID** but makes partial progress on **PY3**:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #46
+  adds three skipped integration-test stubs at
+  `test/integration/expenses/edit_delete_expense_flow_test.dart`
+  documenting the canonical steps for (a) the edit-then-recompute
+  round-trip, (b) the soft-delete-then-recompute round-trip, and
+  (c) the rules-denied non-creator error state. Partial credit
+  only; PY3 remains open pending the Flutter emulator harness.
+- **R1-R8 — Firestore + Storage rules test gaps:** four new
+  Firestore rules tests added (149 → 153) covering FR-EX-06
+  update + soft-delete validation paths. These extend the R4
+  coverage closed by PR #36 (`expenses-friendship.test.ts`) but
+  do not close any remaining R5-R8 sub-item (group rules +
+  Storage size/content-type remain Sprint 3 / Storage-chore scope).
+- **D6 — npm audit moderate vulnerabilities:** unchanged (PR #46
+  did not touch `functions/package.json` or `package-lock.json`
+  per the story's Out of Scope negative-scope guard).
+- **D1, D2, D4, D7:** unchanged (Sprint 4+ scope per the burndown).
+- **Concurrent-edit detection (NEW deferred):** full transactional
+  concurrent-edit detection (AC-11 / AC-12 of the FR-EX-06 story)
+  is explicitly deferred per the story's Out of Scope. NOT a
+  Bucket-B item; tracked in
+  `docs/sprint-zero/next-three-prs.md` as a PR #47+ candidate
+  (operational hardening chore).
+- **Rules-hardening for non-creator update/delete gate (NEW
+  deferred):** architect §2.9 item 5 of the FR-EX-06 story
+  documents that the Firestore rules for the
+  `friendships/{fid}/expenses/{eid}` subcollection currently
+  permit update + soft-delete by any friendship member, not just
+  the original creator. The client UI gates the edit / delete
+  bottom-sheet entry points on
+  `expense.createdBy == currentUser.uid`, but a defence-in-depth
+  rules tightening is a follow-up. NOT a Bucket-B item; tracked
+  in `docs/sprint-zero/next-three-prs.md` as a PR #47+ candidate
+  (sprint-3 hardening sweep).
+- **PR #44 §2.7 trigger-interference flake (still observed-only):**
+  unchanged from PR #45. PR #46 did not touch the Cloud Functions
+  trigger surface; the macOS-specific timeout under
+  `firebase emulators:exec --only auth,firestore,functions,storage`
+  remains an environment-sensitive flake.
+- All other items unchanged.
+
+Net contribution of PR #46 to Bucket-B totals: **zero**. The four
+new Firestore rules tests extend R4 coverage (closed by PR #36) but
+do not close any new audit IDs. The remaining count stays at
+**30 / 37**.

@@ -169,13 +169,39 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Run integration tests with emulators
+      - name: Run Firestore Security Rules tests (no functions loaded)
+        # Runs the rules-test layer in a dedicated emulator session with
+        # ONLY firestore + storage — explicitly NOT functions. The
+        # @firebase/rules-unit-testing harness uses its own mock auth
+        # tokens via testEnv.authenticatedContext(uid), so the Auth
+        # emulator is not required either.
+        #
+        # Background (architect chore-D5 §2.7; surfaced on Linux for
+        # the first time during PR #46 review CI):
+        # When test:rules runs in the same emulator session that has
+        # the onExpenseWriteFriendship / onSettlementWrite triggers
+        # loaded, every write a rules test issues fires a trigger
+        # callback against the parent friendship document, which holds
+        # a transaction lock across the rules-test cleanup
+        # (testEnv.clearFirestore() in afterEach), occasionally
+        # producing a 409 "Transaction lock timeout". Running the
+        # rules layer in its own clean emulator session removes the
+        # trigger-interference vector entirely.
+        run: |
+          firebase emulators:exec \
+            --only firestore,storage \
+            "cd functions && npm run test:rules" \
+            --project demo-onebytwo
+
+      - name: Run Flutter + Cloud Functions integration tests with full emulators
+        # Full emulator session with auth + functions loaded so the
+        # registered triggers fire end-to-end during the integration
+        # tests' write paths.
         run: |
           firebase emulators:exec \
             --only auth,firestore,functions,storage \
             "flutter test test/integration/ --timeout 300s \
              && cd functions \
-             && npm run test:rules \
              && npm run test:integration" \
             --project demo-onebytwo
 

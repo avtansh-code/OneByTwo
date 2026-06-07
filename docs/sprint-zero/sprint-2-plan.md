@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #45 (chore — lookup rate-limit doc-path fix + post-PR-#38 cleanup) — 12th merged PR.
+> Last updated: PR #46 (FR-EX-06 — edit / delete expense, friendship context) — 13th merged PR.
 
 ---
 
@@ -84,6 +84,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #43 | FR-SE-05/06/07 | Settle Up flow (record settlement + real-time round-trip + Friend Detail CTA card) | 5 | Merged |
 | #44 | CHORE-D5 | D5 runtime upgrade — Node 22 + firebase-functions 7.x (closes #39 #40) | 3 | Merged |
 | #45 | CHORE-PR45 | Lookup rate-limit doc-path fix + post-PR-#38 cleanup (3 S4 items) | 3 | Merged |
+| #46 | FR-EX-06 | Edit / delete expense (friendship) — bottom-sheet edit-mode + Expense Detail screen + soft-delete with confirmation | 5 | Merged |
 
 ---
 
@@ -103,7 +104,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #43 | 5 | Merged |
 | #44 | 3 | Merged |
 | #45 | 3 | Merged (chore — Stream A + Stream B) |
-| **Total** | **40** | **12 PRs so far** |
+| #46 | 5 | Merged |
+| **Total** | **45** | **13 PRs so far** |
 
 Sprint 1 reference:
 

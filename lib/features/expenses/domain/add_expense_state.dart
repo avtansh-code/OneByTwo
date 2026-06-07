@@ -44,14 +44,39 @@ class Saving extends AddExpenseState {
   final ExpenseDraft draft;
 }
 
-/// The Firestore write succeeded. The UI dismisses the sheet and shows
-/// the "Expense added." snackbar.
-class Success extends AddExpenseState {
-  /// Creates a [Success] state.
-  const Success({required this.expenseId});
+/// Discriminator for the [Success] terminal state — used by the host
+/// widget to pick the right snackbar copy.
+///
+/// FR-EX-01 only produces [createSaved]; FR-EX-06 adds [editSaved]
+/// and [deleted]. Smallest-surface variant per the architect's
+/// "preserve existing tests" guidance.
+enum SuccessAction {
+  /// A create-mode save completed (FR-EX-01).
+  createSaved,
 
-  /// The new expense document's ID.
+  /// An edit-mode save completed (FR-EX-06).
+  editSaved,
+
+  /// A soft-delete completed (FR-EX-06).
+  deleted,
+}
+
+/// The Firestore write succeeded. The UI dismisses the sheet and shows
+/// the action-specific snackbar.
+class Success extends AddExpenseState {
+  /// Creates a [Success] state. [action] defaults to
+  /// [SuccessAction.createSaved] so the FR-EX-01 create-mode call
+  /// site continues to compile unchanged.
+  const Success({
+    required this.expenseId,
+    this.action = SuccessAction.createSaved,
+  });
+
+  /// The new (or edited / deleted) expense document's ID.
   final String expenseId;
+
+  /// Which terminal action produced this success.
+  final SuccessAction action;
 }
 
 /// The Firestore write threw. The UI restores the Save button and

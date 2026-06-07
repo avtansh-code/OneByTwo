@@ -109,7 +109,9 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                       ),
                     FriendDetailTimelineWidget(
                       timeline: state.timeline,
+                      friendshipId: widget.friendshipId,
                       currentUserUid: widget.currentUserUid,
+                      otherUserUid: widget.otherUserUid,
                       friendDisplayName: state.header.displayName,
                     ),
                   ],
