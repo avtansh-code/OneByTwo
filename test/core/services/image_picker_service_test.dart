@@ -2,8 +2,8 @@
 //
 // Verifies that the abstract type, the default implementation, and
 // the Riverpod provider are all wired correctly after the move from
-// lib/features/auth/data/ to lib/core/services/ in PR #48
-// (architect notes §2.4).
+// lib/features/auth/data/ to lib/core/services/ (FR-EX-05 architect
+// notes section 2.4).
 //
 // The DefaultImagePickerService cannot be exercised end-to-end here
 // because that would require the image_picker plugin to be

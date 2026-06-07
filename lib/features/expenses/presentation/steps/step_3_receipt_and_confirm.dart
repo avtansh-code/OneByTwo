@@ -61,7 +61,7 @@ class Step3ReceiptAndConfirm extends ConsumerWidget {
         : null;
 
     // Edit-mode no-op guard: if there are zero changed fields, the
-    // Save Changes CTA is disabled (mirrors PR #46's Step 2 gate).
+    // Save Changes CTA is disabled (mirrors FR-EX-06's Step 2 gate).
     final hasChanges =
         !controller.isEditMode || controller.changedFields.isNotEmpty;
 
@@ -77,9 +77,9 @@ class Step3ReceiptAndConfirm extends ConsumerWidget {
             draft: draft,
             isUploading: isUploading,
             isBusy: isBusy,
-            onTakePhoto: () => _onTakePhoto(context, controller),
-            onFromGallery: () => _onFromGallery(context, controller),
-            onReplace: () => _onReplace(context, controller),
+            onTakePhoto: () => _onTakePhoto(context, ref, controller),
+            onFromGallery: () => _onFromGallery(context, ref, controller),
+            onReplace: () => _onReplace(context, ref, controller),
             onRemove: controller.removeReceipt,
           ),
         ),
@@ -122,24 +122,27 @@ class Step3ReceiptAndConfirm extends ConsumerWidget {
 
   Future<void> _onTakePhoto(
     BuildContext context,
+    WidgetRef ref,
     AddExpenseController controller,
   ) async {
     final result = await controller.pickReceiptFromCamera();
     if (!context.mounted) return;
-    _maybeShowReceiptError(context, result);
+    _maybeShowReceiptError(context, ref, result);
   }
 
   Future<void> _onFromGallery(
     BuildContext context,
+    WidgetRef ref,
     AddExpenseController controller,
   ) async {
     final result = await controller.pickReceiptFromGallery();
     if (!context.mounted) return;
-    _maybeShowReceiptError(context, result);
+    _maybeShowReceiptError(context, ref, result);
   }
 
   Future<void> _onReplace(
     BuildContext context,
+    WidgetRef ref,
     AddExpenseController controller,
   ) async {
     // Replace opens the gallery by default — matches the SCR-21
@@ -150,40 +153,31 @@ class Step3ReceiptAndConfirm extends ConsumerWidget {
     // some platforms.
     final result = await controller.pickReceiptFromGallery();
     if (!context.mounted) return;
-    _maybeShowReceiptError(context, result);
+    _maybeShowReceiptError(context, ref, result);
   }
 
   void _maybeShowReceiptError(
     BuildContext context,
+    WidgetRef ref,
     ReceiptValidationResult result,
   ) {
+    if (result != ReceiptValidationResult.oversize &&
+        result != ReceiptValidationResult.unsupportedType) {
+      // ok is the happy path; cancelled / notEditing are
+      // user-initiated no-ops — no snackbar fires.
+      return;
+    }
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
-    switch (result) {
-      case ReceiptValidationResult.oversize:
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Image is too large. Please choose a photo under 10 MB.',
-            ),
-          ),
-        );
-      case ReceiptValidationResult.unsupportedType:
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'This file format is not supported. '
-              'Please use a JPEG or PNG image.',
-            ),
-          ),
-        );
-      case ReceiptValidationResult.ok:
-      case ReceiptValidationResult.cancelled:
-      case ReceiptValidationResult.notEditing:
-        // No snackbar — ok is the happy path; cancelled / notEditing
-        // are user-initiated no-ops.
-        break;
-    }
+    // Single-source the copy: the controller has already written
+    // the rejection message to `state.validationErrors['receipt']`
+    // (which also drives the inline `_ReceiptValidationMessage`
+    // below the picker). Read it back here so a future copy change
+    // only needs to flip one constant in the controller.
+    final state = ref.read(addExpenseControllerProvider(args));
+    final message = state is Editing ? state.validationErrors['receipt'] : null;
+    if (message == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

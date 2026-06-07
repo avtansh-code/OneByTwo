@@ -190,11 +190,11 @@ class _SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FR-EX-05 (PR #48): header reads `(N/3)` — the sheet is a
+    // FR-EX-05: header reads `(N/3)` — the sheet is a
     // three-step flow (Step 1 amount + meta; Step 2 split + payer;
-    // Step 3 receipt + confirm per SCR-21). Sprint-1 PR #38 shipped
-    // FR-EX-01 with the receipt step deferred and the label flipped
-    // to `(N/2)`; PR #48 reactivates Step 3 and the label restores.
+    // Step 3 receipt + confirm per SCR-21). FR-EX-01 shipped the
+    // create flow with Step 3 deferred and the label flipped
+    // to `(N/2)`; FR-EX-05 reactivates Step 3 and the label restores.
     final title = isEditMode
         ? 'Edit Expense ($step/3)'
         : 'Add Expense ($step/3)';

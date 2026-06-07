@@ -317,7 +317,7 @@ class _ExpenseDetailBody extends ConsumerWidget {
               label: split.userId == currentUserUid ? 'You' : 'Friend',
               value: formatInrFromPaise(split.sharePaise),
             ),
-          // FR-EX-05 (PR #48): receipt thumbnail when present.
+          // FR-EX-05: receipt thumbnail when present.
           if (doc.receiptUrl != null) ...[
             const SizedBox(height: 24),
             Text('Receipt', style: theme.textTheme.titleSmall),
@@ -373,7 +373,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// FR-EX-05 (PR #48): receipt thumbnail on the Expense Detail
+/// FR-EX-05: receipt thumbnail on the Expense Detail
 /// screen. Constrained to 240 × 320 dp per SCR-21 line 325. Tap
 /// opens the fullscreen viewer (`ReceiptFullscreenViewer.fromUrl`).
 class _ReceiptTile extends StatelessWidget {

@@ -339,7 +339,7 @@ void main() {
     ) async {
       await advanceToStep2(tester);
 
-      // FR-EX-05 (PR #48): Step 2's primary CTA flips from "Save" to
+      // FR-EX-05: Step 2's primary CTA flips from "Save" to
       // "Next" — the final save fires from Step 3.
       final nextButtons = find.widgetWithText(FilledButton, 'Next');
       // Multiple "Next" buttons may exist if both Step 1's Next is
@@ -375,7 +375,7 @@ void main() {
       // Step 1 → Step 2.
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
-      // Step 2 → Step 3 (FR-EX-05 PR #48). The Step 2 layout fits
+      // Step 2 → Step 3 (FR-EX-05). The Step 2 layout fits
       // comfortably in the default test window.
       await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
       await tester.pumpAndSettle();

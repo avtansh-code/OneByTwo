@@ -42,7 +42,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
-    // FR-EX-05 (PR #48): Step 2 advances to Step 3; the save itself
+    // FR-EX-05: Step 2 advances to Step 3; the save itself
     // fires from Step 3. The CTA is "Next", not "Save" / "Save
     // Changes". Step 2 does NOT gate on hasChanges anymore — the
     // user is free to advance to the summary screen even without
@@ -287,7 +287,7 @@ class _PayerChoice extends StatelessWidget {
 }
 
 /// Step 2 advance CTA. The label is always "Next". The hasChanges
-/// gate has been removed in PR #48 — the user is free to advance
+/// gate has been removed for FR-EX-05 — the user is free to advance
 /// to Step 3 (the summary) even without modifications in edit mode;
 /// the no-op guard then sits on Step 3's "Save Changes" CTA per
 /// SCR-22 §Accessibility line 510.

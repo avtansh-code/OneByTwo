@@ -16,7 +16,7 @@
  * Both predicates use the same `firestore.get()` cross-collection read
  * pattern to validate the caller's membership of the parent context
  * document. The friendship-context UI is the only client surface in
- * PR #48; the group-context predicate is defensive (closes R7 + R8
+ * FR-EX-05; the group-context predicate is defensive (closes R7 + R8
  * in one shot per architect notes §2.1) and the group-context UI
  * ships with the Sprint 3 groups epic.
  *
@@ -273,7 +273,7 @@ describe("receipts/friendships/{fid}/{eid} — read rules", () => {
 
 // ---------------------------------------------------------------------------
 // receipts/groups/{gid}/{eid} — WRITE rules (defensive — UI ships
-// friendship-only in PR #48; group-context UI is the Sprint 3 epic)
+// friendship-only for FR-EX-05; group-context UI is the Sprint 3 epic)
 // ---------------------------------------------------------------------------
 
 describe("receipts/groups/{gid}/{eid} — write rules (defensive)", () => {

@@ -23,7 +23,7 @@ export 'package:onebytwo/features/expenses/domain/receipt_upload_error.dart';
 ///
 /// Path convention: `receipts/{contextType}/{contextId}/{expenseId}`
 /// per `docs/design/07-technical/firestore-schema.md` lines 298-313.
-/// PR #48 ships the friendship-context surface only; the
+/// FR-EX-05 ships the friendship-context surface only; the
 /// group-context method ships with the Sprint 3 groups epic.
 abstract class ReceiptStorageService {
   /// Uploads [file] to

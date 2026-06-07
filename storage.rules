@@ -39,7 +39,7 @@ service firebase.storage {
     }
 
     // Receipts (group context — defensive). The UI ships
-    // friendship-only in PR #48 (FR-EX-05); the group-context UI is
+    // friendship-only (FR-EX-05); the group-context UI is
     // the Sprint 3 groups epic. This predicate is included now to
     // close R7 + R8 from the Sprint-1 Bucket-B burndown in a single
     // PR (same predicate shape; same review surface).
