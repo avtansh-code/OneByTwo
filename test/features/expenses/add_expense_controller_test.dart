@@ -12,13 +12,17 @@
 
 // ignore_for_file: cascade_invocations
 
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/application/expense_telemetry.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
@@ -1074,4 +1078,680 @@ void main() {
       },
     );
   });
+
+  // ===========================================================================
+  // FR-EX-05 — receipt attachment controller paths (AC-1, AC-2, AC-3, AC-4,
+  // AC-5, AC-6, AC-7, AC-10, AC-11, AC-12, AC-19, AC-23)
+  // ===========================================================================
+
+  group('FR-EX-05 — Step 3 transition (AC-1)', () {
+    Future<AddExpenseController> arrangeOnStep2() async {
+      final controller = buildController(repo: repo, analytics: analytics);
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      return controller;
+    }
+
+    test('proceedToStep3 advances to step 3 from a valid step 2', () async {
+      final controller = await arrangeOnStep2();
+      controller.proceedToStep3();
+      final s = controller.state as Editing;
+      expect(s.step, 3);
+      controller.dispose();
+    });
+
+    test('proceedToStep3 fires expense_step3_opened with '
+        'has_receipt_from_edit: false in create mode', () async {
+      final controller = await arrangeOnStep2();
+      controller.proceedToStep3();
+      expect(analytics.hasEvent(ExpenseTelemetry.step3Opened), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.step3Opened)!;
+      expect(params[ExpenseTelemetry.paramHasReceiptFromEdit], false);
+      controller.dispose();
+    });
+
+    test('proceedToStep3 is a no-op when current step is 1', () {
+      final controller = buildController(repo: repo, analytics: analytics);
+      controller.proceedToStep3();
+      expect((controller.state as Editing).step, 1);
+      expect(analytics.hasEvent(ExpenseTelemetry.step3Opened), isFalse);
+      controller.dispose();
+    });
+
+    test('proceedToStep3 is a no-op when current step is already 3', () async {
+      final controller = await arrangeOnStep2();
+      controller.proceedToStep3();
+      analytics.loggedEvents.clear();
+      controller.proceedToStep3();
+      expect(analytics.hasEvent(ExpenseTelemetry.step3Opened), isFalse);
+      controller.dispose();
+    });
+
+    test(
+      'proceedToStep3 is a no-op when splits validation has an error',
+      () async {
+        final controller = await arrangeOnStep2();
+        controller.setSplitMethod(SplitMethod.exact);
+        controller.setExactShares([1, 1]);
+        controller.proceedToStep3();
+        expect((controller.state as Editing).step, 2);
+        controller.dispose();
+      },
+    );
+
+    test('proceedToStep3 emits has_receipt_from_edit: true in edit mode when '
+        'the original expense had a receiptUrl', () async {
+      final initial = ExpenseDoc(
+        id: 'eid-original',
+        amountPaise: 10000,
+        description: 'Dinner',
+        category: ExpenseCategory.food,
+        date: DateTime(2025),
+        payerId: _currentUid,
+        splits: const [
+          Split(userId: _currentUid, sharePaise: 5000),
+          Split(userId: _friendUid, sharePaise: 5000),
+        ],
+        splitMethod: SplitMethod.equal,
+        createdBy: _currentUid,
+        receiptUrl: 'https://example.com/receipts/old.jpg',
+      );
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: FakeReceiptStorageService(),
+        imagePicker: FakeImagePickerService(),
+        clock: () => DateTime(2025, 6, 1, 10),
+        initialExpense: initial,
+        initialExpenseId: 'eid-original',
+      );
+      controller.proceedToStep2();
+      analytics.loggedEvents.clear();
+      controller.proceedToStep3();
+      final params = analytics.lastParamsFor(ExpenseTelemetry.step3Opened)!;
+      expect(params[ExpenseTelemetry.paramHasReceiptFromEdit], true);
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — receipt picker (AC-2, AC-4, AC-5)', () {
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    Future<AddExpenseController> arrangeOnStep3() async {
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      analytics.loggedEvents.clear();
+      return controller;
+    }
+
+    test('pickReceiptFromCamera returns cancelled when picker returns '
+        'null; no draft change, no telemetry', () async {
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromCamera();
+      expect(result, ReceiptValidationResult.cancelled);
+      expect((controller.state as Editing).draft.receiptFile, isNull);
+      expect(analytics.hasEvent(ExpenseTelemetry.receiptAttached), isFalse);
+      controller.dispose();
+    });
+
+    test('pickReceiptFromCamera happy path: draft updates and '
+        'expense_receipt_attached fires with source: camera', () async {
+      final fixture = _writeFixtureJpeg('cam_ok.jpg', sizeBytes: 1024);
+      picker.returnFromCamera = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromCamera();
+      expect(result, ReceiptValidationResult.ok);
+      expect((controller.state as Editing).draft.receiptFile, isNotNull);
+      expect(picker.cameraCalls, 1);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.receiptAttached)!;
+      expect(params[ExpenseTelemetry.paramSource], 'camera');
+      expect(params[ExpenseTelemetry.paramFileSizeBytes], 1024);
+      controller.dispose();
+    });
+
+    test('pickReceiptFromGallery happy path: source: gallery', () async {
+      final fixture = _writeFixtureJpeg('gal_ok.jpg', sizeBytes: 2048);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/png');
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromGallery();
+      expect(result, ReceiptValidationResult.ok);
+      expect(picker.galleryCalls, 1);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.receiptAttached)!;
+      expect(params[ExpenseTelemetry.paramSource], 'gallery');
+      expect(params[ExpenseTelemetry.paramFileSizeBytes], 2048);
+      controller.dispose();
+    });
+
+    test('AC-4: file > 10 MB is rejected without attaching or '
+        'firing telemetry', () async {
+      final fixture = _writeFixtureJpeg(
+        'oversize.jpg',
+        sizeBytes: 11 * 1024 * 1024,
+      );
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromGallery();
+      expect(result, ReceiptValidationResult.oversize);
+      final s = controller.state as Editing;
+      expect(s.draft.receiptFile, isNull);
+      expect(
+        s.validationErrors['receipt'],
+        'Image is too large. Please choose a photo under 10 MB.',
+      );
+      expect(analytics.hasEvent(ExpenseTelemetry.receiptAttached), isFalse);
+      controller.dispose();
+    });
+
+    test('AC-5: non-JPEG/PNG MIME is rejected without attaching or '
+        'firing telemetry', () async {
+      final fixture = _writeFixtureJpeg('bad.gif', sizeBytes: 100);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/gif');
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromGallery();
+      expect(result, ReceiptValidationResult.unsupportedType);
+      final s = controller.state as Editing;
+      expect(s.draft.receiptFile, isNull);
+      expect(
+        s.validationErrors['receipt'],
+        'This file format is not supported. '
+        'Please use a JPEG or PNG image.',
+      );
+      expect(analytics.hasEvent(ExpenseTelemetry.receiptAttached), isFalse);
+      controller.dispose();
+    });
+
+    test('MIME validation falls back to file extension when mimeType is '
+        'null (Android pickers sometimes omit it)', () async {
+      final fixture = _writeFixtureJpeg('photo.jpg', sizeBytes: 500);
+      // No mimeType — only path with .jpg extension.
+      picker.returnFromGallery = XFile(fixture.path);
+      final controller = await arrangeOnStep3();
+      final result = await controller.pickReceiptFromGallery();
+      expect(result, ReceiptValidationResult.ok);
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — removeReceipt (AC-3, AC-23)', () {
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    test('AC-3: removeReceipt clears the draft and fires '
+        'expense_receipt_removed', () async {
+      final fixture = _writeFixtureJpeg('to_remove.jpg', sizeBytes: 100);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.pickReceiptFromGallery();
+      analytics.loggedEvents.clear();
+
+      controller.removeReceipt();
+      expect((controller.state as Editing).draft.receiptFile, isNull);
+      expect(analytics.hasEvent(ExpenseTelemetry.receiptRemoved), isTrue);
+      controller.dispose();
+    });
+
+    test('removeReceipt is a no-op when no receipt is attached', () {
+      final controller = buildController(repo: repo, analytics: analytics);
+      controller.removeReceipt();
+      expect(analytics.hasEvent(ExpenseTelemetry.receiptRemoved), isFalse);
+      controller.dispose();
+    });
+
+    test('AC-23: removeReceipt requires NO confirmation dialog '
+        '(no extra controller state machinery — instantaneous)', () {
+      final fixture = _writeFixtureJpeg('rm_ac23.jpg', sizeBytes: 100);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      // No need to await — the picker path is irrelevant; the contract
+      // we verify is that removeReceipt() is synchronous and produces
+      // no intermediate confirmation state.
+      controller.removeReceipt();
+      expect(controller.state, isA<Editing>());
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — save with receipt (AC-6)', () {
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    Future<AddExpenseController> arrangeWithReceipt({
+      int sizeBytes = 500,
+    }) async {
+      final fixture = _writeFixtureJpeg('save_ok.jpg', sizeBytes: sizeBytes);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.pickReceiptFromGallery();
+      return controller;
+    }
+
+    test('save() transitions Editing → Uploading → Saving → Success '
+        'and writes via createExpenseAtId with the pre-allocated id', () async {
+      repo.newExpenseIdResult = 'allocated-eid-42';
+      final controller = await arrangeWithReceipt();
+      final future = controller.save();
+      // After awaiting the next microtask, the state should be one of
+      // Uploading/Saving/Success — we cannot deterministically capture
+      // Uploading because both phases resolve synchronously in the
+      // fake services. The repo.createExpenseAtIdCalled assertion
+      // proves the chain went through the full upload path.
+      await future;
+      expect(controller.state, isA<Success>());
+      expect((controller.state as Success).expenseId, 'allocated-eid-42');
+      expect(storage.uploadCalled, isTrue);
+      expect(storage.uploadedFriendshipId, _friendshipId);
+      expect(storage.uploadedExpenseId, 'allocated-eid-42');
+      expect(repo.createExpenseAtIdCalled, isTrue);
+      expect(repo.capturedAtIdFriendshipId, _friendshipId);
+      expect(repo.capturedAtIdExpenseId, 'allocated-eid-42');
+      expect(repo.capturedAtIdDoc!.receiptUrl, storage.returnUrl);
+      // The regular createExpense path should NOT have fired.
+      expect(repo.called, isFalse);
+      controller.dispose();
+    });
+
+    test('saveSucceeded payload carries has_receipt: true and '
+        'receipt_size_bytes', () async {
+      repo.newExpenseIdResult = 'eid-99';
+      final controller = await arrangeWithReceipt(sizeBytes: 4096);
+      await controller.save();
+      final params = analytics.lastParamsFor(ExpenseTelemetry.saveSucceeded)!;
+      expect(params[ExpenseTelemetry.paramHasReceipt], true);
+      expect(params[ExpenseTelemetry.paramReceiptSizeBytes], 4096);
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId('eid-99'));
+      controller.dispose();
+    });
+
+    test('AC-7: save WITHOUT a receipt uses createExpense (legacy path), '
+        'saveSucceeded carries has_receipt: false and NO '
+        'receipt_size_bytes key', () async {
+      final controller = buildController(repo: repo, analytics: analytics);
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.save();
+      expect(controller.state, isA<Success>());
+      expect(repo.called, isTrue);
+      expect(repo.createExpenseAtIdCalled, isFalse);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.saveSucceeded)!;
+      expect(params[ExpenseTelemetry.paramHasReceipt], false);
+      expect(
+        params.containsKey(ExpenseTelemetry.paramReceiptSizeBytes),
+        isFalse,
+      );
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — upload failure (AC-6 negative)', () {
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    test('create flow: upload error → AddExpenseError with the '
+        'receipt-upload-failed message; no Firestore write', () async {
+      final fixture = _writeFixtureJpeg('upload_err.jpg', sizeBytes: 200);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      storage.throwUploadError = const ReceiptUploadError(
+        type: ReceiptUploadErrorType.network,
+      );
+      final controller = AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.pickReceiptFromGallery();
+      await controller.save();
+      final s = controller.state;
+      expect(s, isA<AddExpenseError>());
+      expect(
+        (s as AddExpenseError).message,
+        'Could not attach receipt. Try again.',
+      );
+      // Firestore must NOT be touched.
+      expect(repo.called, isFalse);
+      expect(repo.createExpenseAtIdCalled, isFalse);
+      // saveFailed fires with error_type: 'network' (mapped from the
+      // ReceiptUploadErrorType.network branch).
+      final params = analytics.lastParamsFor(ExpenseTelemetry.saveFailed)!;
+      expect(params[ExpenseTelemetry.paramErrorType], 'network');
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — edit-mode receipt paths (AC-10, AC-11, AC-12)', () {
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+    const initialId = 'eid-edit-receipt';
+
+    ExpenseDoc seedExpenseWithReceipt() {
+      return ExpenseDoc(
+        id: initialId,
+        amountPaise: 10000,
+        description: 'Dinner',
+        category: ExpenseCategory.food,
+        date: DateTime(2025),
+        payerId: _currentUid,
+        splits: const [
+          Split(userId: _currentUid, sharePaise: 5000),
+          Split(userId: _friendUid, sharePaise: 5000),
+        ],
+        splitMethod: SplitMethod.equal,
+        createdBy: _currentUid,
+        receiptUrl: 'https://example.com/receipts/original.jpg',
+      );
+    }
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    AddExpenseController buildEditController({ExpenseDoc? overrideInitial}) {
+      return AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+        clock: () => DateTime(2025, 6, 1, 10),
+        initialExpense: overrideInitial ?? seedExpenseWithReceipt(),
+        initialExpenseId: initialId,
+      );
+    }
+
+    test('AC-10: edit-mode constructor pre-fills existingReceiptUrl '
+        'from initialExpense.receiptUrl', () {
+      final controller = buildEditController();
+      final draft = (controller.state as Editing).draft;
+      expect(
+        draft.existingReceiptUrl,
+        'https://example.com/receipts/original.jpg',
+      );
+      expect(draft.receiptFile, isNull);
+      expect(draft.hasReceipt, isTrue);
+      controller.dispose();
+    });
+
+    test('AC-11: replacing the receipt in edit mode → '
+        'uploadFriendshipReceipt is called with the existing expense ID; '
+        'updateExpense receives the NEW URL under receiptUrl; '
+        'changedFields includes receiptUrl', () async {
+      final fixture = _writeFixtureJpeg('replace.jpg', sizeBytes: 100);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      storage.returnUrl = 'https://example.com/receipts/new.jpg';
+      final controller = buildEditController();
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.pickReceiptFromGallery();
+      await controller.save();
+
+      expect(storage.uploadCalled, isTrue);
+      expect(storage.uploadedExpenseId, initialId);
+      expect(repo.updateCalled, isTrue);
+      expect(
+        repo.updatedMap![ExpenseDoc.fieldReceiptUrl],
+        'https://example.com/receipts/new.jpg',
+      );
+      expect(controller.changedFields, contains(ExpenseDoc.fieldReceiptUrl));
+      controller.dispose();
+    });
+
+    test('AC-12: removing the receipt in edit mode → '
+        'updateExpense receives receiptUrl: null; '
+        'deleteFriendshipReceipt fires after the Firestore commit', () async {
+      final controller = buildEditController();
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      controller.removeReceipt();
+      await controller.save();
+
+      expect(repo.updateCalled, isTrue);
+      expect(repo.updatedMap!.containsKey(ExpenseDoc.fieldReceiptUrl), isTrue);
+      expect(repo.updatedMap![ExpenseDoc.fieldReceiptUrl], isNull);
+      expect(storage.deleteCalled, isTrue);
+      expect(storage.deletedFriendshipId, _friendshipId);
+      expect(storage.deletedExpenseId, initialId);
+      controller.dispose();
+    });
+
+    test(
+      'AC-12 edge: deleteFriendshipReceipt failure does NOT block success',
+      () async {
+        storage.throwDeleteError = const ReceiptUploadError(
+          type: ReceiptUploadErrorType.network,
+        );
+        final controller = buildEditController();
+        controller.proceedToStep2();
+        controller.proceedToStep3();
+        controller.removeReceipt();
+        await controller.save();
+        expect(controller.state, isA<Success>());
+        expect((controller.state as Success).action, SuccessAction.editSaved);
+        controller.dispose();
+      },
+    );
+
+    test('preserve existing URL on save when the user did NOT touch '
+        'the receipt (only other fields changed)', () async {
+      final controller = buildEditController();
+      controller.setAmount(20000); // change a non-receipt field
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.save();
+      // The update map should NOT include receiptUrl (unchanged); the
+      // original URL stays in Firestore by virtue of not being in the
+      // partial-update map.
+      expect(repo.updatedMap!.containsKey(ExpenseDoc.fieldReceiptUrl), isFalse);
+      expect(storage.uploadCalled, isFalse);
+      expect(storage.deleteCalled, isFalse);
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — Step 3 abandonment', () {
+    test('discard from Step 3 fires expense_step3_abandoned with '
+        'had_receipt and time_spent_ms', () async {
+      var now = DateTime(2025, 1, 1, 12);
+      DateTime clock() => now;
+      final controller = buildController(
+        repo: repo,
+        analytics: analytics,
+        clock: clock,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      now = now.add(const Duration(seconds: 4));
+      analytics.loggedEvents.clear();
+      controller.discard();
+      expect(analytics.hasEvent(ExpenseTelemetry.step3Abandoned), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.step3Abandoned)!;
+      expect(params[ExpenseTelemetry.paramHadReceipt], false);
+      expect(params[ExpenseTelemetry.paramTimeSpentMs], 4000);
+      controller.dispose();
+    });
+  });
+
+  group('FR-EX-05 — PII guard for the 4 new events (AC-19)', () {
+    const piiFid = 'uid-priyalakshmi_uid-rahulagarwal';
+    const piiPii = 'priyalakshmi';
+    late FakeReceiptStorageService storage;
+    late FakeImagePickerService picker;
+
+    setUp(() {
+      storage = FakeReceiptStorageService();
+      picker = FakeImagePickerService();
+    });
+
+    test('expense_step3_opened, expense_receipt_attached, '
+        'expense_receipt_removed, and expense_step3_abandoned never leak '
+        'the raw friendshipId/uid into ANY parameter value', () async {
+      final fixture = _writeFixtureJpeg('pii_guard.jpg', sizeBytes: 100);
+      picker.returnFromGallery = XFile(fixture.path, mimeType: 'image/jpeg');
+      final controller = AddExpenseController(
+        friendshipId: piiFid,
+        currentUserUid: 'uid-priyalakshmi',
+        otherUserUid: 'uid-rahulagarwal',
+        repository: repo,
+        analytics: analytics,
+        receiptStorage: storage,
+        imagePicker: picker,
+      );
+      controller.setAmount(10000);
+      controller.setDescription('Dinner');
+      controller.setCategory(ExpenseCategory.food);
+      controller.proceedToStep2();
+      controller.proceedToStep3();
+      await controller.pickReceiptFromGallery();
+      controller.removeReceipt();
+      controller.discard();
+
+      const receiptEvents = <String>[
+        ExpenseTelemetry.step3Opened,
+        ExpenseTelemetry.receiptAttached,
+        ExpenseTelemetry.receiptRemoved,
+        ExpenseTelemetry.step3Abandoned,
+      ];
+
+      for (final event in analytics.loggedEvents) {
+        if (!receiptEvents.contains(event.name)) continue;
+        expect(
+          event.name.contains(piiFid),
+          isFalse,
+          reason: 'Event name "${event.name}" leaked the raw friendshipId',
+        );
+        expect(
+          event.name.contains(piiPii),
+          isFalse,
+          reason: 'Event name "${event.name}" leaked the raw uid',
+        );
+        for (final entry in (event.parameters ?? const {}).entries) {
+          final keyStr = entry.key;
+          final valStr = entry.value.toString();
+          expect(
+            keyStr.contains(piiFid) || keyStr.contains(piiPii),
+            isFalse,
+            reason:
+                'Event "${event.name}" leaked PII in parameter key '
+                '"$keyStr"',
+          );
+          expect(
+            valStr.contains(piiFid) || valStr.contains(piiPii),
+            isFalse,
+            reason:
+                'Event "${event.name}" leaked PII in parameter value '
+                '"$valStr"',
+          );
+        }
+      }
+      controller.dispose();
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// FR-EX-05 — fixture helpers
+// ---------------------------------------------------------------------------
+
+/// Writes a stub file of [sizeBytes] bytes under
+/// `Directory.systemTemp` with the given [name] and returns the
+/// [File]. The contents are all-zero bytes — the controller's
+/// validation pipeline only reads the on-disk size via
+/// `File.lengthSync()`; it does not inspect the bytes themselves.
+File _writeFixtureJpeg(String name, {required int sizeBytes}) {
+  final f = File('${Directory.systemTemp.path}/fr_ex_05_$name');
+  f.writeAsBytesSync(List<int>.filled(sizeBytes, 0));
+  return f;
 }
