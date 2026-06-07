@@ -795,7 +795,8 @@ IS an `expense_edited` event).
   amountPaise: number;         // captured from change.before snapshot
   category: string;            // captured from change.before snapshot
   authorUid: string;           // == createdBy of the pre-delete snapshot
-  deletedAt: Timestamp;        // server timestamp at write time
+  deletedAt: Timestamp;        // sourced from the trigger's event.time
+                               // (eventTimestamp), NOT FieldValue.serverTimestamp()
 }
 ```
 
@@ -805,6 +806,20 @@ hard-deleted in some future cleanup. The payload is intentionally
 slimmer than `expense_added` — splits, payer, splitMethod etc. are
 omitted because the deleted-state row in SCR-25 only needs the
 description + amount + colour-coded "deleted" badge.
+
+**`deletedAt` sourcing — clarification.** `deletedAt` is sourced from
+the trigger's `event.time` (the `eventTimestamp` passed through from
+the trigger handler), NOT from `FieldValue.serverTimestamp()`. This
+is intentional and semantically correct: `deletedAt` represents
+"when the soft-delete happened on the client" (i.e. when the
+`deleted: false → true` write hit Firestore), not "when the
+activity-emission write hit Firestore". This is consistent with how
+`lastActivityAt` is sourced in PR #35/#36 — both fields advance the
+client-perceived event time, not the trigger's wall-clock invocation
+time. By contrast, the top-level `createdAt` on the activity-item
+document itself uses `FieldValue.serverTimestamp()` because that
+field represents "when the activity item was written" (the SCR-25
+reverse-chronological sort key — Firestore-authoritative).
 
 ### 2.7 — Files to touch (exhaustive — anything outside this set is scope creep)
 

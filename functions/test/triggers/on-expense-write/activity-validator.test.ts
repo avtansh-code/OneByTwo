@@ -126,6 +126,33 @@ describe("validateActivityPayload — expense_added", () => {
       /hasReceipt must be a boolean/,
     );
   });
+
+  it("rejects payload with non-string category (Rec #4)", () => {
+    const bad = validExpenseAddedPayload();
+    (bad as {category: unknown}).category = 42;
+    expect(() => validateActivityPayload("expense_added", bad)).toThrow(
+      /category must be a string/,
+    );
+  });
+
+  it("rejects payload with non-string splitMethod (Rec #4)", () => {
+    const bad = validExpenseAddedPayload();
+    (bad as {splitMethod: unknown}).splitMethod = null;
+    expect(() => validateActivityPayload("expense_added", bad)).toThrow(
+      /splitMethod must be a string/,
+    );
+  });
+
+  it("rejects payload with explicit undefined required field (Rec #3)", () => {
+    const bad = validExpenseAddedPayload() as unknown as Record<string, unknown>;
+    bad.payerId = undefined;
+    expect(() =>
+      validateActivityPayload(
+        "expense_added",
+        bad as unknown as ExpenseAddedPayload,
+      ),
+    ).toThrow(/missing required field 'payerId'/);
+  });
 });
 
 describe("validateActivityPayload — expense_edited", () => {
@@ -207,6 +234,25 @@ describe("validateActivityPayload — expense_deleted", () => {
         validExpenseDeletedPayload({amountPaise: 99.99}),
       ),
     ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects payload with non-string category (Rec #4)", () => {
+    const bad = validExpenseDeletedPayload();
+    (bad as {category: unknown}).category = 42;
+    expect(() =>
+      validateActivityPayload("expense_deleted", bad),
+    ).toThrow(/expense_deleted.category must be a string/);
+  });
+
+  it("rejects payload with explicit undefined deletedAt (Rec #3)", () => {
+    const bad = validExpenseDeletedPayload() as unknown as Record<string, unknown>;
+    bad.deletedAt = undefined;
+    expect(() =>
+      validateActivityPayload(
+        "expense_deleted",
+        bad as unknown as ExpenseDeletedPayload,
+      ),
+    ).toThrow(/missing required field 'deletedAt'/);
   });
 });
 

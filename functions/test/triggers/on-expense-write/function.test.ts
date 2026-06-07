@@ -76,6 +76,15 @@ function createMockDb(opts: {
   contextData?: Record<string, unknown>;
   expenses?: Array<{id: string; data: Record<string, unknown>}>;
   settlements?: Array<{id: string; data: Record<string, unknown>}>;
+  /**
+   * Optional override for the `friendships/{fid}.get()` call used by
+   * emitExpenseActivity (FR-EX-07) AFTER the recompute completes. When
+   * unset, the get() returns the same `contextExists` / `contextData`
+   * as the transaction-scoped read. Setting this models the race where
+   * the recompute succeeds but the friendship doc is deleted (or its
+   * memberIds emptied) before the activity-emission read.
+   */
+  activityGetOverride?: {exists: boolean; data?: Record<string, unknown>};
 }): FirebaseFirestore.Firestore {
   const expenseDocs = (opts.expenses ?? []).map((e) => ({
     id: e.id,
@@ -122,8 +131,13 @@ function createMockDb(opts: {
             where: jest.fn().mockReturnValue(expensesQuery),
           }),
           get: jest.fn().mockResolvedValue({
-            exists: opts.contextExists,
-            data: () => opts.contextData ?? {},
+            exists: opts.activityGetOverride
+              ? opts.activityGetOverride.exists
+              : opts.contextExists,
+            data: () =>
+              opts.activityGetOverride
+                ? opts.activityGetOverride.data ?? {}
+                : opts.contextData ?? {},
           }),
           _isDocRef: true,
         }),
@@ -938,5 +952,81 @@ describe("onExpenseWriteFriendship handler — FR-EX-07 activity-writer integrat
     );
     expect(internalErrorLog).toBeDefined();
     expect(internalErrorLog!.level).toBe("error");
+  });
+
+  // -------------------------------------------------------------------------
+  // Race: friendship deleted mid-flight. The recompute succeeds (using the
+  // pre-delete transactional snapshot), but the friendship doc is deleted
+  // before emitExpenseActivity reads it. The activity emission must skip
+  // silently with a structured log and the trigger must NOT throw.
+  // -------------------------------------------------------------------------
+  it("skips activity emission when friendship doc is missing mid-flight (race)", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+      // Override only the activity-emission .get() — recompute succeeds
+      // because its transaction-scoped read sees the doc, but the post-
+      // recompute .get() for memberIds resolution sees an absent doc.
+      activityGetOverride: {exists: false},
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    // The recompute success branch still logs as completed.
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+
+    // The skip-event is emitted and the writer is NOT called.
+    const skipLog = logger.calls.find(
+      (c) =>
+        c.data?.event === "activity_emission_skipped_missing_context",
+    );
+    expect(skipLog).toBeDefined();
+    expect(skipLog!.level).toBe("info");
+    expect(skipLog!.data!.contextType).toBe("friendship");
+    expect(skipLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(skipLog!.data!.expenseIdHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // Edge case: friendship doc exists but memberIds is missing or empty.
+  // The activity emission must skip silently with a structured log and
+  // the trigger must NOT throw.
+  // -------------------------------------------------------------------------
+  it("skips activity emission when friendship memberIds is empty", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+      // The activity-emission .get() sees a doc but with no memberIds —
+      // models a corrupt or partially-initialised friendship.
+      activityGetOverride: {exists: true, data: {memberIds: []}},
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    const skipLog = logger.calls.find(
+      (c) => c.data?.event === "activity_emission_skipped_empty_members",
+    );
+    expect(skipLog).toBeDefined();
+    expect(skipLog!.level).toBe("info");
+    expect(skipLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
   });
 });

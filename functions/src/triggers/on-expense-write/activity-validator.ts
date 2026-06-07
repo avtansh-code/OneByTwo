@@ -128,6 +128,11 @@ function validateExpenseDeletedPayload(payload: ExpenseDeletedPayload): void {
         "positive integer.",
     );
   }
+  if (typeof payload.category !== "string") {
+    throw new Error(
+      "validateActivityPayload: expense_deleted.category must be a string.",
+    );
+  }
   if (typeof payload.authorUid !== "string" || payload.authorUid.length === 0) {
     throw new Error(
       "validateActivityPayload: expense_deleted.authorUid must be a " +
@@ -152,7 +157,11 @@ function assertHasFields(
 ): void {
   const payloadRecord = payload as Record<string, unknown>;
   for (const field of fields) {
-    if (!(field in payloadRecord)) {
+    // Treat an explicit `undefined` as missing — Firestore would
+    // silently drop the field on the write, producing an incomplete
+    // activity item. Belt-and-braces over the rules-enforced source
+    // contract.
+    if (!(field in payloadRecord) || payloadRecord[field] === undefined) {
       throw new Error(
         `validateActivityPayload: ${eventType} payload missing required ` +
           `field '${field}'.`,
@@ -180,6 +189,11 @@ function assertExpenseSharedShape(
         "positive integer.",
     );
   }
+  if (typeof payload.category !== "string") {
+    throw new Error(
+      `validateActivityPayload: ${eventType}.category must be a string.`,
+    );
+  }
   if (typeof payload.payerId !== "string" || payload.payerId.length === 0) {
     throw new Error(
       `validateActivityPayload: ${eventType}.payerId must be a ` +
@@ -190,6 +204,11 @@ function assertExpenseSharedShape(
     throw new Error(
       `validateActivityPayload: ${eventType}.authorUid must be a ` +
         "non-empty string.",
+    );
+  }
+  if (typeof payload.splitMethod !== "string") {
+    throw new Error(
+      `validateActivityPayload: ${eventType}.splitMethod must be a string.`,
     );
   }
   if (!Array.isArray(payload.splits) || payload.splits.length === 0) {

@@ -92,6 +92,13 @@ Candidates (in rough priority order):
 - **Rate-limit transaction race refactor** (operational hardening;
   small standalone PR). Deferred from PR #45 per chore-story
   Architect Notes §2.2.
+- **`emitExpenseActivity` memberIds re-read cleanup** (operational
+  cleanup; small standalone PR ~1 SP). Per the PR #51 review
+  recommendation #1: the trigger handler currently re-reads the
+  friendship doc to resolve `memberIds` for the activity fan-out
+  (one extra Firestore read per invocation). A future refactor
+  could thread `memberIds` through `RecomputeResult` to eliminate
+  the second read; track as a Sprint-3 cleanup item.
 
 ---
 
