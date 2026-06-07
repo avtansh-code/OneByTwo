@@ -19,6 +19,22 @@ import type {Change, DocumentSnapshot, FirestoreEvent} from
   "firebase-functions/v2/firestore";
 import {createTriggerHandler} from
   "../../../src/triggers/on-expense-write/function";
+import {writeExpenseActivity} from
+  "../../../src/triggers/on-expense-write/activity-writer";
+
+jest.mock("../../../src/triggers/on-expense-write/activity-writer");
+
+const mockedWriteExpenseActivity = writeExpenseActivity as jest.MockedFunction<
+  typeof writeExpenseActivity
+>;
+
+beforeEach(() => {
+  mockedWriteExpenseActivity.mockReset();
+  mockedWriteExpenseActivity.mockResolvedValue({
+    membersSucceeded: 2,
+    membersFailed: 0,
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Mock helpers — copy the simplified-debts/function.test.ts pattern
@@ -95,10 +111,19 @@ function createMockDb(opts: {
           }),
         };
       }
+      // friendships/{fid} doc-ref:
+      //   .collection('expenses').where(...) — used by the trigger's
+      //     read-side query (inside recomputeAndWrite).
+      //   .get() — used by emitExpenseActivity to resolve memberIds
+      //     for the activity fan-out (FR-EX-07).
       return {
         doc: jest.fn().mockReturnValue({
           collection: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue(expensesQuery),
+          }),
+          get: jest.fn().mockResolvedValue({
+            exists: opts.contextExists,
+            data: () => opts.contextData ?? {},
           }),
           _isDocRef: true,
         }),
@@ -675,5 +700,243 @@ describe("onExpenseWriteFriendship handler — boundary", () => {
     const updateFn = (db as unknown as {_updateFn: jest.Mock})._updateFn;
     expect(updateFn).toHaveBeenCalledTimes(1);
     expect(updateFn.mock.calls[0][1].lastActivityAt).toEqual(expectedTimestamp);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FR-EX-07: trigger ↔ activity-writer contract
+// ---------------------------------------------------------------------------
+
+describe("onExpenseWriteFriendship handler — FR-EX-07 activity-writer integration", () => {
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-1: create event invokes writeExpenseActivity with
+  // expense_added payload for BOTH friendship members.
+  // -------------------------------------------------------------------------
+  it("calls writeExpenseActivity with expense_added on create — both members targeted", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({changeType: "create", afterData: validExpenseData()}),
+    );
+
+    expect(mockedWriteExpenseActivity).toHaveBeenCalledTimes(1);
+    const [, callRequest] = mockedWriteExpenseActivity.mock.calls[0];
+    expect(callRequest.eventType).toBe("expense_added");
+    expect(callRequest.memberIds).toEqual(["userA", "userB"]);
+    expect(callRequest.friendshipId).toBe("fid");
+    expect(callRequest.expenseId).toBe("eid");
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-2: update event (no deleted flip) invokes writeExpenseActivity
+  // with expense_edited payload.
+  // -------------------------------------------------------------------------
+  it("calls writeExpenseActivity with expense_edited on regular edit", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "eid",
+          data: validExpenseData({
+            amountPaise: 20000,
+            splits: [
+              {userId: "userA", sharePaise: 10000},
+              {userId: "userB", sharePaise: 10000},
+            ],
+          }),
+        },
+      ],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "update",
+        beforeData: validExpenseData(),
+        afterData: validExpenseData({
+          amountPaise: 20000,
+          splits: [
+            {userId: "userA", sharePaise: 10000},
+            {userId: "userB", sharePaise: 10000},
+          ],
+        }),
+      }),
+    );
+
+    expect(mockedWriteExpenseActivity).toHaveBeenCalledTimes(1);
+    const [, callRequest] = mockedWriteExpenseActivity.mock.calls[0];
+    expect(callRequest.eventType).toBe("expense_edited");
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-3: soft-delete (update with deleted: false -> true) invokes
+  // writeExpenseActivity with expense_deleted payload, NOT expense_edited.
+  // -------------------------------------------------------------------------
+  it("calls writeExpenseActivity with expense_deleted on soft-delete (not expense_edited)", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "update",
+        beforeData: validExpenseData({deleted: false}),
+        afterData: validExpenseData({deleted: true}),
+      }),
+    );
+
+    expect(mockedWriteExpenseActivity).toHaveBeenCalledTimes(1);
+    const [, callRequest] = mockedWriteExpenseActivity.mock.calls[0];
+    expect(callRequest.eventType).toBe("expense_deleted");
+    expect(callRequest.memberIds).toEqual(["userA", "userB"]);
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-3 (hard-delete variant): change.after.exists === false invokes
+  // writeExpenseActivity with expense_deleted.
+  // -------------------------------------------------------------------------
+  it("calls writeExpenseActivity with expense_deleted on hard-delete", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({changeType: "delete", beforeData: validExpenseData()}),
+    );
+
+    expect(mockedWriteExpenseActivity).toHaveBeenCalledTimes(1);
+    const [, callRequest] = mockedWriteExpenseActivity.mock.calls[0];
+    expect(callRequest.eventType).toBe("expense_deleted");
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-5: stale-event drop branch does NOT invoke writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the stale-event-drop branch", async () => {
+    const eightDaysAgo = new Date(
+      Date.now() - 8 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "create",
+        eventTime: eightDaysAgo,
+        afterData: validExpenseData(),
+      }),
+    );
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-5: CONTEXT_NOT_FOUND branch does NOT invoke writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the CONTEXT_NOT_FOUND branch", async () => {
+    const db = createMockDb({contextExists: false});
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({changeType: "create", afterData: validExpenseData()}),
+    );
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-5: BALANCE_INVARIANT_VIOLATED branch (handler throws) does
+  // NOT invoke writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the BALANCE_INVARIANT_VIOLATED branch", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "eid",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 4000},
+              {userId: "userB", sharePaise: 3000},
+            ],
+          },
+        },
+      ],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).rejects.toThrow();
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // Activity-emission failure is CONTAINED — trigger's success branch is
+  // preserved. The writer mock is configured to throw; the trigger must
+  // STILL log simplified_debts_compute_completed (not _failed) and must
+  // NOT throw.
+  // -------------------------------------------------------------------------
+  it("contains activity-emission failures — trigger does not throw if writeExpenseActivity throws", async () => {
+    mockedWriteExpenseActivity.mockRejectedValueOnce(
+      new Error("simulated programmer error in payload validator"),
+    );
+
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    // The recompute success branch still logs as completed.
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+
+    // The activity-emission internal error is logged but does NOT bubble.
+    const internalErrorLog = logger.calls.find(
+      (c) => c.data?.event === "activity_emission_internal_error",
+    );
+    expect(internalErrorLog).toBeDefined();
+    expect(internalErrorLog!.level).toBe("error");
   });
 });

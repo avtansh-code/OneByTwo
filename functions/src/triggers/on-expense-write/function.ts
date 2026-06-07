@@ -49,6 +49,11 @@ import {
   Dependencies,
 } from "../../simplified-debts/function";
 import {hashId} from "../../utils/id-hash";
+import {writeExpenseActivity} from "./activity-writer";
+import {
+  buildExpenseActivityPayload,
+  type ExpenseDocData,
+} from "./payload-builder";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -157,16 +162,14 @@ export function createTriggerHandler(
       return;
     }
 
-    // 3. Hand-off seams for downstream PRs (left as comments so the next
-    //    contributor doesn't need to refactor this handler):
-    //    TODO(FR-AC-01): write activity-feed item to activity/{userId}/items
-    //    TODO(FR-AC-03): send FCM push notification respecting notificationPrefs
-    //    Placement note: these MUST run only after a successful recompute
-    //    (i.e. inside or just below the success branch at line 222) to
-    //    keep retry semantics clean — a retryable transient failure must
-    //    not duplicate activity items or notifications. Today they are
-    //    deferred entirely; the actual placement decision lives with the
-    //    PR that implements them.
+    // 3. Activity-feed seam — FR-EX-07 ships the expense-side write.
+    //    The remaining hand-off seam below is for the future story:
+    //    TODO(FR-AC-03): send FCM push notification respecting
+    //    notificationPrefs. Placement note: FCM (like the activity
+    //    emission) MUST run only after a successful recompute (i.e.
+    //    inside or just below the success branch) to keep retry
+    //    semantics clean — a retryable transient failure must not
+    //    duplicate notifications.
 
     // 4. Build the alsoSet payload — atomically advance lastActivityAt
     //    inside the same transaction as the simplifiedBalances write.
@@ -238,7 +241,26 @@ export function createTriggerHandler(
       );
     }
 
-    // 7. Success — log completed event
+    // 7. Emit activity items for both friendship members (FR-EX-07).
+    //    Runs AFTER the successful recomputeAndWrite per architect
+    //    notes §2.1 so a transient recompute failure does NOT
+    //    duplicate items. Failures inside the activity emission are
+    //    contained — the writer's Promise.allSettled prevents
+    //    per-member failures from rethrowing, and the validator
+    //    throw (programmer error) is caught here so the trigger's
+    //    success branch is preserved (architect §2.9 item 2).
+    await emitExpenseActivity(deps, {
+      friendshipId,
+      expenseId,
+      changeType,
+      contextType,
+      contextIdHash,
+      expenseIdHash,
+      eventTimestamp,
+      changeData: event.data,
+    });
+
+    // 8. Success — log completed event
     logger.info("simplified_debts_compute_completed", {
       event: "simplified_debts_compute_completed",
       contextType,
@@ -247,4 +269,128 @@ export function createTriggerHandler(
       transferCount: result.transfers.length,
     });
   };
+}
+
+// ---------------------------------------------------------------------------
+// Activity emission (FR-EX-07)
+// ---------------------------------------------------------------------------
+
+/**
+ * Discriminates the activity event type and writes one item per
+ * friendship member. Wraps `writeExpenseActivity` with the trigger-
+ * specific (a) soft-delete detection, (b) member-ID resolution, and
+ * (c) defensive try/catch for programmer errors (validator throws).
+ *
+ * Per architect §2.9 item 2: NEVER rethrows. Activity-emission
+ * failures must not propagate into the trigger's success branch,
+ * otherwise Cloud Functions would retry the whole invocation and
+ * potentially re-duplicate activity items on the successful members.
+ */
+async function emitExpenseActivity(
+  deps: Dependencies,
+  params: {
+    friendshipId: string;
+    expenseId: string;
+    changeType: ChangeType;
+    contextType: "friendship";
+    contextIdHash: string;
+    expenseIdHash: string;
+    eventTimestamp: Timestamp;
+    changeData: Change<DocumentSnapshot> | undefined;
+  },
+): Promise<void> {
+  const {db, logger} = deps;
+  const {
+    friendshipId,
+    expenseId,
+    changeType,
+    contextType,
+    contextIdHash,
+    expenseIdHash,
+    eventTimestamp,
+    changeData,
+  } = params;
+
+  try {
+    const beforeData = changeData?.before?.exists
+      ? (changeData.before.data() as ExpenseDocData | undefined)
+      : undefined;
+    const afterData = changeData?.after?.exists
+      ? (changeData.after.data() as ExpenseDocData | undefined)
+      : undefined;
+
+    // Soft-delete discrimination: an update that flips deleted false
+    // -> true emits expense_deleted, NOT expense_edited.
+    let activityChangeType: ChangeType = changeType;
+    if (
+      changeType === "update" &&
+      beforeData?.deleted === false &&
+      afterData?.deleted === true
+    ) {
+      activityChangeType = "delete";
+    }
+
+    // Resolve memberIds via a re-read of the friendship doc. The
+    // recomputeAndWrite path already read this doc inside its
+    // transaction but does not expose the snapshot in its typed
+    // return; one extra read here is the simplest non-invasive
+    // approach. If the friendship was deleted between the recompute
+    // and this read (rare race), memberIds is empty and we skip
+    // emission silently — symmetric with the CONTEXT_NOT_FOUND
+    // behaviour on the recompute path.
+    const friendshipSnap = await db
+      .collection("friendships")
+      .doc(friendshipId)
+      .get();
+    if (!friendshipSnap.exists) {
+      logger.info("activity_emission_skipped_missing_context", {
+        event: "activity_emission_skipped_missing_context",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+    const memberIds =
+      (friendshipSnap.data()?.memberIds as string[] | undefined) ?? [];
+    if (memberIds.length === 0) {
+      logger.info("activity_emission_skipped_empty_members", {
+        event: "activity_emission_skipped_empty_members",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+
+    const built = buildExpenseActivityPayload(
+      activityChangeType,
+      {friendshipId, expenseId, before: beforeData, after: afterData},
+      eventTimestamp,
+    );
+
+    await writeExpenseActivity(deps, {
+      friendshipId,
+      expenseId,
+      eventType: built.eventType,
+      payload: built.payload,
+      memberIds,
+    });
+  } catch (err: unknown) {
+    // Defence-in-depth: writeExpenseActivity itself uses
+    // Promise.allSettled and never rethrows for per-member Firestore
+    // failures. But the validator inside it DOES throw on programmer
+    // error (e.g. a malformed payload), and the payload-builder
+    // throws on inconsistent (changeType, before, after) tuples.
+    // Both are programmer errors that should NOT mark the trigger as
+    // failed — the recompute is already done; failing here would
+    // only cause a retry-storm that re-runs the recompute.
+    logger.error("activity_emission_internal_error", {
+      event: "activity_emission_internal_error",
+      contextType,
+      contextIdHash,
+      expenseIdHash,
+      errorMessage: err instanceof Error ? err.message : "unknown",
+    });
+  }
 }
