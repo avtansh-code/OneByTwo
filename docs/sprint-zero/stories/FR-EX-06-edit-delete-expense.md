@@ -397,7 +397,7 @@ without any client-side debt arithmetic**.
 
 ## Acceptance Criteria
 
-### AC-1 — Row tap opens the edit surface
+### AC-1 — Row tap opens the Expense Detail screen; Edit tap fires `expense_edit_opened`
 
 > Given a non-deleted expense row on the Friend Detail timeline
 > rendered by
@@ -407,14 +407,25 @@ without any client-side debt arithmetic**.
 > And the current user created the expense
 > (`expense.createdBy == currentUser.uid`)
 > When the user taps the row
-> Then the architect-chosen edit surface opens — either a
-> dedicated Expense Detail screen per §2.1 choice (a)
-> recommended, OR the two-step edit bottom sheet directly per
-> §2.1 choice (b) — with the expense pre-filled from Firestore
-> And telemetry event `expense_edit_opened` fires with
-> `expense_id` (SHA-256-truncated via `hashId()`),
-> `context_type: 'friendship'`, `context_id` (`friendship_id_hash`
-> via `hashFriendshipId()`).
+> Then the architect-chosen entry surface opens — the dedicated
+> Expense Detail screen per §2.1 choice (a) recommended (a
+> read-only summary card with Edit + Delete actions in the
+> `OBTAppBar`), OR the two-step edit bottom sheet directly per
+> §2.1 choice (b) — with the expense pre-filled from Firestore.
+>
+> **Telemetry semantics (clarified post-PR-#46 review):**
+> Row-tap by itself does NOT emit `expense_edit_opened` — the
+> row-tap opens the read-only Expense Detail screen, which is
+> not the edit surface. `expense_edit_opened` fires only when
+> the user taps the Edit affordance on the Expense Detail
+> screen's `OBTAppBar` (i.e. when the edit-mode controller is
+> actually instantiated). Parameters: `expense_id`
+> (SHA-256-truncated via `hashId()`),
+> `context_type: 'friend'`, `friendship_id_hash`
+> (via `hashFriendshipId()`). The row-tap event itself is
+> covered by FR-EX-07 activity-feed funnel work and is not
+> emitted in PR #46 — adding a dedicated `expense_detail_opened`
+> event is a follow-up funnel-clarity story.
 
 ### AC-2 — Pre-fill correctness
 
