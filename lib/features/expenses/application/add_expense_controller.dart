@@ -665,6 +665,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
             file: draft.receiptFile!,
           );
         } on ReceiptUploadError catch (err) {
+          if (!mounted) return;
           _emitSaveFailed(_mapReceiptToCreateErrorType(err.type));
           state = AddExpenseError(
             draft: draft,
@@ -673,6 +674,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           );
           return;
         }
+        if (!mounted) return;
       }
 
       state = Saving(draft: draft);
@@ -718,6 +720,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           expenseId: initialExpenseId!,
           updates: updates,
         );
+        if (!mounted) return;
 
         // FR-EX-05: if the user removed the receipt (URL flipped to
         // null), purge the Storage object now that the Firestore
@@ -733,6 +736,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           } on ReceiptUploadError {
             // Swallow — the orphan-cleanup function handles this case.
           }
+          if (!mounted) return;
         }
 
         _emitEditSaved(draft: draft, fieldsChanged: _changedFields);
@@ -741,6 +745,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           action: SuccessAction.editSaved,
         );
       } on ExpenseUpdateError catch (err) {
+        if (!mounted) return;
         _emitEditFailed(err.type);
         state = AddExpenseError(
           draft: draft,
@@ -781,6 +786,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           friendshipId: friendshipId,
           doc: doc,
         );
+        if (!mounted) return;
         _emitSaveSucceeded(
           draft: draft,
           expenseId: id,
@@ -789,6 +795,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         );
         state = Success(expenseId: id);
       } on ExpenseCreateError catch (err) {
+        if (!mounted) return;
         _emitSaveFailed(err.type);
         state = AddExpenseError(
           draft: draft,
@@ -796,6 +803,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
           message: _kMsgSaveFailure,
         );
       } catch (err, st) {
+        if (!mounted) return;
         _emitSaveFailed(ExpenseCreateErrorType.unknown);
         state = AddExpenseError(
           draft: draft,
@@ -832,6 +840,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         file: receiptFile,
       );
     } on ReceiptUploadError catch (err) {
+      if (!mounted) return;
       _emitSaveFailed(_mapReceiptToCreateErrorType(err.type));
       state = AddExpenseError(
         draft: draft,
@@ -840,6 +849,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       );
       return;
     }
+    if (!mounted) return;
 
     state = Saving(draft: draft);
     try {
@@ -860,6 +870,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         expenseId: allocatedId,
         doc: doc,
       );
+      if (!mounted) return;
       _emitSaveSucceeded(
         draft: draft,
         expenseId: allocatedId,
@@ -868,6 +879,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       );
       state = Success(expenseId: allocatedId);
     } on ExpenseCreateError catch (err) {
+      if (!mounted) return;
       _emitSaveFailed(err.type);
       state = AddExpenseError(
         draft: draft,
@@ -875,6 +887,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         message: _kMsgSaveFailure,
       );
     } catch (err, st) {
+      if (!mounted) return;
       _emitSaveFailed(ExpenseCreateErrorType.unknown);
       state = AddExpenseError(
         draft: draft,
@@ -924,12 +937,14 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         friendshipId: friendshipId,
         expenseId: initialExpenseId!,
       );
+      if (!mounted) return;
       _emitDeleteConfirmed(draft: draft);
       state = Success(
         expenseId: initialExpenseId!,
         action: SuccessAction.deleted,
       );
     } on ExpenseDeleteError catch (err) {
+      if (!mounted) return;
       _emitDeleteFailed(err.type);
       state = AddExpenseError(
         draft: draft,
