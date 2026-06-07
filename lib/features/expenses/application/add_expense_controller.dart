@@ -27,6 +27,8 @@ const String _kMsgDescriptionTooLong =
     'Description must be under 100 characters.';
 const String _kMsgDateFuture = 'Date cannot be in the future.';
 const String _kMsgSaveFailure = "Couldn't add the expense. Try again.";
+const String _kMsgEditFailure = 'Could not save changes. Try again.';
+const String _kMsgDeleteFailure = "Couldn't delete the expense. Try again.";
 
 /// Driver for the two-step Add Expense bottom sheet.
 ///
@@ -41,8 +43,14 @@ const String _kMsgSaveFailure = "Couldn't add the expense. Try again.";
 /// or `friendsListProvider`; payer labels in the UI use the
 /// placeholder strings "You" / "Friend".
 class AddExpenseController extends StateNotifier<AddExpenseState> {
-  /// Creates an [AddExpenseController]. The constructor fires
-  /// `expense_step1_opened` synchronously.
+  /// Creates an [AddExpenseController].
+  ///
+  /// In **create mode** ([initialExpense] == null), the constructor
+  /// fires `expense_step1_opened` synchronously — the existing
+  /// FR-EX-01 behaviour. In **edit mode** ([initialExpense] != null),
+  /// the constructor pre-fills the draft from the supplied document,
+  /// captures the original snapshot for the changed-field diff, and
+  /// fires `expense_edit_opened` instead.
   AddExpenseController({
     required this.friendshipId,
     required this.currentUserUid,
@@ -50,20 +58,22 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     required ExpenseRepository repository,
     required AnalyticsService analytics,
     DateTime Function()? clock,
+    this.initialExpense,
+    this.initialExpenseId,
   }) : _repository = repository,
        _analytics = analytics,
        _clock = clock ?? DateTime.now,
        super(
-         Editing(
-           step: 1,
-           draft: ExpenseDraft(
-             date: (clock ?? DateTime.now)(),
-             payerId: currentUserUid,
-           ),
-         ),
+         _initialState(initialExpense, clock ?? DateTime.now, currentUserUid),
        ) {
     _step1OpenedAt = _clock();
-    _emitStep1Opened();
+    if (isEditMode) {
+      _originalSnapshot = _snapshotFromDoc(initialExpense!);
+      _emitEditOpened();
+    } else {
+      _originalSnapshot = null;
+      _emitStep1Opened();
+    }
   }
 
   /// The friendship document ID — `uid-a_uid-b` sorted lexicographically.
@@ -75,6 +85,16 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
   /// The friend's UID (the other party to the friendship).
   final String otherUserUid;
 
+  /// Source-of-truth expense document when the sheet is hosted in
+  /// edit mode. Null in create mode.
+  final ExpenseDoc? initialExpense;
+
+  /// Firestore document ID of [initialExpense]. Null in create mode.
+  final String? initialExpenseId;
+
+  /// True when the controller is in edit mode.
+  bool get isEditMode => initialExpense != null;
+
   final ExpenseRepository _repository;
   final AnalyticsService _analytics;
   final DateTime Function() _clock;
@@ -85,6 +105,64 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
 
   /// Wall-clock timestamp when Step 2 was entered.
   DateTime? _step2OpenedAt;
+
+  /// Snapshot of the original (read-from-Firestore) field values
+  /// captured at construction time. Used by [_markChanged] to
+  /// compute the diff against the current draft. Null in create
+  /// mode.
+  late final _OriginalSnapshot? _originalSnapshot;
+
+  /// Set of fields that have been changed from the original. Only
+  /// populated in edit mode. Read by the host widget to (a) disable
+  /// the Save CTA when empty (no-op guard) and (b) render the
+  /// changed-field indicator on Step 2 rows.
+  final Set<String> _changedFields = <String>{};
+
+  /// Unmodifiable view of [_changedFields] for the host widget.
+  Set<String> get changedFields => Set<String>.unmodifiable(_changedFields);
+
+  // ---------------------------------------------------------------
+  // Initial-state helpers
+  // ---------------------------------------------------------------
+
+  static AddExpenseState _initialState(
+    ExpenseDoc? initial,
+    DateTime Function() clock,
+    String currentUid,
+  ) {
+    if (initial == null) {
+      return Editing(
+        step: 1,
+        draft: ExpenseDraft(date: clock(), payerId: currentUid),
+      );
+    }
+    return Editing(
+      step: 1,
+      draft: ExpenseDraft(
+        amountPaise: initial.amountPaise,
+        description: initial.description,
+        category: initial.category,
+        date: initial.date,
+        splitMethod: initial.splitMethod,
+        payerId: initial.payerId,
+        exactShares: initial.splitMethod == SplitMethod.exact
+            ? initial.splits.map((s) => s.sharePaise).toList(growable: false)
+            : const <int>[],
+      ),
+    );
+  }
+
+  static _OriginalSnapshot _snapshotFromDoc(ExpenseDoc doc) {
+    return _OriginalSnapshot(
+      amountPaise: doc.amountPaise,
+      description: doc.description,
+      category: doc.category,
+      date: doc.date,
+      payerId: doc.payerId,
+      splits: List<Split>.unmodifiable(doc.splits),
+      splitMethod: doc.splitMethod,
+    );
+  }
 
   // ---------------------------------------------------------------
   // Step 1 setters
@@ -103,6 +181,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       errors.remove('amount');
     }
     state = Editing(step: s.step, draft: newDraft, validationErrors: errors);
+    _markChanged(ExpenseDoc.fieldAmountPaise, paise);
   }
 
   /// Updates the draft description (trimmed). Surfaces validation
@@ -119,6 +198,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       errors.remove('description');
     }
     state = Editing(step: s.step, draft: newDraft, validationErrors: errors);
+    _markChanged(ExpenseDoc.fieldDescription, trimmed);
   }
 
   /// Updates the draft category and fires `expense_category_selected`.
@@ -132,6 +212,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       validationErrors: s.validationErrors,
     );
     _emitCategorySelected(category);
+    _markChanged(ExpenseDoc.fieldCategory, category);
   }
 
   /// Updates the draft date. Surfaces a validation error for future
@@ -149,6 +230,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       errors.remove('date');
     }
     state = Editing(step: s.step, draft: newDraft, validationErrors: errors);
+    _markChanged(ExpenseDoc.fieldDate, date);
   }
 
   // ---------------------------------------------------------------
@@ -202,6 +284,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       ..remove('splits');
     state = Editing(step: s.step, draft: newDraft, validationErrors: errors);
     _emitSplitMethodChanged(oldMethod, method);
+    _markChanged(ExpenseDoc.fieldSplitMethod, method);
   }
 
   /// Switches the payer between `currentUserUid` and `otherUserUid`.
@@ -220,6 +303,7 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
       validationErrors: s.validationErrors,
     );
     _emitPayerChanged(payerIsSelf: userId == currentUserUid);
+    _markChanged(ExpenseDoc.fieldPayerId, userId);
   }
 
   /// Sets the exact-shares list for [SplitMethod.exact]. Surfaces a
@@ -245,6 +329,12 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     }
 
     state = Editing(step: s.step, draft: newDraft, validationErrors: errors);
+    // In edit mode, the splits field changes iff the computed share
+    // for either member differs from the original. Recompute the
+    // would-be Firestore splits and compare.
+    if (isEditMode && sum == total) {
+      _markChanged(ExpenseDoc.fieldSplits, _computeShares(newDraft));
+    }
   }
 
   // ---------------------------------------------------------------
@@ -253,6 +343,10 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
 
   /// Persists the draft to Firestore via the repository.
   /// Editing → Saving → (Success | AddExpenseError).
+  ///
+  /// In edit mode the branch calls `updateExpense` with a partial
+  /// map shaped by `toUpdateMap(changedFields)`. The no-op guard
+  /// (AC-3) short-circuits when `changedFields.isEmpty`.
   Future<void> save() async {
     final entry = state;
     final draft = switch (entry) {
@@ -264,6 +358,58 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     if (!draft.isStep1Complete) return;
     if (draft.payerId == null) return;
 
+    if (isEditMode) {
+      // No-op guard: a save with zero changed fields is a deliberate
+      // no-op (AC-3). The host widget also disables the CTA but the
+      // controller is the load-bearing guard.
+      if (_changedFields.isEmpty) return;
+
+      _emitStep2Completed(draft);
+      state = Saving(draft: draft);
+
+      try {
+        final shares = _computeShares(draft);
+        final edited = ExpenseDoc(
+          id: initialExpenseId,
+          amountPaise: draft.amountPaise,
+          description: draft.description,
+          category: draft.category!,
+          date: draft.date ?? _clock(),
+          payerId: draft.payerId!,
+          splits: shares,
+          splitMethod: draft.splitMethod,
+          createdBy: initialExpense!.createdBy,
+        );
+        // If the user re-entered an exact-shares list whose computed
+        // values diverge from the original, ensure the splits key is
+        // in the changed set. Belt-and-braces with the setExactShares
+        // hook above.
+        if (!_splitsEqual(edited.splits, _originalSnapshot!.splits)) {
+          _changedFields.add(ExpenseDoc.fieldSplits);
+        }
+        final updates = edited.toUpdateMap(_changedFields);
+        await _repository.updateExpense(
+          friendshipId: friendshipId,
+          expenseId: initialExpenseId!,
+          updates: updates,
+        );
+        _emitEditSaved(draft: draft, fieldsChanged: _changedFields);
+        state = Success(
+          expenseId: initialExpenseId!,
+          action: SuccessAction.editSaved,
+        );
+      } on ExpenseUpdateError catch (err) {
+        _emitEditFailed(err.type);
+        state = AddExpenseError(
+          draft: draft,
+          errorType: ExpenseCreateErrorType.unknown,
+          message: _kMsgEditFailure,
+        );
+      }
+      return;
+    }
+
+    // Create-mode branch — unchanged from PR #38.
     _emitStep2Completed(draft);
     state = Saving(draft: draft);
 
@@ -318,13 +464,80 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     }
   }
 
+  /// Soft-deletes the original expense (edit mode only). Editing →
+  /// Saving → (Success(deleted) | AddExpenseError).
+  ///
+  /// No-op in create mode (the absence of an
+  /// [initialExpenseId] means there is nothing to soft-delete).
+  Future<void> softDelete() async {
+    if (!isEditMode || initialExpenseId == null) return;
+    final draft = _currentDraft();
+    if (draft == null) return;
+    state = Saving(draft: draft);
+    try {
+      await _repository.softDeleteExpense(
+        friendshipId: friendshipId,
+        expenseId: initialExpenseId!,
+      );
+      _emitDeleteConfirmed(draft: draft);
+      state = Success(
+        expenseId: initialExpenseId!,
+        action: SuccessAction.deleted,
+      );
+    } on ExpenseDeleteError catch (err) {
+      _emitDeleteFailed(err.type);
+      state = AddExpenseError(
+        draft: draft,
+        // Reuse the existing ExpenseCreateErrorType.unknown for the
+        // state-machine variant — the host widget displays the
+        // dedicated delete-failure message verbatim. The typed
+        // ExpenseDeleteErrorType already drove the telemetry payload
+        // above.
+        errorType: ExpenseCreateErrorType.unknown,
+        message: _kMsgDeleteFailure,
+      );
+    }
+  }
+
+  /// Fires `expense_delete_initiated` (call from the dialog open
+  /// path). Public so the host widget can emit the event
+  /// before the typed `show()` await even though the controller does
+  /// not own the dialog instance.
+  void openDeleteDialog() => _emitDeleteInitiated();
+
+  /// Fires `expense_delete_cancelled` (call from the dialog cancel
+  /// path).
+  void cancelDeleteDialog() => _emitDeleteCancelled();
+
+  /// Returns the current draft from any non-terminal state, or null.
+  ExpenseDraft? _currentDraft() {
+    final s = state;
+    return switch (s) {
+      Editing(:final draft) => draft,
+      Saving(:final draft) => draft,
+      AddExpenseError(:final draft) => draft,
+      Success() => null,
+    };
+  }
+
   /// Closes the sheet. Emits the matching abandonment event if the
   /// user had populated any step-1 fields (or had advanced to step 2).
+  /// In edit mode, fires `expense_edit_abandoned` with the
+  /// `had_changes` flag instead of the create-mode events.
   void discard() {
     final s = state;
     if (s is! Editing) return;
     final draft = s.draft;
     final now = _clock();
+
+    if (isEditMode) {
+      final ms = now.difference(_step1OpenedAt).inMilliseconds;
+      _emitEditAbandoned(
+        hadChanges: _changedFields.isNotEmpty,
+        timeSpentMs: ms,
+      );
+      return;
+    }
 
     if (s.step == 2) {
       final openedAt = _step2OpenedAt ?? _step1OpenedAt;
@@ -515,6 +728,238 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
         return 'unknown';
     }
   }
+
+  // ---------------------------------------------------------------
+  // FR-EX-06 — edit/delete emit helpers (architect §2.6).
+  // ---------------------------------------------------------------
+
+  void _emitEditOpened() {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.editOpened,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramContextType: 'friend',
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitEditFieldChanged(String fieldName) {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.editFieldChanged,
+      parameters: <String, Object>{ExpenseTelemetry.paramFieldName: fieldName},
+    );
+  }
+
+  void _emitEditSaved({
+    required ExpenseDraft draft,
+    required Set<String> fieldsChanged,
+  }) {
+    // Stable order — toUpdateMap iterates the constants in insertion
+    // order, but the set's iteration order is the order of insertion
+    // by _markChanged. A sorted list keeps the analytics payload
+    // deterministic across runs.
+    final sorted = fieldsChanged.toList(growable: false)..sort();
+    _analytics.logEvent(
+      name: ExpenseTelemetry.editSaved,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramFieldsChanged: sorted.join(','),
+        ExpenseTelemetry.paramSplitMethod: draft.splitMethod.name,
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitEditFailed(ExpenseUpdateErrorType type) {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.editFailed,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramErrorCode: type.name,
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitEditAbandoned({
+    required bool hadChanges,
+    required int timeSpentMs,
+  }) {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.editAbandoned,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramHadChanges: hadChanges,
+        ExpenseTelemetry.paramTimeSpentMs: timeSpentMs,
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitDeleteInitiated() {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.deleteInitiated,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramContextType: 'friend',
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitDeleteConfirmed({required ExpenseDraft draft}) {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.deleteConfirmed,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramAmountPaise: draft.amountPaise,
+        ExpenseTelemetry.paramParticipantCount: 2,
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitDeleteCancelled() {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.deleteCancelled,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  void _emitDeleteFailed(ExpenseDeleteErrorType type) {
+    _analytics.logEvent(
+      name: ExpenseTelemetry.deleteFailed,
+      parameters: <String, Object>{
+        ExpenseTelemetry.paramErrorCode: type.name,
+        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
+        if (initialExpenseId != null)
+          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------
+  // FR-EX-06 — change-tracking (only meaningful in edit mode).
+  // ---------------------------------------------------------------
+
+  /// Marks `field` changed (or no-longer-changed) by comparing
+  /// [newValue] against the snapshot captured at construction.
+  ///
+  /// Transitions:
+  ///   - original-state → changed-state: add to `_changedFields` and
+  ///     emit `expense_edit_field_changed` ONCE.
+  ///   - changed-state → original-state (user reverted): remove from
+  ///     `_changedFields`; do NOT emit a new event (one-shot semantics
+  ///     per architect §2.6).
+  ///
+  /// No-op in create mode.
+  void _markChanged(String field, Object? newValue) {
+    if (!isEditMode || _originalSnapshot == null) return;
+    final original = _originalValueFor(field);
+    final isStillChanged = !_valuesEqual(field, newValue, original);
+    final wasChanged = _changedFields.contains(field);
+    if (isStillChanged && !wasChanged) {
+      _changedFields.add(field);
+      _emitEditFieldChanged(field);
+    } else if (!isStillChanged && wasChanged) {
+      _changedFields.remove(field);
+    }
+  }
+
+  /// Returns the original value for [field] from the captured snapshot.
+  /// Returns `null` if `_originalSnapshot` is null (defensive — the
+  /// caller always guards with `isEditMode`).
+  Object? _originalValueFor(String field) {
+    final snap = _originalSnapshot;
+    if (snap == null) return null;
+    switch (field) {
+      case ExpenseDoc.fieldAmountPaise:
+        return snap.amountPaise;
+      case ExpenseDoc.fieldDescription:
+        return snap.description;
+      case ExpenseDoc.fieldCategory:
+        return snap.category;
+      case ExpenseDoc.fieldDate:
+        return snap.date;
+      case ExpenseDoc.fieldPayerId:
+        return snap.payerId;
+      case ExpenseDoc.fieldSplits:
+        return snap.splits;
+      case ExpenseDoc.fieldSplitMethod:
+        return snap.splitMethod;
+    }
+    return null;
+  }
+
+  /// Field-aware equality used by `_markChanged`.
+  ///
+  /// - `date`: compares year/month/day only (the picker resets the
+  ///   time component to midnight, but the original may carry a
+  ///   server timestamp with non-zero time).
+  /// - `splits`: compares element-by-element on (userId, sharePaise).
+  /// - everything else: simple `==`.
+  bool _valuesEqual(String field, Object? a, Object? b) {
+    if (field == ExpenseDoc.fieldDate) {
+      if (a is! DateTime || b is! DateTime) return a == b;
+      return a.year == b.year && a.month == b.month && a.day == b.day;
+    }
+    if (field == ExpenseDoc.fieldSplits) {
+      if (a is! List<Split> || b is! List<Split>) return false;
+      return _splitsEqual(a, b);
+    }
+    return a == b;
+  }
+
+  bool _splitsEqual(List<Split> a, List<Split> b) {
+    if (a.length != b.length) return false;
+    // The list is canonicalised by `_computeShares` to follow the
+    // [currentUserUid, otherUserUid] order, and the original
+    // snapshot is captured in Firestore-write order. To make the
+    // comparison robust against any future reordering, key by
+    // userId before comparing.
+    final aBy = <String, int>{for (final s in a) s.userId: s.sharePaise};
+    final bBy = <String, int>{for (final s in b) s.userId: s.sharePaise};
+    if (aBy.length != bBy.length) return false;
+    for (final entry in aBy.entries) {
+      if (bBy[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
+}
+
+/// Captured-at-construction snapshot of the original [ExpenseDoc].
+/// Used by the controller to compute the changed-fields diff in
+/// edit mode without retaining the full doc in mutable state.
+@immutable
+class _OriginalSnapshot {
+  const _OriginalSnapshot({
+    required this.amountPaise,
+    required this.description,
+    required this.category,
+    required this.date,
+    required this.payerId,
+    required this.splits,
+    required this.splitMethod,
+  });
+
+  final int amountPaise;
+  final String description;
+  final ExpenseCategory category;
+  final DateTime date;
+  final String payerId;
+  final List<Split> splits;
+  final SplitMethod splitMethod;
 }
 
 /// Family provider keyed by friendship + user-pair tuple. The host
@@ -530,6 +975,8 @@ final addExpenseControllerProvider = StateNotifierProvider.autoDispose
         otherUserUid: args.otherUserUid,
         repository: ref.watch(expenseRepositoryProvider),
         analytics: ref.watch(analyticsServiceProvider),
+        initialExpense: args.initialExpense,
+        initialExpenseId: args.initialExpenseId,
       );
     });
 
@@ -541,6 +988,8 @@ class AddExpenseArgs {
     required this.friendshipId,
     required this.currentUserUid,
     required this.otherUserUid,
+    this.initialExpense,
+    this.initialExpenseId,
   });
 
   /// Friendship document ID (`uid-a_uid-b`).
@@ -552,15 +1001,25 @@ class AddExpenseArgs {
   /// Friend UID.
   final String otherUserUid;
 
+  /// When non-null, drives the controller into edit mode and seeds
+  /// the draft from this document. Pair with [initialExpenseId].
+  final ExpenseDoc? initialExpense;
+
+  /// Firestore document ID of the expense being edited. Required
+  /// alongside [initialExpense] to power update + soft-delete writes.
+  final String? initialExpenseId;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is AddExpenseArgs &&
         other.friendshipId == friendshipId &&
         other.currentUserUid == currentUserUid &&
-        other.otherUserUid == otherUserUid;
+        other.otherUserUid == otherUserUid &&
+        other.initialExpenseId == initialExpenseId;
   }
 
   @override
-  int get hashCode => Object.hash(friendshipId, currentUserUid, otherUserUid);
+  int get hashCode =>
+      Object.hash(friendshipId, currentUserUid, otherUserUid, initialExpenseId);
 }

@@ -633,4 +633,395 @@ void main() {
       controller.dispose();
     });
   });
+
+  // ===========================================================================
+  // FR-EX-06 — Edit mode
+  // ===========================================================================
+
+  group('AddExpenseController — edit mode', () {
+    const initialId = 'expense-id-edit-7';
+    final initial = ExpenseDoc(
+      id: initialId,
+      amountPaise: 50000, // ₹500
+      description: 'Original dinner',
+      category: ExpenseCategory.food,
+      date: DateTime(2025, 1, 15, 12, 30),
+      payerId: _currentUid,
+      splits: const [
+        Split(userId: _currentUid, sharePaise: 25000),
+        Split(userId: _friendUid, sharePaise: 25000),
+      ],
+      splitMethod: SplitMethod.equal,
+      createdBy: _currentUid,
+    );
+
+    AddExpenseController buildEditController({DateTime Function()? clock}) {
+      return AddExpenseController(
+        friendshipId: _friendshipId,
+        currentUserUid: _currentUid,
+        otherUserUid: _friendUid,
+        repository: repo,
+        analytics: analytics,
+        clock: clock ?? () => DateTime(2025, 6, 1, 10),
+        initialExpense: initial,
+        initialExpenseId: initialId,
+      );
+    }
+
+    test('isEditMode is true when initialExpense is provided', () {
+      final controller = buildEditController();
+      expect(controller.isEditMode, isTrue);
+      controller.dispose();
+    });
+
+    test('constructor pre-fills the draft from initialExpense', () {
+      final controller = buildEditController();
+      final state = controller.state as Editing;
+      expect(state.step, 1);
+      expect(state.draft.amountPaise, 50000);
+      expect(state.draft.description, 'Original dinner');
+      expect(state.draft.category, ExpenseCategory.food);
+      expect(state.draft.date, DateTime(2025, 1, 15, 12, 30));
+      expect(state.draft.splitMethod, SplitMethod.equal);
+      expect(state.draft.payerId, _currentUid);
+      controller.dispose();
+    });
+
+    test('constructor in edit mode fires expense_edit_opened with hashed '
+        'friendship_id_hash and expense_id_hash', () {
+      buildEditController();
+      expect(analytics.hasEvent(ExpenseTelemetry.editOpened), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.editOpened)!;
+      expect(params[ExpenseTelemetry.paramContextType], 'friend');
+      expect(
+        params[ExpenseTelemetry.paramFriendshipIdHash],
+        hashFriendshipId(_friendshipId),
+      );
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      // No raw IDs leaked
+      expect(
+        params.values.any((v) => v.toString().contains(_friendshipId)),
+        isFalse,
+      );
+      expect(
+        params.values.any((v) => v.toString().contains(initialId)),
+        isFalse,
+      );
+    });
+
+    test('constructor in edit mode does NOT fire expense_step1_opened', () {
+      buildEditController();
+      expect(analytics.hasEvent(ExpenseTelemetry.step1Opened), isFalse);
+    });
+
+    test('changedFields starts empty in edit mode', () {
+      final controller = buildEditController();
+      expect(controller.changedFields, isEmpty);
+      controller.dispose();
+    });
+
+    test('setAmount with the original value does NOT add amountPaise to '
+        'changedFields and does NOT fire expense_edit_field_changed', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.setAmount(50000); // same as original
+      expect(controller.changedFields, isEmpty);
+      expect(analytics.hasEvent(ExpenseTelemetry.editFieldChanged), isFalse);
+      controller.dispose();
+    });
+
+    test('setAmount with a different value adds amountPaise to changedFields '
+        'and fires expense_edit_field_changed once', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.setAmount(60000); // different
+      expect(controller.changedFields, contains(ExpenseDoc.fieldAmountPaise));
+      expect(analytics.countOf(ExpenseTelemetry.editFieldChanged), 1);
+      final params = analytics.lastParamsFor(
+        ExpenseTelemetry.editFieldChanged,
+      )!;
+      expect(
+        params[ExpenseTelemetry.paramFieldName],
+        ExpenseDoc.fieldAmountPaise,
+      );
+      // Updating again to a different new value does NOT re-emit.
+      controller.setAmount(70000);
+      expect(analytics.countOf(ExpenseTelemetry.editFieldChanged), 1);
+      controller.dispose();
+    });
+
+    test('flipping a field back to its original value removes it from '
+        'changedFields (and does NOT emit a second editFieldChanged)', () {
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      expect(controller.changedFields, contains(ExpenseDoc.fieldAmountPaise));
+      analytics.loggedEvents.clear();
+      controller.setAmount(50000); // back to original
+      expect(controller.changedFields, isEmpty);
+      expect(analytics.hasEvent(ExpenseTelemetry.editFieldChanged), isFalse);
+      controller.dispose();
+    });
+
+    test('setDate with same Y/M/D (different time) is NOT a change '
+        '(date-only equality)', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      // Same calendar date but earlier time-of-day.
+      controller.setDate(DateTime(2025, 1, 15));
+      expect(controller.changedFields, isEmpty);
+      expect(analytics.hasEvent(ExpenseTelemetry.editFieldChanged), isFalse);
+      controller.dispose();
+    });
+
+    test('setDate with a different day adds date to changedFields', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.setDate(DateTime(2025, 1, 16)); // next day
+      expect(controller.changedFields, contains(ExpenseDoc.fieldDate));
+      expect(analytics.countOf(ExpenseTelemetry.editFieldChanged), 1);
+      controller.dispose();
+    });
+
+    test('setCategory to a different value adds category to changedFields', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.setCategory(ExpenseCategory.travel);
+      expect(controller.changedFields, contains(ExpenseDoc.fieldCategory));
+      controller.dispose();
+    });
+
+    test('setDescription to a different trimmed value tracks the change', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.setDescription('A totally different meal');
+      expect(controller.changedFields, contains(ExpenseDoc.fieldDescription));
+      controller.dispose();
+    });
+
+    test('setPayerId to the other user adds payerId to changedFields '
+        '(after advancing to step 2)', () {
+      final controller = buildEditController();
+      controller.proceedToStep2();
+      analytics.loggedEvents.clear();
+      controller.setPayerId(_friendUid);
+      expect(controller.changedFields, contains(ExpenseDoc.fieldPayerId));
+      controller.dispose();
+    });
+
+    test(
+      'no-op guard: save() is a silent no-op when changedFields is empty',
+      () async {
+        final controller = buildEditController();
+        controller.proceedToStep2();
+        await controller.save();
+        expect(repo.updateCalled, isFalse);
+        expect(controller.state, isA<Editing>());
+        controller.dispose();
+      },
+    );
+
+    test('save() in edit mode calls ExpenseRepository.updateExpense with the '
+        'partial map shaped from changedFields', () async {
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      controller.proceedToStep2();
+      await controller.save();
+      expect(repo.updateCalled, isTrue);
+      expect(repo.updatedFriendshipId, _friendshipId);
+      expect(repo.updatedExpenseId, initialId);
+      // Only changed keys + updatedAt should be present.
+      final map = repo.updatedMap!;
+      expect(map.keys, containsAll([ExpenseDoc.fieldAmountPaise, 'updatedAt']));
+      // createdBy / createdAt are immutable per the rules; they must
+      // NEVER appear in the update map even if (hypothetically) added
+      // to changedFields.
+      expect(map.containsKey('createdBy'), isFalse);
+      expect(map.containsKey('createdAt'), isFalse);
+      expect(map[ExpenseDoc.fieldAmountPaise], 60000);
+      controller.dispose();
+    });
+
+    test('save() in edit mode transitions to Success(action: editSaved) with '
+        'the original expense id on the happy path', () async {
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      controller.proceedToStep2();
+      await controller.save();
+      final s = controller.state;
+      expect(s, isA<Success>());
+      expect((s as Success).expenseId, initialId);
+      expect(s.action, SuccessAction.editSaved);
+      controller.dispose();
+    });
+
+    test('save() in edit mode fires expense_edit_saved with fields_changed '
+        'and hashed IDs', () async {
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      controller.setDescription('Lunch upgrade');
+      controller.proceedToStep2();
+      await controller.save();
+      expect(analytics.hasEvent(ExpenseTelemetry.editSaved), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.editSaved)!;
+      expect(params[ExpenseTelemetry.paramFieldsChanged], isA<String>());
+      // Stable sort makes assertion deterministic.
+      final fields = (params[ExpenseTelemetry.paramFieldsChanged]! as String)
+          .split(',');
+      expect(
+        fields,
+        containsAll([ExpenseDoc.fieldAmountPaise, ExpenseDoc.fieldDescription]),
+      );
+      expect(
+        params[ExpenseTelemetry.paramFriendshipIdHash],
+        hashFriendshipId(_friendshipId),
+      );
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      controller.dispose();
+    });
+
+    test('save() in edit mode failure fires expense_edit_failed and '
+        'transitions to AddExpenseError', () async {
+      repo.throwUpdateError = const ExpenseUpdateError(
+        type: ExpenseUpdateErrorType.network,
+      );
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      controller.proceedToStep2();
+      await controller.save();
+      final s = controller.state;
+      expect(s, isA<AddExpenseError>());
+      expect(analytics.hasEvent(ExpenseTelemetry.editFailed), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.editFailed)!;
+      expect(params[ExpenseTelemetry.paramErrorCode], 'network');
+      controller.dispose();
+    });
+
+    test('discard() in edit mode fires expense_edit_abandoned with '
+        'had_changes:true and a non-negative time_spent_ms', () {
+      final clockTimes = <DateTime>[
+        DateTime(2025, 6, 1, 10),
+        DateTime(2025, 6, 1, 10, 0, 5), // 5 s later, used by discard()
+      ];
+      var i = 0;
+      DateTime clock() {
+        final idx = i.clamp(0, clockTimes.length - 1);
+        i++;
+        return clockTimes[idx];
+      }
+
+      final controller = buildEditController(clock: clock);
+      controller.setAmount(60000);
+      analytics.loggedEvents.clear();
+      controller.discard();
+      expect(analytics.hasEvent(ExpenseTelemetry.editAbandoned), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.editAbandoned)!;
+      expect(params[ExpenseTelemetry.paramHadChanges], isTrue);
+      expect(params[ExpenseTelemetry.paramTimeSpentMs], isA<int>());
+      expect(
+        params[ExpenseTelemetry.paramFriendshipIdHash],
+        hashFriendshipId(_friendshipId),
+      );
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      controller.dispose();
+    });
+
+    test('discard() in edit mode fires expense_edit_abandoned with '
+        'had_changes:false when no fields were changed', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.discard();
+      expect(analytics.hasEvent(ExpenseTelemetry.editAbandoned), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.editAbandoned)!;
+      expect(params[ExpenseTelemetry.paramHadChanges], isFalse);
+      controller.dispose();
+    });
+
+    test('discard() in edit mode does NOT fire expense_step1_abandoned or '
+        'expense_step2_abandoned', () {
+      final controller = buildEditController();
+      controller.setAmount(60000);
+      controller.proceedToStep2();
+      analytics.loggedEvents.clear();
+      controller.discard();
+      expect(analytics.hasEvent(ExpenseTelemetry.step1Abandoned), isFalse);
+      expect(analytics.hasEvent(ExpenseTelemetry.step2Abandoned), isFalse);
+      controller.dispose();
+    });
+
+    test('softDelete() calls ExpenseRepository.softDeleteExpense and '
+        'transitions to Success(action: deleted)', () async {
+      final controller = buildEditController();
+      await controller.softDelete();
+      expect(repo.deleteCalled, isTrue);
+      expect(repo.deletedFriendshipId, _friendshipId);
+      expect(repo.deletedExpenseId, initialId);
+      final s = controller.state;
+      expect(s, isA<Success>());
+      expect((s as Success).action, SuccessAction.deleted);
+      expect(s.expenseId, initialId);
+      controller.dispose();
+    });
+
+    test('softDelete() fires expense_delete_confirmed with amount_paise '
+        'and participant_count on success', () async {
+      final controller = buildEditController();
+      await controller.softDelete();
+      expect(analytics.hasEvent(ExpenseTelemetry.deleteConfirmed), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteConfirmed)!;
+      expect(params[ExpenseTelemetry.paramAmountPaise], 50000);
+      expect(params[ExpenseTelemetry.paramParticipantCount], 2);
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      controller.dispose();
+    });
+
+    test('softDelete() failure fires expense_delete_failed and transitions '
+        'to AddExpenseError', () async {
+      repo.throwDeleteError = const ExpenseDeleteError(
+        type: ExpenseDeleteErrorType.permissionDenied,
+      );
+      final controller = buildEditController();
+      await controller.softDelete();
+      final s = controller.state;
+      expect(s, isA<AddExpenseError>());
+      expect(analytics.hasEvent(ExpenseTelemetry.deleteFailed), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteFailed)!;
+      expect(params[ExpenseTelemetry.paramErrorCode], 'permissionDenied');
+      controller.dispose();
+    });
+
+    test('openDeleteDialog() fires expense_delete_initiated', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.openDeleteDialog();
+      expect(analytics.hasEvent(ExpenseTelemetry.deleteInitiated), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteInitiated)!;
+      expect(params[ExpenseTelemetry.paramContextType], 'friend');
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      controller.dispose();
+    });
+
+    test('cancelDeleteDialog() fires expense_delete_cancelled', () {
+      final controller = buildEditController();
+      analytics.loggedEvents.clear();
+      controller.cancelDeleteDialog();
+      expect(analytics.hasEvent(ExpenseTelemetry.deleteCancelled), isTrue);
+      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteCancelled)!;
+      expect(
+        params[ExpenseTelemetry.paramFriendshipIdHash],
+        hashFriendshipId(_friendshipId),
+      );
+      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
+      controller.dispose();
+    });
+
+    test(
+      'softDelete() is a no-op in create mode (no initialExpenseId)',
+      () async {
+        final controller = buildController(repo: repo, analytics: analytics);
+        await controller.softDelete();
+        expect(repo.deleteCalled, isFalse);
+        controller.dispose();
+      },
+    );
+  });
 }
