@@ -96,6 +96,32 @@ void main() {
       expect(violations, isEmpty, reason: violations.join('\n'));
     });
   });
+
+  group('expenses boundary contract — FR-EX-06 files exist', () {
+    test('expense_detail_screen.dart, expense_detail_provider.dart, '
+        'expense_update_error.dart, and expense_delete_error.dart are present '
+        'and therefore covered by the recursive walks above', () {
+      const expected = <String>[
+        'lib/features/expenses/presentation/expense_detail_screen.dart',
+        'lib/features/expenses/application/expense_detail_provider.dart',
+        'lib/features/expenses/domain/expense_update_error.dart',
+        'lib/features/expenses/domain/expense_delete_error.dart',
+      ];
+      final missing = <String>[
+        for (final path in expected)
+          if (!File(path).existsSync()) path,
+      ];
+      expect(
+        missing,
+        isEmpty,
+        reason:
+            'FR-EX-06 added these files; if any is missing, the FR-EX-06 '
+            'contract is broken and the boundary walks above are unable '
+            'to enforce paise / simplifiedBalances guarantees against '
+            'the new code paths.\nMissing: ${missing.join(', ')}',
+      );
+    });
+  });
 }
 
 bool _isCommentLine(String raw) {

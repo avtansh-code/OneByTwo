@@ -128,11 +128,11 @@ void main() {
   });
 
   group('Step 1 — initial render', () {
-    testWidgets('shows the step title "Add Expense (1/3)"', (tester) async {
+    testWidgets('shows the step title "Add Expense (1/2)"', (tester) async {
       await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Expense (1/3)'), findsOneWidget);
+      expect(find.text('Add Expense (1/2)'), findsOneWidget);
     });
 
     testWidgets('renders the eight FR-EX-08 category chips', (tester) async {
@@ -233,7 +233,7 @@ void main() {
 
   group('Step 1 → Step 2 transition', () {
     testWidgets(
-      'tapping Next advances to step 2 and shows "Add Expense (2/3)"',
+      'tapping Next advances to step 2 and shows "Add Expense (2/2)"',
       (tester) async {
         await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
         await tester.pumpAndSettle();
@@ -251,7 +251,7 @@ void main() {
         await tester.tap(find.widgetWithText(FilledButton, 'Next'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Add Expense (2/3)'), findsOneWidget);
+        expect(find.text('Add Expense (2/2)'), findsOneWidget);
       },
     );
 

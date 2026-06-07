@@ -39,8 +39,16 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
+    // FR-EX-06: in edit mode the CTA is additionally gated by
+    // changedFields.isNotEmpty so an unchanged edit cannot trigger
+    // a no-op write (the controller has the load-bearing guard).
+    final hasChanges =
+        !controller.isEditMode || controller.changedFields.isNotEmpty;
     final canSave =
-        !isSaving && (errors?['splits'] == null) && draft.amountPaise > 0;
+        !isSaving &&
+        (errors?['splits'] == null) &&
+        draft.amountPaise > 0 &&
+        hasChanges;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -4,15 +4,15 @@ import 'package:intl/intl.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
+import 'package:onebytwo/features/expenses/presentation/expense_detail_screen.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
 /// Intermixed expense + settlement timeline rendered below the header.
 ///
-/// Up to 5 rows per the SCR-11 spec. Tap on an expense row is a
-/// deliberate no-op for PR #42 — FR-EX-06 owns the edit / delete flow.
-/// Tap on a settlement row is also a no-op until a future PR introduces
-/// the settlement detail screen.
+/// Up to 5 rows per the SCR-11 spec. Tap on an expense row pushes the
+/// [ExpenseDetailScreen] (FR-EX-06). Tap on a settlement row is a
+/// no-op until a future PR introduces the settlement detail screen.
 ///
 /// All paise → INR conversion goes through [formatInrFromPaise]
 /// (Invariant 1).
@@ -20,7 +20,9 @@ class FriendDetailTimelineWidget extends StatelessWidget {
   /// Creates a [FriendDetailTimelineWidget].
   const FriendDetailTimelineWidget({
     required this.timeline,
+    required this.friendshipId,
     required this.currentUserUid,
+    required this.otherUserUid,
     required this.friendDisplayName,
     super.key,
   });
@@ -28,8 +30,15 @@ class FriendDetailTimelineWidget extends StatelessWidget {
   /// The list of events to render, in display order (already date-desc).
   final List<FriendDetailTimelineEvent> timeline;
 
+  /// Friendship document ID (`uid-a_uid-b`).
+  final String friendshipId;
+
   /// The current user's UID — used to label the share line on expense rows.
   final String currentUserUid;
+
+  /// The friend's UID — threaded into the expense detail screen so it
+  /// can host the edit / delete sheet.
+  final String otherUserUid;
 
   /// The friend's display name — used in the payer label.
   final String friendDisplayName;
@@ -48,7 +57,9 @@ class FriendDetailTimelineWidget extends StatelessWidget {
           case TimelineExpense(:final doc):
             return _ExpenseRow(
               doc: doc,
+              friendshipId: friendshipId,
               currentUserUid: currentUserUid,
+              otherUserUid: otherUserUid,
               friendDisplayName: friendDisplayName,
             );
           case TimelineSettlement(:final doc):
@@ -66,12 +77,16 @@ class FriendDetailTimelineWidget extends StatelessWidget {
 class _ExpenseRow extends StatelessWidget {
   const _ExpenseRow({
     required this.doc,
+    required this.friendshipId,
     required this.currentUserUid,
+    required this.otherUserUid,
     required this.friendDisplayName,
   });
 
   final ExpenseDoc doc;
+  final String friendshipId;
   final String currentUserUid;
+  final String otherUserUid;
   final String friendDisplayName;
 
   @override
@@ -90,9 +105,7 @@ class _ExpenseRow extends StatelessWidget {
         : 'you borrowed ${formatInrFromPaise(mySplit.sharePaise)}';
 
     return InkWell(
-      onTap: () {
-        // No-op for PR #42. FR-EX-06 will own the edit / delete flow.
-      },
+      onTap: doc.id == null ? null : () => _openExpenseDetail(context, doc.id!),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
@@ -139,6 +152,19 @@ class _ExpenseRow extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openExpenseDetail(BuildContext context, String expenseId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ExpenseDetailScreen(
+          friendshipId: friendshipId,
+          expenseId: expenseId,
+          currentUserUid: currentUserUid,
+          otherUserUid: otherUserUid,
         ),
       ),
     );
