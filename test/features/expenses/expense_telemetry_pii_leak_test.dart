@@ -53,6 +53,17 @@ class FakeExpenseRepository implements ExpenseRepository {
   String returnExpenseId = _piiExpenseId;
   bool called = false;
 
+  // FR-EX-06 hooks — exercised by the new PII guard tests.
+  ExpenseUpdateError? throwUpdateError;
+  ExpenseDeleteError? throwDeleteError;
+  bool updateCalled = false;
+  bool deleteCalled = false;
+  String? capturedUpdateFriendshipId;
+  String? capturedUpdateExpenseId;
+  Map<String, dynamic>? capturedUpdateMap;
+  String? capturedDeleteFriendshipId;
+  String? capturedDeleteExpenseId;
+
   @override
   Future<String> createExpense({
     required String friendshipId,
@@ -63,6 +74,34 @@ class FakeExpenseRepository implements ExpenseRepository {
       throw throwError!;
     }
     return returnExpenseId;
+  }
+
+  @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    updateCalled = true;
+    capturedUpdateFriendshipId = friendshipId;
+    capturedUpdateExpenseId = expenseId;
+    capturedUpdateMap = updates;
+    if (throwUpdateError != null) {
+      throw throwUpdateError!;
+    }
+  }
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    deleteCalled = true;
+    capturedDeleteFriendshipId = friendshipId;
+    capturedDeleteExpenseId = expenseId;
+    if (throwDeleteError != null) {
+      throw throwDeleteError!;
+    }
   }
 
   @override

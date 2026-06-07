@@ -36,6 +36,18 @@ class FakeExpenseRepository implements ExpenseRepository {
   Exception? throwUnknown;
   bool called = false;
 
+  // FR-EX-06 hooks — populated by the edit-mode test groups.
+  String? updatedFriendshipId;
+  String? updatedExpenseId;
+  Map<String, dynamic>? updatedMap;
+  ExpenseUpdateError? throwUpdateError;
+  bool updateCalled = false;
+
+  String? deletedFriendshipId;
+  String? deletedExpenseId;
+  ExpenseDeleteError? throwDeleteError;
+  bool deleteCalled = false;
+
   @override
   Future<String> createExpense({
     required String friendshipId,
@@ -51,6 +63,34 @@ class FakeExpenseRepository implements ExpenseRepository {
       throw throwUnknown!;
     }
     return returnExpenseId;
+  }
+
+  @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    updateCalled = true;
+    updatedFriendshipId = friendshipId;
+    updatedExpenseId = expenseId;
+    updatedMap = updates;
+    if (throwUpdateError != null) {
+      throw throwUpdateError!;
+    }
+  }
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    deleteCalled = true;
+    deletedFriendshipId = friendshipId;
+    deletedExpenseId = expenseId;
+    if (throwDeleteError != null) {
+      throw throwDeleteError!;
+    }
   }
 
   @override

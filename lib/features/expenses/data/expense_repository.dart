@@ -2,16 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart'
     show firebaseFirestoreProvider;
-import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_create_error.dart';
+import 'package:onebytwo/features/expenses/domain/expense_delete_error.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
-import 'package:onebytwo/features/expenses/domain/split_method.dart';
+import 'package:onebytwo/features/expenses/domain/expense_update_error.dart';
 
-// Re-export the typed error from the domain layer so callers may
-// import either path. The architect notes group the error type with
+// Re-export the typed errors from the domain layer so callers may
+// import either path. The architect notes group the error types with
 // the repository file; the domain location is the canonical
 // definition.
 export 'package:onebytwo/features/expenses/domain/expense_create_error.dart';
+export 'package:onebytwo/features/expenses/domain/expense_delete_error.dart';
+export 'package:onebytwo/features/expenses/domain/expense_update_error.dart';
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -30,6 +32,25 @@ abstract class ExpenseStore {
   Future<String> addExpense({
     required String friendshipId,
     required Map<String, dynamic> data,
+  });
+
+  /// Applies a partial update at
+  /// `friendships/{friendshipId}/expenses/{expenseId}`. The caller is
+  /// responsible for shaping [updates] correctly (FR-EX-06 uses
+  /// `ExpenseDoc.toUpdateMap` to produce the partial map).
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  });
+
+  /// Marks the expense at
+  /// `friendships/{friendshipId}/expenses/{expenseId}` as deleted by
+  /// flipping `deleted: true` + refreshing `updatedAt`. Implemented as
+  /// a convenience wrapper over [updateExpense].
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
   });
 
   /// Watches the most-recent non-deleted expenses for [friendshipId],
@@ -68,6 +89,30 @@ class FirestoreExpenseStore implements ExpenseStore {
   }
 
   @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    await _expensesCollection(friendshipId).doc(expenseId).update(updates);
+  }
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    await updateExpense(
+      friendshipId: friendshipId,
+      expenseId: expenseId,
+      updates: <String, dynamic>{
+        'deleted': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+    );
+  }
+
+  @override
   Stream<List<ExpenseDoc>> watchExpensesByFriendship({
     required String friendshipId,
     required int limit,
@@ -85,68 +130,15 @@ class FirestoreExpenseStore implements ExpenseStore {
         );
   }
 
+  /// Thin shim that adapts a [QueryDocumentSnapshot] to the shared
+  /// [ExpenseDoc.fromMap] parser (architect §2.9 item 6). Both the
+  /// watch stream and the new `expenseDetailProvider` consume the
+  /// same parsing logic — typos in one path cannot diverge from the
+  /// other.
   static ExpenseDoc? _parseExpense(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) {
-    final data = doc.data();
-
-    final amountPaise = data['amountPaise'];
-    final description = data['description'];
-    final categoryName = data['category'];
-    final dateRaw = data['date'];
-    final payerId = data['payerId'];
-    final splitsRaw = data['splits'];
-    final splitMethodName = data['splitMethod'];
-    final createdBy = data['createdBy'];
-
-    if (amountPaise is! int ||
-        description is! String ||
-        categoryName is! String ||
-        payerId is! String ||
-        splitsRaw is! List ||
-        splitMethodName is! String ||
-        createdBy is! String) {
-      return null;
-    }
-
-    DateTime? date;
-    if (dateRaw is Timestamp) {
-      date = dateRaw.toDate();
-    } else if (dateRaw is DateTime) {
-      date = dateRaw;
-    } else {
-      return null;
-    }
-
-    final category = ExpenseCategory.values.firstWhere(
-      (c) => c.name == categoryName,
-      orElse: () => ExpenseCategory.other,
-    );
-
-    final splitMethod = SplitMethod.values.firstWhere(
-      (m) => m.name == splitMethodName,
-      orElse: () => SplitMethod.equal,
-    );
-
-    final splits = <Split>[];
-    for (final raw in splitsRaw) {
-      if (raw is! Map) return null;
-      final userId = raw['userId'];
-      final sharePaise = raw['sharePaise'];
-      if (userId is! String || sharePaise is! int) return null;
-      splits.add(Split(userId: userId, sharePaise: sharePaise));
-    }
-
-    return ExpenseDoc(
-      amountPaise: amountPaise,
-      description: description,
-      category: category,
-      date: date,
-      payerId: payerId,
-      splits: splits,
-      splitMethod: splitMethod,
-      createdBy: createdBy,
-    );
+    return ExpenseDoc.fromMap(doc.id, doc.data());
   }
 }
 
@@ -164,7 +156,8 @@ class FirestoreExpenseStore implements ExpenseStore {
 /// by the `onExpenseWriteFriendship` Cloud Function.
 ///
 /// FR-FR-04 added the read-side [watchExpensesByFriendship] which powers
-/// the Friend Detail screen's timeline.
+/// the Friend Detail screen's timeline. FR-EX-06 adds [updateExpense]
+/// and [softDeleteExpense] for the edit / delete flow.
 class ExpenseRepository {
   /// Creates an [ExpenseRepository].
   ExpenseRepository({required ExpenseStore store}) : _store = store;
@@ -199,6 +192,66 @@ class ExpenseRepository {
     }
   }
 
+  /// Applies a partial update to the expense at
+  /// `friendships/{friendshipId}/expenses/{expenseId}`. [updates] is
+  /// the partial map produced by `ExpenseDoc.toUpdateMap` (or the
+  /// caller). Maps [FirebaseException]s to [ExpenseUpdateError] per
+  /// architect §2.3.
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    try {
+      await _store.updateExpense(
+        friendshipId: friendshipId,
+        expenseId: expenseId,
+        updates: updates,
+      );
+    } on FirebaseException catch (e, st) {
+      throw ExpenseUpdateError(
+        type: _mapUpdateCode(e.code),
+        underlying: e,
+        stackTrace: st,
+      );
+    } catch (e, st) {
+      throw ExpenseUpdateError(
+        type: ExpenseUpdateErrorType.unknown,
+        underlying: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Soft-deletes the expense at
+  /// `friendships/{friendshipId}/expenses/{expenseId}` by setting
+  /// `deleted: true` (the document remains for audit / undelete).
+  /// Maps [FirebaseException]s to [ExpenseDeleteError] per architect
+  /// §2.3.
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    try {
+      await _store.softDeleteExpense(
+        friendshipId: friendshipId,
+        expenseId: expenseId,
+      );
+    } on FirebaseException catch (e, st) {
+      throw ExpenseDeleteError(
+        type: _mapDeleteCode(e.code),
+        underlying: e,
+        stackTrace: st,
+      );
+    } catch (e, st) {
+      throw ExpenseDeleteError(
+        type: ExpenseDeleteErrorType.unknown,
+        underlying: e,
+        stackTrace: st,
+      );
+    }
+  }
+
   /// Watches the most-recent non-deleted expenses for [friendshipId],
   /// ordered by `date` descending and capped at [limit] (default 5).
   /// Powers the Friend Detail screen's timeline.
@@ -220,6 +273,35 @@ class ExpenseRepository {
         return ExpenseCreateErrorType.network;
       default:
         return ExpenseCreateErrorType.unknown;
+    }
+  }
+
+  ExpenseUpdateErrorType _mapUpdateCode(String code) {
+    switch (code) {
+      case 'permission-denied':
+        return ExpenseUpdateErrorType.permissionDenied;
+      case 'not-found':
+        return ExpenseUpdateErrorType.notFound;
+      case 'unavailable':
+        return ExpenseUpdateErrorType.network;
+      case 'invalid-argument':
+      case 'failed-precondition':
+        return ExpenseUpdateErrorType.validationFailed;
+      default:
+        return ExpenseUpdateErrorType.unknown;
+    }
+  }
+
+  ExpenseDeleteErrorType _mapDeleteCode(String code) {
+    switch (code) {
+      case 'permission-denied':
+        return ExpenseDeleteErrorType.permissionDenied;
+      case 'not-found':
+        return ExpenseDeleteErrorType.notFound;
+      case 'unavailable':
+        return ExpenseDeleteErrorType.network;
+      default:
+        return ExpenseDeleteErrorType.unknown;
     }
   }
 }

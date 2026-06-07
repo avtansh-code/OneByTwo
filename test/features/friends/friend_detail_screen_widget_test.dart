@@ -137,6 +137,25 @@ class FakeExpenseRepository implements ExpenseRepository {
   }
 
   @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {
+    // FR-EX-06 surface — friend_detail_screen tests don't exercise
+    // the edit flow directly; the dedicated expense_detail_screen
+    // tests own that.
+  }
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {
+    // Same as above.
+  }
+
+  @override
   Stream<List<ExpenseDoc>> watchExpensesByFriendship({
     required String friendshipId,
     int limit = 5,
