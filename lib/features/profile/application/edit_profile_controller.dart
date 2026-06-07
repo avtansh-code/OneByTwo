@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
-import 'package:onebytwo/features/auth/data/image_picker_service.dart';
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 
