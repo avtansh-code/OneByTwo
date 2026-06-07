@@ -565,6 +565,411 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
 
 ## Architect Notes
 
-> _To be appended in Phase 2 by the Architect agent. See
-> `docs/copilot_prompts/sprint_2/14.md` Phase 2 (§2.1–§2.9) for the
-> ratification checklist._
+> Appended for the FR-EX-07 activity-feed write-side PR. These notes
+> ratify the design decisions taken before implementation begins.
+> References: `docs/copilot_prompts/sprint_2/14.md`,
+> `.github/shared/invariants.md`, `.github/shared/decision-log.md`
+> (ADR-0001 simplified debts; ADR-0002 paise integers; ADR-0011 Cloud
+> Functions test-pyramid layers; ADR-0013 PII / telemetry hashing).
+
+### 2.1 — Trigger placement
+
+**RATIFY: activity-write runs AFTER the successful `recomputeAndWrite`
+branch.**
+
+The hand-off seam at `functions/src/triggers/on-expense-write/function.ts:160-169`
+already documents the canonical placement: "these MUST run only after
+a successful recompute". The activity-write call lives immediately
+before the final `simplified_debts_compute_completed` log line at
+`function.ts:242` (i.e. inside the success branch, after the typed
+`result.ok` check has narrowed). On `recomputeAndWrite` failure (any
+`result.ok === false` path OR a thrown INTERNAL), NO activity items
+are written; the retry on the next trigger invocation handles both
+the recompute AND the activity-write together.
+
+The activity-write itself runs as a SEPARATE Firestore write (NOT
+inside the `recomputeAndWrite` transaction). Rationale:
+
+- The activity write is per-member (`memberIds.length` separate
+  documents, one per member's subcollection), targeting a different
+  collection (`activity/**` vs `friendships/**`).
+- Bundling them into the same Firestore transaction would force the
+  rollback-on-failure semantics onto activity-write failures that
+  should be retried independently — and Firestore transactions cannot
+  span the `friendships/{fid}` document and `activity/{uidA}/items/{auto-id}`
+  + `activity/{uidB}/items/{auto-id}` writes anyway without lifting
+  the transaction to a multi-document `runTransaction` with explicit
+  reads of all three documents first (TOCTOU is not a concern here
+  because activity items are append-only and have no prior state).
+- Keeping the activity-write outside the recompute transaction means
+  a transient activity-write failure does NOT roll back the recompute,
+  which is the correct posture: the balance state is more critical
+  than the feed entry, and the feed entry can be retried independently
+  via the orphan-reconciliation mechanism (FUTURE work).
+
+### 2.2 — Activity-writer module extraction
+
+**RATIFY: extract to `functions/src/triggers/on-expense-write/activity-writer.ts`.**
+
+The trigger handler imports `writeExpenseActivity(...)` and calls it
+from the success branch; the writer is independently unit-testable
+with mocked Firestore. The symmetric extraction in the follow-on PR
+(settlement-trigger activity emission, paired with FR-AC-01 client
+SCR-25) will REUSE the same `activity-writer.ts` module — only the
+sibling `payload-builder.ts` will be specialised per trigger source.
+
+The activity-writer module exposes ONE public entry point:
+
+```typescript
+export async function writeExpenseActivity(
+  deps: { db: FirebaseFirestore.Firestore; logger: Logger },
+  request: {
+    friendshipId: string;
+    expenseId: string;
+    eventType: ActivityItemType;
+    payload: ActivityPayload;
+    memberIds: readonly string[];
+  },
+): Promise<ActivityEmissionResult>;
+```
+
+Returns a typed `ActivityEmissionResult` so the trigger handler can
+log `activity_emission_completed` with the per-member outcomes. The
+writer NEVER rethrows — per-member write failures are caught and
+contained inside the writer's own try/catch (per §2.9 item 2).
+
+### 2.3 — Activity-writer API surface
+
+New file `functions/src/triggers/on-expense-write/activity-writer.ts`:
+
+- **`ActivityItemType` literal union**: `'expense_added' | 'expense_edited' | 'expense_deleted'`.
+  The broader schema enumeration (`'settlement'`, `'group_change'`)
+  is FUTURE; this PR ships only the three expense-side discriminators.
+- **`ActivityPayload` discriminated union** with the per-type shape
+  ratified in §2.6 below.
+- **`ActivityEmissionResult`** — typed return value:
+  ```typescript
+  type ActivityEmissionResult = {
+    membersSucceeded: number;
+    membersFailed: number;
+  };
+  ```
+- **`writeExpenseActivity(deps, request)`** — writes to both
+  `activity/{memberIds[i]}/items/{auto-id}` in parallel via
+  `Promise.allSettled` (NOT `Promise.all`; the `allSettled` semantics
+  guarantee one member's failure does NOT short-circuit the other
+  member's write). Logs structured `activity_item_written` per
+  successful write with the hashed identifiers and `eventType`; logs
+  `activity_item_write_failed` per failure with the error code; logs
+  `activity_emission_completed` ONCE summarising the outcomes.
+
+### 2.4 — `activity_*` structured-log event names
+
+Three new event constants (per the SRS section 5.10 telemetry funnel,
+extended by this PR):
+
+| Event | Parameters | When |
+|---|---|---|
+| `activity_item_written` | `contextType: 'friendship'`, `contextIdHash`, `expenseIdHash`, `authorUidHash`, `recipientUidHash`, `eventType`, `payloadSizeBytes` | Per successful per-member write |
+| `activity_item_write_failed` | Same as above PLUS `errorCode: string` | Per failed per-member write |
+| `activity_emission_completed` | `contextType`, `contextIdHash`, `expenseIdHash`, `eventType`, `membersSucceeded`, `membersFailed` | Once per trigger invocation |
+
+ALL hash parameters are SHA-256-truncated via the existing
+`functions/src/utils/id-hash.ts` `hashId()` helper. The
+`payloadSizeBytes` value is a defence-in-depth log of the document
+size; an unexpectedly large payload would indicate a programmer error
+or a malformed source document, and a Cloud Logging dashboard alarm
+can be set on the metric.
+
+The PII guard in `activity-writer.test.ts` asserts that NO raw UID
+(neither member UID, nor the composite friendship ID, nor the expense
+ID, nor the payload description) appears in any log line — symmetric
+with the PII guard in the existing `function.test.ts`.
+
+### 2.5 — Idempotency strategy
+
+**RATIFY: (b) stale-event drop — activity-write inherits the existing
+trigger's stale-event guard.**
+
+The activity-write is gated by the same `recomputeAndWrite` success
+branch that already drops stale events at `function.ts:140-157` (the
+7-day window). The activity-writer does NOT need its own deterministic
+ID scheme; the auto-generated `itemId` is the canonical contract per
+schema doc line 196.
+
+The idempotency guarantee is:
+
+> If the trigger fires for an event the handler has already processed
+> (i.e. the event is OLDER than the 7-day stale-event window), the
+> activity-write does not fire either — symmetric with the existing
+> `simplifiedBalances` recompute. For in-window redeliveries (within
+> the 7-day window), the activity-write DOES re-fire and may
+> duplicate items, which is acceptable v1.0 behaviour.
+
+This is a weaker guarantee than full deduplication. The full-dedup
+alternatives considered:
+
+1. **Deterministic item IDs (e.g. `{eid}-{type}-{member}`):** rejected
+   because the schema doc explicitly says `itemId` is auto-generated
+   (line 196). Changing the contract to deterministic IDs would
+   require a schema-doc update AND would prevent the client from ever
+   using the auto-ID auto-sort behaviour Firestore offers. Future work
+   if observed in production; not bundled.
+2. **Per-item Firestore transaction with marker-field check:**
+   rejected because it doubles the Firestore read cost per emission
+   for a hypothetical concern that has not been observed in the
+   recompute path either.
+3. **Per-trigger-invocation `eventId` check in a separate
+   `_processedEvents` collection:** rejected as architecturally
+   intrusive — introduces a new collection just for the activity-feed
+   path; symmetry with the rest of the trigger's posture is better
+   maintained by the current architecture.
+
+Future work: if in-window duplicate items are observed in production,
+file an issue for the full-dedup mechanism (deterministic IDs being
+the simplest path).
+
+### 2.6 — Payload schema per event type
+
+**RATIFY: discriminated-union payload with per-type required fields.**
+
+The schema doc at `docs/design/07-technical/firestore-schema.md` lines
+194-211 specifies `payload: map` deliberately schemaless to absorb
+future event types without migration. The architect-ratified
+discriminator-specific shapes for the three expense-side events:
+
+#### `expense_added` payload
+
+```typescript
+{
+  expenseId: string;
+  friendshipId: string;
+  description: string;
+  amountPaise: number;       // integer (Invariant 1 preserved)
+  category: string;
+  payerId: string;
+  splits: Array<{ userId: string; sharePaise: number }>;
+  splitMethod: string;
+  hasReceipt: boolean;        // !!receiptUrl
+  authorUid: string;          // == createdBy of the source expense
+}
+```
+
+NOTE: the `createdAt` field is a sibling at the top level (NOT inside
+`payload`) and is written via `FieldValue.serverTimestamp()` so the
+SCR-25 reverse-chronological ordering uses the Firestore-server clock
+(authoritative) rather than the trigger's `event.time` (per the schema
+doc's single-field descending index on `createdAt`).
+
+NOTE: `simplifiedBalances` is NOT in the payload — the SCR-25 row
+reads `share` for the recipient from `splits[recipient]` and displays
+the rupee value; the simplified balance is the FriendDetail screen's
+job. Keeping the payload focused on the source-of-truth fields means
+the client never has to reconcile an out-of-sync `simplifiedBalances`
+snapshot embedded inside an activity item.
+
+#### `expense_edited` payload
+
+Same as `expense_added` PLUS:
+
+```typescript
+{
+  ...expenseAddedFields,
+  changedFields: string[];   // the field names that differ between change.before and change.after
+}
+```
+
+The `changedFields` array is computed inside the payload-builder by a
+symmetric algorithm to the client-side `AddExpenseController._changedFields`
+shipped in PR #46. Receipt-only updates yield `changedFields: ['receiptUrl']`
+(per AC-2 and the SCR-25 spec at lines 305-307, a receipt-only edit
+IS an `expense_edited` event).
+
+#### `expense_deleted` payload
+
+```typescript
+{
+  expenseId: string;
+  friendshipId: string;
+  description: string;         // captured from change.before snapshot
+  amountPaise: number;         // captured from change.before snapshot
+  category: string;            // captured from change.before snapshot
+  authorUid: string;           // == createdBy of the pre-delete snapshot
+  deletedAt: Timestamp;        // server timestamp at write time
+}
+```
+
+The snapshot fields are captured from `change.before.data()` so the
+SCR-25 row can render the description even if the expense document is
+hard-deleted in some future cleanup. The payload is intentionally
+slimmer than `expense_added` — splits, payer, splitMethod etc. are
+omitted because the deleted-state row in SCR-25 only needs the
+description + amount + colour-coded "deleted" badge.
+
+### 2.7 — Files to touch (exhaustive — anything outside this set is scope creep)
+
+- **NEW** `docs/sprint-zero/stories/FR-EX-07-activity-feed-write-side.md`
+  — this story (Phase 1).
+- `firestore.rules` — add the `activity/{userId}/items/{itemId}`
+  predicate block.
+- `functions/src/triggers/on-expense-write/function.ts` — extend the
+  success branch with the `writeExpenseActivity(...)` call.
+- **NEW** `functions/src/triggers/on-expense-write/activity-writer.ts`
+  — `ActivityItemType`, `ActivityPayload`, `ActivityEmissionResult`,
+  `writeExpenseActivity`, structured-log event constants.
+- **NEW** `functions/src/triggers/on-expense-write/payload-builder.ts`
+  — pure function `buildExpenseActivityPayload(changeType, before,
+  after)` returning the typed `ActivityPayload`. Extracted so the
+  unit tests can exercise the mapping without spinning up Firestore.
+- **NEW** `functions/src/triggers/on-expense-write/activity-validator.ts`
+  — `validateActivityPayload(type, payload)` runtime guard. NOT
+  placed under `functions/src/schema-validators.ts` because no such
+  module exists today (the existing codebase has no top-level
+  validator module); co-locating with the activity-writer keeps the
+  feature-first folder layout consistent.
+- **NEW** `functions/test/firestore-rules/activity.test.ts` — 12+
+  tests covering AC-6 through AC-12 plus the read-with-seeded-item
+  happy path.
+- **NEW** `functions/test/triggers/on-expense-write/activity-writer.test.ts`
+  — 8+ tests covering AC-1 through AC-5 + AC-13 + per-event-type
+  payload shape verification + the PII guard.
+- **NEW** `functions/test/triggers/on-expense-write/payload-builder.test.ts`
+  — per-event-type mapping verification; pure function; no Firebase
+  admin needed.
+- **NEW** `functions/test/triggers/on-expense-write/activity-validator.test.ts`
+  — runtime guard unit tests (valid payload accepted; missing field
+  rejected; wrong type rejected).
+- `functions/test/triggers/on-expense-write/function.test.ts` — EXTEND
+  with assertions that the activity-writer is invoked from the
+  trigger on the success branch and NOT invoked on the stale-event-
+  drop or CONTEXT_NOT_FOUND branches.
+- `functions/test/integration/on-expense-write.integration.test.ts`
+  — EXTEND with 3 new round-trip tests per AC-17 (create → both
+  members read; edit → both members read; soft-delete → both members
+  read).
+- **NEW** `functions/test/boundary-contracts/no-double-on-money-fields.test.ts`
+  — Functions-side boundary-contract grep against `.toDouble()`,
+  `parseFloat`, `Number.parseFloat`, `/100`, `/100.0`,
+  float-typed monetary field declarations across
+  `functions/src/**/*.ts`. Returns 0 violations.
+- `docs/sprint-zero/sprint-2-plan.md` — PR #51 row (5 SP; cumulative
+  55 SP / 15 PRs).
+- `docs/sprint-zero/next-three-prs.md` — roll PR #51 to merged; PR
+  #52 / #53 / #54 candidates.
+- `docs/audits/sprint-1/07-bucket-b-burndown.md` — close R5a
+  (activity-rules half); remaining drops by 1.
+
+### 2.8 — Files explicitly NOT to touch (negative scope guardrails)
+
+- `firestore.indexes.json` — no new composite indexes; the single-field
+  descending index on `createdAt` auto-creates per schema doc line 266.
+- `functions/src/triggers/on-settlement-write/function.ts` —
+  settlement-trigger activity emission is a follow-on PR (paired with
+  FR-AC-01 client read-side). If this PR touches the settlement trigger
+  the orchestrator REFUSES.
+- `lib/**` — server-only PR; client SCR-25 surface ships with the
+  FR-AC-01 follow-on PR. The FR-EX-06 client edit / delete UI shipped
+  in PR #46 is unchanged.
+- `storage.rules` — PR #48 closed; no Storage surface in this PR.
+- `pubspec.yaml` / `pubspec.lock` / `analysis_options.yaml` / Android /
+  iOS native shells — no client diff.
+- `functions/package.json` / `functions/package-lock.json` /
+  `firebase.json` / `.github/workflows/*.yml` — no new dependencies,
+  no workflow change. The new rules tests + integration tests run in
+  the existing dedicated emulator sessions.
+- `lib/features/expenses/**`, `lib/features/friends/**`,
+  `lib/features/settlements/**` — no client diff.
+- `docs/design/07-technical/firestore-schema.md` — the
+  `activity/{userId}/items/{itemId}` row at lines 194-211 is the
+  canonical contract this PR IMPLEMENTS; the schema doc is unchanged.
+
+### 2.9 — Anticipated reconciliations
+
+1. **Firestore.rules path syntax.** The
+   `match /activity/{userId}/items/{itemId}` nested path requires the
+   parent `match /activity/{userId}` block to ALSO have an explicit
+   default-deny on read/write (else the parent doc reads are unguarded
+   — the documentation default-deny at the top of `firestore.rules`
+   catches it, but defence-in-depth is cheap). Verified against the
+   emulator by AC-12's parent-doc read test. The canonical posture
+   matches the existing `users/{userId}` block pattern.
+
+2. **Trigger handler error containment.** The
+   `await writeExpenseActivity(...)` call MUST NOT rethrow the
+   activity-write failure into the trigger's success branch (else a
+   transient activity-write failure would mark the entire trigger
+   invocation as failed and Cloud Functions would retry — which would
+   re-run the recompute AND re-attempt the activity-write, duplicating
+   the activity items on the successful members). The activity-writer
+   wraps its own try/catch around each per-member write via
+   `Promise.allSettled` semantics and logs the failure structured-log
+   event; the trigger sees a clean return value either way. The
+   activity-writer's RETURN value (`{membersSucceeded, membersFailed}`)
+   is used ONLY for the `activity_emission_completed` summary log; no
+   conditional control flow.
+
+3. **Orphan activity items.** A member-write failure where the other
+   member's write succeeded leaves an asymmetric activity feed. v1.0
+   acceptable per the trigger-error-containment posture (§2.9 item 2).
+   Future work would file a reconciliation function similar to the
+   orphan-receipts cleanup (issue #49 precedent). FILE AS AN ISSUE
+   ONLY IF OBSERVED in production — speculative reconciliation
+   infrastructure has been historically overengineered in this
+   codebase.
+
+4. **Receipt-only update fires `expense_edited`.** Per AC-2 and the
+   SCR-25 spec at lines 305-307, a receipt attach / replace / remove
+   IS recorded as an `expense_edited` activity item with
+   `changedFields: ['receiptUrl']`. This is consistent with the
+   PR-#48-shipped trigger behaviour — the trigger fires on every
+   update regardless of which field changed, and the activity feed
+   reflects the user-visible change. EXPLICITLY: issue #50 (trigger
+   no-op-recompute optimisation that would skip the recompute on
+   receipt-only updates) CANNOT be closed by this PR — closing it
+   would BREAK FR-EX-07. A follow-up will update issue #50 with this
+   constraint.
+
+5. **Idempotency caveat under redeploy / cold start.** Per §2.5, the
+   activity-write is gated by the existing stale-event drop. If the
+   trigger is re-fired for an event OLDER than the 7-day stale-event
+   window (e.g. a function redeploy + a Cloud Functions retry storm),
+   the activity-writer is naturally drop-gated. For IN-WINDOW
+   redeliveries (within the 7-day window), the activity-writer WILL
+   re-fire and duplicate items. This is consistent with the rest of
+   the trigger's posture; full deduplication is FUTURE work (out of
+   v1.0 scope; file as an issue if observed in production).
+
+6. **PII in the activity payload.** The payload contains UIDs
+   (`authorUid`, `payerId`, `splits[].userId`). These are NOT subject
+   to ADR-0013 because the payload ships INSIDE Firestore where the
+   user has read access to their own activity items (per AC-6 — the
+   member-read-only predicate). The structured-log lines emitted by
+   the activity-writer ARE ADR-0013-subject and use `hashId()` per
+   §2.4. The activity-writer test PII guard asserts that NO raw UID
+   appears in any log line (symmetric with the existing
+   `function.test.ts` PII guard).
+
+7. **Functions-side boundary-contract grep — recommended NEW
+   defence-in-depth.** No Functions-side boundary-contract grep
+   exists today (the Flutter-side grep at
+   `test/features/expenses/expense_creation_boundary_contract_test.dart`
+   does NOT cover `functions/src/**`). The new
+   `functions/test/boundary-contracts/no-double-on-money-fields.test.ts`
+   is parallel to the Flutter-side and greps for `.toDouble()`,
+   `parseFloat`, `Number.parseFloat`, `/100`, `/100.0`, and
+   float-typed monetary field declarations. RECOMMENDED YES — it
+   would have caught any future float-typed payload field and is
+   cheap defence-in-depth. The grep is a single Jest test using
+   Node's `fs` + `path` modules; no new dependencies.
+
+8. **Activity-validator placement.** No `functions/src/schema-validators.ts`
+   module exists today (only `functions/src/utils/id-hash.ts` under
+   utils). RATIFY: place the validator at
+   `functions/src/triggers/on-expense-write/activity-validator.ts`
+   (sibling to the activity-writer). Co-locating with the writer
+   keeps the feature-first folder layout consistent with the rest of
+   the codebase (e.g. `functions/src/triggers/on-expense-write/function.ts`,
+   `functions/src/simplified-debts/algorithm.ts`). The activity-writer
+   calls the validator BEFORE the Firestore write to catch
+   programmer errors at runtime that the TypeScript compiler cannot
+   (e.g. a hand-constructed payload missing `payerId`).
