@@ -178,6 +178,28 @@ abstract final class ExpenseTelemetry {
   static const String paramIsOffline = 'is_offline';
 
   // ---------------------------------------------------------------
+  // FR-EX-05 receipt event constants (architect §2.6). SCR-21
+  // §Telemetry Events lines 357-362 is the source of truth.
+  // ---------------------------------------------------------------
+
+  /// Step 3 (receipt + confirm) becomes visible. Payload:
+  /// `has_receipt_from_edit` (bool — true when edit-mode opens
+  /// Step 3 with an existing `receiptUrl`).
+  static const String step3Opened = 'expense_step3_opened';
+
+  /// User attached a receipt image. Payload: `source`
+  /// (`'camera'` / `'gallery'`), `file_size_bytes`.
+  static const String receiptAttached = 'expense_receipt_attached';
+
+  /// User removed an attached receipt. Payload: empty.
+  static const String receiptRemoved = 'expense_receipt_removed';
+
+  /// User dismissed the sheet from Step 3. Payload:
+  /// `had_receipt` (bool), `time_spent_ms` (int — time since
+  /// Step 3 opened, NOT since Step 1).
+  static const String step3Abandoned = 'expense_step3_abandoned';
+
+  // ---------------------------------------------------------------
   // FR-EX-06 parameter-key additions (architect §2.6).
   // ---------------------------------------------------------------
 
@@ -202,6 +224,30 @@ abstract final class ExpenseTelemetry {
   /// Typed error code name (e.g. `'permissionDenied'`, `'network'`).
   /// Used by [editFailed] and [deleteFailed].
   static const String paramErrorCode = 'error_code';
+
+  // ---------------------------------------------------------------
+  // FR-EX-05 parameter-key additions (architect §2.6).
+  // ---------------------------------------------------------------
+
+  /// `'camera'` / `'gallery'` — where the receipt came from.
+  /// Used by [receiptAttached].
+  static const String paramSource = 'source';
+
+  /// Raw byte count of the picked file (pre-upload). Used by
+  /// [receiptAttached].
+  static const String paramFileSizeBytes = 'file_size_bytes';
+
+  /// `true` when the edit-mode bottom sheet's Step 3 opens with an
+  /// existing `receiptUrl`. Used by [step3Opened].
+  static const String paramHasReceiptFromEdit = 'has_receipt_from_edit';
+
+  /// Raw byte count of the receipt uploaded with a successful save.
+  /// Only present on [saveSucceeded] when `has_receipt: true`.
+  static const String paramReceiptSizeBytes = 'receipt_size_bytes';
+
+  /// `true` when the user dismissed Step 3 with a receipt attached.
+  /// Used by [step3Abandoned].
+  static const String paramHadReceipt = 'had_receipt';
 
   // ---------------------------------------------------------------
   // Helpers.

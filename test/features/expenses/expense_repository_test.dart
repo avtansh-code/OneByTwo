@@ -56,6 +56,26 @@ class FakeExpenseStore implements ExpenseStore {
   }
 
   @override
+  String newExpenseId({required String friendshipId}) => returnId;
+
+  Object? throwOnSet;
+  final List<({String fid, String eid, Map<String, dynamic> data})> setWrites =
+      [];
+
+  @override
+  Future<void> setExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (throwOnSet != null) {
+      // ignore: only_throw_errors
+      throw throwOnSet!;
+    }
+    setWrites.add((fid: friendshipId, eid: expenseId, data: data));
+  }
+
+  @override
   Future<void> updateExpense({
     required String friendshipId,
     required String expenseId,

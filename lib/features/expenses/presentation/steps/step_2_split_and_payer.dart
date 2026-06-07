@@ -33,6 +33,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
     final draft = switch (state) {
       Editing(:final draft) => draft,
       Saving(:final draft) => draft,
+      Uploading(:final draft) => draft,
       AddExpenseError(:final draft) => draft,
       _ => null,
     };
@@ -41,16 +42,14 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
-    // FR-EX-06: in edit mode the CTA is additionally gated by
-    // changedFields.isNotEmpty so an unchanged edit cannot trigger
-    // a no-op write (the controller has the load-bearing guard).
-    final hasChanges =
-        !controller.isEditMode || controller.changedFields.isNotEmpty;
-    final canSave =
-        !isSaving &&
-        (errors?['splits'] == null) &&
-        draft.amountPaise > 0 &&
-        hasChanges;
+    // FR-EX-05 (PR #48): Step 2 advances to Step 3; the save itself
+    // fires from Step 3. The CTA is "Next", not "Save" / "Save
+    // Changes". Step 2 does NOT gate on hasChanges anymore — the
+    // user is free to advance to the summary screen even without
+    // modifications. The no-op guard now sits on Step 3's Save
+    // Changes CTA per AC-3.
+    final canAdvance =
+        !isSaving && (errors?['splits'] == null) && draft.amountPaise > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -158,7 +157,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
 
-        // Back + Save row.
+        // Back + Next row.
         Row(
           children: [
             Expanded(
@@ -169,12 +168,10 @@ class Step2SplitAndPayer extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _SaveButton(
-                isEditMode: controller.isEditMode,
-                hasChanges: hasChanges,
-                canSave: canSave,
+              child: _NextButton(
+                canAdvance: canAdvance,
                 isSaving: isSaving,
-                onPressed: controller.save,
+                onPressed: controller.proceedToStep3,
               ),
             ),
           ],
@@ -289,47 +286,33 @@ class _PayerChoice extends StatelessWidget {
   }
 }
 
-/// Step-2 primary CTA. In create mode the label is "Save"; in edit mode
-/// it flips to "Save Changes". When the controller is in edit mode and
-/// the no-op guard has disabled the button (no fields changed), the
-/// button is wrapped in `Semantics(label: 'Save changes, no
-/// modifications made.')` per SCR-22 §Accessibility line 510 (AC-3).
-class _SaveButton extends StatelessWidget {
-  const _SaveButton({
-    required this.isEditMode,
-    required this.hasChanges,
-    required this.canSave,
+/// Step 2 advance CTA. The label is always "Next". The hasChanges
+/// gate has been removed in PR #48 — the user is free to advance
+/// to Step 3 (the summary) even without modifications in edit mode;
+/// the no-op guard then sits on Step 3's "Save Changes" CTA per
+/// SCR-22 §Accessibility line 510.
+class _NextButton extends StatelessWidget {
+  const _NextButton({
+    required this.canAdvance,
     required this.isSaving,
     required this.onPressed,
   });
 
-  final bool isEditMode;
-  final bool hasChanges;
-  final bool canSave;
+  final bool canAdvance;
   final bool isSaving;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final label = isEditMode ? 'Save Changes' : 'Save';
-    final button = FilledButton(
-      onPressed: canSave ? onPressed : null,
+    return FilledButton(
+      onPressed: canAdvance ? onPressed : null,
       child: isSaving
           ? const SizedBox(
               height: 16,
               width: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(label),
+          : const Text('Next'),
     );
-    if (isEditMode && !hasChanges) {
-      return Semantics(
-        label: 'Save changes, no modifications made.',
-        button: true,
-        enabled: false,
-        child: button,
-      );
-    }
-    return button;
   }
 }

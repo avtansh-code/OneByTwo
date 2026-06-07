@@ -24,6 +24,8 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 
+import 'helpers/fake_services.dart';
+
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
@@ -98,6 +100,36 @@ class FakeExpenseRepository implements ExpenseRepository {
     required String friendshipId,
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
+
+  // FR-EX-05 hooks — exercised by the receipt-flow tests.
+  String? capturedAllocatedFriendshipId;
+  String newExpenseIdResult = 'expense-id-123';
+  String? capturedAtIdFriendshipId;
+  String? capturedAtIdExpenseId;
+  ExpenseDoc? capturedAtIdDoc;
+  bool createExpenseAtIdCalled = false;
+  ExpenseCreateError? throwAtIdError;
+
+  @override
+  String newExpenseId({required String friendshipId}) {
+    capturedAllocatedFriendshipId = friendshipId;
+    return newExpenseIdResult;
+  }
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    createExpenseAtIdCalled = true;
+    capturedAtIdFriendshipId = friendshipId;
+    capturedAtIdExpenseId = expenseId;
+    capturedAtIdDoc = doc;
+    if (throwAtIdError != null) {
+      throw throwAtIdError!;
+    }
+  }
 }
 
 class FakeAnalyticsService implements AnalyticsService {
@@ -131,6 +163,8 @@ const _friendUid = 'uid-friend';
 AddExpenseController buildController({
   required FakeExpenseRepository repo,
   required FakeAnalyticsService analytics,
+  FakeReceiptStorageService? receiptStorage,
+  FakeImagePickerService? imagePicker,
   DateTime Function()? clock,
 }) {
   return AddExpenseController(
@@ -139,6 +173,8 @@ AddExpenseController buildController({
     otherUserUid: _friendUid,
     repository: repo,
     analytics: analytics,
+    receiptStorage: receiptStorage ?? FakeReceiptStorageService(),
+    imagePicker: imagePicker ?? FakeImagePickerService(),
     clock: clock ?? DateTime.now,
   );
 }
@@ -662,6 +698,8 @@ void main() {
         otherUserUid: _friendUid,
         repository: repo,
         analytics: analytics,
+        receiptStorage: FakeReceiptStorageService(),
+        imagePicker: FakeImagePickerService(),
         clock: clock ?? () => DateTime(2025, 6, 1, 10),
         initialExpense: initial,
         initialExpenseId: initialId,

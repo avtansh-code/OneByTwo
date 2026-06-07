@@ -5,6 +5,7 @@ import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/presentation/steps/step_1_amount_details.dart';
 import 'package:onebytwo/features/expenses/presentation/steps/step_2_split_and_payer.dart';
+import 'package:onebytwo/features/expenses/presentation/steps/step_3_receipt_and_confirm.dart';
 
 /// Root host for the Add Expense bottom sheet (SCR-19 + SCR-20).
 ///
@@ -94,9 +95,10 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
   Widget _buildBody(BuildContext context, AddExpenseState state) {
     final step = switch (state) {
       Editing(:final step) => step,
-      Saving() => 2,
-      AddExpenseError() => 2,
-      Success() => 2,
+      Saving() => 3,
+      Uploading() => 3,
+      AddExpenseError() => 3,
+      Success() => 3,
     };
 
     return Column(
@@ -112,9 +114,11 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
         Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: step == 1
-                ? Step1AmountDetails(args: _args)
-                : Step2SplitAndPayer(args: _args),
+            child: switch (step) {
+              1 => Step1AmountDetails(args: _args),
+              2 => Step2SplitAndPayer(args: _args),
+              _ => Step3ReceiptAndConfirm(args: _args),
+            },
           ),
         ),
       ],
@@ -186,14 +190,14 @@ class _SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PR #38 typo fix: header reads `/2` (the sheet has exactly two
-    // steps — Step 1 captures amount + meta, Step 2 captures split +
-    // payer). The original FR-EX-01 commit shipped `/3` by mistake;
-    // FR-EX-06 architect §2.9 item 4 prescribes the correction
-    // alongside the title-flip work.
+    // FR-EX-05 (PR #48): header reads `(N/3)` — the sheet is a
+    // three-step flow (Step 1 amount + meta; Step 2 split + payer;
+    // Step 3 receipt + confirm per SCR-21). Sprint-1 PR #38 shipped
+    // FR-EX-01 with the receipt step deferred and the label flipped
+    // to `(N/2)`; PR #48 reactivates Step 3 and the label restores.
     final title = isEditMode
-        ? 'Edit Expense ($step/2)'
-        : 'Add Expense ($step/2)';
+        ? 'Edit Expense ($step/3)'
+        : 'Add Expense ($step/3)';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
       child: Row(

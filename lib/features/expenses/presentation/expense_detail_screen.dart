@@ -16,6 +16,7 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
+import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
 
 /// Read-only detail screen for a single expense (SCR-22).
 ///
@@ -316,6 +317,13 @@ class _ExpenseDetailBody extends ConsumerWidget {
               label: split.userId == currentUserUid ? 'You' : 'Friend',
               value: formatInrFromPaise(split.sharePaise),
             ),
+          // FR-EX-05 (PR #48): receipt thumbnail when present.
+          if (doc.receiptUrl != null) ...[
+            const SizedBox(height: 24),
+            Text('Receipt', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            _ReceiptTile(url: doc.receiptUrl!),
+          ],
         ],
       ),
     );
@@ -360,6 +368,45 @@ class _DetailRow extends StatelessWidget {
           ),
           Text(value, style: theme.textTheme.bodyLarge),
         ],
+      ),
+    );
+  }
+}
+
+/// FR-EX-05 (PR #48): receipt thumbnail on the Expense Detail
+/// screen. Constrained to 240 × 320 dp per SCR-21 line 325. Tap
+/// opens the fullscreen viewer (`ReceiptFullscreenViewer.fromUrl`).
+class _ReceiptTile extends StatelessWidget {
+  const _ReceiptTile({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showDialog<void>(
+          context: context,
+          builder: (_) => ReceiptFullscreenViewer.fromUrl(url),
+        );
+      },
+      child: Semantics(
+        label: 'Receipt image attached. Double-tap to view full size.',
+        button: true,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            width: 240,
+            height: 320,
+            child: Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.broken_image_outlined, size: 32),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -3,9 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/profile/application/edit_profile_controller.dart';

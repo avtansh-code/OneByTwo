@@ -26,6 +26,8 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 
+import 'helpers/fake_services.dart';
+
 // ---------------------------------------------------------------------------
 // PII strings to guard against
 // ---------------------------------------------------------------------------
@@ -109,6 +111,21 @@ class FakeExpenseRepository implements ExpenseRepository {
     required String friendshipId,
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
+
+  @override
+  String newExpenseId({required String friendshipId}) => returnExpenseId;
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    called = true;
+    if (throwError != null) {
+      throw throwError!;
+    }
+  }
 }
 
 class FakeAnalyticsService implements AnalyticsService {
@@ -153,6 +170,8 @@ AddExpenseController _buildController({
     otherUserUid: 'uid-rahulagarwal',
     repository: repo,
     analytics: analytics,
+    receiptStorage: FakeReceiptStorageService(),
+    imagePicker: FakeImagePickerService(),
     clock: DateTime.now,
   );
 }
@@ -375,6 +394,8 @@ void main() {
         otherUserUid: 'uid-rahulagarwal',
         repository: repo,
         analytics: analytics,
+        receiptStorage: FakeReceiptStorageService(),
+        imagePicker: FakeImagePickerService(),
         clock: DateTime.now,
         initialExpense: initial,
         initialExpenseId: _piiExpenseId,

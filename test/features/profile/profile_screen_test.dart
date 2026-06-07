@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:onebytwo/core/result.dart';
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
-import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';

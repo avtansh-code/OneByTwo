@@ -97,6 +97,19 @@ class FakeExpenseStore implements ExpenseStore {
   }
 
   @override
+  String newExpenseId({required String friendshipId}) =>
+      throw UnimplementedError('write path not exercised here');
+
+  @override
+  Future<void> setExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> data,
+  }) async {
+    throw UnimplementedError('write path not exercised here');
+  }
+
+  @override
   Future<void> updateExpense({
     required String friendshipId,
     required String expenseId,
