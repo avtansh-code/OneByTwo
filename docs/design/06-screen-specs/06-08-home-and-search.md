@@ -149,7 +149,7 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 | `home_empty_cta_tapped` | User taps "Add Expense" CTA in the empty state | -- |
 | `home_error_retry_tapped` | User taps "Retry" in the error state | `attempt_number`: integer |
 | `home_error_support_tapped` | User taps "Contact Support" in the error state | `error_code`: `"HD-FIRESTORE-READ"` |
-| `expense_added` | (Logged by the Add Expense flow, not the dashboard itself) | Per SRS section 5.10 |
+| `expense_save_succeeded` | (Logged by the Add Expense flow, not the dashboard itself) | Per SRS section 5.10 |
 
 ### Accessibility
 
@@ -514,9 +514,9 @@ All inputs below refer to the full Add Expense multi-step flow triggered by the 
 | `fab_tapped` | User taps the FAB | `source_tab`: `"home"` / `"friends"` / `"groups"` / `"activity"` / `"profile"` |
 | `expense_context_selected` | User selects a friend or group in Step 1 | `context_type`: `"friend"` / `"group"`, `context_id`: document ID |
 | `expense_split_method_selected` | User selects a split method in Step 3 | `method`: `"equal"` / `"unequal"` / `"percentage"` / `"shares"` / `"exact"` |
-| `expense_added` | Expense is successfully saved (SRS section 5.10) | `amount_paise`: integer, `category`: string, `split_method`: string, `participant_count`: integer, `has_notes`: boolean, `has_receipt`: boolean, `is_offline`: boolean |
+| `expense_save_succeeded` | Expense is successfully saved (SRS section 5.10) | `amount_paise`: integer, `category`: string, `split_method`: string, `participant_count`: integer, `has_notes`: boolean, `has_receipt`: boolean, `is_offline`: boolean |
 | `expense_add_cancelled` | User dismisses the bottom sheet without saving | `step_reached`: `"context"` / `"amount"` / `"split"` / `"review"`, `had_data_entered`: boolean |
-| `expense_add_failed` | Save attempt fails | `error_type`: string, `is_offline`: boolean |
+| `expense_save_failed` | Save attempt fails | `error_type`: string, `is_offline`: boolean |
 
 ### Accessibility
 

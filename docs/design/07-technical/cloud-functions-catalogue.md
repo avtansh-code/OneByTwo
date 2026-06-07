@@ -727,12 +727,21 @@ type LookupResponse =
 
 | Target | Path | Description |
 |---|---|---|
-| Rate-limit counter | `_rateLimits/{userId}/lookups` | Increments `count` and updates `windowStart` if the current window has expired. |
+| Rate-limit counter | `_rateLimits/{userId}/lookups/counter` | Increments `count` and updates `windowStart` if the current window has expired. |
 
 ### Rate limiting
 
 100 lookups per user per hour. The counter is stored at
-`_rateLimits/{userId}/lookups` with the following fields:
+`_rateLimits/{userId}/lookups/counter` — a single `counter` document inside
+the per-user `lookups` subcollection of `_rateLimits/{userId}`. The
+4-segment subcollection layout extends naturally to future rate-limit
+categories (e.g. `_rateLimits/{userId}/sends/counter` for reminder
+send throttles, `_rateLimits/{userId}/uploads/counter` for receipt
+upload throttles) without schema migration. The recursive-wildcard
+`match /_rateLimits/{document=**}` deny rule in `firestore.rules`
+covers all depths and all categories.
+
+The `counter` doc has the following fields:
 
 | Field | Type | Description |
 |---|---|---|

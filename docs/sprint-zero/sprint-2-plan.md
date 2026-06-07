@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #44 (D5 runtime upgrade — Node 22 + firebase-functions 7.x) — 11th merged PR.
+> Last updated: PR #45 (chore — lookup rate-limit doc-path fix + post-PR-#38 cleanup) — 12th merged PR.
 
 ---
 
@@ -83,6 +83,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #42 | FR-FR-04 | Friend Detail full screen (per-friend transaction history) | 5 | Merged |
 | #43 | FR-SE-05/06/07 | Settle Up flow (record settlement + real-time round-trip + Friend Detail CTA card) | 5 | Merged |
 | #44 | CHORE-D5 | D5 runtime upgrade — Node 22 + firebase-functions 7.x (closes #39 #40) | 3 | Merged |
+| #45 | CHORE-PR45 | Lookup rate-limit doc-path fix + post-PR-#38 cleanup (3 S4 items) | 3 | Merged |
 
 ---
 
@@ -101,7 +102,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #42 | 5 | Merged |
 | #43 | 5 | Merged |
 | #44 | 3 | Merged |
-| **Total** | **37** | **11 PRs so far** |
+| #45 | 3 | Merged (chore — Stream A + Stream B) |
+| **Total** | **40** | **12 PRs so far** |
 
 Sprint 1 reference:
 
@@ -282,77 +284,37 @@ were judged too minor to block merge. Listed here so they are not lost
 between sprints. Severity per the project bug grading scale: **S4 =
 nice-to-have, no functional impact**.
 
-### From PR #38 (FR-EX-01 expense creation UI)
+### From PR #38 (FR-EX-01 expense creation UI) — **CLOSED BY PR #45**
 
 QA sign-off was APPROVED WITH CAVEATS — see the "QA Sign-Off" section in
 `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`. Three S4 items
-are deferred to a follow-up cleanup PR. Recommended bundling: a single
-`chore(docs): post-PR-#38 cleanup` PR (~10 lines diff total), or attach
-to a Bucket-B chore PR (see `docs/sprint-zero/next-three-prs.md` PR #45
-slot).
+were deferred to a follow-up cleanup PR and shipped as Stream B of
+**PR #45** (chore — bundled with the Stream A lookup-user rate-limit
+doc-path fix; squash commit landed 2026-06-06).
 
-1. **Stale `expense_added` / `expense_add_failed` references in 3 design docs.**
-   The architect notes §2.0 propagation scope for the Camp B rename was
-   explicitly `telemetry-plan.md` + `expense_telemetry.dart` + tests.
-   Six legacy references survived in screen specs and the NFD doc:
+1. **Stale `expense_added` / `expense_add_failed` references in 3 design docs**
+   — **RESOLVED in PR #45.** Renamed to `expense_save_succeeded` /
+   `expense_save_failed` in the six legacy positions:
    - `docs/design/03-architecture/non-functional-design.md:399`
    - `docs/design/06-screen-specs/06-08-home-and-search.md:152, 517, 519`
    - `docs/design/06-screen-specs/19-22-expenses.md:360, 386`
 
-   **Fix:** find-and-replace `expense_added` → `expense_save_succeeded`
-   and `expense_add_failed` → `expense_save_failed` across those three
-   files. Verify `grep -rn 'expense_added\|expense_add_failed' docs/`
-   returns zero matches post-fix.
-
-   **Why deferred:** the operative sources of truth (telemetry plan, code,
-   tests) all use the Camp B names; runtime behaviour and analytics
-   dashboards are correct. The stale references are documentation drift
-   only.
+   The `type: 'expense_added'` notification-type schema discriminator
+   (per SRS §7.2; `firestore-schema.md:202`) was deliberately left
+   untouched — see PR #45 AC-B1 + AC-X4 negative guard.
 
 2. **Splitter test descriptions still label `99999999` as "the maximum
-   permitted total".** The amount-cap typo fix in commit `684cd09`
-   (story-only: 8-nines → 9-nines, matching screen-spec SCR-19's
-   `999999999` paise = ₹99,99,999.99) was not propagated to the splitter
-   tests. Eleven occurrences in two files:
-   - `test/features/expenses/split_calculator_test.dart` (lines 86, 90,
-     191, 215)
-   - `test/features/expenses/split_calculator_property_test.dart` (lines
-     10, 37, 40, 62, 64, 86)
+   permitted total"** — **RESOLVED in PR #45.** Updated the cap labels
+   and the dependent share assertions in both files to use the real
+   cap `999999999` (= ₹99,99,999.99 per SCR-19). See PR #45 chore-story
+   Architect Notes §2.7 for the coordinated share-assertion
+   reconciliation rationale.
 
-   **Fix:** find-and-replace `99999999` → `999999999` in both files +
-   update the description string at `split_calculator_test.dart:86`.
-
-   **Why deferred:** the splitter is provably correct by construction
-   (integer `~/` and `%`, no overflow at any positive `int`). The
-   `OBTAmountInput` widget tests
-   (`test/core/widgets/inputs/obt_amount_input_test.dart`) correctly
-   assert behaviour at the *real* cap (`_kMaxPaise = 999999999`), so the
-   live boundary is covered. The property tests under-sample the upper
-   90% of the legal cap range but do not miss any defect — they just
-   leave the upper range less exercised.
-
-3. **Missing `// TODO(SCR-08)` comment in `friends_list_screen.dart`.**
-   Architect Notes §2.10 prescribed a no-op FAB on
-   `friends_list_screen.dart` with a top-of-file TODO comment for the
-   deferred multi-context FAB chooser. The implementation chose to add no
-   FAB at all (functionally equivalent to no-op), so the TODO is also
-   absent. The deferred chooser remains discoverable via Architect Notes
-   §2.10, the SCR-08 screen spec, and `lib/features/expenses/README.md`'s
-   Hand-off Seams section, but in-source discoverability is reduced.
-
-   **Fix:** add at the top of `friends_list_screen.dart`:
-   ```dart
-   // TODO(SCR-08): wire the multi-context FAB chooser when the SCR-08
-   // home dashboard ships. Today the only Add Expense entry point is the
-   // FAB on FriendDetailPlaceholderScreen (FR-EX-01).
-   ```
-
-   **Why deferred:** does not affect runtime; reduced in-source
-   discoverability only.
-
-**Recommended priority order:** item 2 (test quality) → item 1 (docs
-hygiene) → item 3 (discoverability nicety). All three can ship in a
-single docs/tests-only PR.
+3. **Missing `// TODO(SCR-08)` comment in `friends_list_screen.dart`**
+   — **RESOLVED in PR #45.** Added the comment block at the top of
+   the file (immediately after the import block), citing
+   `FriendDetailScreen` (the real screen since PR #42) rather than the
+   pre-PR-#42 `FriendDetailPlaceholderScreen` wording.
 
 ### From PR #38 deploy (Firebase CLI warnings, 2026-06-06) — **CLOSED BY PR #44**
 
