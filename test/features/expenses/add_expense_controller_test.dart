@@ -720,6 +720,43 @@ void main() {
       controller.dispose();
     });
 
+    test(
+      'isFieldChanged(field) returns false in create mode for every field',
+      () {
+        final controller = buildController(repo: repo, analytics: analytics);
+        for (final f in const <String>[
+          ExpenseDoc.fieldAmountPaise,
+          ExpenseDoc.fieldDescription,
+          ExpenseDoc.fieldCategory,
+          ExpenseDoc.fieldDate,
+          ExpenseDoc.fieldPayerId,
+          ExpenseDoc.fieldSplits,
+          ExpenseDoc.fieldSplitMethod,
+        ]) {
+          expect(
+            controller.isFieldChanged(f),
+            isFalse,
+            reason: 'create mode must report no field as changed for $f',
+          );
+        }
+        controller.dispose();
+      },
+    );
+
+    test('isFieldChanged(field) tracks changedFields in edit mode '
+        '(AC-4 helper for the changed-field indicator)', () {
+      final controller = buildEditController();
+      expect(controller.isFieldChanged(ExpenseDoc.fieldAmountPaise), isFalse);
+      controller.setAmount(60000);
+      expect(controller.isFieldChanged(ExpenseDoc.fieldAmountPaise), isTrue);
+      // Other fields stay unchanged.
+      expect(controller.isFieldChanged(ExpenseDoc.fieldDescription), isFalse);
+      // Flipping back removes it.
+      controller.setAmount(50000);
+      expect(controller.isFieldChanged(ExpenseDoc.fieldAmountPaise), isFalse);
+      controller.dispose();
+    });
+
     test('setAmount with the original value does NOT add amountPaise to '
         'changedFields and does NOT fire expense_edit_field_changed', () {
       final controller = buildEditController();
@@ -986,31 +1023,6 @@ void main() {
       expect(analytics.hasEvent(ExpenseTelemetry.deleteFailed), isTrue);
       final params = analytics.lastParamsFor(ExpenseTelemetry.deleteFailed)!;
       expect(params[ExpenseTelemetry.paramErrorCode], 'permissionDenied');
-      controller.dispose();
-    });
-
-    test('openDeleteDialog() fires expense_delete_initiated', () {
-      final controller = buildEditController();
-      analytics.loggedEvents.clear();
-      controller.openDeleteDialog();
-      expect(analytics.hasEvent(ExpenseTelemetry.deleteInitiated), isTrue);
-      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteInitiated)!;
-      expect(params[ExpenseTelemetry.paramContextType], 'friend');
-      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
-      controller.dispose();
-    });
-
-    test('cancelDeleteDialog() fires expense_delete_cancelled', () {
-      final controller = buildEditController();
-      analytics.loggedEvents.clear();
-      controller.cancelDeleteDialog();
-      expect(analytics.hasEvent(ExpenseTelemetry.deleteCancelled), isTrue);
-      final params = analytics.lastParamsFor(ExpenseTelemetry.deleteCancelled)!;
-      expect(
-        params[ExpenseTelemetry.paramFriendshipIdHash],
-        hashFriendshipId(_friendshipId),
-      );
-      expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
       controller.dispose();
     });
 

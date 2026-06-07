@@ -13,13 +13,15 @@
 
 // ignore_for_file: cascade_invocations
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/application/expense_telemetry.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
+import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 
 // ---------------------------------------------------------------------------
@@ -397,5 +399,148 @@ void main() {
       expect(find.text("Couldn't add the expense. Try again."), findsOneWidget);
       expect(analytics.hasEvent(ExpenseTelemetry.saveFailed), isTrue);
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // FR-EX-06 edit-mode UI assertions (AC-3 disabled-CTA semantic label;
+  // AC-4 changed-field indicator on Step 2 rows). The reusable
+  // ChangedFieldIndicator widget is unit-tested separately at
+  // test/features/expenses/changed_field_indicator_test.dart.
+  // ---------------------------------------------------------------------------
+
+  group('FR-EX-06 — edit-mode CTA + indicators', () {
+    Widget buildEditSubject({
+      required FakeExpenseRepository repo,
+      required FakeAnalyticsService analytics,
+      required ExpenseDoc initialExpense,
+      String initialExpenseId = 'eid-existing',
+    }) {
+      return ProviderScope(
+        overrides: [
+          analyticsServiceProvider.overrideWithValue(analytics),
+          expenseRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: AddExpenseBottomSheet(
+              friendshipId: _friendshipId,
+              currentUserUid: _currentUid,
+              otherUserUid: _friendUid,
+              initialExpense: initialExpense,
+              initialExpenseId: initialExpenseId,
+            ),
+          ),
+        ),
+      );
+    }
+
+    ExpenseDoc seedExpense() {
+      return ExpenseDoc(
+        amountPaise: 10000,
+        description: 'Coffee',
+        category: ExpenseCategory.food,
+        date: DateTime(2026, 6, 5),
+        payerId: _currentUid,
+        splits: const [
+          Split(userId: _currentUid, sharePaise: 5000),
+          Split(userId: _friendUid, sharePaise: 5000),
+        ],
+        splitMethod: SplitMethod.equal,
+        createdBy: _currentUid,
+      );
+    }
+
+    testWidgets('header reads "Edit Expense (1/2)" in edit mode', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildEditSubject(
+          repo: repo,
+          analytics: analytics,
+          initialExpense: seedExpense(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Edit Expense (1/2)'), findsOneWidget);
+    });
+
+    testWidgets(
+      'AC-3 — Step 2 Save CTA is wrapped in Semantics with the disabled-CTA '
+      'label when in edit mode and no fields are changed',
+      (tester) async {
+        await tester.pumpWidget(
+          buildEditSubject(
+            repo: repo,
+            analytics: analytics,
+            initialExpense: seedExpense(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        // Tap Next to advance to Step 2.
+        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+        await tester.pumpAndSettle();
+
+        // The CTA label is "Save Changes" in edit mode.
+        expect(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          findsOneWidget,
+        );
+
+        // No fields modified → CTA disabled and wrapped in the AC-3 label.
+        final semantics = find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.label ?? '') ==
+                  'Save changes, no modifications made.',
+        );
+        expect(
+          semantics,
+          findsOneWidget,
+          reason:
+              'AC-3: a disabled "Save Changes" CTA in edit mode must announce '
+              '"Save changes, no modifications made."',
+        );
+      },
+    );
+
+    testWidgets(
+      'AC-4 — changing the split method renders the changed-field indicator '
+      'on the split-method group (Step 2)',
+      (tester) async {
+        await tester.pumpWidget(
+          buildEditSubject(
+            repo: repo,
+            analytics: analytics,
+            initialExpense: seedExpense(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+        await tester.pumpAndSettle();
+
+        // Flip split method from Equal (original) to Exact.
+        await tester.tap(find.widgetWithText(ChoiceChip, 'Exact'));
+        await tester.pumpAndSettle();
+
+        // Indicator wrapping the Wrap that hosts the split-method chips.
+        final indicator = find.byWidgetPredicate(
+          (w) =>
+              w is Semantics && (w.properties.label ?? '').contains('changed'),
+        );
+        expect(
+          indicator,
+          findsAtLeastNWidgets(1),
+          reason:
+              'AC-4: at least one ChangedFieldIndicator must report '
+              '", changed." after the split method flips from its original.',
+        );
+
+        // And the CTA flips to enabled ("Save Changes" available).
+        final cta = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+        );
+        expect(cta.onPressed, isNotNull);
+      },
+    );
   });
 }

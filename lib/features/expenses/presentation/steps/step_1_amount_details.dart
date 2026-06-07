@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
+import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_indicator.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/expense_category_grid.dart';
 
 /// Step 1 of the Add Expense bottom sheet (SCR-19): amount, category,
@@ -47,45 +49,57 @@ class Step1AmountDetails extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Amount field — emits paise on every keystroke.
-        OBTAmountInput(
-          key: const Key('expense_amount_input'),
-          autoFocus: false,
-          onChanged: controller.setAmount,
-          errorText: errors?['amount'],
-          enabled: state is Editing,
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldAmountPaise),
+          child: OBTAmountInput(
+            key: const Key('expense_amount_input'),
+            autoFocus: false,
+            onChanged: controller.setAmount,
+            errorText: errors?['amount'],
+            enabled: state is Editing,
+          ),
         ),
         const SizedBox(height: 16),
 
         // Category grid — 8 chips, single-select.
         Text('Category', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ExpenseCategoryGrid(
-          selected: draft?.category,
-          onSelected: controller.setCategory,
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldCategory),
+          child: ExpenseCategoryGrid(
+            selected: draft?.category,
+            onSelected: controller.setCategory,
+          ),
         ),
         const SizedBox(height: 16),
 
         // Description.
-        TextField(
-          key: const Key('expense_description_input'),
-          maxLength: 100,
-          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-          enabled: state is Editing,
-          decoration: InputDecoration(
-            labelText: 'Description',
-            hintText: 'e.g. Dinner at Dosa Plaza',
-            errorText: errors?['description'],
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldDescription),
+          child: TextField(
+            key: const Key('expense_description_input'),
+            maxLength: 100,
+            maxLengthEnforcement: MaxLengthEnforcement.enforced,
+            enabled: state is Editing,
+            decoration: InputDecoration(
+              labelText: 'Description',
+              hintText: 'e.g. Dinner at Dosa Plaza',
+              errorText: errors?['description'],
+            ),
+            onChanged: controller.setDescription,
           ),
-          onChanged: controller.setDescription,
         ),
         const SizedBox(height: 16),
 
         // Date (defaults to today — controller initialises).
-        _DateField(
-          date: draft?.date,
-          errorText: errors?['date'],
-          enabled: state is Editing,
-          onPick: controller.setDate,
+        ChangedFieldIndicator(
+          isChanged: controller.isFieldChanged(ExpenseDoc.fieldDate),
+          child: _DateField(
+            date: draft?.date,
+            errorText: errors?['date'],
+            enabled: state is Editing,
+            onPick: controller.setDate,
+          ),
         ),
         const SizedBox(height: 24),
 

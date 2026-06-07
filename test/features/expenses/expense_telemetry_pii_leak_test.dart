@@ -403,7 +403,6 @@ void main() {
     test('PII guard after a softDelete success flow — no event name, key, '
         'or value contains any PII fragment', () async {
       final controller = buildEditController();
-      controller.openDeleteDialog();
       await controller.softDelete();
       controller.dispose();
 
@@ -455,82 +454,77 @@ void main() {
       }
     });
 
-    test(
-      'all 6 events that reference expense_id (editOpened, editSaved, '
-      'editFailed, editAbandoned, deleteInitiated, deleteConfirmed, '
-      'deleteCancelled, deleteFailed) carry expense_id_hash, never raw',
-      () async {
-        final controller = buildEditController();
-        // editOpened fires on construction.
-        controller.setAmount(30000); // → no expense-id event
-        controller.proceedToStep2();
-        await controller.save(); // editSaved
-        // Build a second controller to also exercise the failed paths.
-        analytics.loggedEvents.clear();
-        repo.throwUpdateError = const ExpenseUpdateError(
-          type: ExpenseUpdateErrorType.network,
-        );
-        final c2 = buildEditController();
-        c2.setAmount(30000);
-        c2.proceedToStep2();
-        await c2.save(); // editFailed
-        c2.openDeleteDialog(); // deleteInitiated
-        c2.cancelDeleteDialog(); // deleteCancelled
-        c2.discard(); // editAbandoned
-        repo.throwDeleteError = const ExpenseDeleteError(
-          type: ExpenseDeleteErrorType.notFound,
-        );
-        await c2.softDelete(); // deleteFailed
-        c2.dispose();
+    test('controller-emitted events that reference expense_id (editOpened, '
+        'editSaved, editFailed, editAbandoned, deleteConfirmed, deleteFailed) '
+        'carry expense_id_hash, never raw. deleteInitiated and deleteCancelled '
+        'are screen-emitted (expense_detail_screen.dart) and are guarded by '
+        'the screen-level test suite.', () async {
+      final controller = buildEditController();
+      // editOpened fires on construction.
+      controller.setAmount(30000); // → no expense-id event
+      controller.proceedToStep2();
+      await controller.save(); // editSaved
+      // Build a second controller to also exercise the failed paths.
+      analytics.loggedEvents.clear();
+      repo.throwUpdateError = const ExpenseUpdateError(
+        type: ExpenseUpdateErrorType.network,
+      );
+      final c2 = buildEditController();
+      c2.setAmount(30000);
+      c2.proceedToStep2();
+      await c2.save(); // editFailed
+      c2.discard(); // editAbandoned
+      repo.throwDeleteError = const ExpenseDeleteError(
+        type: ExpenseDeleteErrorType.notFound,
+      );
+      await c2.softDelete(); // deleteFailed
+      c2.dispose();
 
-        // Now build a third with NO update error to exercise deleteConfirmed.
-        analytics.loggedEvents.clear();
-        repo.throwUpdateError = null;
-        repo.throwDeleteError = null;
-        final c3 = buildEditController();
-        await c3.softDelete(); // deleteConfirmed
-        c3.dispose();
+      // Now build a third with NO update error to exercise deleteConfirmed.
+      analytics.loggedEvents.clear();
+      repo.throwUpdateError = null;
+      repo.throwDeleteError = null;
+      final c3 = buildEditController();
+      await c3.softDelete(); // deleteConfirmed
+      c3.dispose();
 
-        const expenseIdEvents = <String>[
-          ExpenseTelemetry.editOpened,
-          ExpenseTelemetry.editSaved,
-          ExpenseTelemetry.editFailed,
-          ExpenseTelemetry.editAbandoned,
-          ExpenseTelemetry.deleteInitiated,
-          ExpenseTelemetry.deleteConfirmed,
-          ExpenseTelemetry.deleteCancelled,
-          ExpenseTelemetry.deleteFailed,
-        ];
+      const expenseIdEvents = <String>[
+        ExpenseTelemetry.editOpened,
+        ExpenseTelemetry.editSaved,
+        ExpenseTelemetry.editFailed,
+        ExpenseTelemetry.editAbandoned,
+        ExpenseTelemetry.deleteConfirmed,
+        ExpenseTelemetry.deleteFailed,
+      ];
 
-        // Drive a single controller through everything possible, then
-        // assert that every emitted event in `expenseIdEvents` has
-        // `expense_id_hash` (correct) and NEVER the raw value.
-        analytics.loggedEvents.clear();
-        final c4 = buildEditController();
-        c4.setAmount(30000);
-        c4.proceedToStep2();
-        await c4.save();
-        c4.dispose();
+      // Drive a single controller through everything possible, then
+      // assert that every emitted event in `expenseIdEvents` has
+      // `expense_id_hash` (correct) and NEVER the raw value.
+      analytics.loggedEvents.clear();
+      final c4 = buildEditController();
+      c4.setAmount(30000);
+      c4.proceedToStep2();
+      await c4.save();
+      c4.dispose();
 
-        for (final event in analytics.loggedEvents) {
-          if (!expenseIdEvents.contains(event.name)) continue;
-          final params = event.parameters!;
-          // Must not contain the raw expense id anywhere.
-          for (final value in params.values) {
-            expect(
-              value.toString().contains(_piiExpenseId),
-              isFalse,
-              reason:
-                  'Event "${event.name}" leaked raw expense_id in value '
-                  '"$value"',
-            );
-          }
-          // Must carry the hashed form if it carries an id at all.
-          if (params.containsKey('expense_id_hash')) {
-            expect(params['expense_id_hash'], equals(hashId(_piiExpenseId)));
-          }
+      for (final event in analytics.loggedEvents) {
+        if (!expenseIdEvents.contains(event.name)) continue;
+        final params = event.parameters!;
+        // Must not contain the raw expense id anywhere.
+        for (final value in params.values) {
+          expect(
+            value.toString().contains(_piiExpenseId),
+            isFalse,
+            reason:
+                'Event "${event.name}" leaked raw expense_id in value '
+                '"$value"',
+          );
         }
-      },
-    );
+        // Must carry the hashed form if it carries an id at all.
+        if (params.containsKey('expense_id_hash')) {
+          expect(params['expense_id_hash'], equals(hashId(_piiExpenseId)));
+        }
+      }
+    });
   });
 }

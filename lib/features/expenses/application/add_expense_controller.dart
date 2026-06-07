@@ -121,6 +121,13 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
   /// Unmodifiable view of [_changedFields] for the host widget.
   Set<String> get changedFields => Set<String>.unmodifiable(_changedFields);
 
+  /// Returns true when [field] has been modified from its original
+  /// value in edit mode (always false in create mode). Used by the
+  /// step widgets to render the FR-EX-06 changed-field indicator on
+  /// each modified row per SCR-22 §Edit Flow line 449 / §Accessibility
+  /// line 509 (AC-4).
+  bool isFieldChanged(String field) => _changedFields.contains(field);
+
   // ---------------------------------------------------------------
   // Initial-state helpers
   // ---------------------------------------------------------------
@@ -499,16 +506,6 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     }
   }
 
-  /// Fires `expense_delete_initiated` (call from the dialog open
-  /// path). Public so the host widget can emit the event
-  /// before the typed `show()` await even though the controller does
-  /// not own the dialog instance.
-  void openDeleteDialog() => _emitDeleteInitiated();
-
-  /// Fires `expense_delete_cancelled` (call from the dialog cancel
-  /// path).
-  void cancelDeleteDialog() => _emitDeleteCancelled();
-
   /// Returns the current draft from any non-terminal state, or null.
   ExpenseDraft? _currentDraft() {
     final s = state;
@@ -801,35 +798,12 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     );
   }
 
-  void _emitDeleteInitiated() {
-    _analytics.logEvent(
-      name: ExpenseTelemetry.deleteInitiated,
-      parameters: <String, Object>{
-        ExpenseTelemetry.paramContextType: 'friend',
-        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
-        if (initialExpenseId != null)
-          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
-      },
-    );
-  }
-
   void _emitDeleteConfirmed({required ExpenseDraft draft}) {
     _analytics.logEvent(
       name: ExpenseTelemetry.deleteConfirmed,
       parameters: <String, Object>{
         ExpenseTelemetry.paramAmountPaise: draft.amountPaise,
         ExpenseTelemetry.paramParticipantCount: 2,
-        ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
-        if (initialExpenseId != null)
-          ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
-      },
-    );
-  }
-
-  void _emitDeleteCancelled() {
-    _analytics.logEvent(
-      name: ExpenseTelemetry.deleteCancelled,
-      parameters: <String, Object>{
         ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
         if (initialExpenseId != null)
           ExpenseTelemetry.paramExpenseIdHash: hashId(initialExpenseId!),
