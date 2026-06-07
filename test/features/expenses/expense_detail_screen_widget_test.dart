@@ -284,8 +284,32 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
       expect(find.byType(OBTConfirmationDialog), findsOneWidget);
-      expect(find.text('Delete expense?'), findsOneWidget);
+      expect(find.text('Delete this expense?'), findsOneWidget);
       expect(find.text('Delete'), findsOneWidget);
+    });
+
+    testWidgets('dialog body matches SCR-22 / AC-8 verbatim copy', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildHost(
+          repo: repo,
+          analytics: analytics,
+          detailOverride: expenseDetailProvider.overrideWith(
+            (ref, args) async => _buildExpense(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'This will update balances for all participants. '
+          'This cannot be undone.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('tapping Delete fires expense_delete_initiated', (

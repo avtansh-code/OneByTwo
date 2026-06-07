@@ -158,10 +158,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
 
     final confirmed = await OBTConfirmationDialog.show(
       context,
-      title: 'Delete expense?',
+      title: 'Delete this expense?',
       body:
-          'This will reverse the share for both members. '
-          'This action cannot be undone.',
+          'This will update balances for all participants. '
+          'This cannot be undone.',
       confirmLabel: 'Delete',
       isDestructive: true,
     );
