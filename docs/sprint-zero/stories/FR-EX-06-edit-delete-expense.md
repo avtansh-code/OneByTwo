@@ -1291,3 +1291,632 @@ working assumption; the architect may override with rationale.
    here pairs with Option (a) of Q1; Option (a) here pairs
    with Option (b) of Q1. **PM working assumption: follows
    from Q1 choice.**
+
+---
+
+## Architect Notes
+
+> Appended for PR #46 (Phase 2 of
+> `docs/copilot_prompts/sprint_2/12.md`). These notes ratify
+> the eight PM Open Questions (Q1–Q8 above), confirm the three
+> CRITICAL Phase 0 corrections already recorded in the PM
+> section, and lock the file-touch envelope before
+> implementation begins. References: `firestore.rules` lines
+> 254-301 (`isValidExpenseShared`, `isValidExpenseUpdate`,
+> `allow update`, `allow delete: if false`); SCR-22 at
+> `docs/design/06-screen-specs/19-22-expenses.md` lines
+> 398-530; FR-EX-01 architect-notes precedent at
+> `docs/sprint-zero/stories/FR-EX-01-expense-creation.md`
+> lines 775+; FR-SE-05 settle-up typed-error precedent;
+> ADR-0013 (PII / telemetry hashing); Invariants 1, 2, 4 from
+> `.github/shared/invariants.md`.
+
+### Phase 0 corrections confirmed
+
+The PM section already records the three corrections I (the
+architect) flagged at kickoff. I confirm each one explicitly
+so the implementation phase has no ambiguity to litigate:
+
+1. **Immutability list is `createdBy` + `createdAt` ONLY.**
+   Read `firestore.rules` lines 281-282 verbatim:
+
+   ```
+   // Immutable fields preserved.
+   && data.createdBy == prev.createdBy
+   && data.createdAt == prev.createdAt
+   ```
+
+   The kickoff prompt's earlier framing that included
+   `payerId`, `splits`, `splitMethod`, `category`, `currency`
+   in the immutable list was incorrect. Those fields are
+   shape-validated on every update by `isValidExpenseShared()`
+   at `firestore.rules` lines 254-263 but they are NOT
+   immutability-locked. `currency` and `source` are
+   extension-point-locked by `isValidExtensionPointLocks()` at
+   lines 185-191 (see §2.9 item 2). The PM story corrected
+   the list in AC-14 (lines 661-684); §2.9 item 1 reiterates.
+
+2. **9, not 8, telemetry events.** The prompt's narrative
+   refers to "8 new telemetry events" but the §2.6 enumeration
+   in the prompt lists 9 and SCR-22 §Telemetry confirms 9. The
+   9 events are enumerated in §2.6 below.
+
+3. **2-step edit flow, NOT 3-step.** SCR-22 §Components Used
+   describes a 3-step flow because the original FR-EX-01 plan
+   was 3 steps (Step 3 = SCR-21 receipt summary); PR #38
+   shipped FR-EX-01 with SCR-21 DEFERRED to FR-EX-05. The edit
+   flow mirrors the SHIPPED add flow: 2 steps, header `(N/2)`,
+   no receipt-summary step. Re-introducing the 3rd step here
+   would conflate FR-EX-05 with FR-EX-06. §2.9 item 4
+   reiterates.
+
+### Mapping of PM Open Questions to Architect Notes subsections
+
+| PM Q# | Question | Ratified in | Verdict |
+|---|---|---|---|
+| Q1 | Entry-point — Expense Detail screen vs direct edit sheet | §2.1 | Option (a) — Expense Detail screen |
+| Q2 | Edit-mode controller — in-place extension vs separate class | §2.2 | Option (a) — in-place extension of `AddExpenseController` |
+| Q3 | Repository error-type hierarchy — siblings vs shared parent | §2.3 | Option (a) — three sibling discriminated unions |
+| Q4 | `OBTConfirmationDialog` — extract vs inline | §2.5 | Option (a) — extract on first use |
+| Q5 | Telemetry name — `expense_edit_saved` vs `expense_edit_succeeded` | §2.6 | Option (a) — keep `expense_edit_saved` per SCR-22 |
+| Q6 | Boundary-contract grep — extend vs sibling | §2.7 + §2.9 item 8 | Option (a) — extend existing |
+| Q7 | PII-leak test — extend vs sibling | §2.7 + §2.9 item 9 | Option (a) — extend existing |
+| Q8 | Non-creator UI gate — no-op vs read-only screen | §2.1 (follows from Q1) | Option (b) — read-only Expense Detail screen with no action buttons |
+
+---
+
+### §2.1 — Entry-point choice
+
+RATIFY **Option (a)**: a dedicated full-page Expense Detail
+screen at
+`lib/features/expenses/presentation/expense_detail_screen.dart`
+reached from
+`lib/features/friends/presentation/widgets/friend_detail_timeline.dart`
+lines 92-95 via `Navigator.push`. The screen renders the
+expense in a read-only summary card; the `OBTAppBar` actions
+are Edit (pencil icon) → opens the edit sheet (reusing
+`AddExpenseBottomSheet` with `initialExpense` constructor
+param) and Delete (trash icon) → opens
+`OBTConfirmationDialog`.
+
+Rationale per prompt §2.1: matches SCR-22's "Reachable from
+Expense Detail screen" wording verbatim; future FR-EX-05
+receipt-attachment viewing surface naturally lives here;
+future FR-EX-07 activity-feed deep-link target.
+
+**PM Q8 — Non-creator UI gate (follows from Q1).** Option
+(b) of Q8 pairs with Option (a) of Q1: a non-creator's tap
+opens the read-only Expense Detail screen with NO Edit and
+NO Delete actions in the `OBTAppBar`. The action visibility
+gate is `expense.createdBy == currentUserUid`. The rules
+layer enforces defence-in-depth per `firestore.rules` lines
+297-298 (see §2.9 item 5 for the rules-gap finding).
+
+---
+
+### §2.2 — Edit-mode controller architecture
+
+RATIFY **Option (a)**: extend `AddExpenseController` at
+`lib/features/expenses/application/add_expense_controller.dart`
+in-place. Add:
+
+- `final ExpenseDoc? initialExpense` constructor parameter
+  (`null` in add mode).
+- `final String? initialExpenseId` constructor parameter (the
+  Firestore document ID — `null` in add mode).
+- `late final ExpenseDoc? _originalSnapshot` field captured
+  at construction time for the no-op guard and the
+  changed-field diff.
+- `bool get isEditMode => initialExpense != null;` getter.
+- `Set<String> get changedFields` getter that diffs the
+  current draft against `_originalSnapshot` field-by-field
+  (`amountPaise`, `description`, `category`, `date`,
+  `payerId`, `splits`, `splitMethod`).
+- The `save()` method branches: in add mode it calls
+  `_repository.createExpense(...)` as today; in edit mode it
+  calls `_repository.updateExpense(...)` with the partial map
+  produced by `ExpenseDoc.toUpdateMap(changedFields)`.
+- A new `softDelete()` method (no state-machine change beyond
+  `Saving → Success | EditError`).
+- New `AddExpenseArgs` fields `initialExpense: ExpenseDoc?`
+  and `initialExpenseId: String?` (the family-provider key
+  requires equality; update `==` and `hashCode` accordingly).
+
+The state machine stays `Editing | Saving | Success |
+AddExpenseError`. Renaming `AddExpenseState` to
+`ExpenseSheetState` is OUT OF SCOPE — keep `AddExpenseState`
+for now to bound the diff. Architect's reservation: if a
+Sprint 3 cleanup PR renames consistently across the feature,
+this gets revisited.
+
+---
+
+### §2.3 — Repository API surface
+
+RATIFY the following additions:
+
+- Add
+  `Future<void> updateExpense({required String friendshipId, required String expenseId, required Map<String, dynamic> updates})`
+  to `ExpenseStore` (abstract) AND `FirestoreExpenseStore`
+  (concrete) at
+  `lib/features/expenses/data/expense_repository.dart`. The
+  implementation calls
+  `_expensesCollection(friendshipId).doc(expenseId).update(updates)`.
+- Add
+  `Future<void> softDeleteExpense({required String friendshipId, required String expenseId})`
+  — convenience method that calls
+  `updateExpense(..., updates: {'deleted': true, 'updatedAt': FieldValue.serverTimestamp()})`.
+- At the `ExpenseRepository` level: add
+  `Future<void> updateExpense({...})` and
+  `Future<void> softDeleteExpense({...})` with try / catch
+  that maps `FirebaseException` to typed `ExpenseUpdateError`
+  / `ExpenseDeleteError`.
+- New error type files:
+  - `lib/features/expenses/domain/expense_update_error.dart`
+    — `ExpenseUpdateError` class + `ExpenseUpdateErrorType`
+    enum (`permissionDenied`, `notFound`, `network`,
+    `validationFailed`, `unknown`). `concurrentEdit` is
+    enumerated but NOT used in v1.0 (deferred per §2.4).
+  - `lib/features/expenses/domain/expense_delete_error.dart`
+    — same shape with `ExpenseDeleteErrorType`.
+- RATIFY **Option (a) per PM Q3**: three sibling
+  discriminated unions, not a shared parent. Mirrors the
+  existing `ExpenseCreateError` at
+  `lib/features/expenses/domain/expense_create_error.dart`.
+- Add a typed-mapping helper at the repository level:
+  `Map<String, dynamic> ExpenseDoc.toUpdateMap(Set<String> changedFields)`
+  on the model that emits only the keys in `changedFields`
+  PLUS `updatedAt: FieldValue.serverTimestamp()`. This is
+  the partial-update map (Firestore merges with the existing
+  document; the merged result must satisfy
+  `isValidExpenseShared` per `firestore.rules` lines 254-263,
+  which `toUpdateMap` does NOT re-validate — that is the
+  rules' job).
+- Field-key constants for the diff: each field name
+  (`'amountPaise'`, `'description'`, `'category'`, `'date'`,
+  `'payerId'`, `'splits'`, `'splitMethod'`) is a
+  `static const String` on `ExpenseDoc` to prevent typo
+  divergence between the diff and the update map.
+
+---
+
+### §2.4 — Concurrent-edit detection deferral
+
+RATIFY: full transactional concurrent-edit detection (AC-11 /
+AC-12 in the PM story) is **DEFERRED to a follow-up PR**.
+
+Rationale per prompt §2.4:
+
+1. The existing `onExpenseWriteFriendship` trigger always
+   re-fires on the latest state, so `simplifiedBalances` stays
+   consistent regardless of which write lands last.
+2. The server `updatedAt: serverTimestamp()` reflects the
+   latest write so the snapshot listener re-emits the
+   post-merge state.
+3. The UX surface area added by `runTransaction()` (the
+   "Reload" snackbar action, the re-prefill flow) is
+   non-trivial and best implemented in a dedicated PR with
+   its own test surface.
+
+The story's Out of Scope item (f) carries this; if the user
+asks at review, escalate the PR to 8 SP and add a dedicated
+transactional-update commit. **No code in PR #46 implements
+concurrent-edit detection** — the `concurrentEdit` enum
+variant exists in `ExpenseUpdateErrorType` for forward
+compatibility but is never produced.
+
+---
+
+### §2.5 — `OBTConfirmationDialog` extraction
+
+RATIFY **Option (a)**: extract on first use to
+`lib/core/widgets/dialogs/obt_confirmation_dialog.dart`.
+Mirrors the `OBTAmountInput` precedent from PR #38 (extract
+on first use to lock in the contract for the future SCR-13
+"Leave group" use site).
+
+The component:
+
+- Props per design-system catalogue item 24: `title` (String),
+  `body` (String), `cancelLabel` (String, default `'Cancel'`),
+  `confirmLabel` (String), `isDestructive` (bool, default
+  `false`), `onCancel` (`VoidCallback?`), `onConfirm`
+  (`VoidCallback`).
+- Renders as an `AlertDialog`. When `isDestructive == true`,
+  the confirm button uses
+  `Theme.of(context).colorScheme.error` (mapped from the
+  `danger` token in the design system).
+- Tap-outside-to-dismiss = Cancel. Back-gesture / Escape key
+  = Cancel (per SCR-22 accessibility requirement: "Escape key
+  / back gesture triggers Cancel, not destructive action").
+- Semantics: the dialog announces as `Dialog.modal` with the
+  title role-marked as heading; the confirm button when
+  destructive carries the semantic hint
+  `'Destructive action.'`.
+- Leaf widget test at
+  `test/core/widgets/dialogs/obt_confirmation_dialog_test.dart`
+  covers: title + body rendering; cancel callback invocation;
+  confirm callback invocation; `isDestructive` flips
+  confirm-button colour; tap-outside dismisses without
+  invoking `onConfirm`; semantic labels present.
+- Static helper `OBTConfirmationDialog.show(...)` that wraps
+  `showDialog<bool>(...)` and returns `true` if confirmed,
+  `false` (or `null`) if cancelled, simplifying call sites.
+
+---
+
+### §2.6 — Telemetry event names — final ratification
+
+RATIFY the 9 names per SCR-22 verbatim:
+
+- `expense_edit_opened`
+- `expense_edit_field_changed`
+- `expense_edit_saved` (KEEP — per PM Q5, the SCR is the
+  screen-level authority. Renaming to `_succeeded` for
+  Camp B verb-symmetry would require re-touching the SCR
+  spec; defer to a dedicated rename PR if pursued.)
+- `expense_edit_failed`
+- `expense_edit_abandoned`
+- `expense_delete_initiated`
+- `expense_delete_confirmed`
+- `expense_delete_cancelled`
+- `expense_delete_failed`
+
+Constant identifiers to add to
+`lib/features/expenses/application/expense_telemetry.dart`:
+
+- `static const String editOpened = 'expense_edit_opened';`
+- `static const String editFieldChanged = 'expense_edit_field_changed';`
+- `static const String editSaved = 'expense_edit_saved';`
+- `static const String editFailed = 'expense_edit_failed';`
+- `static const String editAbandoned = 'expense_edit_abandoned';`
+- `static const String deleteInitiated = 'expense_delete_initiated';`
+- `static const String deleteConfirmed = 'expense_delete_confirmed';`
+- `static const String deleteCancelled = 'expense_delete_cancelled';`
+- `static const String deleteFailed = 'expense_delete_failed';`
+
+New parameter-key constants:
+
+- `paramFieldName = 'field_name'` — for `editFieldChanged`.
+- `paramFieldsChanged = 'fields_changed'` — for `editSaved`
+  (a comma-separated string; FA-friendly).
+- `paramHadChanges = 'had_changes'` — for `editAbandoned`
+  (boolean).
+- `paramAmountPaise = 'amount_paise'` — for `deleteConfirmed`
+  (the raw paise integer; not bucketed because the delete
+  event is per-action telemetry, not funnel telemetry).
+- `paramErrorCode = 'error_code'` — for `editFailed` and
+  `deleteFailed`.
+
+Every event that carries `expense_id` MUST pass the raw
+document ID through `hashId()` from
+`lib/core/telemetry/event_id_hash.dart` and use the existing
+`paramExpenseIdHash = 'expense_id_hash'` parameter key
+(ADR-0013). Every event that carries `friendship_id` MUST
+pass through `hashFriendshipId()` and use
+`paramFriendshipIdHash = 'friendship_id_hash'`.
+
+The notification-type schema discriminator
+(`type: 'expense_added' | 'expense_edited' | 'expense_deleted'`)
+is a SEPARATE Firestore SCHEMA concern (per SRS §7.5
+`firestore-schema.md:202`) — **PR #46 does NOT touch the
+notification type names**. The chore-#25 Camp B telemetry
+ratification has nothing to do with the notification schema.
+AC-X4 (negative guard borrowed from PR #45) still applies.
+
+---
+
+### §2.7 — Files to touch (exhaustive — anything outside this set is scope creep)
+
+**Source files:**
+
+- `lib/features/expenses/domain/expense_doc.dart` — add `id`
+  field (nullable; populated when read from Firestore for the
+  edit flow) + field-name constants +
+  `toUpdateMap(Set<String> changedFields)` method.
+- `lib/features/expenses/data/expense_repository.dart` —
+  extend `ExpenseStore` + `FirestoreExpenseStore` +
+  `ExpenseRepository` with `updateExpense` and
+  `softDeleteExpense`. Add `_mapUpdateCode` / `_mapDeleteCode`
+  helpers for the typed error mapping. Promote the existing
+  static `_parseExpense` at line 88 to a public
+  `ExpenseDoc.fromMap(String id, Map<String, dynamic> data)`
+  factory so both the watch stream and the new single-doc
+  fetch share the same parsing logic (see §2.9 item 6).
+- `lib/features/expenses/domain/expense_update_error.dart`
+  — NEW file.
+- `lib/features/expenses/domain/expense_delete_error.dart`
+  — NEW file.
+- `lib/features/expenses/application/add_expense_controller.dart`
+  — add `initialExpense` / `initialExpenseId` constructor
+  params, `_originalSnapshot`, `isEditMode`, `changedFields`,
+  `softDelete()`, edit-mode branch in `save()`, and the 9
+  new telemetry emit helpers (`_emitEditOpened`,
+  `_emitEditFieldChanged`, `_emitEditSaved`,
+  `_emitEditFailed`, `_emitEditAbandoned`,
+  `_emitDeleteInitiated`, `_emitDeleteConfirmed`,
+  `_emitDeleteCancelled`, `_emitDeleteFailed`).
+  `AddExpenseArgs` gets `initialExpense` + `initialExpenseId`
+  fields (update `==` / `hashCode`).
+- `lib/features/expenses/application/expense_telemetry.dart`
+  — add 9 event constants + the 5 new parameter-key
+  constants per §2.6.
+- `lib/features/expenses/presentation/expense_detail_screen.dart`
+  — NEW file. `ConsumerStatefulWidget` keyed by
+  `friendshipId + expenseId`; reads via a new
+  `expenseDetailProvider(args)` `FutureProvider.family` that
+  fetches the single document; renders a read-only summary
+  card + `OBTAppBar` with Edit / Delete actions when
+  `createdBy == currentUserUid`; non-creator gets a read-only
+  view with no action buttons. Loading state = simple
+  `CircularProgressIndicator`; error state = inline error
+  text with a "Retry" callback that invalidates the provider.
+  The full `OBTSkeletonLoader` / `OBTErrorState` design-system
+  components are NOT required in PR #46 — keep the screen
+  minimal; their full extraction is in the future Sprint 3
+  design-system PR. Architect's reservation: if QA at
+  smoke-matrix surfaces a clear gap, extract on demand.
+- `lib/features/expenses/application/expense_detail_provider.dart`
+  — NEW file. `FutureProvider.family<ExpenseDoc?, ExpenseDetailArgs>`
+  that does a single `.get()` on
+  `friendships/{fid}/expenses/{eid}` and maps to `ExpenseDoc`
+  via the new public `ExpenseDoc.fromMap(...)` factory shared
+  with the watch stream.
+- `lib/features/expenses/presentation/add_expense_bottom_sheet.dart`
+  — accept new `initialExpense` + `initialExpenseId`
+  constructor params; flip the header title from
+  `'Add Expense (N/2)'` to `'Edit Expense (N/2)'` in edit
+  mode; flip the primary CTA label from `'Save Expense'` to
+  `'Save Changes'` in edit mode (CTA is in the step widgets;
+  prefer a controller-derived `ctaLabel` getter to keep step
+  widgets ignorant of the mode); in edit mode, disable the
+  CTA when `changedFields.isEmpty` (the no-op guard); on
+  Step 2 in edit mode, render the changed-field indicator
+  (a 2 px `secondary` left border + semantic label suffix
+  `', changed.'` on each modified row).
+- `lib/features/friends/presentation/widgets/friend_detail_timeline.dart`
+  — wire the on-tap at lines 92-95 to
+  `Navigator.push(MaterialPageRoute(builder: (_) => ExpenseDetailScreen(...)))`
+  (pass `friendshipId`, `expenseId`, `currentUserUid`).
+  Remove the
+  `// No-op for PR #42. FR-EX-06 will own the edit / delete flow.`
+  comment.
+- `lib/core/widgets/dialogs/obt_confirmation_dialog.dart` —
+  NEW file per §2.5.
+
+**Test files:**
+
+- `test/features/expenses/expense_detail_screen_test.dart` —
+  NEW widget test file (render with non-creator → no
+  Edit / Delete; render with creator → Edit + Delete visible;
+  loading state; error state).
+- `test/features/expenses/edit_expense_controller_test.dart`
+  — NEW controller-level test (constructor pre-fills draft
+  from `initialExpense`; no-op guard; changed-fields diff;
+  save success → snapshot listener consumer would re-emit;
+  save failure → typed `ExpenseUpdateError`;
+  `editFieldChanged` fires per field; `editAbandoned` fires
+  with `had_changes`).
+- `test/features/expenses/delete_expense_controller_test.dart`
+  — NEW controller test (`softDelete()` success / failure /
+  cancel; telemetry events fire).
+- `test/core/widgets/dialogs/obt_confirmation_dialog_test.dart`
+  — NEW leaf widget test.
+- `test/features/friends/friend_detail_timeline_tap_test.dart`
+  — NEW widget test that verifies the row tap pushes
+  `ExpenseDetailScreen` (using a `NavigatorObserver`).
+- `test/integration/expenses/edit_delete_expense_flow_test.dart`
+  — NEW (skipped) integration-test stub for PY3 partial
+  credit.
+- Extend existing
+  `test/features/expenses/expense_creation_boundary_contract_test.dart`
+  (per PM Q6: RATIFY **Option (a)** — extend the existing
+  contract rather than add a sibling; keeps the contract
+  surface unified). Per Phase 0 §0.2 closing note: the grep
+  MUST continue to enforce no `.toDouble()`, no `/100`, no
+  `simplifiedBalances` in `lib/features/expenses/**/*.dart`.
+  Add a `_expectFile` line for
+  `lib/features/expenses/presentation/expense_detail_screen.dart`,
+  `lib/features/expenses/application/expense_detail_provider.dart`,
+  `lib/features/expenses/domain/expense_update_error.dart`,
+  `lib/features/expenses/domain/expense_delete_error.dart`,
+  AND a glob walk that ensures EVERY `.dart` file under
+  `lib/features/expenses/**` passes the contract.
+- Extend existing PII-leak test (per PM Q7: RATIFY
+  **Option (a)** — extend the existing) to cover the 9 new
+  events.
+- `functions/test/firestore-rules/expenses-friendship.test.ts`
+  — add at least 4 new tests for the update + soft-delete
+  paths:
+
+  1. **Rejects update by non-creator member.** Two members A
+     and B; A creates an expense; B attempts to update
+     `description` → `permission-denied`. (Note: this currently
+     passes by the `createdBy == prev.createdBy` immutability
+     constraint at line 281, which means B cannot change
+     `createdBy` to themselves; B CAN technically update other
+     fields per the current rules. The test should ASSERT THE
+     RULES' CURRENT BEHAVIOUR, not what the SCR-22 spec
+     assumes — see §2.9 item 5 for the rules-gap finding. The
+     test then documents that the creator-only restriction is
+     a UI-level gate only.)
+  2. **Rejects soft-delete by non-creator** — same shape as
+     (1) for `deleted: true`. (Same finding may apply per
+     §2.9 item 5.)
+  3. **Rejects update that changes `createdBy`** — explicitly
+     tests the immutability constraint at line 281. Write is
+     rejected.
+  4. **Rejects update that changes `createdAt`** — explicitly
+     tests the immutability constraint at line 282. Write is
+     rejected.
+  5. **(Bonus)** **Accepts valid partial update of
+     `amountPaise` + `splits` + `updatedAt`** — happy path
+     that confirms the typed-mapping helper produces a valid
+     merged document. Tests that `splits` re-sum to the new
+     `amountPaise` post-merge per `sumOfSharesEquals` at line
+     250-252.
+  6. **(Bonus)** **Rejects update that omits `updatedAt`** —
+     confirms `data.updatedAt == request.time` clause at line
+     283.
+
+  If observations (1) and (2) reveal that the rules currently
+  allow any friendship member (not just the creator) to
+  update / soft-delete, document this as the **known finding**
+  in §2.9 item 5 — DO NOT modify `firestore.rules` in PR #46
+  (out of scope per §2.8); file a follow-up issue for the
+  rules-hardening PR.
+
+**Docs:**
+
+- `docs/sprint-zero/sprint-2-plan.md` — add PR #46 row to PR
+  Tracking + Velocity (5 SP, cumulative 45 SP / 13 PRs).
+- `docs/sprint-zero/next-three-prs.md` — roll PR #46 to
+  merged; enumerate PR #47 / PR #48 / PR #49 candidates per
+  Phase 7.
+- `docs/audits/sprint-1/07-bucket-b-burndown.md` — append
+  PR #46 section (0 Bucket-B movement; PY3 partial-credit
+  note for the integration-test stub).
+
+---
+
+### §2.8 — Files explicitly NOT to touch (negative scope guardrails)
+
+Copied verbatim from prompt §2.8 with the PR #45 AC-X4
+notification-schema carry-forward expanded:
+
+- `firestore.rules` (the existing rules are correct; PR #46
+  implements within the existing predicate envelope).
+- `firestore.indexes.json` (no new queries).
+- `storage.rules` (FR-EX-05 receipt attachment is a separate
+  PR).
+- Any `functions/src/**` file (the trigger handles update +
+  delete; PR #46 is a pure client surface change).
+- `functions/package.json`, `package-lock.json`,
+  `firebase.json`, any `.github/workflows/*.yml` (runtime +
+  SDK matrix fixed by PR #44).
+- The notification-type schema discriminator
+  (`type: 'expense_added' | 'expense_edited' | 'expense_deleted' | ...`)
+  in `firestore-schema.md:202`, `cloud-functions-catalogue.md`,
+  `notifications.md`, `notifications-and-deeplinks.md`,
+  `navigation-flow.md`, `OneByTwo_Requirements_Spec.md` —
+  AC-X4 negative guard from PR #45 still applies.
+- `lib/features/settlements/**` (unrelated).
+- `lib/features/auth/**`, `lib/features/friends/application/**`,
+  `lib/features/friends/domain/**` (no changes — only the one
+  timeline widget's on-tap callback wires up).
+- The rate-limit logic (separate concern; PR #45 §2.2
+  deferred).
+- `pubspec.yaml` / `pubspec.lock` / `analysis_options.yaml`
+  / Android / iOS native shells / any Flutter dependency.
+
+---
+
+### §2.9 — Anticipated reconciliations
+
+The following nine findings are documented EXACTLY so the
+implementation phase does not need to re-discover them:
+
+1. **The immutability list in `firestore.rules` lines
+   275-284 is `createdBy` + `createdAt` ONLY.** The prompt's
+   §0.2 / §2.9 / AC-14 framing of `payerId`, `splits`,
+   `splitMethod`, `category`, `currency` as immutable is
+   incorrect. These fields are validated for shape by
+   `isValidExpenseShared()` at lines 254-263 but NOT
+   immutability-locked. SCR-22's edit-flow assumption (all of
+   these are editable) is correct. AC-14 in the PM story
+   already reflects the corrected list; no further action
+   needed.
+
+2. **The `currency` and `source` fields are
+   extension-point-locked, not immutability-locked.** They
+   are constrained to `'INR'` and `'manual'` respectively by
+   `isValidExtensionPointLocks()` at `firestore.rules` lines
+   185-191. An update map MUST NOT change them; the
+   typed-mapping helper at §2.3 excludes them from the diff
+   by construction. `recurringRule` is required to be absent
+   or null per ARCH-EXT-03 (lines 190).
+
+3. **The 9-not-8 telemetry events.** The prompt header
+   repeatedly says "8" but the §2.6 enumeration in the prompt
+   lists 9 and SCR-22 §Telemetry confirms 9. The PM story
+   already enumerates 9; the constants module gets 9. No
+   further action needed.
+
+4. **The 2-step (not 3-step) edit flow.** SCR-22 §Components
+   Used references all SCR-19 / SCR-20 / SCR-21 components
+   ("(N/3)") because the original FR-EX-01 plan was 3 steps.
+   PR #38 shipped FR-EX-01 with SCR-21 (receipt summary)
+   DEFERRED to FR-EX-05. The edit flow therefore mirrors the
+   SHIPPED add flow (2 steps; header `(N/2)`); re-introducing
+   the third receipt-summary step here would conflate
+   FR-EX-05 with FR-EX-06. Architect ratifies the 2-step
+   framing.
+
+5. **Possible rules-gap on non-creator update / delete
+   (KNOWN FINDING — do NOT fix in PR #46).** The current
+   `isValidExpenseUpdate()` at `firestore.rules` lines
+   275-284 enforces `isCallerFriendshipMember()` (line 297)
+   and the merged-document shape, plus `createdBy` +
+   `createdAt` immutability. It does NOT require
+   `request.auth.uid == resource.data.createdBy`. This means
+   any friendship member (not only the creator) can update or
+   soft-delete an expense per the rules. SCR-22 §Navigation
+   says "Only visible to the expense creator", implying
+   creator-only. The PM story AC-13 documents the client UI
+   gate. **The rules-gap is a known finding** — file a
+   follow-up issue for the rules-hardening PR (the
+   architect's call: probably a Sprint 3 hardening sweep
+   before v1.0 GA). The 4 new rules tests in §2.7 are written
+   to ASSERT THE CURRENT BEHAVIOUR (rejects when `createdBy`
+   is changed; accepts non-creator updates of other fields) —
+   that is, they document reality. **DO NOT fix the rules in
+   PR #46** (out of scope per §2.8).
+
+6. **The `_parseExpense` static method on
+   `FirestoreExpenseStore` returns `ExpenseDoc?` at
+   `lib/features/expenses/data/expense_repository.dart`
+   line 88.** PR #46 needs to share this parser with the new
+   `expenseDetailProvider`. Extract `_parseExpense` to a
+   public static factory
+   `ExpenseDoc.fromMap(String id, Map<String, dynamic> data)`
+   so both the watch stream and the single-doc fetch consume
+   the same parsing logic. Architect's call: the
+   `fromMap(id, data)` shape is more flexible than a
+   `fromFirestore(QueryDocumentSnapshot)` form because the
+   `expenseDetailProvider`'s `.get()` returns a
+   `DocumentSnapshot`, not a `QueryDocumentSnapshot`; both
+   snapshot types expose `id` + `data()` accessors, so the
+   `(id, data)` shape adapts cleanly to either caller.
+
+7. **`addExpenseControllerProvider`'s family key includes
+   `initialExpense` + `initialExpenseId`.** This means
+   add-mode and edit-mode controllers are different provider
+   instances (no collision). Architect's reservation: if the
+   test harness shares an `AddExpenseArgs(...)` value between
+   add and edit cases, equality must distinguish — confirm in
+   the new controller tests.
+
+8. **Boundary-contract grep scope expansion.** Per PM Q6:
+   RATIFY **Option (a)** — extend
+   `test/features/expenses/expense_creation_boundary_contract_test.dart`
+   rather than fork a sibling. Per Phase 0 §0.2 closing note:
+   the grep walks `lib/features/expenses/**/*.dart` and
+   asserts none of `.toDouble()`, `/100`, `simplifiedBalances`
+   appears in non-comment lines. The new files
+   (`expense_detail_screen.dart`,
+   `expense_detail_provider.dart`,
+   `expense_update_error.dart`,
+   `expense_delete_error.dart`) are automatically covered by
+   the glob; document this in the test file header.
+
+9. **PII-leak test scope expansion.** Per PM Q7: RATIFY
+   **Option (a)** — extend the existing per-feature PII-leak
+   test to cover the 9 new events. The test enumerates each
+   event constant and asserts the emitted parameter map
+   contains either no UID-shaped strings OR only
+   `*_hash`-suffixed parameters.
+
+---
+
+End of Architect Notes for PR #46. Implementation begins at
+Phase 3 of `docs/copilot_prompts/sprint_2/12.md`.
