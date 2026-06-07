@@ -375,4 +375,218 @@ describe("onExpenseWriteFriendship — integration (registered trigger)", () => 
       expect(data!.simplifiedBalances).toEqual({});
     });
   });
+
+  // -------------------------------------------------------------------------
+  // FR-EX-07 AC-17 — activity-feed write-side end-to-end through the
+  // registered trigger. Verifies that each of the three change branches
+  // (create / edit / soft-delete) produces TWO activity items, one under
+  // each friendship member's activity/{uid}/items subcollection, with
+  // the expected type discriminator and key payload fields.
+  //
+  // Member-read of activity items requires authentication context which
+  // is NOT available in this admin-SDK integration test — the rules-test
+  // suite (functions/test/firestore-rules/activity.test.ts AC-6) covers
+  // the authenticated read path against the production rules. Here we
+  // verify the WRITE-SIDE contract: items appear under both members.
+  // -------------------------------------------------------------------------
+  describe("FR-EX-07 — activity emission round-trip", () => {
+    async function waitForActivityItem(
+      userId: string,
+      eventType: string,
+      expectedExpenseId: string,
+    ): Promise<FirebaseFirestore.DocumentData | undefined> {
+      const start = Date.now();
+      while (Date.now() - start < POLL_TIMEOUT_MS) {
+        const snap = await db.collection(`activity/${userId}/items`).get();
+        const match = snap.docs.find((d) => {
+          const data = d.data();
+          return (
+            data.type === eventType &&
+            data.payload?.expenseId === expectedExpenseId
+          );
+        });
+        if (match) return match.data();
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+      return undefined;
+    }
+
+    it("AC-1: create writes expense_added to BOTH members' activity subcollections", async () => {
+      const fid = "int-on-write-activity-create";
+      const eid = "exp-activity-create";
+      const memberA = "ax-activity-A";
+      const memberB = "ax-activity-B";
+      const contextPath = `friendships/${fid}`;
+      await seedDoc(contextPath, {
+        memberIds: [memberA, memberB],
+        createdBy: memberA,
+        lastActivityAt: Timestamp.fromDate(
+          new Date("2026-01-01T00:00:00.000Z"),
+        ),
+        simplifiedBalances: {},
+      });
+
+      await seedDoc(
+        `${contextPath}/expenses/${eid}`,
+        makeExpense({
+          payerId: memberA,
+          amountPaise: 10000,
+          splits: [
+            {userId: memberA, sharePaise: 5000},
+            {userId: memberB, sharePaise: 5000},
+          ],
+        }),
+      );
+
+      // Wait for the recompute trigger to fire AND emit activity.
+      await waitForBalances(contextPath, {[memberB]: {[memberA]: 5000}});
+
+      // Both members should have an expense_added activity item.
+      const itemA = await waitForActivityItem(memberA, "expense_added", eid);
+      const itemB = await waitForActivityItem(memberB, "expense_added", eid);
+
+      expect(itemA).toBeDefined();
+      expect(itemB).toBeDefined();
+
+      // Clean up the activity docs we created.
+      const snapA = await db.collection(`activity/${memberA}/items`).get();
+      const snapB = await db.collection(`activity/${memberB}/items`).get();
+      for (const d of [...snapA.docs, ...snapB.docs]) {
+        createdDocPaths.push(d.ref.path);
+      }
+
+      // Key payload fields are present.
+      const payloadA = itemA!.payload as Record<string, unknown>;
+      expect(payloadA.expenseId).toBe(eid);
+      expect(payloadA.friendshipId).toBe(fid);
+      expect(payloadA.amountPaise).toBe(10000);
+      expect(payloadA.payerId).toBe(memberA);
+      expect(payloadA.authorUid).toBe(memberA);
+      expect(payloadA.hasReceipt).toBe(false);
+    }, 10000);
+
+    it("AC-2: edit writes expense_edited to BOTH members with changedFields", async () => {
+      const fid = "int-on-write-activity-edit";
+      const eid = "exp-activity-edit";
+      const memberA = "ax-edit-A";
+      const memberB = "ax-edit-B";
+      const contextPath = `friendships/${fid}`;
+      const expPath = `${contextPath}/expenses/${eid}`;
+      await seedDoc(contextPath, {
+        memberIds: [memberA, memberB],
+        createdBy: memberA,
+        lastActivityAt: Timestamp.fromDate(
+          new Date("2026-01-01T00:00:00.000Z"),
+        ),
+        simplifiedBalances: {},
+      });
+
+      // 1. Create
+      await seedDoc(
+        expPath,
+        makeExpense({
+          payerId: memberA,
+          amountPaise: 8000,
+          splits: [
+            {userId: memberA, sharePaise: 4000},
+            {userId: memberB, sharePaise: 4000},
+          ],
+        }),
+      );
+      await waitForBalances(contextPath, {[memberB]: {[memberA]: 4000}});
+
+      // 2. Edit — change amountPaise + splits
+      await db.doc(expPath).update({
+        amountPaise: 20000,
+        splits: [
+          {userId: memberA, sharePaise: 10000},
+          {userId: memberB, sharePaise: 10000},
+        ],
+        updatedAt: Timestamp.now(),
+      });
+      await waitForBalances(contextPath, {[memberB]: {[memberA]: 10000}});
+
+      // 3. Both members should have an expense_edited activity item.
+      const itemA = await waitForActivityItem(memberA, "expense_edited", eid);
+      const itemB = await waitForActivityItem(memberB, "expense_edited", eid);
+
+      // Clean up the activity docs we created.
+      const snapA = await db.collection(`activity/${memberA}/items`).get();
+      const snapB = await db.collection(`activity/${memberB}/items`).get();
+      for (const d of [...snapA.docs, ...snapB.docs]) {
+        createdDocPaths.push(d.ref.path);
+      }
+
+      expect(itemA).toBeDefined();
+      expect(itemB).toBeDefined();
+
+      const payloadA = itemA!.payload as Record<string, unknown>;
+      expect(payloadA.amountPaise).toBe(20000);
+      expect(payloadA.changedFields).toEqual(
+        expect.arrayContaining(["amountPaise", "splits"]),
+      );
+    }, 15000);
+
+    it("AC-3: soft-delete writes expense_deleted to BOTH members with deletedAt and snapshot", async () => {
+      const fid = "int-on-write-activity-delete";
+      const eid = "exp-activity-delete";
+      const memberA = "ax-del-A";
+      const memberB = "ax-del-B";
+      const contextPath = `friendships/${fid}`;
+      const expPath = `${contextPath}/expenses/${eid}`;
+      await seedDoc(contextPath, {
+        memberIds: [memberA, memberB],
+        createdBy: memberA,
+        lastActivityAt: Timestamp.fromDate(
+          new Date("2026-01-01T00:00:00.000Z"),
+        ),
+        simplifiedBalances: {},
+      });
+
+      // 1. Create
+      await seedDoc(
+        expPath,
+        makeExpense({
+          payerId: memberA,
+          amountPaise: 8000,
+          splits: [
+            {userId: memberA, sharePaise: 4000},
+            {userId: memberB, sharePaise: 4000},
+          ],
+          description: "Soft-delete snapshot test",
+        }),
+      );
+      await waitForBalances(contextPath, {[memberB]: {[memberA]: 4000}});
+
+      // 2. Soft-delete
+      await db.doc(expPath).update({
+        deleted: true,
+        updatedAt: Timestamp.now(),
+      });
+      await waitForBalances(contextPath, {});
+
+      // 3. Both members should have an expense_deleted activity item.
+      const itemA = await waitForActivityItem(memberA, "expense_deleted", eid);
+      const itemB = await waitForActivityItem(memberB, "expense_deleted", eid);
+
+      // Clean up the activity docs we created.
+      const snapA = await db.collection(`activity/${memberA}/items`).get();
+      const snapB = await db.collection(`activity/${memberB}/items`).get();
+      for (const d of [...snapA.docs, ...snapB.docs]) {
+        createdDocPaths.push(d.ref.path);
+      }
+
+      expect(itemA).toBeDefined();
+      expect(itemB).toBeDefined();
+
+      // The snapshot of {description, amountPaise, category} is captured
+      // from the pre-delete state so the SCR-25 row can render the
+      // description even if the expense is hard-deleted later.
+      const payloadA = itemA!.payload as Record<string, unknown>;
+      expect(payloadA.description).toBe("Soft-delete snapshot test");
+      expect(payloadA.amountPaise).toBe(8000);
+      expect(payloadA.authorUid).toBe(memberA);
+      expect(payloadA.deletedAt).toBeDefined();
+    }, 15000);
+  });
 });
