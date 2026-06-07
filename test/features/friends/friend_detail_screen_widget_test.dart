@@ -17,9 +17,11 @@ import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
@@ -31,6 +33,8 @@ import 'package:onebytwo/features/settlements/application/settle_up_telemetry.da
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
+
+import '../expenses/helpers/fake_services.dart';
 
 class FakeAnalyticsService implements AnalyticsService {
   final List<({String name, Map<String, Object>? parameters})> loggedEvents =
@@ -163,6 +167,18 @@ class FakeExpenseRepository implements ExpenseRepository {
     lastWatchedFriendshipId = friendshipId;
     return const Stream<List<ExpenseDoc>>.empty();
   }
+
+  @override
+  String newExpenseId({required String friendshipId}) => returnId;
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    // Not exercised by the Friend Detail widget tests.
+  }
 }
 
 class FakeSettlementRepository implements SettlementRepository {
@@ -191,6 +207,10 @@ Widget _buildSubject({
   return ProviderScope(
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
+      receiptStorageServiceProvider.overrideWithValue(
+        FakeReceiptStorageService(),
+      ),
+      imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
       if (expenseRepository != null)
         expenseRepositoryProvider.overrideWithValue(expenseRepository),
       if (settlementRepository != null)

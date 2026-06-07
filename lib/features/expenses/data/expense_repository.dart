@@ -34,6 +34,25 @@ abstract class ExpenseStore {
     required Map<String, dynamic> data,
   });
 
+  /// FR-EX-05: pre-allocates a new (unwritten) document ID at
+  /// `friendships/{friendshipId}/expenses/{auto-id}`. Used by the
+  /// receipt-attach create flow so the controller can upload the
+  /// receipt to `receipts/friendships/{fid}/{eid}` BEFORE the
+  /// Firestore write commits.
+  String newExpenseId({required String friendshipId});
+
+  /// FR-EX-05: writes [data] at
+  /// `friendships/{friendshipId}/expenses/{expenseId}` using `.set(...)`.
+  /// Pair with [newExpenseId] to seed the document at the
+  /// pre-allocated path so a previously-uploaded receipt at
+  /// `receipts/friendships/{fid}/{eid}` is correctly referenced by
+  /// the expense's `receiptUrl` field on first write.
+  Future<void> setExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> data,
+  });
+
   /// Applies a partial update at
   /// `friendships/{friendshipId}/expenses/{expenseId}`. The caller is
   /// responsible for shaping [updates] correctly (FR-EX-06 uses
@@ -86,6 +105,20 @@ class FirestoreExpenseStore implements ExpenseStore {
   }) async {
     final ref = await _expensesCollection(friendshipId).add(data);
     return ref.id;
+  }
+
+  @override
+  String newExpenseId({required String friendshipId}) {
+    return _expensesCollection(friendshipId).doc().id;
+  }
+
+  @override
+  Future<void> setExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> data,
+  }) async {
+    await _expensesCollection(friendshipId).doc(expenseId).set(data);
   }
 
   @override
@@ -175,6 +208,47 @@ class ExpenseRepository {
     try {
       return await _store.addExpense(
         friendshipId: friendshipId,
+        data: doc.toCreateMap(),
+      );
+    } on FirebaseException catch (e, st) {
+      throw ExpenseCreateError(
+        type: _mapFirebaseCode(e.code),
+        underlying: e,
+        stackTrace: st,
+      );
+    } catch (e, st) {
+      throw ExpenseCreateError(
+        type: ExpenseCreateErrorType.unknown,
+        underlying: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// FR-EX-05: pre-allocates a new (unwritten) expense ID under
+  /// `friendships/{friendshipId}/expenses/`. The controller uses this
+  /// to upload the receipt to `receipts/friendships/{fid}/{eid}`
+  /// BEFORE the corresponding Firestore write commits, so the
+  /// `receiptUrl` field in the create-map points at an existing
+  /// Storage object on first write.
+  String newExpenseId({required String friendshipId}) {
+    return _store.newExpenseId(friendshipId: friendshipId);
+  }
+
+  /// FR-EX-05: writes [doc] at
+  /// `friendships/{friendshipId}/expenses/{expenseId}` using `.set(...)`.
+  /// Pair with [newExpenseId] for the create-with-receipt flow. Maps
+  /// [FirebaseException]s to [ExpenseCreateError] (same posture as
+  /// [createExpense]).
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    try {
+      await _store.setExpense(
+        friendshipId: friendshipId,
+        expenseId: expenseId,
         data: doc.toCreateMap(),
       );
     } on FirebaseException catch (e, st) {

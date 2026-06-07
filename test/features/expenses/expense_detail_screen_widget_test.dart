@@ -16,15 +16,19 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/application/expense_detail_provider.dart';
 import 'package:onebytwo/features/expenses/application/expense_telemetry.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/expense_detail_screen.dart';
+
+import 'helpers/fake_services.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -77,6 +81,18 @@ class FakeExpenseRepository implements ExpenseRepository {
     required String friendshipId,
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
+
+  @override
+  String newExpenseId({required String friendshipId}) => 'noop';
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    // Not exercised by the expense-detail widget tests.
+  }
 }
 
 class FakeAnalyticsService implements AnalyticsService {
@@ -133,6 +149,10 @@ Widget _buildHost({
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
       expenseRepositoryProvider.overrideWithValue(repo),
+      receiptStorageServiceProvider.overrideWithValue(
+        FakeReceiptStorageService(),
+      ),
+      imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
       detailOverride,
     ],
     child: const MaterialApp(

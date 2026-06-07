@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #46 (FR-EX-06 — edit / delete expense, friendship context) — 13th merged PR.
+> Last updated: PR #48 (FR-EX-05 — receipt attachment, friendship context) — 14th merged PR.
 
 ---
 
@@ -105,7 +105,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #44 | 3 | Merged |
 | #45 | 3 | Merged (chore — Stream A + Stream B) |
 | #46 | 5 | Merged |
-| **Total** | **45** | **13 PRs so far** |
+| #48 | 5 | Merged |
+| **Total** | **50** | **14 PRs so far** |
 
 Sprint 1 reference:
 

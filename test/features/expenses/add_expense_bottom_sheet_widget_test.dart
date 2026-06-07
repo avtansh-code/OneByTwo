@@ -16,13 +16,17 @@
 import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/application/expense_telemetry.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
+
+import 'helpers/fake_services.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -72,6 +76,18 @@ class FakeExpenseRepository implements ExpenseRepository {
     required String friendshipId,
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
+
+  @override
+  String newExpenseId({required String friendshipId}) => returnId;
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {
+    // Not exercised by the FR-EX-01 widget tests.
+  }
 }
 
 class FakeAnalyticsService implements AnalyticsService {
@@ -102,18 +118,26 @@ const _friendUid = 'uid-friend';
 Widget buildSubject({
   required FakeExpenseRepository repo,
   required FakeAnalyticsService analytics,
+  ExpenseDoc? initialExpense,
+  String? initialExpenseId,
 }) {
   return ProviderScope(
     overrides: [
       analyticsServiceProvider.overrideWithValue(analytics),
       expenseRepositoryProvider.overrideWithValue(repo),
+      receiptStorageServiceProvider.overrideWithValue(
+        FakeReceiptStorageService(),
+      ),
+      imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
     ],
-    child: const MaterialApp(
+    child: MaterialApp(
       home: Scaffold(
         body: AddExpenseBottomSheet(
           friendshipId: _friendshipId,
           currentUserUid: _currentUid,
           otherUserUid: _friendUid,
+          initialExpense: initialExpense,
+          initialExpenseId: initialExpenseId,
         ),
       ),
     ),
@@ -130,11 +154,11 @@ void main() {
   });
 
   group('Step 1 — initial render', () {
-    testWidgets('shows the step title "Add Expense (1/2)"', (tester) async {
+    testWidgets('shows the step title "Add Expense (1/3)"', (tester) async {
       await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Expense (1/2)'), findsOneWidget);
+      expect(find.text('Add Expense (1/3)'), findsOneWidget);
     });
 
     testWidgets('renders the eight FR-EX-08 category chips', (tester) async {
@@ -235,7 +259,7 @@ void main() {
 
   group('Step 1 → Step 2 transition', () {
     testWidgets(
-      'tapping Next advances to step 2 and shows "Add Expense (2/2)"',
+      'tapping Next advances to step 2 and shows "Add Expense (2/3)"',
       (tester) async {
         await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
         await tester.pumpAndSettle();
@@ -253,7 +277,7 @@ void main() {
         await tester.tap(find.widgetWithText(FilledButton, 'Next'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Add Expense (2/2)'), findsOneWidget);
+        expect(find.text('Add Expense (2/3)'), findsOneWidget);
       },
     );
 
@@ -310,18 +334,24 @@ void main() {
       expect(find.text('Shares'), findsOneWidget);
     });
 
-    testWidgets('Save button is enabled with default Equal split', (
+    testWidgets('Next button on Step 2 is enabled with default Equal split', (
       tester,
     ) async {
       await advanceToStep2(tester);
 
-      final saveButton = find.widgetWithText(FilledButton, 'Save');
-      expect(saveButton, findsOneWidget);
+      // FR-EX-05: Step 2's primary CTA flips from "Save" to
+      // "Next" — the final save fires from Step 3.
+      final nextButtons = find.widgetWithText(FilledButton, 'Next');
+      // Multiple "Next" buttons may exist if both Step 1's Next is
+      // still on screen (it isn't — we're on Step 2). Use the last
+      // one as the active CTA.
+      expect(nextButtons, findsWidgets);
+      final nextOnStep2 = nextButtons.last;
       expect(
-        tester.widget<FilledButton>(saveButton).onPressed,
+        tester.widget<FilledButton>(nextOnStep2).onPressed,
         isNotNull,
         reason:
-            'Equal split is always valid by construction; Save must be '
+            'Equal split is always valid by construction; Next must be '
             'enabled immediately on step 2',
       );
     });
@@ -342,9 +372,20 @@ void main() {
       );
       await tester.tap(find.text('Food'));
       await tester.pumpAndSettle();
+      // Step 1 → Step 2.
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      // Step 2 → Step 3 (FR-EX-05). The Step 2 layout fits
+      // comfortably in the default test window.
+      await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
+      await tester.pumpAndSettle();
+      // Step 3 → Save. Step 3's receipt picker + summary card may
+      // push the CTA below the fold on smaller test windows; scroll
+      // it into view before tapping.
+      final saveCta = find.widgetWithText(FilledButton, 'Save Expense');
+      await tester.ensureVisible(saveCta);
+      await tester.pumpAndSettle();
+      await tester.tap(saveCta);
       await tester.pumpAndSettle();
     }
 
@@ -393,7 +434,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
+      await tester.pumpAndSettle();
+      final saveCta = find.widgetWithText(FilledButton, 'Save Expense');
+      await tester.ensureVisible(saveCta);
+      await tester.pumpAndSettle();
+      await tester.tap(saveCta);
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't add the expense. Try again."), findsOneWidget);
@@ -419,6 +465,12 @@ void main() {
         overrides: [
           analyticsServiceProvider.overrideWithValue(analytics),
           expenseRepositoryProvider.overrideWithValue(repo),
+          receiptStorageServiceProvider.overrideWithValue(
+            FakeReceiptStorageService(),
+          ),
+          imagePickerServiceProvider.overrideWithValue(
+            FakeImagePickerService(),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -450,7 +502,7 @@ void main() {
       );
     }
 
-    testWidgets('header reads "Edit Expense (1/2)" in edit mode', (
+    testWidgets('header reads "Edit Expense (1/3)" in edit mode', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -461,12 +513,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Edit Expense (1/2)'), findsOneWidget);
+      expect(find.text('Edit Expense (1/3)'), findsOneWidget);
     });
 
     testWidgets(
-      'AC-3 — Step 2 Save CTA is wrapped in Semantics with the disabled-CTA '
-      'label when in edit mode and no fields are changed',
+      'AC-3 — Step 3 Save Changes CTA is wrapped in Semantics with the '
+      'disabled-CTA label when in edit mode and no fields are changed',
       (tester) async {
         await tester.pumpWidget(
           buildEditSubject(
@@ -476,15 +528,17 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        // Tap Next to advance to Step 2.
+        // Tap Next twice to advance to Step 3 (Step 1 → Step 2 → Step 3).
         await tester.tap(find.widgetWithText(FilledButton, 'Next'));
         await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
+        await tester.pumpAndSettle();
 
-        // The CTA label is "Save Changes" in edit mode.
-        expect(
-          find.widgetWithText(FilledButton, 'Save Changes'),
-          findsOneWidget,
-        );
+        // The CTA label is "Save Changes" in edit mode on Step 3.
+        final cta = find.widgetWithText(FilledButton, 'Save Changes');
+        await tester.ensureVisible(cta);
+        await tester.pumpAndSettle();
+        expect(cta, findsOneWidget);
 
         // No fields modified → CTA disabled and wrapped in the AC-3 label.
         final semantics = find.byWidgetPredicate(
@@ -495,7 +549,7 @@ void main() {
         );
         expect(
           semantics,
-          findsOneWidget,
+          findsWidgets,
           reason:
               'AC-3: a disabled "Save Changes" CTA in edit mode must announce '
               '"Save changes, no modifications made."',
@@ -535,9 +589,9 @@ void main() {
               '", changed." after the split method flips from its original.',
         );
 
-        // And the CTA flips to enabled ("Save Changes" available).
+        // And the Step 2 Next CTA flips to enabled (hasChanges true).
         final cta = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Save Changes'),
+          find.widgetWithText(FilledButton, 'Next').last,
         );
         expect(cta.onPressed, isNotNull);
       },

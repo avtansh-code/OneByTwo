@@ -17,5 +17,44 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png)');
     }
+
+    // Receipts (friendship context — FR-EX-05).
+    // Path: receipts/friendships/{friendshipId}/{expenseId}
+    // Constraints: max 10 MB, JPEG or PNG only. Read + write require
+    // the caller to be a member of the parent friendship document
+    // (cross-collection firestore.get() against friendships/{fid}).
+    //
+    // The download path is also used by the read side; both read and
+    // write are gated by the same membership predicate so the friend
+    // can see receipts the other member uploaded.
+    match /receipts/friendships/{friendshipId}/{expenseId} {
+      allow read: if request.auth != null
+        && request.auth.uid in
+           firestore.get(/databases/(default)/documents/friendships/$(friendshipId)).data.memberIds;
+      allow write: if request.auth != null
+        && request.auth.uid in
+           firestore.get(/databases/(default)/documents/friendships/$(friendshipId)).data.memberIds
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+    }
+
+    // Receipts (group context — defensive). The UI ships
+    // friendship-only (FR-EX-05); the group-context UI is
+    // the Sprint 3 groups epic. This predicate is included now to
+    // close R7 + R8 from the Sprint-1 Bucket-B burndown in a single
+    // PR (same predicate shape; same review surface).
+    // Path: receipts/groups/{groupId}/{expenseId}
+    // Constraints: max 10 MB, JPEG or PNG only. Membership against
+    // groups/{groupId}.memberIds.
+    match /receipts/groups/{groupId}/{expenseId} {
+      allow read: if request.auth != null
+        && request.auth.uid in
+           firestore.get(/databases/(default)/documents/groups/$(groupId)).data.memberIds;
+      allow write: if request.auth != null
+        && request.auth.uid in
+           firestore.get(/databases/(default)/documents/groups/$(groupId)).data.memberIds
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png)');
+    }
   }
 }

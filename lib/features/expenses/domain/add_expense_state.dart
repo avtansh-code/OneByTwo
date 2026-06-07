@@ -44,6 +44,19 @@ class Saving extends AddExpenseState {
   final ExpenseDraft draft;
 }
 
+/// FR-EX-05: the receipt file is being uploaded to Firebase Storage,
+/// PRIOR to the Firestore write. The UI overlays a circular
+/// progress indicator on the thumbnail at 0.5 opacity (per SCR-21
+/// State 3) and disables the Save CTA. Transitions to [Saving] on
+/// upload success, or to [AddExpenseError] on upload failure.
+class Uploading extends AddExpenseState {
+  /// Creates an [Uploading] state.
+  const Uploading({required this.draft});
+
+  /// The draft being uploaded — the receipt is at `draft.receiptFile`.
+  final ExpenseDraft draft;
+}
+
 /// Discriminator for the [Success] terminal state — used by the host
 /// widget to pick the right snackbar copy.
 ///
