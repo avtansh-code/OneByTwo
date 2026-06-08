@@ -63,7 +63,7 @@ void main() {
 
       final headingSemantics = tester
           .widgetList<Semantics>(find.byType(Semantics))
-          .where((s) => s.properties.header == true)
+          .where((s) => s.properties.header ?? false)
           .toList();
       expect(
         headingSemantics,

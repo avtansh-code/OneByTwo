@@ -13,7 +13,6 @@
 // ignore_for_file: cascade_invocations
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_messaging_platform_interface/firebase_messaging_platform_interface.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/notifications/application/notification_permission_controller.dart';

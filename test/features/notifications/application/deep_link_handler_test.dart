@@ -54,25 +54,29 @@ NotificationPayload _payload({
 
 Future<void> _pumpHostAndDispatch({
   required WidgetTester tester,
+  required ProviderContainer container,
   required DeepLinkHandler handler,
   required NotificationPayload payload,
   required String currentUid,
   required DeepLinkSource source,
 }) async {
   await tester.pumpWidget(
-    MaterialApp(
-      home: Builder(
-        builder: (context) {
-          return ElevatedButton(
-            onPressed: () => handler.handleDeepLink(
-              payload: payload,
-              context: context,
-              currentUid: currentUid,
-              source: source,
-            ),
-            child: const Text('go'),
-          );
-        },
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return ElevatedButton(
+              onPressed: () => handler.handleDeepLink(
+                payload: payload,
+                context: context,
+                currentUid: currentUid,
+                source: source,
+              ),
+              child: const Text('go'),
+            );
+          },
+        ),
       ),
     ),
   );
@@ -186,8 +190,9 @@ void main() {
         'source on foreground dispatch', (tester) async {
       await _pumpHostAndDispatch(
         tester: tester,
+        container: container,
         handler: handler,
-        payload: _payload(type: NotificationType.expenseAdded),
+        payload: _payload(),
         currentUid: 'uid-me',
         source: DeepLinkSource.foreground,
       );
@@ -208,6 +213,7 @@ void main() {
     ) async {
       await _pumpHostAndDispatch(
         tester: tester,
+        container: container,
         handler: handler,
         payload: _payload(type: NotificationType.reminder, itemId: null),
         currentUid: 'uid-me',
@@ -225,6 +231,7 @@ void main() {
     ) async {
       await _pumpHostAndDispatch(
         tester: tester,
+        container: container,
         handler: handler,
         payload: _payload(type: NotificationType.settlementReceived),
         currentUid: 'uid-me',

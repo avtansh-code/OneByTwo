@@ -113,16 +113,12 @@ void main() {
         'lib/features/notifications/domain/notification_payload.dart',
         'lib/features/notifications/data/fcm_token_service.dart',
         'lib/features/notifications/data/notification_handler.dart',
-        'lib/features/notifications/application/'
-            'firebase_messaging_provider.dart',
-        'lib/features/notifications/application/'
-            'pending_deep_link_provider.dart',
+        'lib/features/notifications/application/firebase_messaging_provider.dart',
+        'lib/features/notifications/application/pending_deep_link_provider.dart',
         'lib/features/notifications/application/deep_link_handler.dart',
-        'lib/features/notifications/application/'
-            'notification_permission_controller.dart',
+        'lib/features/notifications/application/notification_permission_controller.dart',
         'lib/features/notifications/presentation/pre_permission_dialog.dart',
-        'lib/features/notifications/presentation/widgets/'
-            'in_app_notification_banner.dart',
+        'lib/features/notifications/presentation/widgets/in_app_notification_banner.dart',
         'lib/core/routing/notification_deep_links.dart',
       ];
       final missing = <String>[
