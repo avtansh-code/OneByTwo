@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Skeleton loader for the SCR-25 Activity Feed (Loading state).
+/// Static skeleton loader for the SCR-25 Activity Feed (Loading state).
 ///
-/// Renders 5 placeholder rows with a shimmer animation. The animation
-/// is suppressed to a static grey when `MediaQuery.disableAnimationsOf`
-/// reports true (SRS section 5.6 reduce-motion accommodation).
+/// Renders 5 placeholder rows as static grey blocks. The SCR-25 spec
+/// calls for a shimmer animation; per architect §2.6 the shimmer is
+/// deferred to a future PR rather than pulling in an extra dependency.
+/// A static skeleton remains acceptable per the SRS section 5.6
+/// accessibility contract (reduce-motion users would see this exact
+/// presentation either way).
 class ActivityFeedSkeleton extends StatelessWidget {
   /// Creates an [ActivityFeedSkeleton].
   const ActivityFeedSkeleton({super.key});
@@ -12,7 +15,6 @@ class ActivityFeedSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Semantics(
       liveRegion: true,
       label: 'Loading activity feed',
@@ -20,7 +22,7 @@ class ActivityFeedSkeleton extends StatelessWidget {
         key: const Key('activity_feed_skeleton'),
         itemCount: 5,
         itemBuilder: (context, index) {
-          return _SkeletonRow(theme: theme, reduceMotion: reduceMotion);
+          return _SkeletonRow(theme: theme);
         },
       ),
     );
@@ -28,20 +30,13 @@ class ActivityFeedSkeleton extends StatelessWidget {
 }
 
 class _SkeletonRow extends StatelessWidget {
-  const _SkeletonRow({required this.theme, required this.reduceMotion});
+  const _SkeletonRow({required this.theme});
 
   final ThemeData theme;
-  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
-    final base = theme.colorScheme.surfaceContainerHighest;
-    // When reduce-motion is active we use the static base colour
-    // directly with no animation. Otherwise a subtle opacity shimmer
-    // could be wrapped here (kept static for v1.0 to avoid extra
-    // dependencies — the SCR-25 spec calls for shimmer but a static
-    // skeleton is acceptable per the accessibility contract).
-    final colour = reduceMotion ? base : base;
+    final colour = theme.colorScheme.surfaceContainerHighest;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(

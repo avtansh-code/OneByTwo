@@ -232,20 +232,19 @@ export function createTriggerHandler(
       return;
     }
 
-    // 3. Hand-off seams for downstream stories (placement parity with
+    // 3. Hand-off seam for downstream story (placement parity with
     //    the expense trigger):
-    //    TODO(FR-AC-01): write activity-feed items to both parties'
-    //      activity/{userId}/items subcollection after successful
-    //      recompute.
     //    TODO(FR-AC-03): send FCM push notification to the toUserId
     //      respecting notificationPrefs.settlement.
-    //    Placement note: both seams must execute ONLY after a
+    //    Placement note: the FCM seam must execute ONLY after a
     //    successful recompute (i.e. inside or just below the success
     //    branch at the bottom of this handler) to keep retry semantics
     //    clean — a retryable transient failure must not duplicate
-    //    activity items or notifications. Today they are deferred
-    //    entirely; the actual placement decision lives with the story
-    //    that implements them.
+    //    notifications. Today the FCM seam is deferred entirely; the
+    //    actual placement decision lives with the story that
+    //    implements it. The FR-AC-01 activity-feed emission seam was
+    //    closed by the emitSettlementActivity call at the bottom of
+    //    this handler (step 8 below).
 
     // 4. Build the alsoSet payload — atomically advance lastActivityAt
     //    inside the same transaction as the simplifiedBalances write.
