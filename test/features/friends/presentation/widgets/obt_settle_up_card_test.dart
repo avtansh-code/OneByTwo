@@ -40,7 +40,7 @@ void main() {
 
       expect(find.text('Settle Up'), findsOneWidget);
       expect(find.text('Send Reminder'), findsNothing);
-      expect(find.text('\u20B9500'), findsOneWidget);
+      expect(find.text('\u20B9500.00'), findsOneWidget);
 
       await tester.tap(find.text('Settle Up'));
       await tester.pump();
@@ -69,7 +69,7 @@ void main() {
 
       expect(find.text('Send Reminder'), findsOneWidget);
       expect(find.text('Settle Up'), findsNothing);
-      expect(find.text('\u20B9500'), findsOneWidget);
+      expect(find.text('\u20B9500.00'), findsOneWidget);
     });
 
     testWidgets('tapping Send Reminder fires onSendReminder', (tester) async {

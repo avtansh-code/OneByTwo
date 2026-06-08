@@ -2,6 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
 
+// ignore_for_file: one_member_abstracts
+//
+// The abstract class exists because [ReminderRepository] is a typed
+// factory constructor surface that hides the concrete
+// [ReminderRepositoryImpl]; this is the established pattern in the
+// codebase (see [SettlementRepository] in
+// lib/features/settlements/data/). Single-method-abstracts is the
+// signal here that the repository is a one-call surface.
+
 /// Callable signature for the `sendReminderNotification` Cloud
 /// Function. Matches the response shape returned by
 /// `FirebaseFunctions.httpsCallable(...).call(...)`.
@@ -48,12 +57,12 @@ class ReminderCallableException implements Exception {
 /// (controller / UI) switch on the runtime type and never inspect
 /// raw exception fields.
 abstract class ReminderRepository {
-  /// Default constructor for sub-classing / fakes.
-  const ReminderRepository._();
-
   /// Creates a default [ReminderRepository] backed by [callable].
   const factory ReminderRepository({required ReminderCallable callable}) =
       ReminderRepositoryImpl;
+
+  /// Default constructor for sub-classing / fakes.
+  const ReminderRepository._();
 
   /// Invokes the `sendReminderNotification` callable and maps the
   /// response (or thrown exception) to a [ReminderSendResult].

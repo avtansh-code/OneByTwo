@@ -1,12 +1,12 @@
 /// FR-SE-09 Send Reminder — typed success result.
 ///
-/// Returned by [ReminderRepository.sendReminder] when the
+/// Returned by `ReminderRepository.sendReminder` when the
 /// `sendReminderNotification` callable resolves with `{ success: true,
 /// nextAllowedAtIso }`. The `nextAllowedAt` field is the server-
 /// computed earliest time at which the same sender may dispatch
 /// another reminder to the same recipient (24h after the successful
 /// send per SRS §4.6).
-part of reminder_send_result;
+part of 'reminder_send_error.dart';
 
 /// The successful variant of [ReminderSendResult].
 class ReminderSendSuccess extends ReminderSendResult {

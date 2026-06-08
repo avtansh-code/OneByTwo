@@ -802,7 +802,6 @@ void main() {
           header: _header(
             netBalancePaise: 5000,
             balanceState: BalanceState.owed,
-            displayName: 'Bina',
           ),
           timeline: [
             TimelineExpense(
@@ -839,11 +838,7 @@ void main() {
         () => ReminderSendRateLimited(nextAllowedAt: nextAt),
       );
       final state = FriendDetailStatePopulated(
-        header: _header(
-          netBalancePaise: 5000,
-          balanceState: BalanceState.owed,
-          displayName: 'Bina',
-        ),
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
         timeline: const [],
       );
 
@@ -861,7 +856,13 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.textContaining('Bina'), findsOneWidget);
+      // The snackbar text mentions the friend's display name and the
+      // remaining cooldown ("...in 5h 31m." or similar).
+      final snackbarText = find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.textContaining('Bina'),
+      );
+      expect(snackbarText, findsOneWidget);
     });
 
     testWidgets('RECIPIENT_PREFS_DISABLED surfaces a prefs-off snackbar', (
@@ -871,11 +872,7 @@ void main() {
         () => const ReminderSendRecipientPrefsDisabled(),
       );
       final state = FriendDetailStatePopulated(
-        header: _header(
-          netBalancePaise: 5000,
-          balanceState: BalanceState.owed,
-          displayName: 'Bina',
-        ),
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
         timeline: const [],
       );
 
@@ -893,7 +890,13 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.textContaining('notifications turned off'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.textContaining('notifications turned off'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -1,28 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 
-/// Settle Up CTA card (FR-SE-07 / SCR-23 / design-system §13).
+/// Settle Up CTA card (FR-SE-07 / SCR-23 / design-system §13) — with
+/// the FR-SE-09 receiving-direction variant.
 ///
 /// Renders a payer-avatar → arrow → payee-avatar row with a centred
-/// suggested amount and a Settle Up call-to-action. Hosts:
-/// - Friend Detail screen (FR-SE-05 / PR #43 — this PR's wired call site)
-/// - Home Dashboard (FR-HD-02 — deferred; planned future use site)
-/// - Group Detail (FR-GR-04 — deferred; planned future use site)
+/// suggested amount and a Settle Up / Send Reminder call-to-action.
 ///
-/// Architectural placement (Architect Notes §2.6): the widget lives
-/// under `lib/features/friends/presentation/widgets/` for PR #43
-/// because the only wired host is `FriendDetailScreen`. When the Home
-/// Dashboard ships, that PR will lift this widget into a shared
-/// design-system folder (`lib/core/widgets/cards/`) per the
-/// `OBTAmountInput` extraction precedent from PR #38.
+/// **Settling-direction** (default; [isReceivingDirection] == false):
+/// the authenticated user owes the friend; the CTA reads "Settle Up"
+/// and fires [onSettleUp].
+///
+/// **Receiving-direction** (FR-SE-09; [isReceivingDirection] == true):
+/// the friend owes the authenticated user; the CTA reads "Send
+/// Reminder" and fires [onSendReminder]. When [nextAllowedAt] is in
+/// the future, the button is disabled and a live countdown caption
+/// is shown ("Next reminder in 23h 59m").
+///
+/// Hosts:
+/// - Friend Detail screen — both directional branches.
+/// - Home Dashboard (FR-HD-02 — deferred; planned future use site).
+/// - Group Detail (FR-GR-04 — deferred; planned future use site).
+///
+/// Architectural placement (FR-SE-09 Architect Notes §2.7): the
+/// widget lives under `lib/features/friends/presentation/widgets/`
+/// — extraction to `lib/core/widgets/cards/` remains DEFERRED until
+/// a second host needs it (precedent: `OBTAmountInput` in PR #38).
 ///
 /// Invariant compliance:
 /// - **Invariant 1 (paise)**: [suggestedAmountPaise] is `int`; display
 ///   uses `formatInrFromPaise()`. No inline `/100` math.
 /// - **Invariant 2 (`simplifiedBalances` read-only)**: this widget is
 ///   presentational and never touches Firestore.
-class OBTSettleUpCard extends StatelessWidget {
+class OBTSettleUpCard extends StatefulWidget {
   /// Creates an [OBTSettleUpCard].
   const OBTSettleUpCard({
     required this.payerDisplayName,
@@ -31,6 +44,9 @@ class OBTSettleUpCard extends StatelessWidget {
     required this.payeePhotoUrl,
     required this.suggestedAmountPaise,
     required this.onSettleUp,
+    this.isReceivingDirection = false,
+    this.onSendReminder,
+    this.nextAllowedAt,
     super.key,
   });
 
@@ -52,12 +68,96 @@ class OBTSettleUpCard extends StatelessWidget {
   /// Fires when the user taps the Settle Up CTA. The host is
   /// responsible for opening the Settle Up bottom sheet (or
   /// equivalent) and for firing the `settle_up_tapped` telemetry
-  /// event.
+  /// event. Ignored on the receiving-direction branch.
   final VoidCallback onSettleUp;
+
+  /// When true, the card renders in the receiving-direction variant
+  /// (FR-SE-09): CTA reads "Send Reminder"; tapping fires
+  /// [onSendReminder] (which MUST be provided when this is true).
+  final bool isReceivingDirection;
+
+  /// Fires when the user taps the Send Reminder CTA on the
+  /// receiving-direction variant. Required when
+  /// [isReceivingDirection] is true.
+  final VoidCallback? onSendReminder;
+
+  /// Server-returned earliest time at which the next reminder may be
+  /// sent. When in the future, the receiving-direction button is
+  /// disabled with a live countdown caption. Ignored on the
+  /// settling-direction branch.
+  final DateTime? nextAllowedAt;
+
+  @override
+  State<OBTSettleUpCard> createState() => _OBTSettleUpCardState();
+}
+
+class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartTick();
+  }
+
+  @override
+  void didUpdateWidget(covariant OBTSettleUpCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.nextAllowedAt != widget.nextAllowedAt) {
+      _tick?.cancel();
+      _tick = null;
+      _maybeStartTick();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _maybeStartTick() {
+    final next = widget.nextAllowedAt;
+    if (!widget.isReceivingDirection || next == null) return;
+    if (next.isBefore(DateTime.now())) return;
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  bool get _isReminderCooling {
+    if (!widget.isReceivingDirection) return false;
+    final next = widget.nextAllowedAt;
+    if (next == null) return false;
+    return next.isAfter(DateTime.now());
+  }
+
+  String _cooldownCaption() {
+    final next = widget.nextAllowedAt!;
+    final remaining = next.difference(DateTime.now());
+    final h = remaining.inHours;
+    final m = remaining.inMinutes.remainder(60);
+    if (h > 0) return 'Next reminder in ${h}h ${m}m';
+    if (m > 0) return 'Next reminder in ${m}m';
+    return 'Next reminder shortly';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isReceiving = widget.isReceivingDirection;
+    final cooling = _isReminderCooling;
+    final ctaLabel = isReceiving ? 'Send Reminder' : 'Settle Up';
+    final ctaIcon = isReceiving
+        ? Icons.notifications_active_outlined
+        : Icons.handshake_outlined;
+    final VoidCallback? ctaOnPressed;
+    if (isReceiving) {
+      ctaOnPressed = cooling ? null : widget.onSendReminder;
+    } else {
+      ctaOnPressed = widget.onSettleUp;
+    }
+
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       elevation: 0,
@@ -72,26 +172,26 @@ class OBTSettleUpCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _AvatarLabel(
-                  displayName: payerDisplayName,
-                  photoUrl: payerPhotoUrl,
+                  displayName: widget.payerDisplayName,
+                  photoUrl: widget.payerPhotoUrl,
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
                     Icons.arrow_forward,
                     color: theme.colorScheme.primary,
-                    semanticLabel: 'pays',
+                    semanticLabel: isReceiving ? 'owes' : 'pays',
                   ),
                 ),
                 _AvatarLabel(
-                  displayName: payeeDisplayName,
-                  photoUrl: payeePhotoUrl,
+                  displayName: widget.payeeDisplayName,
+                  photoUrl: widget.payeePhotoUrl,
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              formatInrFromPaise(suggestedAmountPaise),
+              formatInrFromPaise(widget.suggestedAmountPaise),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -100,11 +200,20 @@ class OBTSettleUpCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: onSettleUp,
-                icon: const Icon(Icons.handshake_outlined),
-                label: const Text('Settle Up'),
+                onPressed: ctaOnPressed,
+                icon: Icon(ctaIcon),
+                label: Text(ctaLabel),
               ),
             ),
+            if (cooling) ...[
+              const SizedBox(height: 8),
+              Text(
+                _cooldownCaption(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
       ),

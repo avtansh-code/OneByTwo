@@ -1,15 +1,15 @@
 /// FR-SE-09 Send Reminder — typed result hierarchy.
 ///
-/// Discriminated union returned by [ReminderRepository.sendReminder].
+/// Discriminated union returned by `ReminderRepository.sendReminder`.
 /// The success variant lives in `reminder_send_success.dart` via
 /// `part`; this file holds the seven error variants that mirror the
 /// typed `HttpsError.details.errorCode` values surfaced by the
 /// `sendReminderNotification` callable.
-library reminder_send_result;
+library;
 
 part 'reminder_send_success.dart';
 
-/// Sealed base class — every [ReminderRepository.sendReminder]
+/// Sealed base class — every `ReminderRepository.sendReminder`
 /// outcome is one of the implementing variants. UI consumers should
 /// switch on the runtime type and never instantiate the base class
 /// themselves.
