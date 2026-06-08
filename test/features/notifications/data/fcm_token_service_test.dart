@@ -263,4 +263,73 @@ void main() {
       expect(service.currentToken, 'token-B');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // computeRefreshedTokens (FR-AC-03 AC-2 — array-mutation contract)
+  // ---------------------------------------------------------------------------
+  //
+  // Locks in the pure array-mutation contract that the previous
+  // batch-based implementation silently violated. The Firestore
+  // transaction inside FirestoreFcmTokenStore.replaceTokenAtomically
+  // calls this helper inside a runTransaction read-modify-write so the
+  // resulting list is committed atomically; this group covers the
+  // mutation semantics independently of any Firestore stub.
+
+  group('computeRefreshedTokens (AC-2 array mutation)', () {
+    test('removes the old token and adds the new token (canonical case)', () {
+      final result = computeRefreshedTokens(
+        current: const ['token-OLD'],
+        oldToken: 'token-OLD',
+        newToken: 'token-NEW',
+      );
+      expect(result, const ['token-NEW']);
+    });
+
+    test('preserves unrelated sibling tokens (multi-device user)', () {
+      final result = computeRefreshedTokens(
+        current: const ['token-PHONE', 'token-OLD', 'token-TABLET'],
+        oldToken: 'token-OLD',
+        newToken: 'token-NEW',
+      );
+      expect(result, const ['token-PHONE', 'token-TABLET', 'token-NEW']);
+    });
+
+    test('adds the new token when the old token is not present (refresh '
+        'without prior cached old)', () {
+      final result = computeRefreshedTokens(
+        current: const ['token-SIBLING'],
+        oldToken: 'token-OLD',
+        newToken: 'token-NEW',
+      );
+      expect(result, const ['token-SIBLING', 'token-NEW']);
+    });
+
+    test('starts from an empty array', () {
+      final result = computeRefreshedTokens(
+        current: const [],
+        oldToken: 'token-OLD',
+        newToken: 'token-NEW',
+      );
+      expect(result, const ['token-NEW']);
+    });
+
+    test('deduplicates: does not add the new token twice if already '
+        'present', () {
+      final result = computeRefreshedTokens(
+        current: const ['token-NEW', 'token-OLD'],
+        oldToken: 'token-OLD',
+        newToken: 'token-NEW',
+      );
+      expect(result, const ['token-NEW']);
+    });
+
+    test('oldToken == newToken is a no-op when present (idempotent)', () {
+      final result = computeRefreshedTokens(
+        current: const ['token-X'],
+        oldToken: 'token-X',
+        newToken: 'token-X',
+      );
+      expect(result, const ['token-X']);
+    });
+  });
 }

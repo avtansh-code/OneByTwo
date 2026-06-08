@@ -135,11 +135,16 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
 }
 
-/// Minimal interface over Riverpod's [Ref] / [ProviderContainer]
-/// `read` method — abstracted so [NotificationHandler] can accept
-/// either a [ProviderContainer] (production) or a test container.
+/// Alias for [ProviderContainer] used by [NotificationHandler] when it
+/// needs to mutate [pendingDeepLinkProvider] from a callback that is
+/// outside the widget tree (the FCM cold-start path runs before any
+/// `ConsumerWidget` has been mounted).
 ///
-/// Both [ProviderContainer] and [Ref] expose a `read(provider)` method
-/// with the same signature, so we type the handler against a duck-
-/// typed callable rather than a concrete class.
+/// **Important:** despite the name, this typedef is concretely
+/// [ProviderContainer] — it does NOT accept a [Ref]. Callers running
+/// inside a Riverpod widget should not pass `ref` here; instead they
+/// should construct a [NotificationHandler] using
+/// `ref.container` (or refactor to call into the host directly).
+/// Tests construct a hand-rolled [ProviderContainer] and pass it
+/// straight through.
 typedef Refable = ProviderContainer;

@@ -86,16 +86,56 @@ class FirestoreFcmTokenStore implements FcmTokenStore {
     required String oldToken,
     required String newToken,
   }) async {
+    // Implementation note (FR-AC-03 AC-2 correctness).
+    //
+    // A previous implementation used `WriteBatch.update(...)` twice on
+    // the same document and same field — once with arrayRemove and once
+    // with arrayUnion. Firestore's batch semantics collapse multiple
+    // updates to the same field within one batch into the LAST write,
+    // silently dropping the arrayRemove side. The user's fcmTokens
+    // array would accumulate stale tokens until the server-side
+    // 410-cleanup path eventually pruned them.
+    //
+    // The current implementation uses `runTransaction`, which reads
+    // the array, applies an explicit read-modify-write via the pure
+    // helper [computeRefreshedTokens], and commits the resulting list
+    // atomically. The helper is unit-tested in isolation so the
+    // array-mutation contract is enforceable without fake_cloud_firestore.
     final docRef = _firestore.collection('users').doc(uid);
-    final batch = _firestore.batch()
-      ..update(docRef, {
-        'fcmTokens': FieldValue.arrayRemove([oldToken]),
-      })
-      ..update(docRef, {
-        'fcmTokens': FieldValue.arrayUnion([newToken]),
-      });
-    await batch.commit();
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(docRef);
+      final raw = (snap.data()?['fcmTokens'] as List?) ?? const <dynamic>[];
+      final current = raw.whereType<String>().toList(growable: false);
+      final refreshed = computeRefreshedTokens(
+        current: current,
+        oldToken: oldToken,
+        newToken: newToken,
+      );
+      tx.update(docRef, {'fcmTokens': refreshed});
+    });
   }
+}
+
+/// Pure helper that returns the [current] FCM-token list with
+/// [oldToken] removed and [newToken] added (deduplicating). The
+/// production transaction in [FirestoreFcmTokenStore.replaceTokenAtomically]
+/// calls this inside a `runTransaction` read-modify-write.
+///
+/// Extracted as a top-level function so the array-mutation contract
+/// (which the batch-based implementation silently violated) is
+/// independently unit-testable without faking Firestore. See
+/// `test/features/notifications/data/fcm_token_service_test.dart`.
+List<String> computeRefreshedTokens({
+  required List<String> current,
+  required String oldToken,
+  required String newToken,
+}) {
+  final next = <String>[
+    for (final t in current)
+      if (t != oldToken) t,
+  ];
+  if (!next.contains(newToken)) next.add(newToken);
+  return next;
 }
 
 /// Client-side FCM token lifecycle helper.

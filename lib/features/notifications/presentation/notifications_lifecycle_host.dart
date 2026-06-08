@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/notifications/application/deep_link_handler.dart';
@@ -220,6 +221,19 @@ class _NotificationsLifecycleHostState
 
     _dialogShownThisSession = true;
     controller.showPrePermissionDialog();
+    // FR-AC-03 telemetry contract: emit fcm_permission_prompt_shown
+    // just before the dialog is surfaced. The only producer in v1.0 is
+    // the first-session auth-transition trigger; future producers
+    // (e.g. a manual "enable notifications" CTA on the Profile screen
+    // shipped with FR-PR-03) MUST emit with trigger='manual'.
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'fcm_permission_prompt_shown',
+            parameters: const {'trigger': 'first_session'},
+          ),
+    );
     unawaited(
       showPrePermissionDialog(
         context: context,

@@ -15,6 +15,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/notifications/application/notification_permission_controller.dart';
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
 
@@ -83,14 +84,32 @@ class FakeTokenService implements FcmTokenService {
   Future<void> stopTokenRefreshListener() async {}
 }
 
+class FakeAnalyticsService implements AnalyticsService {
+  final List<String> loggedEvents = <String>[];
+  final List<Map<String, Object>?> loggedParameters = <Map<String, Object>?>[];
+
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {
+    loggedEvents.add(name);
+    loggedParameters.add(parameters);
+  }
+}
+
 ProviderContainer _container({
   required FakePermissionMessagingAdapter adapter,
   required FakeTokenService service,
+  FakeAnalyticsService? analytics,
 }) {
   return ProviderContainer(
     overrides: [
       permissionMessagingAdapterProvider.overrideWithValue(adapter),
       fcmTokenServiceProvider.overrideWithValue(service),
+      analyticsServiceProvider.overrideWithValue(
+        analytics ?? FakeAnalyticsService(),
+      ),
     ],
   );
 }
@@ -330,4 +349,83 @@ void main() {
       expect(notifier.wasPermanentlyDenied, isTrue);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // FR-AC-03 AC-14 telemetry: fcm_token_registered
+  // ---------------------------------------------------------------------------
+
+  group(
+    'NotificationPermissionController — fcm_token_registered telemetry',
+    () {
+      test('emits fcm_token_registered after a successful grant + token '
+          'acquisition (AC-14)', () async {
+        final analytics = FakeAnalyticsService();
+        final container = _container(
+          adapter: FakePermissionMessagingAdapter()
+            ..nextResult = AuthorizationStatus.authorized,
+          service: FakeTokenService()..returnToken = 'token-A',
+          analytics: analytics,
+        );
+        addTearDown(container.dispose);
+
+        final notifier = container.read(
+          notificationPermissionControllerProvider.notifier,
+        );
+        notifier.showPrePermissionDialog();
+        await notifier.onEnableTapped(uid: 'uid-me');
+        // Allow the unawaited analytics logEvent microtask to flush.
+        await Future<void>.delayed(Duration.zero);
+
+        expect(analytics.loggedEvents, contains('fcm_token_registered'));
+      });
+
+      test('does NOT emit fcm_token_registered on the denial path (no '
+          'token was acquired)', () async {
+        final analytics = FakeAnalyticsService();
+        final container = _container(
+          adapter: FakePermissionMessagingAdapter()
+            ..nextResult = AuthorizationStatus.denied,
+          service: FakeTokenService(),
+          analytics: analytics,
+        );
+        addTearDown(container.dispose);
+
+        final notifier = container.read(
+          notificationPermissionControllerProvider.notifier,
+        );
+        notifier.showPrePermissionDialog();
+        await notifier.onEnableTapped(uid: 'uid-me');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(analytics.loggedEvents, isNot(contains('fcm_token_registered')));
+      });
+
+      test(
+        'does NOT emit fcm_token_registered when registerToken returns '
+        'null (OS provisioning failure or APNS-token-not-yet-available)',
+        () async {
+          final analytics = FakeAnalyticsService();
+          final container = _container(
+            adapter: FakePermissionMessagingAdapter()
+              ..nextResult = AuthorizationStatus.authorized,
+            service: FakeTokenService()..returnToken = null,
+            analytics: analytics,
+          );
+          addTearDown(container.dispose);
+
+          final notifier = container.read(
+            notificationPermissionControllerProvider.notifier,
+          );
+          notifier.showPrePermissionDialog();
+          await notifier.onEnableTapped(uid: 'uid-me');
+          await Future<void>.delayed(Duration.zero);
+
+          expect(
+            analytics.loggedEvents,
+            isNot(contains('fcm_token_registered')),
+          );
+        },
+      );
+    },
+  );
 }

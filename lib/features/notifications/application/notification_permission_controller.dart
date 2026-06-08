@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/notifications/application/firebase_messaging_provider.dart';
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
 
@@ -139,8 +142,20 @@ class NotificationPermissionController extends Notifier<PermissionState> {
 
   Future<void> _acquireTokenAndWire(String uid) async {
     final tokenService = ref.read(fcmTokenServiceProvider);
-    await tokenService.registerToken(uid);
+    final token = await tokenService.registerToken(uid);
     tokenService.startTokenRefreshListener(uid);
+    // FR-AC-03 telemetry contract: emit fcm_token_registered only when
+    // registerToken() actually returned a token (i.e. the OS provisioned
+    // one and the Firestore arrayUnion succeeded). Per AC-14, the event
+    // carries no UID-derived parameters — Firebase Analytics already
+    // attributes the event to the signed-in user implicitly.
+    if (token != null) {
+      unawaited(
+        ref
+            .read(analyticsServiceProvider)
+            .logEvent(name: 'fcm_token_registered'),
+      );
+    }
   }
 }
 
