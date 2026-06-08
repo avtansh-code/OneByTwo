@@ -162,14 +162,13 @@ export function createTriggerHandler(
       return;
     }
 
-    // 3. Activity-feed seam — FR-EX-07 ships the expense-side write.
-    //    The remaining hand-off seam below is for the future story:
-    //    TODO(FR-AC-03): send FCM push notification respecting
-    //    notificationPrefs. Placement note: FCM (like the activity
-    //    emission) MUST run only after a successful recompute (i.e.
-    //    inside or just below the success branch) to keep retry
-    //    semantics clean — a retryable transient failure must not
-    //    duplicate notifications.
+    // 3. FCM emission seam — FR-AC-03 closes this seam with
+    //    emitExpenseFcm at the END of the success branch. Activity
+    //    emission (FR-EX-07) ships immediately above; FCM follows in
+    //    the success-branch order specified by architect §2.7 so
+    //    that a transient FCM-side failure (contained by
+    //    emitExpenseFcm) does not duplicate notifications on retry.
+    //    See `emitExpenseFcm` below.
 
     // 4. Build the alsoSet payload — atomically advance lastActivityAt
     //    inside the same transaction as the simplifiedBalances write.
@@ -267,6 +266,25 @@ export function createTriggerHandler(
       contextIdHash,
       elapsedMs: Date.now() - startTime,
       transferCount: result.transfers.length,
+    });
+
+    // 9. FR-AC-03: emit FCM push notifications to non-author members.
+    //    Placed AFTER the activity emission and AFTER the success
+    //    log to keep the trigger's success-branch retry semantics
+    //    clean: emitExpenseFcm wraps a try/catch around the entire
+    //    invocation and NEVER rethrows. If notificationsApi is
+    //    absent from deps (e.g. existing tests that don't wire FCM,
+    //    or local development without messaging), the helper
+    //    no-ops silently.
+    await emitExpenseFcm(deps, {
+      friendshipId,
+      expenseId,
+      changeType,
+      contextType,
+      contextIdHash,
+      expenseIdHash,
+      eventTime,
+      changeData: event.data,
     });
   };
 }
@@ -387,6 +405,197 @@ async function emitExpenseActivity(
     // only cause a retry-storm that re-runs the recompute.
     logger.error("activity_emission_internal_error", {
       event: "activity_emission_internal_error",
+      contextType,
+      contextIdHash,
+      expenseIdHash,
+      errorMessage: err instanceof Error ? err.message : "unknown",
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FCM emission (FR-AC-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * Emits FCM push notifications for the non-author members of the
+ * friendship after a successful expense write.
+ *
+ * Mirrors the architectural pattern of `emitExpenseActivity`:
+ *   - Reads the friendship doc to resolve `memberIds` (one extra
+ *     read; the recomputeAndWrite path already read this inside the
+ *     transaction but does not expose the snapshot).
+ *   - Reads the expense author's `users/{authorUid}` doc to resolve
+ *     `senderName` for the notification body.
+ *   - Delegates to `deps.notificationsApi.sendExpenseNotification`
+ *     which does the per-recipient prefs / tokens / render / send
+ *     fan-out.
+ *
+ * Containment policy (FR-AC-03 AC-17 + architect §2.9 item 2):
+ *
+ *   - NEVER rethrows. FCM-emission failures must NOT propagate into
+ *     the trigger's success branch (the recompute is already done;
+ *     a rethrow would cause Cloud Functions to retry, re-running
+ *     the recompute and duplicating notifications on the recipients
+ *     that DID succeed on the first attempt).
+ *   - When `deps.notificationsApi` or `deps.messaging` is absent
+ *     (existing tests, local dev), no-ops silently. Logs a single
+ *     debug-level skip event for diagnosability.
+ *
+ * Soft-delete discrimination is the SAME as `emitExpenseActivity` —
+ * an update that flips deleted false→true emits `expense_deleted`,
+ * NOT `expense_edited`.
+ */
+async function emitExpenseFcm(
+  deps: Dependencies,
+  params: {
+    friendshipId: string;
+    expenseId: string;
+    changeType: ChangeType;
+    contextType: "friendship";
+    contextIdHash: string;
+    expenseIdHash: string;
+    eventTime: string;
+    changeData: Change<DocumentSnapshot> | undefined;
+  },
+): Promise<void> {
+  const {db, logger, notificationsApi, messaging} = deps;
+  const {
+    friendshipId,
+    expenseId,
+    changeType,
+    contextType,
+    contextIdHash,
+    expenseIdHash,
+    eventTime,
+    changeData,
+  } = params;
+
+  // Architect §2.10 item 7: absent notificationsApi or messaging →
+  // silent no-op. Preserves backward-compat with existing tests that
+  // wire only db + logger.
+  if (!notificationsApi || !messaging) {
+    return;
+  }
+
+  try {
+    const beforeData = changeData?.before?.exists
+      ? (changeData.before.data() as ExpenseDocData | undefined)
+      : undefined;
+    const afterData = changeData?.after?.exists
+      ? (changeData.after.data() as ExpenseDocData | undefined)
+      : undefined;
+
+    // Soft-delete discrimination: false→true flip → "delete".
+    let effectiveChangeType: ChangeType = changeType;
+    if (
+      changeType === "update" &&
+      beforeData?.deleted === false &&
+      afterData?.deleted === true
+    ) {
+      effectiveChangeType = "delete";
+    }
+
+    // For deletes the after snapshot may be empty (hard delete) and
+    // the description/amount/createdBy come from `before` instead.
+    const sourceData: ExpenseDocData | undefined =
+      effectiveChangeType === "delete" ? (afterData ?? beforeData) : afterData;
+    if (!sourceData) {
+      logger.info("fcm_emission_skipped_missing_data", {
+        event: "fcm_emission_skipped_missing_data",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+
+    const authorUid = sourceData.createdBy ?? sourceData.payerId;
+    const amountPaise = sourceData.amountPaise;
+    const description = sourceData.description ?? "";
+
+    if (!authorUid) {
+      logger.info("fcm_emission_skipped_missing_author", {
+        event: "fcm_emission_skipped_missing_author",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+
+    // Resolve memberIds via a friendship-doc read (symmetric with
+    // emitExpenseActivity — see that helper for the rationale).
+    const friendshipSnap = await db
+      .collection("friendships")
+      .doc(friendshipId)
+      .get();
+    if (!friendshipSnap.exists) {
+      logger.info("fcm_emission_skipped_missing_context", {
+        event: "fcm_emission_skipped_missing_context",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+    const memberIds =
+      (friendshipSnap.data()?.memberIds as string[] | undefined) ?? [];
+    if (memberIds.length === 0) {
+      logger.info("fcm_emission_skipped_empty_members", {
+        event: "fcm_emission_skipped_empty_members",
+        contextType,
+        contextIdHash,
+        expenseIdHash,
+      });
+      return;
+    }
+
+    // Resolve senderName via users/{authorUid}.displayName. The
+    // dispatcher will tolerate an empty senderName ("" would yield
+    // an awkward " added an expense" title), so we substitute a
+    // sentinel string only if the user doc is missing entirely.
+    const authorSnap = await db.collection("users").doc(authorUid).get();
+    const senderName =
+      (authorSnap.exists ?
+        (authorSnap.data()?.displayName as string | undefined) :
+        undefined) ?? "Someone";
+
+    await notificationsApi.sendExpenseNotification(
+      {
+        db,
+        messaging,
+        logger: {
+          info: (msg, data) => logger.info(msg, data),
+          // Dependencies.logger doesn't expose `warn`; promote to
+          // `info` so the FCM module's per-recipient diagnostic
+          // events still land in structured logs. Existing
+          // production logger (firebase-functions/logger) has `warn`
+          // natively; the tests' createMockLogger does too — the
+          // structural narrowing here is only for the
+          // simplified-debts `Dependencies.logger` shape.
+          warn: (msg, data) => logger.info(msg, data),
+          error: (msg, data) => logger.error(msg, data),
+        },
+      },
+      {
+        authorUid,
+        memberIds,
+        contextType,
+        contextId: friendshipId,
+        expenseId,
+        senderName,
+        description,
+        amountPaise,
+        eventTimestamp: new Date(eventTime),
+        changeType: effectiveChangeType,
+      },
+    );
+  } catch (err: unknown) {
+    // Programmer error in the FCM module — log and absorb.
+    // Trigger's success branch is preserved (architect §2.9 item 2).
+    logger.error("fcm_emission_internal_error", {
+      event: "fcm_emission_internal_error",
       contextType,
       contextIdHash,
       expenseIdHash,

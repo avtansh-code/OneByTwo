@@ -232,19 +232,12 @@ export function createTriggerHandler(
       return;
     }
 
-    // 3. Hand-off seam for downstream story (placement parity with
-    //    the expense trigger):
-    //    TODO(FR-AC-03): send FCM push notification to the toUserId
-    //      respecting notificationPrefs.settlement.
-    //    Placement note: the FCM seam must execute ONLY after a
-    //    successful recompute (i.e. inside or just below the success
-    //    branch at the bottom of this handler) to keep retry semantics
-    //    clean — a retryable transient failure must not duplicate
-    //    notifications. Today the FCM seam is deferred entirely; the
-    //    actual placement decision lives with the story that
-    //    implements it. The FR-AC-01 activity-feed emission seam was
-    //    closed by the emitSettlementActivity call at the bottom of
-    //    this handler (step 8 below).
+    // 3. FCM emission seam — FR-AC-03 closes this seam with
+    //    emitSettlementFcm at the END of the success branch (after
+    //    the activity emission at step 8). Placement parity with
+    //    the expense trigger: FCM runs ONLY after a successful
+    //    recompute so a retryable transient failure does not
+    //    duplicate notifications. See `emitSettlementFcm` below.
 
     // 4. Build the alsoSet payload — atomically advance lastActivityAt
     //    inside the same transaction as the simplifiedBalances write.
@@ -331,6 +324,23 @@ export function createTriggerHandler(
       contextType,
       contextIdHash,
       settlementIdHash,
+      changeData: event.data,
+    });
+
+    // 9. FR-AC-03: emit FCM push notification to the toUserId.
+    //    Mirror of `emitExpenseFcm` in the expense trigger. Placed
+    //    AFTER the activity emission and success log so a transient
+    //    FCM-side failure (contained by emitSettlementFcm) does not
+    //    duplicate notifications on retry. emitSettlementFcm NEVER
+    //    rethrows; when notificationsApi/messaging is absent from
+    //    deps, it no-ops silently.
+    await emitSettlementFcm(deps, {
+      settlementId,
+      changeType,
+      contextType,
+      contextIdHash,
+      settlementIdHash,
+      eventTime,
       changeData: event.data,
     });
   };
@@ -440,6 +450,151 @@ async function emitSettlementActivity(
     // only cause a retry-storm that re-runs the recompute.
     logger.error("activity_emission_internal_error", {
       event: "activity_emission_internal_error",
+      contextType,
+      contextIdHash,
+      settlementIdHash,
+      errorMessage: err instanceof Error ? err.message : "unknown",
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// FCM emission (FR-AC-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * Emits an FCM push notification to the settlement's payee
+ * (`toUserId`) after a successful recompute + activity emission.
+ *
+ * Mirrors the architectural pattern of `emitSettlementActivity`:
+ *
+ *   - Reads the settlement source data from `changeData` (after
+ *     snapshot for create/update; before snapshot fallback for hard
+ *     delete) to extract `fromUserId`, `toUserId`, `amountPaise`,
+ *     `contextId`. No additional Firestore read is needed for
+ *     member resolution — the settlement doc itself carries both
+ *     UIDs (security rules at firestore.rules:445-455 require them).
+ *   - Reads `users/{fromUserId}` to resolve the payer's displayName
+ *     for the notification body.
+ *   - Delegates to `deps.notificationsApi.sendSettlementNotification`
+ *     which does the per-recipient prefs / tokens / render / send
+ *     for the SINGLE recipient (`toUserId`).
+ *
+ * Containment policy (FR-AC-03 AC-17 + architect §2.9 item 2):
+ *
+ *   - NEVER rethrows. FCM-emission failures must NOT propagate into
+ *     the trigger's success branch (the recompute is already done;
+ *     a rethrow would cause Cloud Functions to retry, re-running
+ *     the recompute and duplicating notifications on the toUserId).
+ *   - When `deps.notificationsApi` or `deps.messaging` is absent,
+ *     no-ops silently. Preserves backward-compat with existing
+ *     tests and local-dev environments without FCM wiring.
+ *
+ * V1.0 emission policy parity (architect §2.2): only CREATE events
+ * emit FCM notifications. Settlements only update on soft-delete
+ * (and hard-delete is rare/unreachable in production); neither
+ * should fire a notification — the original create event already
+ * notified the payee, and a "deleted" notification has no defined
+ * UX in MVP. We short-circuit on non-create changeType.
+ */
+async function emitSettlementFcm(
+  deps: Dependencies,
+  params: {
+    settlementId: string;
+    changeType: ActivityChangeType;
+    contextType: ContextType;
+    contextIdHash: string;
+    settlementIdHash: string;
+    eventTime: string;
+    changeData: Change<DocumentSnapshot> | undefined;
+  },
+): Promise<void> {
+  const {db, logger, notificationsApi, messaging} = deps;
+  const {
+    settlementId,
+    changeType,
+    contextType,
+    contextIdHash,
+    settlementIdHash,
+    eventTime,
+    changeData,
+  } = params;
+
+  // Architect §2.10 item 7: absent notificationsApi or messaging →
+  // silent no-op (backward-compat with existing tests).
+  if (!notificationsApi || !messaging) {
+    return;
+  }
+
+  // V1.0 policy parity with emitSettlementActivity: only CREATE
+  // events fire a notification. Update / delete are silent.
+  if (changeType !== "create") {
+    return;
+  }
+
+  try {
+    const sourceData = changeData?.after?.exists
+      ? (changeData.after.data() as SettlementDocData | undefined)
+      : (changeData?.before?.exists ?
+          (changeData.before.data() as SettlementDocData | undefined) :
+          undefined);
+    if (!sourceData) {
+      logger.info("fcm_emission_skipped_missing_data", {
+        event: "fcm_emission_skipped_missing_data",
+        contextType,
+        contextIdHash,
+        settlementIdHash,
+      });
+      return;
+    }
+
+    const {fromUserId, toUserId, amountPaise, contextId} = sourceData;
+    if (!fromUserId || !toUserId) {
+      logger.info("fcm_emission_skipped_missing_parties", {
+        event: "fcm_emission_skipped_missing_parties",
+        contextType,
+        contextIdHash,
+        settlementIdHash,
+      });
+      return;
+    }
+
+    // Resolve senderName via users/{fromUserId}.displayName.
+    const payerSnap = await db.collection("users").doc(fromUserId).get();
+    const senderName =
+      (payerSnap.exists ?
+        (payerSnap.data()?.displayName as string | undefined) :
+        undefined) ?? "Someone";
+
+    await notificationsApi.sendSettlementNotification(
+      {
+        db,
+        messaging,
+        logger: {
+          info: (msg, data) => logger.info(msg, data),
+          // See emitExpenseFcm for rationale: Dependencies.logger
+          // does not expose `warn`; we promote it to `info` so
+          // diagnostic events still land in structured logs.
+          warn: (msg, data) => logger.info(msg, data),
+          error: (msg, data) => logger.error(msg, data),
+        },
+      },
+      {
+        fromUserId,
+        toUserId,
+        contextType,
+        contextId,
+        settlementId,
+        senderName,
+        amountPaise,
+        eventTimestamp: new Date(eventTime),
+      },
+    );
+  } catch (err: unknown) {
+    // Programmer error in the FCM module — log and absorb.
+    // Trigger's success branch is preserved (architect §2.9 item 2).
+    logger.error("fcm_emission_internal_error", {
+      event: "fcm_emission_internal_error",
       contextType,
       contextIdHash,
       settlementIdHash,
