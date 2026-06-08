@@ -46,7 +46,7 @@ describe("formatInrFromPaise — FR-AC-03 / Invariant 1", () => {
 
   it("renders large amounts (1 crore rupees) using Indian crore grouping", () => {
     // 1,00,00,00,000 paise = 1,00,00,000 rupees = 1 crore.
-    expect(formatInrFromPaise(10000000000)).toBe("₹1,00,00,000");
+    expect(formatInrFromPaise(1000000000)).toBe("₹1,00,00,000");
   });
 
   it("renders a negative amount with a leading ASCII hyphen-minus", () => {
