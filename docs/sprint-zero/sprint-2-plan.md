@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #48 (FR-EX-05 — receipt attachment, friendship context) — 14th merged PR.
+> Last updated: PR #51 (FR-EX-07 — activity feed write-side, friendship expenses) — 15th merged PR.
 
 ---
 
@@ -85,6 +85,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #44 | CHORE-D5 | D5 runtime upgrade — Node 22 + firebase-functions 7.x (closes #39 #40) | 3 | Merged |
 | #45 | CHORE-PR45 | Lookup rate-limit doc-path fix + post-PR-#38 cleanup (3 S4 items) | 3 | Merged |
 | #46 | FR-EX-06 | Edit / delete expense (friendship) — bottom-sheet edit-mode + Expense Detail screen + soft-delete with confirmation | 5 | Merged |
+| #48 | FR-EX-05 | Receipt attachment (friendship) — Step 3 (SCR-21) + ReceiptStorageService + storage.rules friendship + group receipts predicates + Expense Detail thumbnail | 5 | Merged |
+| #51 | FR-EX-07 | Activity feed write-side (friendship) — activity-writer + payload-builder + activity-validator + activity/{userId}/items rules + trigger emission + 12 new rules tests + 41 new unit tests + 3 integration round-trips | 5 | Merged |
 
 ---
 
@@ -106,7 +108,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #45 | 3 | Merged (chore — Stream A + Stream B) |
 | #46 | 5 | Merged |
 | #48 | 5 | Merged |
-| **Total** | **50** | **14 PRs so far** |
+| #51 | 5 | Merged |
+| **Total** | **55** | **15 PRs so far** |
 
 Sprint 1 reference:
 
