@@ -17,22 +17,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
 
-Widget _wrap(Widget child) =>
-    MaterialApp(home: Scaffold(body: child));
+Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
   group('OBTSettleUpCard — settling-direction (default)', () {
-    testWidgets('renders Settle Up CTA and fires onSettleUp on tap',
-        (tester) async {
+    testWidgets('renders Settle Up CTA and fires onSettleUp on tap', (
+      tester,
+    ) async {
       var settleTapped = 0;
-      await tester.pumpWidget(_wrap(OBTSettleUpCard(
-        payerDisplayName: 'You',
-        payerPhotoUrl: null,
-        payeeDisplayName: 'Priya',
-        payeePhotoUrl: null,
-        suggestedAmountPaise: 50000,
-        onSettleUp: () => settleTapped += 1,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          OBTSettleUpCard(
+            payerDisplayName: 'You',
+            payerPhotoUrl: null,
+            payeeDisplayName: 'Priya',
+            payeePhotoUrl: null,
+            suggestedAmountPaise: 50000,
+            onSettleUp: () => settleTapped += 1,
+          ),
+        ),
+      );
 
       expect(find.text('Settle Up'), findsOneWidget);
       expect(find.text('Send Reminder'), findsNothing);
@@ -45,18 +49,23 @@ void main() {
   });
 
   group('OBTSettleUpCard — receiving-direction (FR-SE-09)', () {
-    testWidgets('renders Send Reminder CTA when isReceivingDirection=true',
-        (tester) async {
-      await tester.pumpWidget(_wrap(OBTSettleUpCard(
-        payerDisplayName: 'Priya',
-        payerPhotoUrl: null,
-        payeeDisplayName: 'You',
-        payeePhotoUrl: null,
-        suggestedAmountPaise: 50000,
-        onSettleUp: () {},
-        isReceivingDirection: true,
-        onSendReminder: () {},
-      )));
+    testWidgets('renders Send Reminder CTA when isReceivingDirection=true', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          OBTSettleUpCard(
+            payerDisplayName: 'Priya',
+            payerPhotoUrl: null,
+            payeeDisplayName: 'You',
+            payeePhotoUrl: null,
+            suggestedAmountPaise: 50000,
+            onSettleUp: () {},
+            isReceivingDirection: true,
+            onSendReminder: () {},
+          ),
+        ),
+      );
 
       expect(find.text('Send Reminder'), findsOneWidget);
       expect(find.text('Settle Up'), findsNothing);
@@ -65,16 +74,20 @@ void main() {
 
     testWidgets('tapping Send Reminder fires onSendReminder', (tester) async {
       var reminderTapped = 0;
-      await tester.pumpWidget(_wrap(OBTSettleUpCard(
-        payerDisplayName: 'Priya',
-        payerPhotoUrl: null,
-        payeeDisplayName: 'You',
-        payeePhotoUrl: null,
-        suggestedAmountPaise: 50000,
-        onSettleUp: () {},
-        isReceivingDirection: true,
-        onSendReminder: () => reminderTapped += 1,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          OBTSettleUpCard(
+            payerDisplayName: 'Priya',
+            payerPhotoUrl: null,
+            payeeDisplayName: 'You',
+            payeePhotoUrl: null,
+            suggestedAmountPaise: 50000,
+            onSettleUp: () {},
+            isReceivingDirection: true,
+            onSendReminder: () => reminderTapped += 1,
+          ),
+        ),
+      );
 
       await tester.tap(find.text('Send Reminder'));
       await tester.pump();
@@ -85,17 +98,21 @@ void main() {
         'nextAllowedAt is in the future', (tester) async {
       final future = DateTime.now().add(const Duration(hours: 5, minutes: 32));
       var reminderTapped = 0;
-      await tester.pumpWidget(_wrap(OBTSettleUpCard(
-        payerDisplayName: 'Priya',
-        payerPhotoUrl: null,
-        payeeDisplayName: 'You',
-        payeePhotoUrl: null,
-        suggestedAmountPaise: 50000,
-        onSettleUp: () {},
-        isReceivingDirection: true,
-        onSendReminder: () => reminderTapped += 1,
-        nextAllowedAt: future,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          OBTSettleUpCard(
+            payerDisplayName: 'Priya',
+            payerPhotoUrl: null,
+            payeeDisplayName: 'You',
+            payeePhotoUrl: null,
+            suggestedAmountPaise: 50000,
+            onSettleUp: () {},
+            isReceivingDirection: true,
+            onSendReminder: () => reminderTapped += 1,
+            nextAllowedAt: future,
+          ),
+        ),
+      );
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNull);
@@ -105,20 +122,25 @@ void main() {
       expect(captionFinder, findsOneWidget);
     });
 
-    testWidgets('button is enabled when nextAllowedAt is in the past',
-        (tester) async {
+    testWidgets('button is enabled when nextAllowedAt is in the past', (
+      tester,
+    ) async {
       final past = DateTime.now().subtract(const Duration(minutes: 1));
-      await tester.pumpWidget(_wrap(OBTSettleUpCard(
-        payerDisplayName: 'Priya',
-        payerPhotoUrl: null,
-        payeeDisplayName: 'You',
-        payeePhotoUrl: null,
-        suggestedAmountPaise: 50000,
-        onSettleUp: () {},
-        isReceivingDirection: true,
-        onSendReminder: () {},
-        nextAllowedAt: past,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          OBTSettleUpCard(
+            payerDisplayName: 'Priya',
+            payerPhotoUrl: null,
+            payeeDisplayName: 'You',
+            payeePhotoUrl: null,
+            suggestedAmountPaise: 50000,
+            onSettleUp: () {},
+            isReceivingDirection: true,
+            onSendReminder: () {},
+            nextAllowedAt: past,
+          ),
+        ),
+      );
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);

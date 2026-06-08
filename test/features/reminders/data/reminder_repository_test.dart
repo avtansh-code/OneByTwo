@@ -12,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
-import 'package:onebytwo/features/reminders/domain/reminder_send_success.dart';
 
 /// Configurable callable that simulates the sendReminderNotification
 /// Cloud Function response.
@@ -63,80 +62,87 @@ void main() {
       expect(fakeCallable.capturedData!.containsKey('message'), isFalse);
     });
 
-    test('maps success response to ReminderSendSuccess with nextAllowedAt',
-        () async {
-      fakeCallable.responseData = {
-        'success': true,
-        'nextAllowedAtIso': '2026-06-09T12:00:00.000Z',
-      };
+    test(
+      'maps success response to ReminderSendSuccess with nextAllowedAt',
+      () async {
+        fakeCallable.responseData = {
+          'success': true,
+          'nextAllowedAtIso': '2026-06-09T12:00:00.000Z',
+        };
 
-      final result = await repository.sendReminder(
-        toUserId: 'uid-recipient',
-        contextType: 'friendship',
-        contextId: 'uid-sender_uid-recipient',
-      );
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
 
-      expect(result, isA<ReminderSendSuccess>());
-      final success = result as ReminderSendSuccess;
-      expect(
-        success.nextAllowedAt.toIso8601String(),
-        '2026-06-09T12:00:00.000Z',
-      );
-    });
+        expect(result, isA<ReminderSendSuccess>());
+        final success = result as ReminderSendSuccess;
+        expect(
+          success.nextAllowedAt.toIso8601String(),
+          '2026-06-09T12:00:00.000Z',
+        );
+      },
+    );
 
-    test('maps RATE_LIMITED to ReminderSendRateLimited with nextAllowedAt',
-        () async {
-      fakeCallable.throwError = const ReminderCallableException(
-        code: 'resource-exhausted',
-        errorCode: 'RATE_LIMITED',
-        nextAllowedAtIso: '2026-06-09T00:00:00.000Z',
-      );
+    test(
+      'maps RATE_LIMITED to ReminderSendRateLimited with nextAllowedAt',
+      () async {
+        fakeCallable.throwError = const ReminderCallableException(
+          code: 'resource-exhausted',
+          errorCode: 'RATE_LIMITED',
+          nextAllowedAtIso: '2026-06-09T00:00:00.000Z',
+        );
 
-      final result = await repository.sendReminder(
-        toUserId: 'uid-recipient',
-        contextType: 'friendship',
-        contextId: 'uid-sender_uid-recipient',
-      );
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
 
-      expect(result, isA<ReminderSendRateLimited>());
-      final rl = result as ReminderSendRateLimited;
-      expect(rl.nextAllowedAt.toIso8601String(), '2026-06-09T00:00:00.000Z');
-    });
+        expect(result, isA<ReminderSendRateLimited>());
+        final rl = result as ReminderSendRateLimited;
+        expect(rl.nextAllowedAt.toIso8601String(), '2026-06-09T00:00:00.000Z');
+      },
+    );
 
-    test('maps RECIPIENT_DOESNT_OWE to ReminderSendRecipientDoesntOwe',
-        () async {
-      fakeCallable.throwError = const ReminderCallableException(
-        code: 'failed-precondition',
-        errorCode: 'RECIPIENT_DOESNT_OWE',
-      );
+    test(
+      'maps RECIPIENT_DOESNT_OWE to ReminderSendRecipientDoesntOwe',
+      () async {
+        fakeCallable.throwError = const ReminderCallableException(
+          code: 'failed-precondition',
+          errorCode: 'RECIPIENT_DOESNT_OWE',
+        );
 
-      final result = await repository.sendReminder(
-        toUserId: 'uid-recipient',
-        contextType: 'friendship',
-        contextId: 'uid-sender_uid-recipient',
-      );
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
 
-      expect(result, isA<ReminderSendRecipientDoesntOwe>());
-    });
+        expect(result, isA<ReminderSendRecipientDoesntOwe>());
+      },
+    );
 
-    test('maps RECIPIENT_PREFS_DISABLED to ReminderSendRecipientPrefsDisabled',
-        () async {
-      fakeCallable.throwError = const ReminderCallableException(
-        code: 'failed-precondition',
-        errorCode: 'RECIPIENT_PREFS_DISABLED',
-      );
+    test(
+      'maps RECIPIENT_PREFS_DISABLED to ReminderSendRecipientPrefsDisabled',
+      () async {
+        fakeCallable.throwError = const ReminderCallableException(
+          code: 'failed-precondition',
+          errorCode: 'RECIPIENT_PREFS_DISABLED',
+        );
 
-      final result = await repository.sendReminder(
-        toUserId: 'uid-recipient',
-        contextType: 'friendship',
-        contextId: 'uid-sender_uid-recipient',
-      );
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
 
-      expect(result, isA<ReminderSendRecipientPrefsDisabled>());
-    });
+        expect(result, isA<ReminderSendRecipientPrefsDisabled>());
+      },
+    );
 
-    test('maps RECIPIENT_NO_TOKENS to ReminderSendRecipientNoTokens',
-        () async {
+    test('maps RECIPIENT_NO_TOKENS to ReminderSendRecipientNoTokens', () async {
       fakeCallable.throwError = const ReminderCallableException(
         code: 'failed-precondition',
         errorCode: 'RECIPIENT_NO_TOKENS',

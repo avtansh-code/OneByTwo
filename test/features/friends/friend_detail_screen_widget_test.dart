@@ -31,7 +31,6 @@ import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
-import 'package:onebytwo/features/reminders/domain/reminder_send_success.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
@@ -794,9 +793,11 @@ void main() {
     testWidgets(
       'tapping Send Reminder fires the controller and updates cooldown',
       (tester) async {
-        final repo = _StaticReminderRepository(() => ReminderSendSuccess(
-              nextAllowedAt: DateTime.now().add(const Duration(hours: 24)),
-            ));
+        final repo = _StaticReminderRepository(
+          () => ReminderSendSuccess(
+            nextAllowedAt: DateTime.now().add(const Duration(hours: 24)),
+          ),
+        );
         final state = FriendDetailStatePopulated(
           header: _header(
             netBalancePaise: 5000,
@@ -830,80 +831,70 @@ void main() {
       },
     );
 
-    testWidgets(
-      'RATE_LIMITED surfaces snackbar with countdown',
-      (tester) async {
-        final nextAt = DateTime.now().add(
-          const Duration(hours: 5, minutes: 32),
-        );
-        final repo = _StaticReminderRepository(
-          () => ReminderSendRateLimited(nextAllowedAt: nextAt),
-        );
-        final state = FriendDetailStatePopulated(
-          header: _header(
-            netBalancePaise: 5000,
-            balanceState: BalanceState.owed,
-            displayName: 'Bina',
-          ),
-          timeline: const [],
-        );
+    testWidgets('RATE_LIMITED surfaces snackbar with countdown', (
+      tester,
+    ) async {
+      final nextAt = DateTime.now().add(const Duration(hours: 5, minutes: 32));
+      final repo = _StaticReminderRepository(
+        () => ReminderSendRateLimited(nextAllowedAt: nextAt),
+      );
+      final state = FriendDetailStatePopulated(
+        header: _header(
+          netBalancePaise: 5000,
+          balanceState: BalanceState.owed,
+          displayName: 'Bina',
+        ),
+        timeline: const [],
+      );
 
-        await tester.pumpWidget(
-          _buildSubject(
-            initialValue: AsyncData(state),
-            analytics: analytics,
-            settlementRepository: FakeSettlementRepository(),
-            reminderRepository: repo,
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+          reminderRepository: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Send Reminder'));
-        await tester.pump();
+      await tester.tap(find.text('Send Reminder'));
+      await tester.pump();
 
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(
-          find.textContaining('Bina'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining('Bina'), findsOneWidget);
+    });
 
-    testWidgets(
-      'RECIPIENT_PREFS_DISABLED surfaces a prefs-off snackbar',
-      (tester) async {
-        final repo = _StaticReminderRepository(
-          () => const ReminderSendRecipientPrefsDisabled(),
-        );
-        final state = FriendDetailStatePopulated(
-          header: _header(
-            netBalancePaise: 5000,
-            balanceState: BalanceState.owed,
-            displayName: 'Bina',
-          ),
-          timeline: const [],
-        );
+    testWidgets('RECIPIENT_PREFS_DISABLED surfaces a prefs-off snackbar', (
+      tester,
+    ) async {
+      final repo = _StaticReminderRepository(
+        () => const ReminderSendRecipientPrefsDisabled(),
+      );
+      final state = FriendDetailStatePopulated(
+        header: _header(
+          netBalancePaise: 5000,
+          balanceState: BalanceState.owed,
+          displayName: 'Bina',
+        ),
+        timeline: const [],
+      );
 
-        await tester.pumpWidget(
-          _buildSubject(
-            initialValue: AsyncData(state),
-            analytics: analytics,
-            settlementRepository: FakeSettlementRepository(),
-            reminderRepository: repo,
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+          reminderRepository: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Send Reminder'));
-        await tester.pump();
+      await tester.tap(find.text('Send Reminder'));
+      await tester.pump();
 
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(
-          find.textContaining('notifications turned off'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining('notifications turned off'), findsOneWidget);
+    });
   });
 }
 

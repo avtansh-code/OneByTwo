@@ -21,7 +21,6 @@ import 'package:onebytwo/features/reminders/application/reminder_telemetry.dart'
 import 'package:onebytwo/features/reminders/application/send_reminder_controller.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
-import 'package:onebytwo/features/reminders/domain/reminder_send_success.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -81,132 +80,137 @@ ProviderContainer _createContainer({
 
 void main() {
   group('SendReminderController.send', () {
-    test('happy path emits Sending → Success and sets cooldownProvider',
-        () async {
-      final repo = FakeReminderRepository()
-        ..produceResult = () => ReminderSendSuccess(
-              nextAllowedAt: DateTime.utc(2026, 6, 9, 12),
-            );
-      final analytics = FakeAnalyticsService();
-      final container = _createContainer(repo: repo, analytics: analytics);
-      addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+    test(
+      'happy path emits Sending → Success and sets cooldownProvider',
+      () async {
+        final repo = FakeReminderRepository()
+          ..produceResult = () =>
+              ReminderSendSuccess(nextAllowedAt: DateTime.utc(2026, 6, 9, 12));
+        final analytics = FakeAnalyticsService();
+        final container = _createContainer(repo: repo, analytics: analytics);
+        addTearDown(container.dispose);
+        final controller = container.read(
+          sendReminderControllerProvider(_friendshipId).notifier,
+        );
 
-      final transitions = <SendReminderState>[];
-      container.listen<SendReminderState>(
-        sendReminderControllerProvider(_friendshipId),
-        (_, next) => transitions.add(next),
-        fireImmediately: true,
-      );
+        final transitions = <SendReminderState>[];
+        container.listen<SendReminderState>(
+          sendReminderControllerProvider(_friendshipId),
+          (_, next) => transitions.add(next),
+          fireImmediately: true,
+        );
 
-      await controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
+        await controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
 
-      expect(repo.callCount, 1);
-      expect(repo.capturedToUserId, _recipientUid);
-      expect(repo.capturedContextId, _friendshipId);
-      expect(transitions.first, isA<SendReminderIdle>());
-      expect(
-        transitions.any((s) => s is SendReminderSending),
-        isTrue,
-      );
-      expect(transitions.last, isA<SendReminderSuccess>());
+        expect(repo.callCount, 1);
+        expect(repo.capturedToUserId, _recipientUid);
+        expect(repo.capturedContextId, _friendshipId);
+        expect(transitions.first, isA<SendReminderIdle>());
+        expect(transitions.any((s) => s is SendReminderSending), isTrue);
+        expect(transitions.last, isA<SendReminderSuccess>());
 
-      // Cooldown provider was set to the server-returned nextAllowedAt.
-      expect(
-        container.read(reminderCooldownProvider(_friendshipId)),
-        equals(DateTime.utc(2026, 6, 9, 12)),
-      );
+        // Cooldown provider was set to the server-returned nextAllowedAt.
+        expect(
+          container.read(reminderCooldownProvider(_friendshipId)),
+          equals(DateTime.utc(2026, 6, 9, 12)),
+        );
 
-      // Telemetry: reminder_send_tapped + reminder_send_succeeded.
-      final names = analytics.events.map((e) => e.name).toList();
-      expect(names, contains(ReminderTelemetry.tapped));
-      expect(names, contains(ReminderTelemetry.succeeded));
-      final succeeded = analytics.events.firstWhere(
-        (e) => e.name == ReminderTelemetry.succeeded,
-      );
-      expect(
-        succeeded.parameters?[ReminderTelemetry.paramFriendshipIdHash],
-        equals(hashFriendshipId(_friendshipId)),
-      );
-    });
+        // Telemetry: reminder_send_tapped + reminder_send_succeeded.
+        final names = analytics.events.map((e) => e.name).toList();
+        expect(names, contains(ReminderTelemetry.tapped));
+        expect(names, contains(ReminderTelemetry.succeeded));
+        final succeeded = analytics.events.firstWhere(
+          (e) => e.name == ReminderTelemetry.succeeded,
+        );
+        expect(
+          succeeded.parameters?[ReminderTelemetry.paramFriendshipIdHash],
+          equals(hashFriendshipId(_friendshipId)),
+        );
+      },
+    );
 
-    test('RATE_LIMITED transitions to Error + sets cooldown to server time',
-        () async {
-      final nextAt = DateTime.utc(2026, 6, 8, 23, 30);
-      final repo = FakeReminderRepository()
-        ..produceResult = () => ReminderSendRateLimited(nextAllowedAt: nextAt);
-      final analytics = FakeAnalyticsService();
-      final container = _createContainer(repo: repo, analytics: analytics);
-      addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+    test(
+      'RATE_LIMITED transitions to Error + sets cooldown to server time',
+      () async {
+        final nextAt = DateTime.utc(2026, 6, 8, 23, 30);
+        final repo = FakeReminderRepository()
+          ..produceResult = () =>
+              ReminderSendRateLimited(nextAllowedAt: nextAt);
+        final analytics = FakeAnalyticsService();
+        final container = _createContainer(repo: repo, analytics: analytics);
+        addTearDown(container.dispose);
+        final controller = container.read(
+          sendReminderControllerProvider(_friendshipId).notifier,
+        );
 
-      await controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
+        await controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
 
-      final state = container.read(
-        sendReminderControllerProvider(_friendshipId),
-      );
-      expect(state, isA<SendReminderError>());
-      final err = state as SendReminderError;
-      expect(err.error, isA<ReminderSendRateLimited>());
+        final state = container.read(
+          sendReminderControllerProvider(_friendshipId),
+        );
+        expect(state, isA<SendReminderError>());
+        final err = state as SendReminderError;
+        expect(err.error, isA<ReminderSendRateLimited>());
 
-      // Cooldown provider matches the server's nextAllowedAt.
-      expect(
-        container.read(reminderCooldownProvider(_friendshipId)),
-        equals(nextAt),
-      );
+        // Cooldown provider matches the server's nextAllowedAt.
+        expect(
+          container.read(reminderCooldownProvider(_friendshipId)),
+          equals(nextAt),
+        );
 
-      final names = analytics.events.map((e) => e.name).toList();
-      expect(names, contains(ReminderTelemetry.rateLimited));
-      final rl = analytics.events.firstWhere(
-        (e) => e.name == ReminderTelemetry.rateLimited,
-      );
-      expect(rl.parameters?[ReminderTelemetry.paramNextAllowedInSeconds],
-          isA<int>());
-    });
+        final names = analytics.events.map((e) => e.name).toList();
+        expect(names, contains(ReminderTelemetry.rateLimited));
+        final rl = analytics.events.firstWhere(
+          (e) => e.name == ReminderTelemetry.rateLimited,
+        );
+        expect(
+          rl.parameters?[ReminderTelemetry.paramNextAllowedInSeconds],
+          isA<int>(),
+        );
+      },
+    );
 
-    test('RECIPIENT_PREFS_DISABLED → Error + prefs telemetry; no cooldown set',
-        () async {
-      final repo = FakeReminderRepository()
-        ..produceResult = () => const ReminderSendRecipientPrefsDisabled();
-      final analytics = FakeAnalyticsService();
-      final container = _createContainer(repo: repo, analytics: analytics);
-      addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+    test(
+      'RECIPIENT_PREFS_DISABLED → Error + prefs telemetry; no cooldown set',
+      () async {
+        final repo = FakeReminderRepository()
+          ..produceResult = () => const ReminderSendRecipientPrefsDisabled();
+        final analytics = FakeAnalyticsService();
+        final container = _createContainer(repo: repo, analytics: analytics);
+        addTearDown(container.dispose);
+        final controller = container.read(
+          sendReminderControllerProvider(_friendshipId).notifier,
+        );
 
-      await controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
+        await controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
 
-      final state = container.read(
-        sendReminderControllerProvider(_friendshipId),
-      );
-      expect(state, isA<SendReminderError>());
-      expect(
-        (state as SendReminderError).error,
-        isA<ReminderSendRecipientPrefsDisabled>(),
-      );
-      expect(
-        container.read(reminderCooldownProvider(_friendshipId)),
-        isNull,
-      );
-      expect(
-        analytics.events.map((e) => e.name),
-        contains(ReminderTelemetry.recipientPrefsDisabled),
-      );
-    });
+        final state = container.read(
+          sendReminderControllerProvider(_friendshipId),
+        );
+        expect(state, isA<SendReminderError>());
+        expect(
+          (state as SendReminderError).error,
+          isA<ReminderSendRecipientPrefsDisabled>(),
+        );
+        expect(container.read(reminderCooldownProvider(_friendshipId)), isNull);
+        expect(
+          analytics.events.map((e) => e.name),
+          contains(ReminderTelemetry.recipientPrefsDisabled),
+        );
+      },
+    );
 
     test('RECIPIENT_NO_TOKENS → Error + no-tokens telemetry', () async {
       final repo = FakeReminderRepository()
@@ -214,8 +218,9 @@ void main() {
       final analytics = FakeAnalyticsService();
       final container = _createContainer(repo: repo, analytics: analytics);
       addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+      final controller = container.read(
+        sendReminderControllerProvider(_friendshipId).notifier,
+      );
 
       await controller.send(
         toUserId: _recipientUid,
@@ -235,8 +240,9 @@ void main() {
       final analytics = FakeAnalyticsService();
       final container = _createContainer(repo: repo, analytics: analytics);
       addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+      final controller = container.read(
+        sendReminderControllerProvider(_friendshipId).notifier,
+      );
 
       await controller.send(
         toUserId: _recipientUid,
@@ -250,39 +256,44 @@ void main() {
       );
     });
 
-    test('ReminderSendFailed → Error + failed telemetry with error_code',
-        () async {
-      final repo = FakeReminderRepository()
-        ..produceResult = () => ReminderSendFailed('FCM_DISPATCH_FAILED');
-      final analytics = FakeAnalyticsService();
-      final container = _createContainer(repo: repo, analytics: analytics);
-      addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+    test(
+      'ReminderSendFailed → Error + failed telemetry with error_code',
+      () async {
+        final repo = FakeReminderRepository()
+          ..produceResult = () => ReminderSendFailed('FCM_DISPATCH_FAILED');
+        final analytics = FakeAnalyticsService();
+        final container = _createContainer(repo: repo, analytics: analytics);
+        addTearDown(container.dispose);
+        final controller = container.read(
+          sendReminderControllerProvider(_friendshipId).notifier,
+        );
 
-      await controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
+        await controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
 
-      final failed = analytics.events.firstWhere(
-        (e) => e.name == ReminderTelemetry.failed,
-      );
-      expect(failed.parameters?[ReminderTelemetry.paramErrorCode],
-          equals('FCM_DISPATCH_FAILED'));
-    });
+        final failed = analytics.events.firstWhere(
+          (e) => e.name == ReminderTelemetry.failed,
+        );
+        expect(
+          failed.parameters?[ReminderTelemetry.paramErrorCode],
+          equals('FCM_DISPATCH_FAILED'),
+        );
+      },
+    );
 
     test('telemetry never logs raw friendshipId — PII guard', () async {
       final repo = FakeReminderRepository()
-        ..produceResult = () => ReminderSendSuccess(
-              nextAllowedAt: DateTime.utc(2026, 6, 9, 12),
-            );
+        ..produceResult = () =>
+            ReminderSendSuccess(nextAllowedAt: DateTime.utc(2026, 6, 9, 12));
       final analytics = FakeAnalyticsService();
       final container = _createContainer(repo: repo, analytics: analytics);
       addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+      final controller = container.read(
+        sendReminderControllerProvider(_friendshipId).notifier,
+      );
 
       await controller.send(
         toUserId: _recipientUid,
@@ -297,37 +308,40 @@ void main() {
       expect(serialized, contains(hashFriendshipId(_friendshipId)));
     });
 
-    test('concurrent send() calls — second is short-circuited while sending',
-        () async {
-      var resolvedFirst = false;
-      final repo = FakeReminderRepository()
-        ..produceResult = () {
-          resolvedFirst = true;
-          return ReminderSendSuccess(
-            nextAllowedAt: DateTime.utc(2026, 6, 9, 12),
-          );
-        };
-      final analytics = FakeAnalyticsService();
-      final container = _createContainer(repo: repo, analytics: analytics);
-      addTearDown(container.dispose);
-      final controller = container
-          .read(sendReminderControllerProvider(_friendshipId).notifier);
+    test(
+      'concurrent send() calls — second is short-circuited while sending',
+      () async {
+        var resolvedFirst = false;
+        final repo = FakeReminderRepository()
+          ..produceResult = () {
+            resolvedFirst = true;
+            return ReminderSendSuccess(
+              nextAllowedAt: DateTime.utc(2026, 6, 9, 12),
+            );
+          };
+        final analytics = FakeAnalyticsService();
+        final container = _createContainer(repo: repo, analytics: analytics);
+        addTearDown(container.dispose);
+        final controller = container.read(
+          sendReminderControllerProvider(_friendshipId).notifier,
+        );
 
-      final first = controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
-      // Second concurrent call should be a no-op while the first is in
-      // flight.
-      final second = controller.send(
-        toUserId: _recipientUid,
-        contextType: 'friendship',
-        contextId: _friendshipId,
-      );
-      await Future.wait([first, second]);
-      expect(resolvedFirst, isTrue);
-      expect(repo.callCount, 1);
-    });
+        final first = controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
+        // Second concurrent call should be a no-op while the first is in
+        // flight.
+        final second = controller.send(
+          toUserId: _recipientUid,
+          contextType: 'friendship',
+          contextId: _friendshipId,
+        );
+        await Future.wait([first, second]);
+        expect(resolvedFirst, isTrue);
+        expect(repo.callCount, 1);
+      },
+    );
   });
 }
