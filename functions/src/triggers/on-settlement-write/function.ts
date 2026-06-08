@@ -61,6 +61,12 @@ import {
   ContextType,
 } from "../../simplified-debts/function";
 import {hashId} from "../../utils/id-hash";
+import {writeExpenseActivity} from "../on-expense-write/activity-writer";
+import {
+  buildSettlementActivityPayload,
+  ChangeType as ActivityChangeType,
+  SettlementDocData,
+} from "./settlement-payload-builder";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -313,5 +319,132 @@ export function createTriggerHandler(
       elapsedMs: Date.now() - startTime,
       transferCount: result.transfers.length,
     });
+
+    // 8. FR-AC-01: emit activity-feed items to BOTH parties.
+    //    Mirror of the FR-EX-07 expense-trigger contract at
+    //    on-expense-write/function.ts. The activity-writer
+    //    contains its own per-member errors (Promise.allSettled);
+    //    the validator throw (programmer error) is caught here so the
+    //    trigger's success branch is preserved (architect §2.9 item 2).
+    await emitSettlementActivity(deps, {
+      settlementId,
+      changeType,
+      contextType,
+      contextIdHash,
+      settlementIdHash,
+      changeData: event.data,
+    });
   };
+}
+
+// ---------------------------------------------------------------------------
+// Activity emission (FR-AC-01)
+// ---------------------------------------------------------------------------
+
+/**
+ * Discriminates the activity event type and writes one item per
+ * settlement party. Wraps `writeExpenseActivity` with the settlement-
+ * trigger-specific (a) soft-delete detection (architect §2.2 — no
+ * emission), (b) party-ID resolution from the settlement doc itself
+ * (the rules at firestore.rules:445-455 require fromUserId and
+ * toUserId; no second .get() is needed), and (c) defensive try/catch
+ * for programmer errors (validator throws).
+ *
+ * Per architect §2.9 item 2: NEVER rethrows. Activity-emission
+ * failures must not propagate into the trigger's success branch,
+ * otherwise Cloud Functions would retry the whole invocation and
+ * potentially re-duplicate activity items on the successful members.
+ *
+ * The activity-writer's `WriteExpenseActivityRequest` interface
+ * pre-dates the settlement consumer; the field names `friendshipId`
+ * and `expenseId` are misnomers when the source entity is a
+ * settlement. The architect deferred the rename to keep PR #51's
+ * tests and the Cloud Logging schema stable. FUTURE-work cleanup PR
+ * may rename to `writeContextActivity` + `contextId` + `entityId` +
+ * `entityIdHash`.
+ */
+async function emitSettlementActivity(
+  deps: Dependencies,
+  params: {
+    settlementId: string;
+    changeType: ActivityChangeType;
+    contextType: ContextType;
+    contextIdHash: string;
+    settlementIdHash: string;
+    changeData: Change<DocumentSnapshot> | undefined;
+  },
+): Promise<void> {
+  const {logger} = deps;
+  const {
+    settlementId,
+    changeType,
+    contextType,
+    contextIdHash,
+    settlementIdHash,
+    changeData,
+  } = params;
+
+  try {
+    const beforeData = changeData?.before?.exists
+      ? (changeData.before.data() as SettlementDocData | undefined)
+      : undefined;
+    const afterData = changeData?.after?.exists
+      ? (changeData.after.data() as SettlementDocData | undefined)
+      : undefined;
+
+    const built = buildSettlementActivityPayload(changeType, {
+      settlementId,
+      before: beforeData,
+      after: afterData,
+    });
+
+    // V1.0 emission policy: only create events emit activity items.
+    // Soft-delete and hard-delete return null from the builder; we
+    // short-circuit cleanly here.
+    if (built === null) {
+      return;
+    }
+
+    // Resolve memberIds from the source settlement doc directly.
+    // For friendship-context settlements, both UIDs are required by
+    // the security rules; we use the source-of-truth values from the
+    // settlement document rather than re-reading the parent context
+    // doc (no additional Firestore read needed — saves cost and
+    // race risk).
+    const sourceData = afterData ?? beforeData;
+    if (!sourceData) {
+      logger.info("activity_emission_skipped_missing_data", {
+        event: "activity_emission_skipped_missing_data",
+        contextType,
+        contextIdHash,
+        settlementIdHash,
+      });
+      return;
+    }
+    const memberIds = [sourceData.fromUserId, sourceData.toUserId];
+
+    await writeExpenseActivity(deps, {
+      friendshipId: sourceData.contextId,
+      expenseId: settlementId,
+      eventType: built.eventType,
+      payload: built.payload,
+      memberIds,
+    });
+  } catch (err: unknown) {
+    // Defence-in-depth: writeExpenseActivity itself uses
+    // Promise.allSettled and never rethrows for per-member Firestore
+    // failures. But the validator inside it DOES throw on programmer
+    // error (e.g. a malformed payload), and the payload-builder
+    // throws on inconsistent (changeType, before, after) tuples.
+    // Both are programmer errors that should NOT mark the trigger as
+    // failed — the recompute is already done; failing here would
+    // only cause a retry-storm that re-runs the recompute.
+    logger.error("activity_emission_internal_error", {
+      event: "activity_emission_internal_error",
+      contextType,
+      contextIdHash,
+      settlementIdHash,
+      errorMessage: err instanceof Error ? err.message : "unknown",
+    });
+  }
 }
