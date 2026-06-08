@@ -33,10 +33,7 @@ void main() {
     });
 
     test('null createdAt also "Just now"', () {
-      expect(
-        formatRelativeTimestamp(now: now, createdAt: null),
-        'Just now',
-      );
+      expect(formatRelativeTimestamp(now: now, createdAt: null), 'Just now');
     });
 
     test('future timestamp clamps to "Just now"', () {
@@ -171,7 +168,8 @@ void main() {
   group('7+ days, same year → "dd MMM"', () {
     test('7 days ago — same year', () {
       // now is 2026-06-08 06:30 UTC == 2026-06-08 12:00 IST.
-      // createdAt = now - 7 days = 2026-06-01 06:30 UTC == 2026-06-01 12:00 IST.
+      // createdAt = now - 7 days = 2026-06-01 06:30 UTC
+      // == 2026-06-01 12:00 IST.
       expect(
         formatRelativeTimestamp(
           now: now,
@@ -182,7 +180,8 @@ void main() {
     });
 
     test('30 days ago — same year', () {
-      // createdAt = now - 30 days = 2026-05-09 06:30 UTC == 2026-05-09 12:00 IST.
+      // createdAt = now - 30 days = 2026-05-09 06:30 UTC
+      // == 2026-05-09 12:00 IST.
       expect(
         formatRelativeTimestamp(
           now: now,

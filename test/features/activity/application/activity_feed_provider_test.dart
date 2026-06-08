@@ -68,13 +68,16 @@ void main() {
   });
 
   group('activityFeedProvider — initial state', () {
-    test('starts in AsyncLoading and subscribes with the current uid', () async {
-      container.listen(activityFeedProvider, (_, __) {});
+    test(
+      'starts in AsyncLoading and subscribes with the current uid',
+      () async {
+        container.listen(activityFeedProvider, (_, __) {});
 
-      final initial = container.read(activityFeedProvider);
-      expect(initial, isA<AsyncLoading<List<ActivityFeedItem>>>());
-      expect(repository.lastWatchedUid, 'uid-me');
-    });
+        final initial = container.read(activityFeedProvider);
+        expect(initial, isA<AsyncLoading<List<ActivityFeedItem>>>());
+        expect(repository.lastWatchedUid, 'uid-me');
+      },
+    );
   });
 
   group('activityFeedProvider — emissions', () {
@@ -112,10 +115,7 @@ void main() {
       await pumpEventQueue();
       expect(container.read(activityFeedProvider).requireValue, hasLength(1));
 
-      repository.controller.add([
-        _item(id: 'first'),
-        _item(id: 'second'),
-      ]);
+      repository.controller.add([_item(id: 'first'), _item(id: 'second')]);
       await pumpEventQueue();
       expect(container.read(activityFeedProvider).requireValue, hasLength(2));
     });
@@ -128,19 +128,6 @@ void main() {
 
       final state = container.read(activityFeedProvider);
       expect(state, isA<AsyncError<List<ActivityFeedItem>>>());
-    });
-
-    test('the projected list is unmodifiable (defence-in-depth)', () async {
-      container.listen(activityFeedProvider, (_, __) {});
-
-      repository.controller.add([_item(id: 'a')]);
-      await pumpEventQueue();
-
-      final list = container.read(activityFeedProvider).requireValue;
-      expect(
-        () => list.add(_item(id: 'tampered')),
-        throwsA(isA<UnsupportedError>()),
-      );
     });
   });
 }

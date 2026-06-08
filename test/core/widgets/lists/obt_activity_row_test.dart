@@ -68,7 +68,9 @@ ActivityFeedItem _settlementItem({
 }
 
 Widget _wrap(Widget child) {
-  return MaterialApp(home: Scaffold(body: ListView(children: [child])));
+  return MaterialApp(
+    home: Scaffold(body: ListView(children: [child])),
+  );
 }
 
 void main() {
@@ -81,6 +83,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -96,6 +99,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -114,6 +118,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -122,17 +127,14 @@ void main() {
     });
 
     testWidgets('settlementRecorded renders check_circle icon', (tester) async {
-      final item = _settlementItem(
-        id: '1',
-        fromUid: 'uidA',
-        toUid: 'uidB',
-      );
+      final item = _settlementItem(id: '1', fromUid: 'uidA', toUid: 'uidB');
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -149,7 +151,6 @@ void main() {
         id: '1',
         type: ActivityEventType.expenseAdded,
         authorUid: 'uidB',
-        description: 'Dinner',
       );
       await tester.pumpWidget(
         _wrap(
@@ -157,6 +158,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -168,18 +170,14 @@ void main() {
     testWidgets('expense_added by current user: "You added Dinner"', (
       tester,
     ) async {
-      final item = _expenseItem(
-        id: '1',
-        type: ActivityEventType.expenseAdded,
-        authorUid: 'uidA',
-        description: 'Dinner',
-      );
+      final item = _expenseItem(id: '1', type: ActivityEventType.expenseAdded);
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -191,17 +189,14 @@ void main() {
     testWidgets('settlement by current user: "You settled up with Rahul"', (
       tester,
     ) async {
-      final item = _settlementItem(
-        id: '1',
-        fromUid: 'uidA',
-        toUid: 'uidB',
-      );
+      final item = _settlementItem(id: '1', fromUid: 'uidA', toUid: 'uidB');
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -212,17 +207,14 @@ void main() {
     testWidgets('settlement to current user: "Rahul settled up with you"', (
       tester,
     ) async {
-      final item = _settlementItem(
-        id: '1',
-        fromUid: 'uidB',
-        toUid: 'uidA',
-      );
+      final item = _settlementItem(id: '1', fromUid: 'uidB', toUid: 'uidA');
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -244,6 +236,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -252,18 +245,14 @@ void main() {
     });
 
     testWidgets('settlement amount uses formatInrFromPaise', (tester) async {
-      final item = _settlementItem(
-        id: '1',
-        fromUid: 'uidA',
-        toUid: 'uidB',
-        amountPaise: 5000,
-      );
+      final item = _settlementItem(id: '1', fromUid: 'uidA', toUid: 'uidB');
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
@@ -275,16 +264,14 @@ void main() {
   group('OBTActivityRow — onTap fires', () {
     testWidgets('tapping the row fires the onTap callback', (tester) async {
       var tapped = 0;
-      final item = _expenseItem(
-        id: '1',
-        type: ActivityEventType.expenseAdded,
-      );
+      final item = _expenseItem(id: '1', type: ActivityEventType.expenseAdded);
       await tester.pumpWidget(
         _wrap(
           OBTActivityRow(
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () => tapped++,
           ),
         ),
@@ -303,7 +290,6 @@ void main() {
         id: '1',
         type: ActivityEventType.expenseAdded,
         amountPaise: 100000,
-        description: 'Dinner',
         authorUid: 'uidB',
       );
       await tester.pumpWidget(
@@ -312,6 +298,7 @@ void main() {
             item: item,
             currentUserUid: 'uidA',
             otherPartyDisplayName: 'Priya',
+            secondaryText: '2 hours ago',
             onTap: () {},
           ),
         ),
