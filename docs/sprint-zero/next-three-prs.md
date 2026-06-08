@@ -1,11 +1,11 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #53 merged (FR-AC-03 + FR-AC-05 — FCM push notifications + cold-start deep-link).
+> Last updated: PR #54 merged (FR-SE-09 — Send Reminder + per-friend 24-hour rate limit).
 
 ---
 
-## GitHub issue / PR numbering note (post-PR #53)
+## GitHub issue / PR numbering note (post-PR #54)
 
 The numbering jumped because issues and PRs share the same sequential
 namespace on GitHub. The post-PR #48 sequence so far:
@@ -20,52 +20,49 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #51 | PR | FR-EX-07 activity feed write-side, friendship expenses (merged 2026-06-07) |
 | #52 | PR | FR-AC-01 activity feed read-side + settlement-trigger activity emission (merged 2026-06-08) |
 | #53 | PR | FR-AC-03 FCM push notifications + FR-AC-05 cold-start deep-link (merged 2026-06-08) |
-| **#54** | **PR** | **Next feature PR — see below** |
+| #54 | PR | FR-SE-09 Send Reminder + per-friend 24-hour rate limit (merged 2026-06-09) |
+| **#55** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #54, PR #55, PR #56. Their issue-number
+**pull requests** — i.e. PR #55, PR #56, PR #57. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #54 = number 54 on GitHub.
+orchestrator should not assume PR #55 = number 55 on GitHub.
 
 ---
 
-## PR #54 — TBD
+## PR #55 — TBD
 
-**Status:** Next up. Architect picks at PR #54 kickoff per Sprint 2 velocity.
+**Status:** Next up. Architect picks at PR #55 kickoff per Sprint 2 velocity.
 
-PR #53 shipped FR-AC-03 + FR-AC-05 — the FCM module is live (server
-notifications module + per-event-type renderer + 410 token cleanup +
-prefs filter + INR formatter parity), both triggers emit FCM (expense
-to non-author members, settlement to toUserId), the client lifecycle
-is wired (token register / refresh / sign-out cleanup), the
-pre-permission dialog appears on first transition to
-`AuthenticatedWithProfile`, the foreground in-app banner renders via
-an OverlayEntry, the background `onBackgroundMessage` handler is
-registered before runApp, and the cold-start `getInitialMessage`
-payload routes after the auth check. The shared
-`lib/core/routing/notification_deep_links.dart` helper is consumed by
-both the activity feed (`ActivityFeedScreen._onRowTap` refactored)
-and the FCM tap surfaces.
+PR #54 shipped FR-SE-09 — the `sendReminderNotification` callable is
+live (auth + simplifiedBalances precondition + per-friend 24h rate
+limit via the 5-segment `_rateLimits/{senderUid}/sends/{recipientUid}`
+extension + prefs filter + FCM dispatch + recipient-only activity
+emission), the `lib/features/reminders/` feature folder is in place
+(repository + sealed result hierarchy + send controller + in-memory
+cooldown provider + telemetry constants), the `OBTSettleUpCard`
+gained the receiving-direction variant in place, and the
+`FriendDetailScreen.BalanceState.owed` branch wires the card +
+surfaces per-error-code snackbars.
 
 Candidates (in rough priority order):
 
-- **FR-SE-09 — Send Reminder.** Now the **highest unplaced P1** and
-  the **first downstream consumer of the FCM module shipped in
-  PR #53**. Introduces the per-friend 24-hour rate-limit
-  subcollection (`_rateLimits/{uid}/sends/counter` pattern per PR #45
-  Architect Notes §2.9), the Reminder Cloud Function entry point,
-  the `reminder` notification template producer (renderer + filter
-  already shipped in PR #53), and the OBTSettleUpCard "Send Reminder"
-  button on the receiving-direction branch (deferred per PR #43 §2.5
-  default-omit). 4-6 SP. NO new FCM infrastructure work — the
-  `sendFcmToTokens` API is stable.
-- **FR-AC-04 + FR-PR-03 — notification preferences UI.** The Profile
-  screen gains a `/profile/notifications` route with three toggles
-  (`newExpense`, `settlement`, `reminder`) backed by the existing
-  `users/{uid}.notificationPrefs` map. The server-side prefs-filter
-  already shipped in PR #53 — this is purely the client UI + write
-  path. 3-4 SP. Naturally pairs with FR-SE-09 because both touch
-  notification semantics.
+- **FR-AC-04 + FR-PR-03 — notification preferences UI.** Now the
+  **highest unplaced P1** and the natural pair with FR-SE-09. The
+  Profile screen gains a `/profile/notifications` route with three
+  toggles (`newExpense`, `settlement`, `reminder`) backed by the
+  existing `users/{uid}.notificationPrefs` map. The server-side
+  prefs-filter already shipped in PR #53 and is the gate for
+  FR-SE-09 — this PR makes the gate user-controllable. 3-4 SP. A
+  natural place to ALSO add the `shared_preferences` adoption
+  (PR #53 §2.6 + FR-SE-09 §2.6 cross-launch persistence).
+- **`reminderRepositoryProvider` + `matchingRepositoryProvider`
+  production wiring** (chore; ~1 SP). Both providers are
+  throw-until-overridden today; the production override via
+  `cloud_functions` is a known gap. Add `cloud_functions` to pubspec
+  and override both providers in main.dart. Naturally bundleable
+  with FR-AC-04/FR-PR-03 since that PR will also touch profile
+  data wiring.
 - **`OBTBottomNav` shell.** UX foundation deferred from PR #52 per
   architect §2.1. Becomes the canonical entry point for the
   Friends / Groups / Activity / Profile tab cluster — needed before
@@ -73,10 +70,16 @@ Candidates (in rough priority order):
 - **FR-SE-08 dedicated full-history screen** at
   `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
   v1.0 but the dedicated screen is still a backlog item).
+- **Bucket-B chore close-out** (single ~3 SP PR closing #20 CV3,
+  #21 R1-R4, #23 PY3 partial with comments).
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
   documented.
+- **FR-SE-09 message-compose dialog follow-up** (the deferred UX
+  PR per architect §2.5). 1-2 SP. Adds a bottom sheet that prompts
+  for the optional 500-char reminder message; updates the callable
+  invocation to pass it. Tracking issue to be filed.
 - **`OBTRupeeText` primitive** (UX foundation; small PR ~1 SP).
   Deferred from PR #52 per architect §2.6. The component catalogue
   declares it; a future PR adds the 5-line wrapper around
@@ -88,15 +91,12 @@ Candidates (in rough priority order):
   `entityIdHash`) was DEFERRED to minimise blast radius. A future
   cleanup PR can do the full rename + Cloud Logging dashboard
   migration as one focused change.
-- **`shared_preferences` adoption for FCM-permission persistence**
-  (architect §2.6 / §2.8 addendum from PR #53). The
-  `wasPermanentlyDenied` flag in
-  `NotificationPermissionController` is in-memory only because the
-  lockfile has no `shared_preferences` entry. Add the dependency +
-  persist the flag across launches so the pre-permission dialog
-  honours the "permanently denied" state across app restarts.
-  1-2 SP. Naturally pairs with the FR-AC-04 / FR-PR-03 prefs UI PR
-  since that also persists user-facing notification preferences.
+- **`cloud-functions-catalogue.md §7` docs roll-up** (cosmetic
+  chore; ~1 SP). The catalogue's `reminders/{senderUid}_{toUserId}`
+  storage path and `RECIPIENT_NO_TOKENS → success: true` shape are
+  SUPERSEDED by the FR-SE-09 architect ratifications (§2.1 + §2.10
+  reconciliation 2). A docs roll-up PR can bring the catalogue in
+  line with the actual implementation.
 - **FCM emulator-side integration test infrastructure** (per PR #53
   functions-dev §1 deviation). The Cloud Functions emulator-side
   integration tests under `functions/test/integration/on-*.integration.test.ts`
@@ -117,7 +117,8 @@ Candidates (in rough priority order):
   this constraint.
 - **Rate-limit transaction race refactor** (operational hardening;
   small standalone PR). Deferred from PR #45 per chore-story
-  Architect Notes §2.2.
+  Architect Notes §2.2. The FR-SE-09 rate-limit doc shape
+  inherits the same read-modify-write race vector.
 - **`emitExpenseActivity` memberIds re-read cleanup** (operational
   cleanup; small standalone PR ~1 SP). Per the PR #51 review
   recommendation #1: the trigger handler currently re-reads the
@@ -128,19 +129,19 @@ Candidates (in rough priority order):
 
 ---
 
-## PR #55 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #54 kickoff.
-
-Candidates: whatever doesn't land in PR #54 from the list above.
-
----
-
 ## PR #56 — TBD
 
 **Status:** Slot reserved. Architect picks at PR #55 kickoff.
 
-Candidates: whatever doesn't land in PR #54 / PR #55 from the lists above.
+Candidates: whatever doesn't land in PR #55 from the list above.
+
+---
+
+## PR #57 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #56 kickoff.
+
+Candidates: whatever doesn't land in PR #55 / PR #56 from the lists above.
 
 ---
 

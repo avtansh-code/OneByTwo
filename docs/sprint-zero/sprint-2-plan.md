@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #53 (FR-AC-03 + FR-AC-05 — FCM push notifications + cold-start deep-link) — 17th merged PR.
+> Last updated: PR #54 (FR-SE-09 — Send Reminder + per-friend 24-hour rate limit) — 18th merged PR.
 
 ---
 
@@ -164,6 +164,7 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #51 | FR-EX-07 | Activity feed write-side (friendship) — activity-writer + payload-builder + activity-validator + activity/{userId}/items rules + trigger emission + 12 new rules tests + 41 new unit tests + 3 integration round-trips | 5 | Merged |
 | #52 | FR-AC-01 / FR-AC-02 | Activity feed read-side — SCR-25 ActivityFeedScreen + OBTActivityRow widget + activity feature folder + 4 telemetry events + settlement-trigger activity-emission extension (closes the on-settlement-write TODO) | 8 | Merged |
 | #53 | FR-AC-03 / FR-AC-05 | FCM push notifications + cold-start deep-link — Functions notifications module (fcm-send + payload-renderer + prefs-filter + Functions-side INR formatter) + expense + settlement trigger FCM emission + client FCM token lifecycle + pre-permission dialog + in-app banner + cold-start handler + shared notification_deep_links routing helper consumed by both the activity feed and notifications | 10 | Merged |
+| #54 | FR-SE-09 | Send Reminder — sendReminderNotification callable (auth + simplifiedBalances precondition + 5-segment `_rateLimits/{senderUid}/sends/{recipientUid}` 24-hour rate-limit + prefs filter + FCM dispatch + recipient-only activity emission) + notifications/send-reminder-notification.ts FCM helper + activity-validator 'reminder' event-type extension + lib/features/reminders/ feature folder (repository + sealed result hierarchy + send controller + cooldown provider + telemetry) + OBTSettleUpCard receiving-direction variant + FriendDetailScreen owed-branch wiring | 6 | Merged |
 
 ---
 
@@ -188,7 +189,8 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #51 | 5 | Merged |
 | #52 | 8 | Merged |
 | #53 | 10 | Merged |
-| **Total** | **73** | **17 PRs so far** |
+| #54 | 6 | Merged |
+| **Total** | **79** | **18 PRs so far** |
 
 Sprint 1 reference:
 
