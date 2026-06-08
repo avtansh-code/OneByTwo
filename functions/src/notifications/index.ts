@@ -15,6 +15,7 @@
 
 export {sendExpenseNotification} from "./send-expense-notification";
 export {sendSettlementNotification} from "./send-settlement-notification";
+export {sendReminderNotification} from "./send-reminder-notification";
 export type {
   NotificationsApi,
   NotificationsDependencies,
@@ -24,4 +25,5 @@ export type {
   RecipientPrefs,
   SendExpenseNotificationParams,
   SendSettlementNotificationParams,
+  SendReminderNotificationParams,
 } from "./types";

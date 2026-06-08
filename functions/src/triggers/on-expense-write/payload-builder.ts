@@ -32,7 +32,8 @@ export type ActivityItemType =
   | "expense_added"
   | "expense_edited"
   | "expense_deleted"
-  | "settlement";
+  | "settlement"
+  | "reminder";
 
 /** Trigger change discriminator (mirrors `function.ts` `ChangeType`). */
 export type ChangeType = "create" | "update" | "delete";
@@ -105,12 +106,29 @@ export interface SettlementPayload {
   authorUid: string;
 }
 
+/**
+ * `reminder` payload — emitted by the FR-SE-09 sendReminderNotification
+ * callable (architect §2.4). The `message` field is the optional
+ * free-text composed by the sender (max 500 chars); v1.0 always
+ * omits it on the client side and the callable defaults to a
+ * hardcoded copy.
+ */
+export interface ReminderPayload {
+  senderUid: string;
+  recipientUid: string;
+  contextType: "friendship" | "group";
+  contextId: string;
+  amountPaise: number;
+  message?: string;
+}
+
 /** Discriminated union of every payload shape this builder emits. */
 export type ActivityPayload =
   | ExpenseAddedPayload
   | ExpenseEditedPayload
   | ExpenseDeletedPayload
-  | SettlementPayload;
+  | SettlementPayload
+  | ReminderPayload;
 
 /** Result tuple of `buildExpenseActivityPayload`. */
 export interface BuiltActivityPayload {
