@@ -23,6 +23,7 @@ import {createTriggerHandler} from
   "../../../src/triggers/on-settlement-write/function";
 import {writeExpenseActivity} from
   "../../../src/triggers/on-expense-write/activity-writer";
+import type {NotificationsApi} from "../../../src/notifications";
 
 jest.mock("../../../src/triggers/on-expense-write/activity-writer");
 
@@ -37,6 +38,31 @@ beforeEach(() => {
     membersFailed: 0,
   });
 });
+
+// ---------------------------------------------------------------------------
+// FR-AC-03 notifications API mock helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a mocked `NotificationsApi` suitable for injection into the
+ * trigger's `Dependencies.notificationsApi` slot. The default mock is a
+ * no-op that resolves successfully; tests can override the per-method
+ * implementation to assert call shape or simulate failures.
+ */
+function createMockNotificationsApi(): NotificationsApi & {
+  sendExpenseNotification: jest.Mock;
+  sendSettlementNotification: jest.Mock;
+} {
+  return {
+    sendExpenseNotification: jest.fn().mockResolvedValue(undefined),
+    sendSettlementNotification: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createMockMessaging():
+  import("firebase-admin/messaging").Messaging {
+  return {} as unknown as import("firebase-admin/messaging").Messaging;
+}
 
 // ---------------------------------------------------------------------------
 // Mock helpers — copy the function.test.ts pattern with the settlements
@@ -72,6 +98,13 @@ function createMockDb(opts: {
   contextData?: Record<string, unknown>;
   expenses?: Array<{id: string; data: Record<string, unknown>}>;
   settlements?: Array<{id: string; data: Record<string, unknown>}>;
+  /**
+   * Optional user-doc seed for the FR-AC-03 sender lookup. When set,
+   * any read of `users/{any}` returns this data. Used by the
+   * emitSettlementFcm helper to resolve `senderName` from
+   * `users/{fromUserId}.displayName`.
+   */
+  authorDoc?: Record<string, unknown>;
 }): FirebaseFirestore.Firestore {
   const expenseDocs = (opts.expenses ?? []).map((e) => ({
     id: e.id,
@@ -104,6 +137,19 @@ function createMockDb(opts: {
         return {
           where: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue(settlementsQuery),
+          }),
+        };
+      }
+      if (name === "users") {
+        // FR-AC-03: emitSettlementFcm reads users/{fromUserId} for the
+        // sender's displayName, and the inner notifications dispatcher
+        // reads users/{toUserId} for fcmTokens + notificationPrefs.
+        return {
+          doc: jest.fn().mockReturnValue({
+            get: jest.fn().mockResolvedValue({
+              exists: opts.authorDoc !== undefined,
+              data: () => opts.authorDoc ?? {},
+            }),
           }),
         };
       }
@@ -978,5 +1024,223 @@ describe("onSettlementWrite handler — FR-AC-01 activity-writer integration", (
     );
     expect(internalErrorLog).toBeDefined();
     expect(internalErrorLog!.level).toBe("error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FR-AC-03: trigger ↔ FCM dispatcher contract
+// ---------------------------------------------------------------------------
+
+describe("onSettlementWrite handler — FR-AC-03 FCM emission", () => {
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-5: create event invokes sendSettlementNotification with
+  // recipient = toUserId.
+  // -------------------------------------------------------------------------
+  it("calls sendSettlementNotification on create with toUserId only + senderName resolved", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+      authorDoc: {displayName: "Priya"},
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({changeType: "create", afterData: validSettlementData()}),
+    );
+
+    expect(notificationsApi.sendSettlementNotification).toHaveBeenCalledTimes(
+      1,
+    );
+    const [, callParams] =
+      notificationsApi.sendSettlementNotification.mock.calls[0];
+    expect(callParams.fromUserId).toBe("userA");
+    expect(callParams.toUserId).toBe("userB");
+    expect(callParams.contextType).toBe("friendship");
+    expect(callParams.contextId).toBe("fid");
+    expect(callParams.settlementId).toBe("sid");
+    expect(callParams.amountPaise).toBe(5000);
+    expect(callParams.senderName).toBe("Priya");
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: stale-event drop branch does NOT invoke
+  // sendSettlementNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendSettlementNotification on the stale-event-drop branch", async () => {
+    const eightDaysAgo = new Date(
+      Date.now() - 8 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({
+        changeType: "create",
+        eventTime: eightDaysAgo,
+        afterData: validSettlementData(),
+      }),
+    );
+
+    expect(notificationsApi.sendSettlementNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: CONTEXT_NOT_FOUND branch does NOT invoke
+  // sendSettlementNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendSettlementNotification on the CONTEXT_NOT_FOUND branch", async () => {
+    const db = createMockDb({contextExists: false, settlements: []});
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({changeType: "create", afterData: validSettlementData()}),
+    );
+
+    expect(notificationsApi.sendSettlementNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: BALANCE_INVARIANT_VIOLATED branch (trigger throws
+  // for retry) does NOT invoke sendSettlementNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendSettlementNotification on the BALANCE_INVARIANT_VIOLATED branch", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 4000},
+              {userId: "userB", sharePaise: 3000},
+            ],
+          },
+        },
+      ],
+      settlements: [],
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validSettlementData()}),
+      ),
+    ).rejects.toThrow();
+
+    expect(notificationsApi.sendSettlementNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-17: FCM emission failure is CONTAINED — trigger's success
+  // branch is preserved.
+  // -------------------------------------------------------------------------
+  it("contains FCM emission failures — trigger does not throw if sendSettlementNotification throws", async () => {
+    const notificationsApi = createMockNotificationsApi();
+    notificationsApi.sendSettlementNotification.mockRejectedValueOnce(
+      new Error("simulated FCM internal error"),
+    );
+
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+      authorDoc: {displayName: "Priya"},
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validSettlementData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+
+    const fcmErrorLog = logger.calls.find(
+      (c) => c.data?.event === "fcm_emission_internal_error",
+    );
+    expect(fcmErrorLog).toBeDefined();
+    expect(fcmErrorLog!.level).toBe("error");
+    expect(fcmErrorLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Architect §2.10 item 7: when notificationsApi is absent from deps
+  // (existing tests, partial wiring), the emitter no-ops silently.
+  // -------------------------------------------------------------------------
+  it("no-ops silently when notificationsApi is undefined (backward-compat)", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+    });
+    const logger = createMockLogger();
+
+    // No notificationsApi in deps — existing tests' contract preserved.
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validSettlementData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+    const fcmErrorLog = logger.calls.find(
+      (c) => c.data?.event === "fcm_emission_internal_error",
+    );
+    expect(fcmErrorLog).toBeUndefined();
   });
 });
