@@ -54,16 +54,19 @@
 
 import {HttpsError} from "firebase-functions/v2/https";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import type {Messaging} from "firebase-admin/messaging";
 import {hashId} from "../utils/id-hash";
 import {validateActivityPayload} from
   "../triggers/on-expense-write/activity-validator";
 import type {ReminderPayload} from
   "../triggers/on-expense-write/payload-builder";
-import type {
-  NotificationsDependencies,
-  NotificationDispatchResult,
-  SendReminderNotificationParams,
-} from "../notifications/types";
+import {renderPayload} from "../notifications/payload-renderer";
+import {
+  sendFcmToTokens,
+  type SendFcmParams,
+  type SendFcmResult,
+} from "../notifications/fcm-send";
+import type {NotificationsDependencies} from "../notifications/types";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -101,14 +104,21 @@ export interface SendReminderResponse {
 }
 
 /**
- * FCM dispatch leaf injected for testability. Production wires to
- * `sendReminderNotification` from `../notifications`; tests inject a
- * jest.fn() that returns a scripted NotificationDispatchResult.
+ * Low-level FCM dispatch leaf injected for testability. Production
+ * defaults to `sendFcmToTokens` from `../notifications/fcm-send`;
+ * tests inject a jest.fn() that returns a scripted [SendFcmResult].
+ *
+ * The callable performs its own user-doc read for the typed
+ * RECIPIENT_PREFS_DISABLED / RECIPIENT_NO_TOKENS branches, so the
+ * high-level `notifications/send-reminder-notification.ts` helper
+ * (which re-reads the same doc) is intentionally NOT used here.
+ * Direct use of [sendFcmToTokens] eliminates the duplicate
+ * `users/{toUserId}` read on the happy path.
  */
-export type SendReminderFcm = (
+export type SendFcm = (
   deps: NotificationsDependencies,
-  params: SendReminderNotificationParams,
-) => Promise<NotificationDispatchResult>;
+  params: SendFcmParams,
+) => Promise<SendFcmResult>;
 
 /** Dependencies injected into the handler for testability. */
 export interface SendReminderFunctionDeps {
@@ -118,10 +128,19 @@ export interface SendReminderFunctionDeps {
     warn: (message: string, data?: Record<string, unknown>) => void;
     error: (message: string, data?: Record<string, unknown>) => void;
   };
-  /** FCM dispatch helper from `../notifications`. */
-  sendReminderFcm: SendReminderFcm;
-  /** Optional Messaging instance — wired in production via the onCall index. */
-  messaging?: import("firebase-admin/messaging").Messaging;
+  /**
+   * Admin SDK [Messaging] instance, required by [sendFcmToTokens]
+   * for the per-token `messaging.send(...)` calls. Wired in
+   * production via `getMessaging()` in the onCall index; tests
+   * pass a stub.
+   */
+  messaging: Messaging;
+  /**
+   * FCM dispatch leaf. Defaults to [sendFcmToTokens] when omitted —
+   * specify only in tests that need to assert dispatch call shape
+   * or simulate dispatch failures.
+   */
+  sendFcm?: SendFcm;
   /** Clock injection for deterministic tests. */
   now: () => Date;
 }
@@ -176,7 +195,8 @@ export function createSendReminderHandler(
   data: unknown,
   context: {auth?: {uid: string}},
 ) => Promise<SendReminderResponse> {
-  const {db, logger, sendReminderFcm, messaging, now} = deps;
+  const {db, logger, messaging, now} = deps;
+  const dispatch: SendFcm = deps.sendFcm ?? sendFcmToTokens;
 
   return async (
     data: unknown,
@@ -419,17 +439,31 @@ export function createSendReminderHandler(
       const senderName =
         (senderData?.displayName as string | undefined) ?? "A friend";
 
-      // 9. FCM dispatch — Invariant 1: amountPaise carried as int
-      const dispatchResult = await sendReminderFcm(
-        {db, logger, messaging: messaging as never},
+      // 9. Render + dispatch.
+      //
+      // Invariant 1: amountPaise carried as int through renderPayload
+      // (which formats via the Functions-side format-inr.ts helper).
+      //
+      // Calls the low-level FCM leaf directly rather than the
+      // high-level `notifications/send-reminder-notification.ts`
+      // helper — the helper would re-read `users/{toUserId}` to do
+      // its own prefs + tokens checks, but we already did both above
+      // (with typed HttpsError branches). Direct dispatch eliminates
+      // the duplicate read.
+      const payload = renderPayload("reminder", {
+        senderName,
+        amountPaise: owedPaise,
+        contextType: "friendship",
+        contextId: contextId as string,
+        createdAt: nowDate,
+      });
+      const dispatchResult = await dispatch(
+        {db, logger, messaging},
         {
-          fromUserId: senderUid,
-          toUserId: toUserId as string,
-          contextType: "friendship",
-          contextId: contextId as string,
-          senderName,
-          amountPaise: owedPaise,
-          eventTimestamp: nowDate,
+          userId: toUserId as string,
+          notificationType: "reminder",
+          tokens,
+          payload,
         },
       );
 
@@ -452,11 +486,21 @@ export function createSendReminderHandler(
         );
       }
 
-      // 11. Rate-limit document write
+      // 11. Rate-limit document write.
+      //
+      // The `windowStart` field marks the start of the CURRENT 24h
+      // rolling window. v1.0 enforces one send per window, so on a
+      // successful send the window always restarts — but if the
+      // existing windowStart is still within the current window
+      // (forward-compat: a future multi-send-per-window policy),
+      // preserve it; otherwise reset to nowMs.
+      const existingWindowStart = rateLimitSnap.exists ?
+        (rateLimitSnap.data()?.windowStart as number | undefined) :
+        undefined;
       const windowStart =
-        (rateLimitSnap.exists &&
-          typeof rateLimitSnap.data()?.windowStart === "number") ?
-          (rateLimitSnap.data()!.windowStart as number) :
+        typeof existingWindowStart === "number" &&
+        nowMs - existingWindowStart < REMINDER_WINDOW_MS ?
+          existingWindowStart :
           nowMs;
 
       await rateLimitRef.set({
@@ -468,7 +512,13 @@ export function createSendReminderHandler(
         updatedAt: Timestamp.fromDate(nowDate),
       });
 
-      // 12. Activity-feed emission (recipient-only)
+      // 12. Activity-feed emission (recipient-only).
+      //
+      // Fire-and-forget: the FCM push has already landed and the
+      // rate-limit doc is recorded — if the activity write fails
+      // (e.g. transient Firestore unavailability), the sender's
+      // success path should NOT be flipped to INTERNAL because the
+      // recipient already received the reminder. Log + swallow.
       const reminderPayload: ReminderPayload = {
         senderUid,
         recipientUid: toUserId as string,
@@ -479,15 +529,28 @@ export function createSendReminderHandler(
       };
       validateActivityPayload("reminder", reminderPayload);
 
-      await db
-        .collection("activity")
-        .doc(toUserId as string)
-        .collection("items")
-        .add({
-          type: "reminder",
-          payload: reminderPayload,
-          createdAt: FieldValue.serverTimestamp(),
+      try {
+        await db
+          .collection("activity")
+          .doc(toUserId as string)
+          .collection("items")
+          .add({
+            type: "reminder",
+            payload: reminderPayload,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+      } catch (activityErr) {
+        logger.warn("reminder_activity_write_failed", {
+          event: "reminder_activity_write_failed",
+          senderUidHash,
+          recipientUidHash,
+          contextType,
+          contextIdHash,
+          errorMessage: activityErr instanceof Error ?
+            activityErr.message :
+            String(activityErr),
         });
+      }
 
       const nextAllowedAtIso = new Date(
         nowMs + REMINDER_WINDOW_MS,

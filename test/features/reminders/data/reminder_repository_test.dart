@@ -86,6 +86,40 @@ void main() {
     );
 
     test(
+      'maps response with success:false to ReminderSendFailed (defensive)',
+      () async {
+        fakeCallable.responseData = {
+          'success': false,
+          'nextAllowedAtIso': '2026-06-09T12:00:00.000Z',
+        };
+
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
+
+        expect(result, isA<ReminderSendFailed>());
+        expect((result as ReminderSendFailed).errorCode, 'UNKNOWN');
+      },
+    );
+
+    test(
+      'maps response missing nextAllowedAtIso to ReminderSendFailed',
+      () async {
+        fakeCallable.responseData = {'success': true};
+
+        final result = await repository.sendReminder(
+          toUserId: 'uid-recipient',
+          contextType: 'friendship',
+          contextId: 'uid-sender_uid-recipient',
+        );
+
+        expect(result, isA<ReminderSendFailed>());
+      },
+    );
+
+    test(
       'maps RATE_LIMITED to ReminderSendRateLimited with nextAllowedAt',
       () async {
         fakeCallable.throwError = const ReminderCallableException(

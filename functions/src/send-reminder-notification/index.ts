@@ -12,7 +12,6 @@ import {onCall} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {getMessaging} from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
-import {sendReminderNotification as sendReminderFcm} from "../notifications";
 import {createSendReminderHandler} from "./function";
 
 const REGION = "asia-south1";
@@ -37,8 +36,8 @@ export const sendReminderNotification = onCall(
     const handler = createSendReminderHandler({
       db: getFirestore(),
       logger,
-      sendReminderFcm,
       messaging: getMessaging(),
+      // sendFcm defaults to sendFcmToTokens from ../notifications/fcm-send
       now: () => new Date(),
     });
     return handler(request.data, {

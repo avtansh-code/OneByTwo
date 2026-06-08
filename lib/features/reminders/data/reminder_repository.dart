@@ -102,8 +102,9 @@ class ReminderRepositoryImpl extends ReminderRepository {
       if (message != null) payload['message'] = message;
 
       final response = await _callable(payload);
+      final success = response['success'];
       final nextAllowedAtIso = response['nextAllowedAtIso'] as String?;
-      if (nextAllowedAtIso == null) {
+      if (success != true || nextAllowedAtIso == null) {
         return ReminderSendFailed('UNKNOWN');
       }
       return ReminderSendSuccess(

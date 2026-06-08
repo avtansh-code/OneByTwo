@@ -226,14 +226,14 @@ function createDeps(state: Partial<MockDbState> = {}): {
     succeeded: 2,
     failed: 0,
     pruned: [],
-    suppressedByPrefs: 0,
-    skippedEmptyTokens: 0,
-    skippedMissingUser: 0,
   });
+  const messaging =
+    {} as unknown as import("firebase-admin/messaging").Messaging;
   const deps: SendReminderFunctionDeps = {
     db,
     logger,
-    sendReminderFcm: fcmDispatch,
+    messaging,
+    sendFcm: fcmDispatch,
     now: () => new Date("2026-06-08T12:00:00Z"),
   };
   return {deps, logger, writes, fcmDispatch};
@@ -282,7 +282,7 @@ describe("sendReminderNotification handler — FR-SE-09", () => {
       expect(written.count).toBeDefined();
     });
 
-  it("AC-1: happy path calls sendReminderFcm with correct params", async () => {
+  it("AC-1: happy path calls dispatch with the rendered FCM payload", async () => {
     const {deps, fcmDispatch} = createDeps();
     const handler = createSendReminderHandler(deps);
 
@@ -290,13 +290,111 @@ describe("sendReminderNotification handler — FR-SE-09", () => {
 
     expect(fcmDispatch).toHaveBeenCalledTimes(1);
     const params = fcmDispatch.mock.calls[0][1];
-    expect(params.fromUserId).toBe("uid-sender");
-    expect(params.toUserId).toBe("uid-recipient");
-    expect(params.senderName).toBe("Avtansh");
-    expect(params.amountPaise).toBe(50000);
-    expect(params.contextType).toBe("friendship");
-    expect(params.contextId).toBe("uid-sender_uid-recipient");
+    // Low-level SendFcmParams: userId + notificationType + tokens + payload.
+    expect(params.userId).toBe("uid-recipient");
+    expect(params.notificationType).toBe("reminder");
+    expect(params.tokens).toEqual(["tokRec1", "tokRec2"]);
+    expect(params.payload.type).toBe("reminder");
+    expect(params.payload.title).toBe("Reminder from Avtansh");
+    expect(params.payload.body).toBe(
+      "Avtansh is nudging you about \u20B9500.",
+    );
+    expect(params.payload.contextType).toBe("friendship");
+    expect(params.payload.contextId).toBe("uid-sender_uid-recipient");
+    // amountPaise is string-encoded in the FCM data envelope.
+    expect(params.payload.amountPaise).toBe("50000");
   });
+
+  it("AC-1: dispatch reads users/{toUserId} only ONCE (no double-read)",
+    async () => {
+      // The callable does its own prefs/tokens validation; the FCM
+      // helper would have re-read the same doc when called through
+      // the high-level helper. The low-level injection point sidesteps
+      // that — assert the recipient doc is fetched at most once.
+      let recipientGets = 0;
+      const baseState: MockDbState = {
+        friendship: {
+          exists: true,
+          data: {
+            memberIds: ["uid-sender", "uid-recipient"],
+            simplifiedBalances: {"uid-recipient": {"uid-sender": 50000}},
+          },
+        },
+        sender: {exists: true, data: {displayName: "Avtansh"}},
+        recipient: {
+          exists: true,
+          data: {
+            displayName: "Priya",
+            fcmTokens: ["tokRec1"],
+            notificationPrefs: {reminder: true},
+          },
+        },
+        rateLimit: {exists: false, data: null},
+      };
+      const collectionFn = jest.fn((c: string) => {
+        if (c === "friendships") {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => baseState.friendship.data,
+              }),
+            })),
+          };
+        }
+        if (c === "users") {
+          return {
+            doc: jest.fn((u: string) => ({
+              get: jest.fn().mockImplementation(() => {
+                if (u === "uid-recipient") recipientGets += 1;
+                return Promise.resolve({
+                  exists: true,
+                  data: () => u === "uid-sender" ?
+                    baseState.sender.data :
+                    baseState.recipient.data,
+                });
+              }),
+            })),
+          };
+        }
+        if (c === "activity") {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn(() => ({
+                add: jest.fn().mockResolvedValue({id: "a"}),
+              })),
+            })),
+          };
+        }
+        throw new Error("unexpected");
+      });
+      const docFn = jest.fn(() => ({
+        get: jest.fn().mockResolvedValue({exists: false, data: () => undefined}),
+        set: jest.fn().mockResolvedValue(undefined),
+      }));
+      const db = {
+        collection: collectionFn,
+        doc: docFn,
+      } as unknown as FirebaseFirestore.Firestore;
+      const messaging =
+        {} as unknown as import("firebase-admin/messaging").Messaging;
+      const fcmDispatch = jest.fn().mockResolvedValue({
+        succeeded: 1,
+        failed: 0,
+        pruned: [],
+      });
+      const handler = createSendReminderHandler({
+        db,
+        logger: createMockLogger(),
+        messaging,
+        sendFcm: fcmDispatch,
+        now: () => new Date("2026-06-08T12:00:00Z"),
+      });
+
+      await handler(validInput, authContext("uid-sender"));
+
+      expect(recipientGets).toBe(1);
+    });
 
   it("AC-2: happy path emits activity item to recipient ONLY", async () => {
     const {deps, writes} = createDeps();
@@ -682,9 +780,6 @@ describe("sendReminderNotification handler — FR-SE-09", () => {
         succeeded: 0,
         failed: 2,
         pruned: ["tokRec1", "tokRec2"],
-        suppressedByPrefs: 0,
-        skippedEmptyTokens: 0,
-        skippedMissingUser: 0,
       });
       const handler = createSendReminderHandler(deps);
 
@@ -795,5 +890,138 @@ describe("sendReminderNotification handler — FR-SE-09", () => {
       );
       expect(succeeded).toBeDefined();
       expect(succeeded!.data!.messageLength).toBe(21);
+    });
+
+  // -----------------------------------------------------------------------
+  // Recommendation #3 — windowStart reset on fresh window
+  // -----------------------------------------------------------------------
+  it("resets windowStart to nowMs when the existing windowStart is > 24h old",
+    async () => {
+      const twentyFiveHoursAgoMs = new Date("2026-06-07T11:00:00Z").getTime();
+      const {deps, writes} = createDeps({
+        rateLimit: {
+          exists: true,
+          data: {
+            lastSentAt: {toMillis: () => twentyFiveHoursAgoMs},
+            count: 1,
+            windowStart: twentyFiveHoursAgoMs,
+            recipientUid: "uid-recipient",
+            senderUid: "uid-sender",
+          },
+        },
+      });
+      const handler = createSendReminderHandler(deps);
+
+      await handler(validInput, authContext("uid-sender"));
+
+      expect(writes.rateLimitSets).toHaveLength(1);
+      const written = writes.rateLimitSets[0];
+      // Fresh window — windowStart resets to nowMs (2026-06-08T12:00:00Z).
+      expect(written.windowStart).toBe(
+        new Date("2026-06-08T12:00:00Z").getTime(),
+      );
+    });
+
+  // -----------------------------------------------------------------------
+  // Recommendation #4 — activity write failure is non-fatal
+  // -----------------------------------------------------------------------
+  it("returns success even if the activity write throws (fire-and-forget)",
+    async () => {
+      // Build a mock db where the activity .add() rejects.
+      const writes = {
+        rateLimitSets: [] as Array<Record<string, unknown>>,
+        activityAdds: [] as Array<{
+          recipient: string;
+          payload: Record<string, unknown>;
+        }>,
+      };
+      const collectionFn = jest.fn((c: string) => {
+        if (c === "friendships") {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({
+                  memberIds: ["uid-sender", "uid-recipient"],
+                  simplifiedBalances: {
+                    "uid-recipient": {"uid-sender": 50000},
+                  },
+                }),
+              }),
+            })),
+          };
+        }
+        if (c === "users") {
+          return {
+            doc: jest.fn((u: string) => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => u === "uid-sender" ?
+                  {displayName: "Avtansh"} :
+                  {
+                    displayName: "Priya",
+                    fcmTokens: ["tok1"],
+                    notificationPrefs: {reminder: true},
+                  },
+              }),
+            })),
+          };
+        }
+        if (c === "activity") {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn(() => ({
+                add: jest.fn().mockRejectedValue(new Error("firestore down")),
+              })),
+            })),
+          };
+        }
+        throw new Error("unexpected collection " + c);
+      });
+      const docFn = jest.fn(() => ({
+        get: jest.fn().mockResolvedValue({
+          exists: false,
+          data: () => undefined,
+        }),
+        set: jest.fn((p: Record<string, unknown>) => {
+          writes.rateLimitSets.push(p);
+          return Promise.resolve();
+        }),
+      }));
+      const db = {
+        collection: collectionFn,
+        doc: docFn,
+      } as unknown as FirebaseFirestore.Firestore;
+      const logger = createMockLogger();
+      const messaging =
+        {} as unknown as import("firebase-admin/messaging").Messaging;
+      const fcmDispatch = jest.fn().mockResolvedValue({
+        succeeded: 1,
+        failed: 0,
+        pruned: [],
+      });
+      const handler = createSendReminderHandler({
+        db,
+        logger,
+        messaging,
+        sendFcm: fcmDispatch,
+        now: () => new Date("2026-06-08T12:00:00Z"),
+      });
+
+      const result = await handler(validInput, authContext("uid-sender"));
+
+      // Success bubbles through despite the activity-write failure.
+      expect(result.success).toBe(true);
+      expect(result.nextAllowedAtIso).toBe("2026-06-09T12:00:00.000Z");
+      // Rate-limit was still recorded.
+      expect(writes.rateLimitSets).toHaveLength(1);
+      // FCM was still dispatched.
+      expect(fcmDispatch).toHaveBeenCalledTimes(1);
+      // A warn log surfaced the activity-write failure for ops visibility.
+      const warn = logger.calls.find(
+        (c) => c.data?.event === "reminder_activity_write_failed",
+      );
+      expect(warn).toBeDefined();
+      expect(warn!.level).toBe("warn");
     });
 });
