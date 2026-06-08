@@ -607,3 +607,368 @@ Reference: `docs/design/08-plan/definition-of-ready-and-done.md`
   REFUSED for bundling — would BREAK FR-EX-07 AC-2.
 - **Concurrent-edit detection for FR-EX-06.** Still deferred.
 - **Rate-limit transaction race refactor.** Still deferred.
+
+---
+
+## Architect Notes
+
+> Appended for the FR-AC-01 activity-feed read-side PR. These notes
+> ratify the design decisions taken before implementation begins.
+> References: `docs/copilot_prompts/sprint_2/15.md`,
+> `.github/shared/invariants.md`, `.github/shared/decision-log.md`
+> (ADR-0002 paise integers; ADR-0006 Riverpod state management;
+> ADR-0007 feature-first folder layout; ADR-0013 PII / telemetry
+> hashing; ADR-0014 rules-readable user collection).
+
+### 2.1 — Bottom-nav shell deferral
+
+**RATIFY: PR #52 does NOT ship `OBTBottomNav`.**
+
+The `/activity` route is reachable via a temporary "Activity" AppBar
+action on `HomePlaceholderScreen` (mirror of the existing "Profile"
+action at `home_placeholder_screen.dart:21-31`). The bottom-nav
+shell is a separate UX PR that lands when Friends + Groups +
+Activity + Profile tabs are all needed simultaneously (likely Sprint
+3 alongside the groups epic).
+
+Rationale:
+
+- The bottom-nav infrastructure is a significant UX surface that
+  warrants its own PR. Bundling it would push this PR well past 10
+  SP into scope creep.
+- The standalone `/activity` route is the canonical SCR-25 contract
+  (line 265). The bottom-nav binding is a presentational concern
+  that lands when the tab shell ships.
+- Friends and Groups tabs also don't have routes yet. Shipping
+  bottom-nav with only an Activity tab wired in would leave it
+  visually broken.
+
+### 2.2 — Settlement soft-delete activity decision
+
+**RATIFY: settlement soft-delete does NOT emit an activity item.**
+
+Rationale:
+
+- The SCR-25 Event Type Mapping at line 308 only lists
+  `settlementRecorded`. There is NO `settlementDeleted` row type in
+  the spec.
+- Settlement deletion is extremely rare per the FR-SE-07 contract.
+- The v1.0 decision is "no activity item on settlement soft-delete".
+- The settlement-trigger update branch detects
+  `before.deleted === false && after.deleted === true` and SKIPS
+  the activity emission entirely. Documented in code as a comment.
+- Hard-delete (admin-only via admin SDK) is also a no-op for activity
+  emission — symmetric with the no-op posture for soft-delete.
+
+If observed as a UX gap in production, file an issue for v1.1
+consideration (would require both schema enumeration extension AND
+SCR-25 spec update — non-trivial).
+
+### 2.3 — Activity-writer reuse vs rename
+
+**RATIFY: keep the function name `writeExpenseActivity` (DEFER the
+rename to `writeContextActivity`).**
+
+The prompt §2.3 RECOMMENDED renaming to `writeContextActivity` on
+the grounds that the function is generic over the context type and
+the "Expense" prefix is now misleading. However, the prompt §2.7
+ratified the rename as "OPTIONAL".
+
+Rationale for deferral:
+
+- Minimises blast radius — the existing PR #51 tests
+  (`activity-writer.test.ts`, `function.test.ts`) stay untouched.
+  Renaming would require updating ~10+ assertion call sites and
+  introduces regression risk on a working ship.
+- The log key `expenseIdHash` would also rename to `entityIdHash`
+  in the existing `activity_item_written`,
+  `activity_item_write_failed`, and `activity_emission_completed`
+  events. Any Cloud Logging dashboards built post-PR-#51 that pivot
+  on `expenseIdHash` would break — and we cannot verify the
+  dashboard surface from here.
+- The settlement-trigger call site explicitly maps the misnomer in
+  a code comment:
+  ```typescript
+  // The activity-writer's WriteExpenseActivityRequest interface
+  // pre-dates the settlement consumer; the field names friendshipId
+  // and expenseId are misnomers when the source entity is a
+  // settlement. The architect deferred the rename to keep PR #51's
+  // tests and the Cloud Logging schema stable. FUTURE-work cleanup
+  // PR renames to writeContextActivity + contextId + entityId +
+  // entityIdHash.
+  await writeExpenseActivity(deps, {
+    friendshipId: contextId,    // misnomer: actually contextId
+    expenseId: settlementId,    // misnomer: actually entityId
+    eventType: "settlement",
+    payload,
+    memberIds,
+  });
+  ```
+- A follow-up cosmetic-rename PR (1-2 SP, separately filed) can do
+  the full rename + log-key migration as a single focused change with
+  paired dashboard updates.
+
+If a reviewer prefers the immediate rename, the architect is open to
+flipping this decision — the trade-off is well-bounded.
+
+### 2.4 — Settlement payload schema
+
+**RATIFY:** `settlement` payload shape:
+
+```typescript
+{
+  settlementId: string;
+  fromUserId: string;
+  toUserId: string;
+  amountPaise: number;         // integer (Invariant 1 preserved)
+  contextType: "friendship" | "group";
+  contextId: string;
+  note?: string;               // optional; nullable on the doc
+  authorUid: string;           // == fromUserId per the rules
+}
+```
+
+The validator's per-event-type required-field check enforces
+`settlementId`, `fromUserId`, `toUserId`, `amountPaise`,
+`contextType`, `contextId`, `authorUid`. The `note` field is
+optional (the rules at `firestore.rules:445-455` permit
+`note: null` and the schema marks it as optional per
+`docs/design/07-technical/firestore-schema.md`).
+
+Notes:
+
+- `authorUid` is canonically the `fromUserId` for v1.0 (settlements
+  are created by the payer, per the rules). Symmetric with FR-EX-07's
+  `authorUid` being the expense `createdBy`.
+- `contextType: 'group'` is permitted in the type union for forward-
+  compatibility with the Sprint 3 groups epic, but the settlement-
+  trigger handler's group-context path is NOT exercised in this PR
+  (no group settlements exist yet). The friendship-context path is
+  the only emission path PR #52 ships.
+- `amountPaise` is passed through unchanged from the source
+  settlement document — Invariant 1 is preserved by construction.
+
+### 2.5 — Riverpod provider granularity
+
+**RATIFY: single `StreamProvider<List<ActivityFeedItem>>` named
+`activityFeedProvider`. NO `family` parameter.**
+
+Rationale:
+
+- The provider is per-user. The current UID is read from the
+  existing `currentUserIdProvider` (shipped in FR-FR-03 at
+  `lib/features/friends/application/friends_list_provider.dart:15`).
+- Mirrors the `friendsListProvider` blueprint — same `StreamProvider`
+  shape over a Firestore snapshot listener.
+- A `family<List<ActivityFeedItem>, String>` would be over-
+  engineered: the only legitimate parameter would be `userId`, but
+  the entire activity feed is gated by the rules block to the
+  authenticated user's own subcollection, so per-user lookup is the
+  only legal access pattern.
+- `ref.invalidate(activityFeedProvider)` is the canonical re-subscribe
+  mechanism used by both the Retry button (AC-8) and the
+  pull-to-refresh handler (AC-9).
+
+The current UID is also passed to the `activityFeedRepository`
+constructor (which builds the Firestore query path) and to the row-
+tap handler (which derives the deep-link target — settlements need
+`currentUid` to disambiguate "you settled up with X" vs "X settled
+up with you").
+
+### 2.6 — OBTActivityRow widget API
+
+**RATIFY:** the widget consumes a single typed `ActivityFeedItem`
+(the domain model) PLUS the resolved other-party display name. The
+icon, colour, primary-text, and amount derivation lives inside the
+widget per the SCR-25 Event Type Mapping table (lines 301-313).
+
+Placement: `lib/core/widgets/lists/obt_activity_row.dart` — matches
+the OBT cross-feature primitive convention established by
+`lib/core/widgets/inputs/obt_amount_input.dart` (PR #38) and
+`lib/core/widgets/dialogs/obt_confirmation_dialog.dart` (PR #46).
+
+**`OBTRupeeText` is NOT shipped in PR #52.** The component catalogue
+declares it (section 5) but no Dart implementation exists today.
+The `OBTActivityRow` trailing amount uses
+`Text(formatInrFromPaise(item.amountPaise))` inline. A 5-line
+wrapper would add no semantic value beyond what `OBTActivityRow`
+itself already provides; a future OBT-primitives PR ships
+`OBTRupeeText` when a SECOND use site needs it (mirrors the
+`OBTAmountInput` precedent — the catalogue contract is locked the
+moment a second use site needs it).
+
+API surface:
+
+```dart
+class OBTActivityRow extends StatelessWidget {
+  const OBTActivityRow({
+    required this.item,
+    required this.currentUserUid,
+    required this.otherPartyDisplayName,
+    required this.onTap,
+    super.key,
+  });
+
+  final ActivityFeedItem item;
+  final String currentUserUid;
+  final String otherPartyDisplayName;
+  final VoidCallback onTap;
+  // ...
+}
+```
+
+The semantic label combines primary text + secondary text + amount
++ "Tap to view details" per SCR-25 line 361.
+
+### 2.7 — Files to touch (exhaustive — anything outside this set is scope creep)
+
+- **NEW** `docs/sprint-zero/stories/FR-AC-01-activity-feed-read-side.md`
+  (this file).
+- `functions/src/triggers/on-settlement-write/function.ts` — EXTEND
+  with the `emitSettlementActivity` helper call after the success-
+  branch log at line 315.
+- **NEW** `functions/src/triggers/on-settlement-write/settlement-payload-builder.ts`
+  — pure function `buildSettlementActivityPayload(changeType,
+  request)`.
+- `functions/src/triggers/on-expense-write/activity-validator.ts` —
+  EXTEND with `validateSettlementPayload` branch.
+- `functions/src/triggers/on-expense-write/payload-builder.ts` —
+  EXTEND the `ActivityItemType` union with `'settlement'` and the
+  `ActivityPayload` discriminated union with `SettlementPayload`.
+- `functions/test/triggers/on-settlement-write/function.test.ts` —
+  EXTEND with activity-writer integration assertions (mirror of PR
+  #51's `function.test.ts` extension at lines 720-1032).
+- **NEW** `functions/test/triggers/on-settlement-write/settlement-payload-builder.test.ts`
+  — per-change-type mapping tests.
+- `functions/test/triggers/on-expense-write/activity-validator.test.ts`
+  — EXTEND with settlement-payload validation tests.
+- `functions/test/integration/on-settlement-write.integration.test.ts`
+  — EXTEND with 2 round-trip tests per AC-18.
+- **NEW** `lib/features/activity/data/activity_feed_repository.dart`
+- **NEW** `lib/features/activity/domain/activity_feed_item.dart`
+- **NEW** `lib/features/activity/domain/activity_event_type.dart`
+- **NEW** `lib/features/activity/application/activity_feed_provider.dart`
+- **NEW** `lib/features/activity/application/relative_timestamp_formatter.dart`
+- **NEW** `lib/features/activity/presentation/activity_feed_screen.dart`
+- **NEW** `lib/features/activity/presentation/widgets/activity_feed_skeleton.dart`
+- **NEW** `lib/core/widgets/lists/obt_activity_row.dart`
+- `lib/features/auth/presentation/home_placeholder_screen.dart` —
+  ADD "Activity" AppBar action.
+- **NEW** `test/features/activity/domain/activity_feed_item_test.dart`
+- **NEW** `test/features/activity/application/activity_feed_provider_test.dart`
+- **NEW** `test/features/activity/application/relative_timestamp_formatter_test.dart`
+- **NEW** `test/features/activity/presentation/activity_feed_screen_test.dart`
+- **NEW** `test/features/activity/activity_boundary_contract_test.dart`
+- **NEW** `test/core/widgets/lists/obt_activity_row_test.dart`
+- `docs/sprint-zero/sprint-2-plan.md` — PR #52 row.
+- `docs/sprint-zero/next-three-prs.md` — roll-forward.
+- `docs/audits/sprint-1/07-bucket-b-burndown.md` — PR #52 entry.
+
+### 2.8 — Files explicitly NOT to touch (negative scope guardrails)
+
+- `firestore.rules` — UNCHANGED. FR-EX-07 shipped the activity rules
+  block; PR #52 only reads (rules grant member-read).
+- `firestore.indexes.json` — UNCHANGED. Single-field descending
+  index on `createdAt` auto-creates.
+- `storage.rules` — UNCHANGED. No Storage surface.
+- `pubspec.yaml` / `functions/package.json` — UNCHANGED. No new
+  dependencies.
+- `lib/features/expenses/**`, `lib/features/friends/**`,
+  `lib/features/settlements/**` — UNCHANGED. The new Activity feature
+  reads its own data; no edits to existing features.
+- `functions/src/triggers/on-expense-write/function.ts` — UNCHANGED.
+  FR-EX-07's expense-trigger emission is correct as-is.
+- `functions/src/triggers/on-expense-write/activity-writer.ts` —
+  EXTENDED ONLY to include `'settlement'` in the `ActivityItemType`
+  type re-export (a single character change). The function body,
+  field names, and log keys are UNCHANGED per §2.3.
+- `.github/workflows/*.yml` — UNCHANGED.
+- `lib/main.dart` — UNCHANGED. The `/activity` route is reachable
+  via the `HomePlaceholderScreen` AppBar action using
+  `Navigator.of(context).push(MaterialPageRoute(...))` (the
+  canonical pattern from FR-EX-06 and FR-FR-03).
+- `lib/core/widgets/dialogs/obt_confirmation_dialog.dart`,
+  `lib/core/widgets/inputs/obt_amount_input.dart` — UNCHANGED. The
+  new `OBTActivityRow` is a sibling primitive.
+
+### 2.9 — Anticipated reconciliations
+
+Document EXACTLY:
+
+1. **Snake_case vs camelCase event-type discriminators.** The
+   Firestore document stores `type: 'expense_added'` (snake_case per
+   schema doc line 202); the SCR-25 spec uses `expenseAdded`
+   (camelCase per lines 305-307). The client mapper in
+   `activity_feed_repository.dart` converts on read. Unknown types
+   are dropped (mirrors the strict-parsing precedent for
+   `simplifiedBalances`).
+
+2. **OBTRupeeText deferral.** The components catalogue declares
+   `OBTRupeeText` (section 5) but PR #52 does not implement it. The
+   `OBTActivityRow` trailing amount uses
+   `Text(formatInrFromPaise(...))` inline. Future OBT-primitives PR
+   ships the wrapper. NOT a Bucket-B item.
+
+3. **OBTBottomNav deferral.** Same as §2.1. The temporary
+   `HomePlaceholderScreen` AppBar action is the v1.0 entry point
+   until the bottom-nav shell lands.
+
+4. **Activity emission on settlement soft-delete.** Per §2.2: no
+   activity item. Documented in code as a comment in the settlement-
+   trigger handler's update branch.
+
+5. **Settlement activity directional copy.** The primary-text copy is:
+   - "You settled up with [other party]" when `currentUid ==
+     fromUserId`
+   - "[other party] settled up with you" when `currentUid ==
+     toUserId`
+   The other-party display name is resolved via the existing
+   `userProfileProvider` from FR-FR-03. If the profile resolution
+   fails (deleted account, transient permission glitch), the
+   fallback is "Unknown" — mirrors the FR-FR-03 friends-list
+   fallback.
+
+6. **Cold-start deep-link (FR-AC-05) deferral.** PR #52 ships the
+   FR-AC-02 in-app deep-link routing. The FR-AC-05 cold-start
+   deep-link (from a tapped push notification when the app is not
+   running) is paired with FR-AC-03 FCM. Separate P0 story.
+
+7. **Read/unread markers deferral.** SCR-25 Open Question 1. The
+   components catalogue defines an `Unread` state for
+   `OBTActivityRow` (3 dp `primary` left-edge bar) but PR #52 does
+   NOT ship this — every row is rendered as "read". v1.1 candidate
+   per the SCR.
+
+8. **Pagination deferral.** SCR-25 Open Question 2. v1.0 loads all
+   activity items via the single snapshot listener. Cutoff at which
+   performance degrades: rough estimate ~1000 items before the
+   frame budget is exceeded (each row is a lightweight
+   `OBTActivityRow` with no images beyond the leading icon). FUTURE
+   work.
+
+9. **Activity-writer reuse vs rename deferral.** Per §2.3. Future
+   cleanup PR may rename `writeExpenseActivity` →
+   `writeContextActivity` AND `friendshipId` → `contextId` AND
+   `expenseId` → `entityId` AND the log key `expenseIdHash` →
+   `entityIdHash` in one focused diff with paired Cloud Logging
+   dashboard updates.
+
+10. **Boundary-contract grep co-location.** The new
+    `test/features/activity/activity_boundary_contract_test.dart`
+    mirrors the existing
+    `test/features/expenses/expense_creation_boundary_contract_test.dart`
+    template — same `_isCommentLine` helper, same regex patterns,
+    same fail-loud assertion shape. Per
+    `docs/patterns/feature-pr-conventions.md` boundary-contract
+    discipline.
+
+11. **Currentuid for settlement directional copy — coupling to
+    OBTActivityRow.** The widget needs `currentUserUid` to render
+    the correct directional copy on `settlement` rows. Passing
+    `currentUserUid` as a widget prop is a small API surface
+    addition; the alternative (resolving via `ref.watch` inside the
+    widget) would force `OBTActivityRow` to become a
+    `ConsumerWidget`, breaking the OBT-primitive convention of pure
+    `StatelessWidget` reusability. Architect's call: prop-pass the
+    UID.
+
