@@ -20,6 +20,7 @@ import type {
   ExpenseAddedPayload,
   ExpenseDeletedPayload,
   ExpenseEditedPayload,
+  SettlementPayload,
 } from "./payload-builder";
 
 /**
@@ -51,6 +52,9 @@ export function validateActivityPayload(
       return;
     case "expense_deleted":
       validateExpenseDeletedPayload(payload as ExpenseDeletedPayload);
+      return;
+    case "settlement":
+      validateSettlementPayload(payload as SettlementPayload);
       return;
     default: {
       const _exhaustive: never = eventType;
@@ -142,6 +146,76 @@ function validateExpenseDeletedPayload(payload: ExpenseDeletedPayload): void {
   if (payload.deletedAt === undefined || payload.deletedAt === null) {
     throw new Error(
       "validateActivityPayload: expense_deleted.deletedAt is required.",
+    );
+  }
+}
+
+/**
+ * Validates a `settlement` payload (FR-AC-01 architect §2.4). Required
+ * fields: settlementId, fromUserId, toUserId, amountPaise, contextType,
+ * contextId, authorUid. The `note` field is optional.
+ */
+function validateSettlementPayload(payload: SettlementPayload): void {
+  assertHasFields("settlement", payload, [
+    "settlementId",
+    "fromUserId",
+    "toUserId",
+    "amountPaise",
+    "contextType",
+    "contextId",
+    "authorUid",
+  ] as const);
+
+  if (typeof payload.settlementId !== "string" ||
+    payload.settlementId.length === 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.settlementId must be a " +
+        "non-empty string.",
+    );
+  }
+  if (typeof payload.fromUserId !== "string" ||
+    payload.fromUserId.length === 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.fromUserId must be a " +
+        "non-empty string.",
+    );
+  }
+  if (typeof payload.toUserId !== "string" || payload.toUserId.length === 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.toUserId must be a " +
+        "non-empty string.",
+    );
+  }
+  if (typeof payload.amountPaise !== "number" ||
+    !Number.isInteger(payload.amountPaise) ||
+    payload.amountPaise <= 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.amountPaise must be a positive " +
+        "integer.",
+    );
+  }
+  if (payload.contextType !== "friendship" && payload.contextType !== "group") {
+    throw new Error(
+      "validateActivityPayload: settlement.contextType must be 'friendship' " +
+        "or 'group'.",
+    );
+  }
+  if (typeof payload.contextId !== "string" || payload.contextId.length === 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.contextId must be a " +
+        "non-empty string.",
+    );
+  }
+  if (typeof payload.authorUid !== "string" || payload.authorUid.length === 0) {
+    throw new Error(
+      "validateActivityPayload: settlement.authorUid must be a " +
+        "non-empty string.",
+    );
+  }
+  if (payload.note !== undefined && typeof payload.note !== "string") {
+    throw new Error(
+      "validateActivityPayload: settlement.note, when present, must be " +
+        "a string.",
     );
   }
 }

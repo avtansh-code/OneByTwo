@@ -22,13 +22,17 @@ import type {Timestamp} from "firebase-admin/firestore";
 /**
  * Activity-item type discriminator. Values match the canonical
  * enumeration in docs/design/07-technical/firestore-schema.md line 202.
- * The two remaining schema-doc variants (`'settlement'`, `'group_change'`)
- * are FUTURE work and are NOT emitted by this builder.
+ * The remaining schema-doc variant (`'group_change'`) is FUTURE work
+ * (Sprint 3 groups epic).
+ *
+ * `'settlement'` is emitted by the settlement-trigger
+ * (functions/src/triggers/on-settlement-write/) per FR-AC-01.
  */
 export type ActivityItemType =
   | "expense_added"
   | "expense_edited"
-  | "expense_deleted";
+  | "expense_deleted"
+  | "settlement";
 
 /** Trigger change discriminator (mirrors `function.ts` `ChangeType`). */
 export type ChangeType = "create" | "update" | "delete";
@@ -82,11 +86,31 @@ export interface ExpenseDeletedPayload {
   deletedAt: Timestamp;
 }
 
+/**
+ * `settlement` payload — emitted by the settlement-trigger
+ * (FR-AC-01 architect notes §2.4). Captures the directional fields
+ * needed by the SCR-25 row ("You settled up with X" vs "X settled
+ * up with you") plus the deep-link target identifier (`contextId`
+ * is the friendship document ID; `settlementId` is the auto-ID
+ * Firestore assigns to the settlement document).
+ */
+export interface SettlementPayload {
+  settlementId: string;
+  fromUserId: string;
+  toUserId: string;
+  amountPaise: number;
+  contextType: "friendship" | "group";
+  contextId: string;
+  note?: string;
+  authorUid: string;
+}
+
 /** Discriminated union of every payload shape this builder emits. */
 export type ActivityPayload =
   | ExpenseAddedPayload
   | ExpenseEditedPayload
-  | ExpenseDeletedPayload;
+  | ExpenseDeletedPayload
+  | SettlementPayload;
 
 /** Result tuple of `buildExpenseActivityPayload`. */
 export interface BuiltActivityPayload {
