@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #51.
+> Last updated: PR #52.
 
 ---
 
@@ -550,3 +550,38 @@ closes **R5a** and makes partial progress on **PY3**:
 
 Net contribution of PR #51 to Bucket-B totals: **+1**. R5a closes.
 The remaining count drops to **27 / 37**.
+
+PR #52 (FR-AC-01 activity feed read-side + settlement-trigger
+activity emission) makes partial progress on **PY3** and does NOT
+close any Bucket-B items directly:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #52
+  extends `functions/test/integration/on-settlement-write.integration.test.ts`
+  with two new round-trip tests for FR-AC-01 AC-18 (settlement
+  create → both parties' activity subcollections written;
+  settlement soft-delete → no new activity item per architect §2.2
+  v1.0 decision). PR #52 also adds 60+ new Flutter widget /
+  domain / formatter / provider tests across the new
+  `lib/features/activity/**` feature folder + the `OBTActivityRow`
+  widget primitive. Partial credit only; PY3 remains open pending
+  broader Flutter integration harness coverage.
+
+  Note: the existing integration tests under
+  `functions/test/integration/on-settlement-write.integration.test.ts`
+  currently fail locally with a pre-existing Functions emulator
+  load error (`functions.config() has been removed in firebase-
+  functions v7`). Verified by reproducing on `main` with PR #52
+  stashed — the failure is NOT caused by PR #52. A separate
+  infrastructure chore PR (TBD) will investigate; CI may have a
+  workaround that local runs do not.
+
+- **No Bucket-B items closed by PR #52.** The read-side is not a
+  separately tracked Bucket-B item; the rules block was already
+  shipped in PR #51 (closing R5a).
+- **No new Bucket-B items filed by PR #52.** The pre-existing
+  integration-test infrastructure issue noted above is tracked in
+  `docs/sprint-zero/next-three-prs.md` as a Sprint-3 candidate;
+  it is not a regression introduced by PR #52.
+
+Net contribution of PR #52 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
