@@ -584,3 +584,303 @@ The following are explicitly OUT OF SCOPE for this PR:
 - [ ] Architect Notes appended (Phase 2).
 - [ ] Plan + burndown updated (Phase 7).
 
+---
+
+## Architect Notes
+
+> Appended for the FR-AC-03 + FR-AC-05 FCM PR. These notes ratify
+> the design decisions taken before implementation begins.
+> References: `.github/shared/invariants.md`,
+> `.github/shared/decision-log.md` (ADR-0002 paise integers; ADR-0006
+> Riverpod state management; ADR-0007 feature-first folder layout;
+> ADR-0013 PII / telemetry hashing; ADR-0014 rules-readable user
+> collection), `docs/design/07-technical/notifications.md`,
+> `docs/design/04-wireframes/notifications-and-deeplinks.md`.
+
+### 2.1 — Functions-side INR formatter placement
+
+**RATIFY: create `functions/src/utils/format-inr.ts` as a Functions-
+side mirror of `lib/core/formatters/inr_formatter.dart`.**
+
+The Functions-side helper has identical semantics to the client-side
+`formatInrFromPaise()`: integer arithmetic only, Indian-numbering
+convention (e.g. `1,20,000` paise → `"₹1,200"`), no `/100` arithmetic
+in the call sites, currency symbol prefix.
+
+Placement co-located with `utils/id-hash.ts` (the existing PII helper)
+under `functions/src/utils/` keeps utility helpers in one place. The
+existing Functions-side boundary-contract grep at
+`functions/test/boundary-contracts/no-double-on-money-fields.test.ts`
+auto-covers the new file.
+
+We do NOT share a single TypeScript file across client + functions
+because the client is Dart and the functions are TypeScript — the
+contract is established by paired unit tests rather than shared code.
+A drift would be caught by the per-event-type renderer tests which
+assert the exact rendered output for canonical paise inputs.
+
+### 2.2 — FCM token cleanup placement
+
+**RATIFY: the token-cleanup-on-410 logic lives INSIDE
+`functions/src/notifications/fcm-send.ts`, NOT in a separate cleanup
+function.**
+
+The cleanup is per-send (synchronous `arrayRemove` on 410). No batch
+reaper is needed for v1.0 — the per-send path naturally prunes tokens
+the moment FCM tells us they are stale.
+
+A future maintenance Cloud Function may run periodic stale-token
+sweeps (e.g. tokens that haven't been touched in 90 days). That is
+out of v1.0 scope and tracked as a FUTURE candidate in
+`next-three-prs.md`.
+
+### 2.3 — Deep-link routing shared helper
+
+**RATIFY: extract `lib/core/routing/notification_deep_links.dart`
+(NEW).**
+
+The existing `ActivityFeedScreen._onRowTap` logic (the
+`_otherUidForFriendship`, `_showUnavailableSnackbar`, expense /
+settlement dispatch switch) refactors to call into this helper. The
+same in-app navigation surface is then used by:
+
+1. The activity-feed row tap (existing FR-AC-02 consumer).
+2. The foreground FCM banner tap (this PR — FR-AC-03).
+3. The background system-notification tap (this PR — FR-AC-03).
+4. The cold-start `getInitialMessage` payload (this PR — FR-AC-05).
+
+The helper accepts a `NotificationDeepLinkTarget` value object (a
+discriminated union over expense-detail, friend-detail, group-detail,
+invite) and a `BuildContext`. It performs the platform navigation
+(`Navigator.of(context).push(MaterialPageRoute(...))`). It does NOT
+perform telemetry — the call sites do that with their own event
+names (e.g. `activity_item_tapped` vs `fcm_notification_tapped`).
+
+### 2.4 — Pending deep-link intent provider
+
+**RATIFY: `lib/features/notifications/application/pending_deep_link_provider.dart`
+exposes a `StateProvider<NotificationPayload?>`.**
+
+The cold-start flow sets this provider when the user is unauthenticated.
+A Riverpod listener on `authStateNotifierProvider` (placed inside
+`OneBytwoApp.build` or a child wrapper widget) watches for the
+transition to `AuthenticatedWithProfile` and:
+
+1. Reads the pending payload (if any).
+2. Clears it (`ref.read(pendingDeepLinkProvider.notifier).state = null`).
+3. Schedules a `WidgetsBinding.instance.addPostFrameCallback` to push
+   the target screen onto the Navigator stack.
+
+This cleanly separates the navigation intent from the auth state and
+is testable in isolation (the provider is a pure StateProvider; the
+listener is a single function that maps `(authState, pendingPayload)
+→ navigation action`).
+
+### 2.5 — FCM emulator wiring
+
+**RATIFY: NO FCM emulator wiring in `lib/main.dart`.**
+
+The FCM emulator is not part of the Firebase Emulator Suite (Firebase
+documents this as a known limitation). For local development:
+
+- Tests mock `FirebaseMessaging` at the SDK boundary via Riverpod
+  overrides on a `firebaseMessagingProvider` (NEW).
+- Manual smoke uses a real FCM token in a debug build connected to
+  the production Firebase project. Per Invariant 4 there is no second
+  project, so debug-build smoke is on production with throwaway test
+  accounts (the same approach used for the Auth flow's SMS-OTP
+  smoke).
+
+### 2.6 — First-session pre-permission dialog trigger
+
+**RATIFY: a Riverpod listener on `authStateNotifierProvider` inside
+the `OneBytwoApp.build` method.**
+
+When the state transitions to `AuthenticatedWithProfile` AND the
+local "shown-this-session" flag is false AND the local
+"permanently-denied" flag is false, schedule the dialog for the next
+frame via `WidgetsBinding.instance.addPostFrameCallback`.
+
+This mirrors the cleanest separation of concerns: the dialog
+trigger is centralised in one place (the auth-state listener) and
+does not require wiring into `HomePlaceholderScreen.initState` or
+any other widget-tree placement. If `HomePlaceholderScreen` is
+later replaced by the real dashboard or the `OBTBottomNav` shell,
+the trigger continues to fire unchanged.
+
+The "shown-this-session" flag lives in a `Provider<bool>` that
+defaults to false on each ProviderScope construction (i.e. each
+process launch). It is set to true the moment the dialog is
+displayed. The "permanently-denied" flag is persisted in
+`SharedPreferences` (or an existing local-storage abstraction) so
+that the dialog is not re-shown automatically on subsequent
+launches; the user can re-enable from the notification-preferences
+screen (FR-PR-03 — separate PR).
+
+### 2.7 — Trigger-extension API surface
+
+**RATIFY:** `emitExpenseFcm(deps, params)` and `emitSettlementFcm(deps,
+params)` mirror the existing `emitExpenseActivity` /
+`emitSettlementActivity` patterns at the bottom of the respective
+function.ts files.
+
+Both helpers:
+
+- NEVER rethrow. Per architect §2.9 item 2 of the FR-EX-07 story,
+  trigger-extension failures must not propagate into the trigger's
+  success branch.
+- Look up the recipient(s)' `users/{uid}` doc to get `fcmTokens` +
+  `notificationPrefs` via a single admin-SDK read per recipient
+  (parallelised via `Promise.allSettled` for the expense fan-out).
+- For expense-trigger: recipients are `memberIds` MINUS the
+  `authorUid` (don't notify the author of their own action).
+- For settlement-trigger: recipient is `toUserId` ONLY (the payer
+  is the actor; the payee is the one notified per `notifications.md`
+  §2.2 `settlement_received` template).
+- Call the appropriate renderer, then `sendFcmToTokens` from
+  `notifications/fcm-send.ts`.
+- Are placed inside the success branch of the respective trigger
+  AFTER the activity emission (FR-AC-01) call. The order is:
+  recompute → log compute_completed → emit activity → emit FCM.
+
+The shared module surface `functions/src/notifications/index.ts`
+exports two trigger-facing entry points:
+
+```typescript
+export {sendExpenseNotification} from "./send-expense-notification";
+export {sendSettlementNotification} from "./send-settlement-notification";
+```
+
+These are the only public symbols the triggers import. Internal
+helpers (`fcm-send.ts`, `payload-renderer.ts`, `prefs-filter.ts`)
+are not directly imported by the triggers — the public surface
+encapsulates the per-event-type dispatch.
+
+### 2.8 — Files to touch (exhaustive — anything outside this set is scope creep)
+
+**NEW (server):**
+
+- `functions/src/utils/format-inr.ts`
+- `functions/src/notifications/fcm-send.ts`
+- `functions/src/notifications/payload-renderer.ts`
+- `functions/src/notifications/prefs-filter.ts`
+- `functions/src/notifications/send-expense-notification.ts`
+- `functions/src/notifications/send-settlement-notification.ts`
+- `functions/src/notifications/index.ts`
+- `functions/src/notifications/types.ts` — shared types
+  (`NotificationType`, `NotificationPayload`, `RecipientPrefs`)
+- `functions/test/notifications/fcm-send.test.ts`
+- `functions/test/notifications/payload-renderer.test.ts`
+- `functions/test/notifications/prefs-filter.test.ts`
+- `functions/test/notifications/send-expense-notification.test.ts`
+- `functions/test/notifications/send-settlement-notification.test.ts`
+- `functions/test/utils/format-inr.test.ts`
+
+**NEW (client):**
+
+- `lib/core/routing/notification_deep_links.dart`
+- `lib/features/notifications/data/fcm_token_service.dart`
+- `lib/features/notifications/data/notification_handler.dart`
+- `lib/features/notifications/domain/notification_payload.dart`
+- `lib/features/notifications/application/firebase_messaging_provider.dart`
+- `lib/features/notifications/application/notification_permission_controller.dart`
+- `lib/features/notifications/application/deep_link_handler.dart`
+- `lib/features/notifications/application/pending_deep_link_provider.dart`
+- `lib/features/notifications/presentation/pre_permission_dialog.dart`
+- `lib/features/notifications/presentation/widgets/in_app_notification_banner.dart`
+- `test/features/notifications/data/fcm_token_service_test.dart`
+- `test/features/notifications/data/notification_handler_test.dart`
+- `test/features/notifications/domain/notification_payload_test.dart`
+- `test/features/notifications/application/notification_permission_controller_test.dart`
+- `test/features/notifications/application/deep_link_handler_test.dart`
+- `test/features/notifications/presentation/pre_permission_dialog_test.dart`
+- `test/features/notifications/presentation/in_app_notification_banner_test.dart`
+- `test/features/notifications/notifications_boundary_contract_test.dart`
+- `test/core/routing/notification_deep_links_test.dart`
+
+**MODIFIED:**
+
+- `functions/src/triggers/on-expense-write/function.ts` — close the
+  FR-AC-03 seam at line 167 with the `emitExpenseFcm` call;
+  inject `notificationsApi` into Dependencies.
+- `functions/src/triggers/on-settlement-write/function.ts` — close the
+  FR-AC-03 seam at line 237 with the `emitSettlementFcm` call.
+- `functions/test/triggers/on-expense-write/function.test.ts` — add
+  FCM-side assertions.
+- `functions/test/triggers/on-settlement-write/function.test.ts` —
+  mirror.
+- `lib/main.dart` — register the top-level `onBackgroundMessage`
+  handler before `runApp`; initialise the FCM service.
+- `lib/features/auth/application/auth_state_provider.dart` — extend
+  with the sign-out FCM-token-cleanup hook (or expose a callback the
+  sign-out action can call).
+- `lib/features/activity/presentation/activity_feed_screen.dart` —
+  refactor `_onRowTap` to dispatch via the shared
+  `notification_deep_links.dart` helper.
+- `docs/sprint-zero/sprint-2-plan.md`
+- `docs/sprint-zero/next-three-prs.md`
+- `docs/audits/sprint-1/07-bucket-b-burndown.md`
+
+### 2.9 — Files explicitly NOT to touch (negative scope guardrails)
+
+- `firestore.rules`, `firestore.indexes.json`, `storage.rules` —
+  UNCHANGED. The existing `users/{userId}` rules already permit
+  owner-only read/write of `fcmTokens` and `notificationPrefs`. The
+  FCM module uses admin SDK and bypasses rules.
+- `pubspec.yaml` — UNCHANGED. `firebase_messaging: ^16.2.0` is
+  already present.
+- `functions/package.json` — UNCHANGED. `firebase-admin` already
+  provides `getMessaging()`.
+- `lib/features/expenses/**`, `lib/features/friends/**`,
+  `lib/features/settlements/**`, `lib/features/activity/**`
+  (except for the deep-link refactor in `ActivityFeedScreen`) —
+  UNCHANGED.
+- `functions/src/triggers/on-expense-write/activity-writer.ts`,
+  `payload-builder.ts`, `activity-validator.ts` — UNCHANGED.
+- `.github/workflows/*.yml` — UNCHANGED.
+
+### 2.10 — Anticipated reconciliations
+
+1. **Snake_case vs camelCase notification types.** The FCM data
+   payload uses snake_case (`expense_added`, `settlement_received`)
+   per `notifications.md` §2.2. The client deep-link handler converts
+   on read using a mapper (similar to
+   `ActivityEventTypeX.parseSnakeCase` in the activity feature).
+
+2. **Group invite path deferral.** The `group_invite` template is
+   implemented in the renderer for forward compatibility, but no
+   producer ships in this PR (groups epic is Sprint 3). The
+   prefs-filter assertion that `group_invite` bypasses the filter
+   ships as a forward-compatibility unit test only.
+
+3. **Reminder rate-limit subcollection deferral.** FR-SE-09 ships
+   separately and consumes this PR's FCM module. The rate-limit
+   logic stays out of `notifications/**`.
+
+4. **Notification-preferences UI deferral.** FR-PR-03 / FR-AC-04
+   ships separately. This PR only READS `notificationPrefs`, never
+   writes.
+
+5. **FCM-emulator absence.** Mocked at the SDK boundary in tests;
+   real tokens in debug builds for smoke. See §2.5.
+
+6. **Token-cleanup is per-send, not batched.** See §2.2.
+
+7. **Dependencies injection extension.** The shared `Dependencies`
+   type in `functions/src/simplified-debts/function.ts` is the
+   admin-SDK dependency-injection seam. The FCM module is exposed
+   to the triggers via a `notificationsApi?: NotificationsApi`
+   optional field on `Dependencies`. When absent (tests that don't
+   mock FCM), the trigger's `emitExpenseFcm` / `emitSettlementFcm`
+   no-ops cleanly. This avoids changing the Dependencies shape
+   in a way that breaks every existing test.
+
+8. **PII guard for FCM token logging.** FCM tokens are NOT
+   deterministic UIDs and are NOT subject to ADR-0013 `hashId()`
+   wrapping. However, including the raw token in structured logs
+   risks credential leakage. The chosen middle ground is a SHA-256
+   fingerprint of the token, truncated to 8 hex chars, included
+   under a `tokenFingerprint` field. This is diagnosable (the
+   operator can correlate a pruned token across log lines) without
+   leaking the credential itself.
+
