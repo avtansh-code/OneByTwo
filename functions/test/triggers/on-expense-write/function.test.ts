@@ -21,6 +21,7 @@ import {createTriggerHandler} from
   "../../../src/triggers/on-expense-write/function";
 import {writeExpenseActivity} from
   "../../../src/triggers/on-expense-write/activity-writer";
+import type {NotificationsApi} from "../../../src/notifications";
 
 jest.mock("../../../src/triggers/on-expense-write/activity-writer");
 
@@ -35,6 +36,31 @@ beforeEach(() => {
     membersFailed: 0,
   });
 });
+
+// ---------------------------------------------------------------------------
+// FR-AC-03 notifications API mock helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a mocked `NotificationsApi` suitable for injection into the
+ * trigger's `Dependencies.notificationsApi` slot. The default mock is a
+ * no-op that resolves successfully; tests can override the per-method
+ * implementation to assert call shape or simulate failures.
+ */
+function createMockNotificationsApi(): NotificationsApi & {
+  sendExpenseNotification: jest.Mock;
+  sendSettlementNotification: jest.Mock;
+} {
+  return {
+    sendExpenseNotification: jest.fn().mockResolvedValue(undefined),
+    sendSettlementNotification: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createMockMessaging():
+  import("firebase-admin/messaging").Messaging {
+  return {} as unknown as import("firebase-admin/messaging").Messaging;
+}
 
 // ---------------------------------------------------------------------------
 // Mock helpers — copy the simplified-debts/function.test.ts pattern
@@ -85,6 +111,13 @@ function createMockDb(opts: {
    * memberIds emptied) before the activity-emission read.
    */
   activityGetOverride?: {exists: boolean; data?: Record<string, unknown>};
+  /**
+   * Optional user-doc seed for the FR-AC-03 sender lookup. When set,
+   * any read of `users/{any}` returns this data. Used by the
+   * emitExpenseFcm helper to resolve `senderName` from
+   * `users/{authorUid}.displayName`.
+   */
+  authorDoc?: Record<string, unknown>;
 }): FirebaseFirestore.Firestore {
   const expenseDocs = (opts.expenses ?? []).map((e) => ({
     id: e.id,
@@ -117,6 +150,20 @@ function createMockDb(opts: {
         return {
           where: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue(settlementsQuery),
+          }),
+        };
+      }
+      if (name === "users") {
+        // FR-AC-03: emitExpenseFcm reads users/{authorUid} to resolve
+        // the sender's displayName for the notification payload, and
+        // the inner send-expense-notification dispatcher reads each
+        // recipient's users/{uid} doc for fcmTokens + notificationPrefs.
+        return {
+          doc: jest.fn().mockReturnValue({
+            get: jest.fn().mockResolvedValue({
+              exists: opts.authorDoc !== undefined,
+              data: () => opts.authorDoc ?? {},
+            }),
           }),
         };
       }
@@ -237,6 +284,7 @@ function validExpenseData(overrides: Record<string, unknown> = {}) {
     ],
     deleted: false,
     description: "Test",
+    createdBy: "userA",
     ...overrides,
   };
 }
@@ -1028,5 +1076,230 @@ describe("onExpenseWriteFriendship handler — FR-EX-07 activity-writer integrat
     expect(skipLog!.level).toBe("info");
     expect(skipLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
     expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FR-AC-03: trigger ↔ FCM dispatcher contract
+// ---------------------------------------------------------------------------
+
+describe("onExpenseWriteFriendship handler — FR-AC-03 FCM emission", () => {
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-4: create event invokes sendExpenseNotification with
+  // recipients = memberIds - authorUid.
+  // -------------------------------------------------------------------------
+  it("calls sendExpenseNotification on create with non-author memberIds + senderName resolved", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+      // The expense's createdBy is "userA"; the helper looks up the
+      // sender's displayName at users/{authorUid}.
+      authorDoc: {displayName: "Rahul"},
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({
+        changeType: "create",
+        afterData: validExpenseData({createdBy: "userA"}),
+      }),
+    );
+
+    expect(notificationsApi.sendExpenseNotification).toHaveBeenCalledTimes(1);
+    const [, callParams] =
+      notificationsApi.sendExpenseNotification.mock.calls[0];
+    expect(callParams.authorUid).toBe("userA");
+    expect(callParams.memberIds).toEqual(["userA", "userB"]);
+    expect(callParams.contextType).toBe("friendship");
+    expect(callParams.contextId).toBe("fid");
+    expect(callParams.expenseId).toBe("eid");
+    expect(callParams.changeType).toBe("create");
+    expect(callParams.amountPaise).toBe(10000);
+    expect(callParams.senderName).toBe("Rahul");
+    expect(callParams.description).toBe("Test");
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: stale-event drop branch does NOT invoke
+  // sendExpenseNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendExpenseNotification on the stale-event-drop branch", async () => {
+    const eightDaysAgo = new Date(
+      Date.now() - 8 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({
+        changeType: "create",
+        eventTime: eightDaysAgo,
+        afterData: validExpenseData(),
+      }),
+    );
+
+    expect(notificationsApi.sendExpenseNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: CONTEXT_NOT_FOUND branch does NOT invoke
+  // sendExpenseNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendExpenseNotification on the CONTEXT_NOT_FOUND branch", async () => {
+    const db = createMockDb({contextExists: false});
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await handler(
+      makeEvent({changeType: "create", afterData: validExpenseData()}),
+    );
+
+    expect(notificationsApi.sendExpenseNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-18: BALANCE_INVARIANT_VIOLATED branch (handler throws)
+  // does NOT invoke sendExpenseNotification.
+  // -------------------------------------------------------------------------
+  it("does NOT call sendExpenseNotification on the BALANCE_INVARIANT_VIOLATED branch", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "eid",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 4000},
+              {userId: "userB", sharePaise: 3000},
+            ],
+          },
+        },
+      ],
+    });
+    const notificationsApi = createMockNotificationsApi();
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).rejects.toThrow();
+
+    expect(notificationsApi.sendExpenseNotification).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-03 AC-17: FCM emission failure is CONTAINED — trigger's success
+  // branch is preserved. The notifications mock is configured to throw;
+  // the trigger must STILL log simplified_debts_compute_completed and
+  // must NOT throw.
+  // -------------------------------------------------------------------------
+  it("contains FCM emission failures — trigger does not throw if sendExpenseNotification throws", async () => {
+    const notificationsApi = createMockNotificationsApi();
+    notificationsApi.sendExpenseNotification.mockRejectedValueOnce(
+      new Error("simulated FCM internal error"),
+    );
+
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+      authorDoc: {displayName: "Rahul"},
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({
+      db,
+      logger,
+      notificationsApi,
+      messaging: createMockMessaging(),
+    });
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    // Recompute success branch still logs as completed.
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+
+    // The FCM emission internal error is logged but does NOT bubble.
+    const fcmErrorLog = logger.calls.find(
+      (c) => c.data?.event === "fcm_emission_internal_error",
+    );
+    expect(fcmErrorLog).toBeDefined();
+    expect(fcmErrorLog!.level).toBe("error");
+    expect(fcmErrorLog!.data!.contextIdHash).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Architect §2.10 item 7: when notificationsApi is absent from deps
+  // (existing tests, partial wiring), the emitter no-ops silently.
+  // -------------------------------------------------------------------------
+  it("no-ops silently when notificationsApi is undefined (backward-compat)", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [{id: "eid", data: validExpenseData()}],
+    });
+    const logger = createMockLogger();
+
+    // No notificationsApi in deps — existing tests' contract preserved.
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validExpenseData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    // Trigger still completes successfully.
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+    // And no FCM internal-error log fires — the emitter is a clean no-op
+    // when deps don't wire it.
+    const fcmErrorLog = logger.calls.find(
+      (c) => c.data?.event === "fcm_emission_internal_error",
+    );
+    expect(fcmErrorLog).toBeUndefined();
   });
 });

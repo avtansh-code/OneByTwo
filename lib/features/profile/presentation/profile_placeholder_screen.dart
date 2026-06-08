@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
-import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
+import 'package:onebytwo/features/notifications/application/sign_out_with_fcm_cleanup.dart';
 
 /// Minimal Profile placeholder screen for PR #10.
 ///
@@ -147,7 +147,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
             onPressed: () async {
               Navigator.of(dialogContext).pop();
               try {
-                await ref.read(phoneAuthRepositoryProvider).signOut();
+                await signOutWithFcmCleanup(ref);
                 await ref
                     .read(analyticsServiceProvider)
                     .logEvent(name: 'sign_out_completed');

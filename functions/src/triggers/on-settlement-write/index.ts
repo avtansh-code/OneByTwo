@@ -6,6 +6,13 @@
  * section 7.1. Retry is enabled per the Cloud Functions v2
  * `{retry: true}` option.
  *
+ * FR-AC-03: the production wiring constructs a `NotificationsApi` from
+ * the two dispatcher entry points re-exported by `../../notifications`
+ * and the admin-SDK `Messaging` instance, and passes both via the
+ * extended `Dependencies` shape. The trigger-side emitter helper
+ * (`emitSettlementFcm` in `./function.ts`) consumes them inside its
+ * try/catch wrapper.
+ *
  * Companion bindings:
  *   - `onExpenseWriteFriendship` handles expense writes under
  *     `friendships/{friendshipId}/expenses/{expenseId}` (FR-SE-03/04).
@@ -22,8 +29,13 @@
 
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {getFirestore} from "firebase-admin/firestore";
+import {getMessaging} from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
 import {createTriggerHandler} from "./function";
+import {
+  sendExpenseNotification,
+  sendSettlementNotification,
+} from "../../notifications";
 
 const REGION = "asia-south1";
 
@@ -45,8 +57,13 @@ const REGION = "asia-south1";
  *   BALANCE_INVARIANT_VIOLATED and INTERNAL throw (Cloud Functions
  *   retries).
  * - Stale-event guard: events older than 7 days are dropped.
+ * - FR-AC-03: after a successful recompute + activity emission, the
+ *   trigger fires an FCM push notification to the settlement's
+ *   `toUserId` (the payee; the payer is the actor and is NOT notified).
+ *   FCM failures are CONTAINED — they never block or retry the trigger.
  *
- * See `docs/sprint-zero/stories/FR-SE-05-06-settlement-trigger.md` for
+ * See `docs/sprint-zero/stories/FR-SE-05-06-settlement-trigger.md` and
+ * `docs/sprint-zero/stories/FR-AC-03-fcm-push-notifications.md` for
  * full acceptance criteria.
  */
 export const onSettlementWrite = onDocumentWritten(
@@ -59,6 +76,13 @@ export const onSettlementWrite = onDocumentWritten(
     const handler = createTriggerHandler({
       db: getFirestore(),
       logger,
+      // FR-AC-03 production wiring: see on-expense-write/index.ts
+      // for the rationale and shape.
+      notificationsApi: {
+        sendExpenseNotification,
+        sendSettlementNotification,
+      },
+      messaging: getMessaging(),
     });
     return handler(event);
   },

@@ -61,6 +61,29 @@ export interface Dependencies {
     info: (message: string, data?: Record<string, unknown>) => void;
     error: (message: string, data?: Record<string, unknown>) => void;
   };
+  /**
+   * Optional FCM notifications API (FR-AC-03 — architect §2.10 item 7).
+   *
+   * Trigger entry points wire this when push notifications should be
+   * emitted as a side effect of the trigger's success branch. When
+   * absent, the trigger's FCM emitter helpers no-op silently — this
+   * preserves backward-compatibility with existing tests that wire
+   * `Dependencies` without the FCM surface.
+   *
+   * `simplifiedBalances` recomputation itself does NOT use this field
+   * — it is consumed exclusively by `emitExpenseFcm` /
+   * `emitSettlementFcm` in the trigger handlers.
+   */
+  notificationsApi?:
+    import("../notifications").NotificationsApi;
+  /**
+   * Optional admin SDK `Messaging` instance (FR-AC-03). Paired with
+   * `notificationsApi`; the trigger constructs a
+   * `NotificationsDependencies` shape from `db + logger + messaging`
+   * before delegating into the FCM module.
+   */
+  messaging?:
+    import("firebase-admin/messaging").Messaging;
 }
 
 /**
