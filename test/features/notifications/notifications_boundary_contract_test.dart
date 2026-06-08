@@ -117,7 +117,9 @@ void main() {
         'lib/features/notifications/application/pending_deep_link_provider.dart',
         'lib/features/notifications/application/deep_link_handler.dart',
         'lib/features/notifications/application/notification_permission_controller.dart',
+        'lib/features/notifications/application/sign_out_with_fcm_cleanup.dart',
         'lib/features/notifications/presentation/pre_permission_dialog.dart',
+        'lib/features/notifications/presentation/notifications_lifecycle_host.dart',
         'lib/features/notifications/presentation/widgets/in_app_notification_banner.dart',
         'lib/core/routing/notification_deep_links.dart',
       ];
