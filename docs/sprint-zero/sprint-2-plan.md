@@ -68,6 +68,81 @@ work until the decision is recorded in the story file's Architect Notes.
 
 ---
 
+## ✅ Sprint 2 End-of-Sprint Manual Testing — Pre-Flight Verification
+
+> **Owner:** DevOps lead.
+> **When:** Run this checklist immediately before the Sprint 2 manual
+> device-testing phase begins (i.e. after PR #53 merges + Functions
+> are deployed + a release-candidate mobile build is cut).
+> **Why now:** PR #53 (FR-AC-03 + FR-AC-05) is the **first PR that
+> integrates Firebase Cloud Messaging end-to-end.** FCM has platform-
+> shell requirements (APNS on iOS, FCM service entries on Android)
+> that the existing Auth-only build configuration may not satisfy.
+> Verifying these BEFORE manual QA starts saves a round-trip if a
+> build-side gap is found.
+
+### Verification gates
+
+1. **iOS APNS entitlements + certificate (BLOCKING for iOS push).**
+   - `ios/Runner/Info.plist` declares `UIBackgroundModes` including
+     `remote-notification` and `fetch` if not already present.
+   - `ios/Runner/Runner.entitlements` declares the
+     `aps-environment` key (`development` for TestFlight, `production`
+     for App Store).
+   - The Apple Developer account has a current APNS Authentication
+     Key (`.p8` file) uploaded to the Firebase console under
+     **Project Settings → Cloud Messaging → Apple app configuration**.
+     The key ID and team ID match the Bundle Identifier.
+   - The Push Notifications capability is enabled on the Xcode
+     project (`Runner → Signing & Capabilities → +Capability → Push
+     Notifications`).
+
+2. **Android FCM manifest entries (BLOCKING for Android push).**
+   - `android/app/src/main/AndroidManifest.xml` declares the FCM
+     intent filter or relies on the `firebase_messaging` plugin
+     auto-registration (version `^16.2.0` does this automatically;
+     verify there is no manual `<service>` entry colliding with the
+     plugin's).
+   - A default notification channel ID is declared via
+     `<meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" .../>`
+     if custom channel routing is desired (optional for v1.0 — the
+     default channel works).
+   - The default notification icon meta-data
+     (`com.google.firebase.messaging.default_notification_icon`)
+     points to a monochrome white icon asset (Android system tray
+     requirement). If missing, the OS uses the launcher icon and
+     tints it grey — acceptable for v1.0 but flagged as a polish item.
+   - The app's `google-services.json` is present at
+     `android/app/google-services.json` and matches the production
+     Firebase project (Invariant 4).
+
+3. **Functions deploy verification (post-merge).**
+   - `firebase deploy --only functions:onExpenseWriteFriendship,functions:onSettlementWrite`
+     completes without errors on the release tag.
+   - `firebase functions:log --only onExpenseWriteFriendship --limit 5`
+     shows the first post-deploy invocations include the
+     `fcm_send_attempted` structured log key (smoke test by triggering
+     a single expense add from the canary device).
+
+4. **Production Firebase Cloud Messaging readiness.**
+   - The production Firebase project has Cloud Messaging enabled
+     (Firebase console → Project Settings → Cloud Messaging tab is
+     populated, not greyed out).
+   - The Cloud Messaging API V1 is enabled in the Google Cloud
+     Console for the production project ID
+     (`firebase apps:list` confirms the project ID matches `.firebaserc`).
+
+### Sign-off
+
+Once all four gates above are green, DevOps records sign-off in the
+PR #53 (or successor release-cut PR) review comment and the manual
+QA smoke matrix (Section A.6 of the FR-AC-03 story DoD) can begin.
+
+If ANY gate is red, file a dedicated DevOps chore PR (estimated
+1-3 SP) before resuming manual testing.
+
+---
+
 ## PR Tracking
 
 | PR | Story | Title | SP | Status |
