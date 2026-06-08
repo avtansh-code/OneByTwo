@@ -483,3 +483,351 @@ the client side goes through `hashFriendshipId()`; FCM tokens use
 
 **None.** FR-SE-09 is a P1 SRS row; no separate GitHub issue exists.
 The story is the source of truth.
+
+---
+
+## Architect Notes
+
+> Appended by the architect agent at Phase 2 of the PR #54 protocol.
+> These notes RATIFY the design calls flagged in the orchestrator's
+> brief and pin the surface area for the Functions-dev + Flutter-dev
+> implementations that follow.
+
+### 2.1 Rate-limit doc path
+
+**RATIFY:** `_rateLimits/{senderUid}/sends/{recipientUid}` (5-segment
+path). Schema:
+
+```typescript
+interface RateLimitSendDoc {
+  lastSentAt: Timestamp;       // serverTimestamp on write
+  count: number;               // monotonic counter (FieldValue.increment(1))
+  windowStart: number;         // ms epoch of the first send in the
+                               // current rolling window
+  recipientUid: string;        // denormalised for queryability
+  senderUid: string;           // denormalised for queryability
+  updatedAt: Timestamp;        // serverTimestamp on write
+}
+```
+
+The path extends the architect-canonical
+`_rateLimits/{userId}/{category}/{key-or-counter}` container ratified
+in the PR #45 chore (§2.1 / §2.9 of
+`CHORE-pr45-lookup-rate-limit-and-pr38-cleanup.md`). The recipient
+UID replaces the literal `counter` doc-ID in the 4-segment lookup
+variant because reminders are per-pair, not per-sender. The existing
+`firestore.rules:355` deny-all block (`match
+/_rateLimits/{document=**}`) already covers the new path — no rules
+diff is required.
+
+The legacy `reminders/{senderUid}_{toUserId}` shape documented in
+`cloud-functions-catalogue.md §7` is SUPERSEDED by this 5-segment
+path. The catalogue is documentation, not source-of-truth; a
+docs-roll-up PR may update the catalogue post-merge (not in scope
+here per §2.10 below).
+
+### 2.2 FCM dispatch helper placement
+
+**RATIFY:** Add `functions/src/notifications/send-reminder-notification.ts`
+mirroring `send-expense-notification.ts` /
+`send-settlement-notification.ts`. The helper composes:
+
+1. `db.collection('users').doc(toUserId).get()` for prefs + tokens.
+2. `isNotificationAllowed('reminder', prefs)` short-circuit (returns
+   suppressed-by-prefs branch).
+3. `tokens.length === 0` short-circuit (returns empty-tokens branch).
+4. `renderPayload('reminder', { senderName, amountPaise, contextType,
+   contextId, createdAt })`.
+5. `sendFcmToTokens(deps, { userId: toUserId, notificationType:
+   'reminder', tokens, payload })`.
+
+The helper returns the standard `NotificationDispatchResult`. It
+does NOT throw — the callable wraps each branch decision and maps to
+its typed `HttpsError` codes itself. (Unlike the trigger-side
+callers, the callable WANTS to distinguish "prefs disabled" from
+"no tokens" from "delivery failed" — so the callable consumes the
+result's tally fields directly and the helper is a pure dispatch
+leaf, not a decision-maker.)
+
+Extend `notifications/index.ts` with `export
+{sendReminderNotification} from "./send-reminder-notification"` and
+`notifications/types.ts` with `SendReminderNotificationParams`
+interface mirroring `SendSettlementNotificationParams`:
+
+```typescript
+export interface SendReminderNotificationParams {
+  fromUserId: string;          // sender — for log correlation; NOT a recipient
+  toUserId: string;            // recipient
+  contextType: 'friendship' | 'group';
+  contextId: string;
+  senderName: string;          // resolved displayName of the sender
+  amountPaise: number;         // OWED amount per simplifiedBalances
+  eventTimestamp: Date;        // server-side now()
+}
+```
+
+Extend `NotificationsApi` with:
+
+```typescript
+sendReminderNotification(
+  deps: NotificationsDependencies,
+  params: SendReminderNotificationParams,
+): Promise<NotificationDispatchResult>;
+```
+
+### 2.3 Activity-feed emission target
+
+**RATIFY:** Recipient-only emission. The reminder is delivered to
+the recipient via FCM; the in-app activity row at
+`activity/{recipientUid}/items/{auto-id}` is the recipient's record
+of receipt. The sender's confirmation is the optimistic-disable
+button state on the OBTSettleUpCard receiving-direction variant
+(via `reminderCooldownProvider`).
+
+A future UX-research-driven PR may add sender-side activity emission
+("you sent a reminder to {friend}") if user research shows senders
+want a paper-trail. v1.0 keeps the surface minimal.
+
+### 2.4 Validator extension scope
+
+**RATIFY:** The `activity-validator.ts` extension for the
+`'reminder'` event-type ships in this PR — it's a small,
+backward-compatible extension and ships alongside the only producer
+that needs it. The reminder activity payload shape:
+
+```typescript
+export interface ReminderPayload {
+  senderUid: string;
+  recipientUid: string;
+  contextType: 'friendship' | 'group';
+  contextId: string;
+  amountPaise: number;         // positive integer paise
+  message?: string;            // optional free-text (max 500 chars)
+}
+```
+
+Add to `payload-builder.ts`:
+
+- Extend `ActivityItemType` discriminated union with `'reminder'`.
+- Export `ReminderPayload` interface.
+- Add `'reminder'` to `ActivityPayload` discriminated union.
+
+Add to `activity-validator.ts`:
+
+- Add `case 'reminder':` branch to the `validateActivityPayload`
+  switch.
+- New `validateReminderPayload(payload)` function asserting:
+  - `senderUid`, `recipientUid`, `contextType`, `contextId` are
+    non-empty strings.
+  - `contextType ∈ {'friendship', 'group'}`.
+  - `amountPaise` is a positive integer.
+  - `message`, when present, is a string of length ≤ 500.
+
+Existing activity items remain valid (no breaking change).
+
+The `writeExpenseActivity` writer name is misleading post-PR #52 (it
+now writes settlement and reminder activities too) but the rename
+remains DEFERRED per FR-AC-01 architect §2.3 — outside the scope of
+this PR.
+
+### 2.5 Default vs custom message + rate-limit-on-failure
+
+**RATIFY default message:** The callable accepts an optional
+`message?: string` (max 500 chars) but the client v1.0 always omits
+it; the server defaults to `"This is a friendly reminder!"` when
+`message` is absent. The message-compose dialog is deferred to a
+follow-up UX PR.
+
+The default message is currently NOT embedded in the FCM body
+string (the body string is templated from the renderer:
+`{senderName} is nudging you about ₹{amount}.`); the `message`
+field is propagated through to the activity-feed payload only.
+That keeps the FCM body deterministic and the user-customisation
+surface contained to the in-app row.
+
+**RATIFY rate-limit-on-failure:** Record the rate-limit document on
+`succeeded >= 1` (i.e. at least one FCM `send()` resolved). If
+every token 410-pruned, the dispatch is a "no-op send" and the
+sender's quota is NOT consumed — they can retry later if the
+recipient enables push. The callable throws
+`HttpsError('unavailable', ...)` with
+`details.errorCode === 'FCM_DISPATCH_FAILED'` in this case (AC-11).
+
+### 2.6 Client cooldown persistence
+
+**RATIFY in-memory only.** The cooldown is a Riverpod
+`StateProvider.family<DateTime?, String>` keyed by `friendshipId`.
+It RESETS on app launch (provider container disposal). The server
+is the authoritative gate per `notifications.md §6.1`; the client
+provider is a best-effort UX optimisation.
+
+A future PR (paired with the `shared_preferences` adoption deferred
+from PR #53 §2.6) may persist the cooldown across launches. Out of
+scope here.
+
+### 2.7 OBTSettleUpCard extension
+
+**RATIFY in-place extension.** Add three new parameters:
+
+```dart
+const OBTSettleUpCard({
+  required this.payerDisplayName,
+  required this.payerPhotoUrl,
+  required this.payeeDisplayName,
+  required this.payeePhotoUrl,
+  required this.suggestedAmountPaise,
+  required this.onSettleUp,
+  this.isReceivingDirection = false,
+  this.onSendReminder,
+  this.nextAllowedAt,
+  super.key,
+});
+```
+
+Semantics:
+
+- `isReceivingDirection: false` (default) — settling-direction
+  (existing). CTA reads "Settle Up"; tapping fires `onSettleUp`.
+- `isReceivingDirection: true` — receiving-direction. CTA reads
+  "Send Reminder"; tapping fires `onSendReminder` (which MUST be
+  provided when `isReceivingDirection: true`). The avatar arrow
+  semantic label flips from "pays" to "owes". When `nextAllowedAt`
+  is in the future, the button is disabled with a caption like
+  "Next reminder in {h}h {m}m" (live countdown).
+
+The existing settling-direction call site
+(`FriendDetailScreen` `BalanceState.owes` branch) is unaffected — it
+omits the new parameters and gets the existing behaviour.
+
+Extraction of the widget to `lib/core/widgets/cards/` remains
+DEFERRED until a second host needs it (PR #43 §2.6 ratification
+stands; precedent: `OBTAmountInput` extraction landed in PR #38 only
+when the FR-SE-05 settle-up sheet became the second host).
+
+### 2.8 Files to touch (exhaustive)
+
+Anything outside this set is scope creep. New files marked NEW;
+extended files marked EXTEND.
+
+**Functions side (server):**
+
+- NEW `functions/src/send-reminder-notification/index.ts` — `onCall`
+  wrapper, region-pinned to `asia-south1`.
+- NEW `functions/src/send-reminder-notification/function.ts` — handler
+  factory `createSendReminderHandler(deps)` returning the async
+  handler. Validates inputs, throws typed `HttpsError` codes,
+  orchestrates the flow per §1 of the orchestrator's brief.
+- NEW `functions/src/notifications/send-reminder-notification.ts` —
+  FCM dispatch helper per §2.2.
+- EXTEND `functions/src/notifications/index.ts` — re-export
+  `sendReminderNotification`.
+- EXTEND `functions/src/notifications/types.ts` —
+  `SendReminderNotificationParams` interface;
+  `NotificationsApi.sendReminderNotification` method signature.
+- EXTEND `functions/src/triggers/on-expense-write/payload-builder.ts`
+  — extend `ActivityItemType` with `'reminder'`; export
+  `ReminderPayload` interface; extend `ActivityPayload` union.
+- EXTEND `functions/src/triggers/on-expense-write/activity-validator.ts`
+  — `case 'reminder':` branch + `validateReminderPayload`.
+- EXTEND `functions/src/index.ts` — re-export
+  `sendReminderNotification`.
+
+**Functions side (tests):**
+
+- NEW `functions/test/send-reminder-notification/function.test.ts` —
+  24+ cases per the AC matrix.
+- NEW `functions/test/notifications/send-reminder-notification.test.ts`
+  — helper-level unit tests mirroring the existing two helper test
+  files.
+- EXTEND `functions/test/triggers/on-expense-write/activity-validator.test.ts`
+  — `'reminder'` event-type coverage.
+
+**Flutter side (client):**
+
+- NEW `lib/features/reminders/data/reminder_repository.dart` —
+  callable wrapper; `CloudFunctionException` → typed result.
+- NEW `lib/features/reminders/domain/reminder_send_error.dart` — sealed
+  hierarchy mirroring the server typed-error codes.
+- NEW `lib/features/reminders/domain/reminder_send_success.dart` —
+  `{ nextAllowedAt: DateTime }`.
+- NEW `lib/features/reminders/application/send_reminder_controller.dart`
+  — Riverpod `Notifier<SendReminderState>` driving in-progress /
+  success / error states; emits the client telemetry events per §3.
+- NEW `lib/features/reminders/application/reminder_cooldown_provider.dart`
+  — `StateProvider.family<DateTime?, String>` per §2.6.
+- NEW `lib/features/reminders/application/reminder_telemetry.dart` —
+  event-name + parameter-key constants (mirror of
+  `settle_up_telemetry.dart`).
+- EXTEND `lib/features/friends/presentation/widgets/obt_settle_up_card.dart`
+  — three new parameters per §2.7.
+- EXTEND `lib/features/friends/presentation/friend_detail_screen.dart`
+  — `BalanceState.owed` branch wires the receiving-direction card.
+
+**Flutter side (tests):**
+
+- NEW `test/features/reminders/data/reminder_repository_test.dart`
+- NEW `test/features/reminders/application/send_reminder_controller_test.dart`
+- NEW `test/features/reminders/application/reminder_cooldown_provider_test.dart`
+- NEW `test/features/friends/presentation/widgets/obt_settle_up_card_test.dart`
+  (the file does not exist today — the FR-FR-04 widget was shipped
+  without its own dedicated test file; both directional variants
+  ship together here).
+- EXTEND `test/features/friends/friend_detail_screen_widget_test.dart`
+  — `BalanceState.owed` branch coverage.
+- NEW `test/features/reminders/reminders_boundary_contract_test.dart`
+  — mirror of `test/features/notifications/notifications_boundary_contract_test.dart`.
+
+**Docs:**
+
+- NEW `docs/sprint-zero/stories/FR-SE-09-send-reminder.md` (this file).
+- EXTEND `docs/sprint-zero/sprint-2-plan.md` — PR #54 row.
+- EXTEND `docs/sprint-zero/next-three-prs.md` — PR #54 merged; PR
+  #55 candidates.
+- EXTEND `docs/audits/sprint-1/07-bucket-b-burndown.md` — PR #54
+  entry.
+
+### 2.9 Files explicitly NOT to touch
+
+- `firestore.rules` — UNCHANGED (existing `_rateLimits/{document=**}`
+  deny-all already covers the new path).
+- `firestore.indexes.json` — UNCHANGED.
+- `storage.rules` — UNCHANGED.
+- `pubspec.yaml`, `functions/package.json` — UNCHANGED.
+- `lib/features/expenses/**`, `lib/features/settlements/**`,
+  `lib/features/activity/**`, `lib/features/notifications/**` (the
+  FR-AC-03 surface stays stable) — UNCHANGED.
+- `functions/src/triggers/**` (the PR #51/52/53 trigger wiring is
+  stable) — UNCHANGED except for `payload-builder.ts` +
+  `activity-validator.ts` per §2.4.
+- `functions/src/notifications/{fcm-send,payload-renderer,prefs-filter,send-expense-notification,send-settlement-notification}.ts`
+  — UNCHANGED. `index.ts` + `types.ts` touched only for the new
+  exports per §2.2.
+- `.github/workflows/*.yml` — UNCHANGED.
+- `docs/design/**` — read-only references; no spec updates in this
+  PR (a docs roll-up PR may follow per §2.10).
+
+### 2.10 Anticipated reconciliations
+
+1. `cloud-functions-catalogue.md §7` storage path
+   `reminders/{senderUid}_{toUserId}` is OBSOLETED by the
+   architect-canonical `_rateLimits/{senderUid}/sends/{recipientUid}`
+   path. The catalogue is documentation, not source-of-truth; the
+   architect notes here are the canonical record. A docs roll-up PR
+   may update the catalogue post-merge.
+2. `cloud-functions-catalogue.md §7` says the `RECIPIENT_NO_TOKENS`
+   case "returns `success: true`"; the architect-ratified contract
+   here throws `HttpsError('failed-precondition')` with
+   `RECIPIENT_NO_TOKENS` so the client can show a friendly snackbar
+   (AC-17). Same docs-roll-up PR addresses this.
+3. The default-message copy `"This is a friendly reminder!"` is
+   architect-ratifiable; UX may revise in a future PR.
+4. Group-context support is forward-compat-stub-only in v1.0; Sprint
+   3 groups epic ratifies the full path.
+5. The optimistic-disable UI does not survive app restart in v1.0;
+   future `shared_preferences` adoption (deferred from PR #53) may
+   persist.
+6. The free-text message-compose dialog is deferred to a follow-up
+   UX PR.
+7. `writeExpenseActivity` is the misnamed-but-canonical writer
+   (handles expense + settlement + reminder activities now); the
+   rename remains DEFERRED per FR-AC-01 architect §2.3.
