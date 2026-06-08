@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/routing/notification_deep_links.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/core/widgets/lists/obt_activity_row.dart';
 import 'package:onebytwo/features/activity/application/activity_feed_provider.dart';
@@ -12,10 +13,9 @@ import 'package:onebytwo/features/activity/domain/activity_feed_item.dart';
 import 'package:onebytwo/features/activity/presentation/widgets/activity_feed_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
-import 'package:onebytwo/features/expenses/presentation/expense_detail_screen.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
-import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
+import 'package:onebytwo/features/notifications/domain/notification_payload.dart';
 
 /// SCR-25 — Activity Feed screen (FR-AC-01 / FR-AC-02).
 ///
@@ -28,10 +28,14 @@ import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart
 ///   - Refreshing: pull-to-refresh on the populated list with an error
 ///     snackbar on failure.
 ///
-/// Deep-link routing (FR-AC-02):
-///   - `expenseAdded` / `expenseEdited` → [ExpenseDetailScreen].
-///   - `expenseDeleted` → info snackbar; remain on the feed.
-///   - `settlementRecorded` → [FriendDetailScreen] for the other party.
+/// Deep-link routing (FR-AC-02 + FR-AC-03 architect §2.3 — shared
+/// helper):
+///   - `expenseAdded` / `expenseEdited` → `ExpenseDetailScreen` via
+///     `NotificationDeepLinks.navigate`.
+///   - `expenseDeleted` → "This item is no longer available" snackbar
+///     via the shared helper; remain on the feed.
+///   - `settlementRecorded` → `FriendDetailScreen` for the other party
+///     via the shared helper.
 ///
 /// Telemetry (PII per ADR-0013 — friendship composite UIDs hashed via
 /// `hashFriendshipId`; expense IDs / settlement IDs are opaque scalar
@@ -181,59 +185,53 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
 
     if (!mounted) return;
 
+    final target = _buildDeepLinkTarget(item, currentUid);
+    await NotificationDeepLinks.navigate(context, target);
+  }
+
+  /// Resolves the [DeepLinkTarget] for an [ActivityFeedItem] using the
+  /// same shared routing contract as the FCM notification tap surface
+  /// (FR-AC-03 architect §2.3). Maps the activity event type to the
+  /// equivalent notification type and forwards to
+  /// [NotificationDeepLinks.resolveFromFields].
+  DeepLinkTarget _buildDeepLinkTarget(
+    ActivityFeedItem item,
+    String currentUid,
+  ) {
+    final notifType = _mapActivityToNotificationType(item.type);
+    String? contextId;
+    String? itemId;
     switch (item.type) {
       case ActivityEventType.expenseAdded:
       case ActivityEventType.expenseEdited:
-        final friendshipId = item.payload['friendshipId'] as String?;
-        final expenseId = item.payload['expenseId'] as String?;
-        if (friendshipId == null || expenseId == null) {
-          _showUnavailableSnackbar();
-          return;
-        }
-        final otherUid = _otherUidForFriendship(friendshipId, currentUid);
-        if (otherUid == null) {
-          _showUnavailableSnackbar();
-          return;
-        }
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(
-            builder: (_) => ExpenseDetailScreen(
-              friendshipId: friendshipId,
-              expenseId: expenseId,
-              currentUserUid: currentUid,
-              otherUserUid: otherUid,
-            ),
-          ),
-        );
       case ActivityEventType.expenseDeleted:
-        _showUnavailableSnackbar();
+        contextId = item.payload['friendshipId'] as String?;
+        itemId = item.payload['expenseId'] as String?;
       case ActivityEventType.settlementRecorded:
-        final contextId = item.payload['contextId'] as String?;
-        if (contextId == null) {
-          _showUnavailableSnackbar();
-          return;
-        }
-        final otherUid = _otherUidForFriendship(contextId, currentUid);
-        if (otherUid == null) {
-          _showUnavailableSnackbar();
-          return;
-        }
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(
-            builder: (_) => FriendDetailScreen(
-              friendshipId: contextId,
-              currentUserUid: currentUid,
-              otherUserUid: otherUid,
-            ),
-          ),
-        );
+        contextId = item.payload['contextId'] as String?;
     }
+    if (contextId == null) {
+      return const DeepLinkUnavailable();
+    }
+    return NotificationDeepLinks.resolveFromFields(
+      type: notifType,
+      contextId: contextId,
+      itemId: itemId,
+      currentUid: currentUid,
+    );
   }
 
-  void _showUnavailableSnackbar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('This item is no longer available.')),
-    );
+  NotificationType _mapActivityToNotificationType(ActivityEventType type) {
+    switch (type) {
+      case ActivityEventType.expenseAdded:
+        return NotificationType.expenseAdded;
+      case ActivityEventType.expenseEdited:
+        return NotificationType.expenseEdited;
+      case ActivityEventType.expenseDeleted:
+        return NotificationType.expenseDeleted;
+      case ActivityEventType.settlementRecorded:
+        return NotificationType.settlementReceived;
+    }
   }
 
   /// Returns the deep-link entity ID for telemetry. For friendship
@@ -263,17 +261,6 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
       case ActivityEventType.expenseDeleted:
         return entityId;
     }
-  }
-
-  /// Extracts the other party's UID from a friendship document ID
-  /// (`{uidA}_{uidB}`). Returns null if the composite cannot be
-  /// resolved.
-  String? _otherUidForFriendship(String friendshipId, String currentUid) {
-    final parts = friendshipId.split('_');
-    if (parts.length != 2) return null;
-    if (parts[0] == currentUid) return parts[1];
-    if (parts[1] == currentUid) return parts[0];
-    return null;
   }
 }
 

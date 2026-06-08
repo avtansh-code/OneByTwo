@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,8 @@ import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
+import 'package:onebytwo/features/notifications/data/notification_handler.dart';
+import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
 
 /// Whether to use the Firebase Auth Emulator.
 ///
@@ -21,6 +24,13 @@ const _useEmulator = bool.fromEnvironment('USE_EMULATOR');
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // FR-AC-03: register the top-level FCM background handler BEFORE
+  // runApp per Flutter Firebase docs. The handler is annotated
+  // @pragma('vm:entry-point') so the Dart tree-shaker keeps it alive
+  // in release builds.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   if (_useEmulator) {
     const host = String.fromEnvironment(
       'EMULATOR_HOST',
@@ -35,6 +45,9 @@ void main() async {
     debugPrint('[OneByTwo] Connecting to Storage emulator $host:9199...');
     await FirebaseStorage.instance.useStorageEmulator(host, 9199);
     debugPrint('[OneByTwo] Storage emulator connected.');
+    // FCM emulator is NOT part of the Firebase Emulator Suite
+    // (architect §2.5) — manual smoke uses real FCM tokens on a debug
+    // build; tests mock at the SDK boundary via Riverpod overrides.
   }
   runApp(const ProviderScope(child: OneBytwoApp()));
 }
@@ -46,6 +59,11 @@ void main() async {
 /// auth state. The [ValueKey] on [MaterialApp] ensures the
 /// Navigator stack is fully cleared on auth state transitions
 /// (no stale routes from previous states).
+///
+/// The home content is wrapped in a [NotificationsLifecycleHost] via
+/// [MaterialApp.builder] so FCM streams, the pre-permission dialog,
+/// and the in-app banner overlay are all hosted in a single place
+/// (FR-AC-03, FR-AC-05).
 class OneBytwoApp extends ConsumerWidget {
   /// Creates the root application widget.
   const OneBytwoApp({super.key});
@@ -84,6 +102,11 @@ class OneBytwoApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       home: home,
+      builder: (context, child) {
+        return NotificationsLifecycleHost(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

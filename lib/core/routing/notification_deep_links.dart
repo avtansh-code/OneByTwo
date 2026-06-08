@@ -111,15 +111,32 @@ class NotificationDeepLinks {
     NotificationPayload payload,
     String currentUid,
   ) {
-    switch (payload.type) {
+    return resolveFromFields(
+      type: payload.type,
+      contextId: payload.contextId,
+      itemId: payload.itemId,
+      currentUid: currentUid,
+    );
+  }
+
+  /// Pure-function resolver from raw fields to [DeepLinkTarget]. Used
+  /// by both the FCM payload resolver above and the activity-feed
+  /// row-tap call site (FR-AC-02) so the two consumers share a single
+  /// routing contract.
+  static DeepLinkTarget resolveFromFields({
+    required NotificationType type,
+    required String contextId,
+    required String currentUid,
+    String? itemId,
+  }) {
+    switch (type) {
       case NotificationType.expenseAdded:
       case NotificationType.expenseEdited:
-        final itemId = payload.itemId;
         if (itemId == null) return const DeepLinkUnavailable();
-        final other = otherUidForFriendship(payload.contextId, currentUid);
+        final other = otherUidForFriendship(contextId, currentUid);
         if (other == null) return const DeepLinkUnavailable();
         return DeepLinkExpenseDetail(
-          friendshipId: payload.contextId,
+          friendshipId: contextId,
           expenseId: itemId,
           currentUid: currentUid,
           otherUid: other,
@@ -128,10 +145,10 @@ class NotificationDeepLinks {
         return const DeepLinkUnavailable();
       case NotificationType.settlementReceived:
       case NotificationType.reminder:
-        final other = otherUidForFriendship(payload.contextId, currentUid);
+        final other = otherUidForFriendship(contextId, currentUid);
         if (other == null) return const DeepLinkUnavailable();
         return DeepLinkFriendDetail(
-          friendshipId: payload.contextId,
+          friendshipId: contextId,
           currentUid: currentUid,
           otherUid: other,
         );
