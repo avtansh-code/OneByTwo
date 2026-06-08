@@ -1,11 +1,11 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #52 merged (FR-AC-01 — activity feed read-side + settlement-trigger activity emission).
+> Last updated: PR #53 merged (FR-AC-03 + FR-AC-05 — FCM push notifications + cold-start deep-link).
 
 ---
 
-## GitHub issue / PR numbering note (post-PR #52)
+## GitHub issue / PR numbering note (post-PR #53)
 
 The numbering jumped because issues and PRs share the same sequential
 namespace on GitHub. The post-PR #48 sequence so far:
@@ -19,51 +19,53 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #50 | Issue | Trigger no-op-recompute optimisation when update touches only `receiptUrl` + `updatedAt` — OPEN (FUTURE-work chore, 1 SP). **EXPLICITLY CANNOT BE CLOSED** by any FR-EX-07-consuming PR — the optimisation would skip activity emission on receipt-only updates, breaking the FR-EX-07 contract (AC-2). |
 | #51 | PR | FR-EX-07 activity feed write-side, friendship expenses (merged 2026-06-07) |
 | #52 | PR | FR-AC-01 activity feed read-side + settlement-trigger activity emission (merged 2026-06-08) |
-| **#53** | **PR** | **Next feature PR — see below** |
+| #53 | PR | FR-AC-03 FCM push notifications + FR-AC-05 cold-start deep-link (merged 2026-06-08) |
+| **#54** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #53, PR #54, PR #55. Their issue-number
+**pull requests** — i.e. PR #54, PR #55, PR #56. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #53 = number 53 on GitHub.
+orchestrator should not assume PR #54 = number 54 on GitHub.
 
 ---
 
-## PR #53 — TBD
+## PR #54 — TBD
 
-**Status:** Next up. Architect picks at PR #53 kickoff per Sprint 2 velocity.
+**Status:** Next up. Architect picks at PR #54 kickoff per Sprint 2 velocity.
 
-PR #52 shipped FR-AC-01 / FR-AC-02 — the SCR-25 Activity tab is now
-live as a temporary route reachable from `HomePlaceholderScreen`'s
-AppBar action; the `OBTActivityRow` widget primitive is in the
-component catalogue; the settlement-trigger TODO at
-`functions/src/triggers/on-settlement-write/function.ts:231` is
-closed (settlement events now emit `'settlement'` activity items to
-both parties). The bottom-nav shell remains deferred (architect §2.1
-in `docs/sprint-zero/stories/FR-AC-01-activity-feed-read-side.md`).
-Cold-start deep-link (FR-AC-05) and FCM push notifications (FR-AC-03)
-remain the natural next P0 stories — the FR-AC-01 in-app deep-link
-routing surface this PR shipped is the prerequisite both stories
-consume.
+PR #53 shipped FR-AC-03 + FR-AC-05 — the FCM module is live (server
+notifications module + per-event-type renderer + 410 token cleanup +
+prefs filter + INR formatter parity), both triggers emit FCM (expense
+to non-author members, settlement to toUserId), the client lifecycle
+is wired (token register / refresh / sign-out cleanup), the
+pre-permission dialog appears on first transition to
+`AuthenticatedWithProfile`, the foreground in-app banner renders via
+an OverlayEntry, the background `onBackgroundMessage` handler is
+registered before runApp, and the cold-start `getInitialMessage`
+payload routes after the auth check. The shared
+`lib/core/routing/notification_deep_links.dart` helper is consumed by
+both the activity feed (`ActivityFeedScreen._onRowTap` refactored)
+and the FCM tap surfaces.
 
 Candidates (in rough priority order):
 
-- **FR-AC-03 — FCM push notifications + FR-AC-05 cold-start deep-link.**
-  The highest unplaced P0 pair. Introduces the FCM dependency + the
-  `notificationPrefs` schema + per-user `fcmTokens` plumbing.
-  FR-AC-05 (cold-start deep-link from a tapped push notification when
-  the app is not running) is naturally paired since the cold-start
-  signal comes from the FCM tap event. 8-10 SP — may split into two
-  sub-PRs (FCM infrastructure vs cold-start handler) at architect's
-  call. The FR-AC-01 deep-link routing this PR shipped is the
-  in-app target both stories use.
-- **FR-SE-09 — Send Reminder.** Closes the receiving-direction
-  branch of the OBTSettleUpCard (per PR #43 §2.5 default-omit).
-  Requires FCM dependency + 24-hour rate-limit subcollection. Now
-  the highest unplaced P1. Will exercise the
-  `_rateLimits/{uid}/sends/counter` subcollection pattern
-  established by PR #45 Architect Notes §2.9. Naturally bundles
-  with FR-AC-03 if the FCM infrastructure ships in the same PR
-  (one FCM dependency add, two consumers).
+- **FR-SE-09 — Send Reminder.** Now the **highest unplaced P1** and
+  the **first downstream consumer of the FCM module shipped in
+  PR #53**. Introduces the per-friend 24-hour rate-limit
+  subcollection (`_rateLimits/{uid}/sends/counter` pattern per PR #45
+  Architect Notes §2.9), the Reminder Cloud Function entry point,
+  the `reminder` notification template producer (renderer + filter
+  already shipped in PR #53), and the OBTSettleUpCard "Send Reminder"
+  button on the receiving-direction branch (deferred per PR #43 §2.5
+  default-omit). 4-6 SP. NO new FCM infrastructure work — the
+  `sendFcmToTokens` API is stable.
+- **FR-AC-04 + FR-PR-03 — notification preferences UI.** The Profile
+  screen gains a `/profile/notifications` route with three toggles
+  (`newExpense`, `settlement`, `reminder`) backed by the existing
+  `users/{uid}.notificationPrefs` map. The server-side prefs-filter
+  already shipped in PR #53 — this is purely the client UI + write
+  path. 3-4 SP. Naturally pairs with FR-SE-09 because both touch
+  notification semantics.
 - **`OBTBottomNav` shell.** UX foundation deferred from PR #52 per
   architect §2.1. Becomes the canonical entry point for the
   Friends / Groups / Activity / Profile tab cluster — needed before
@@ -86,16 +88,25 @@ Candidates (in rough priority order):
   `entityIdHash`) was DEFERRED to minimise blast radius. A future
   cleanup PR can do the full rename + Cloud Logging dashboard
   migration as one focused change.
+- **`shared_preferences` adoption for FCM-permission persistence**
+  (architect §2.6 / §2.8 addendum from PR #53). The
+  `wasPermanentlyDenied` flag in
+  `NotificationPermissionController` is in-memory only because the
+  lockfile has no `shared_preferences` entry. Add the dependency +
+  persist the flag across launches so the pre-permission dialog
+  honours the "permanently denied" state across app restarts.
+  1-2 SP. Naturally pairs with the FR-AC-04 / FR-PR-03 prefs UI PR
+  since that also persists user-facing notification preferences.
+- **FCM emulator-side integration test infrastructure** (per PR #53
+  functions-dev §1 deviation). The Cloud Functions emulator-side
+  integration tests under `functions/test/integration/on-*.integration.test.ts`
+  do not exercise the FCM emission path because `jest.mock()` does
+  not survive the emulator process boundary. Future work: add a
+  flag-gated production-config swap that injects a `MockMessaging`
+  in the emulator process so the full create → trigger → FCM round
+  trip is asserted in CI. 2-3 SP.
 - **Concurrent-edit detection for FR-EX-06** (operational
   hardening; small standalone PR). Explicitly deferred from PR #46.
-- **Integration-test infrastructure fix** (operational chore;
-  ~1-2 SP). The Functions emulator currently fails to load
-  `onExpenseWriteFriendship` with the warning
-  `functions.config() has been removed in firebase-functions v7`
-  during integration runs; this is a pre-existing issue not
-  caused by PR #52 (verified by stashing PR #52 changes and
-  reproducing on `main`). Track as a Sprint-3 cleanup item; CI
-  may have a workaround that local runs do not — to investigate.
 - **Issue #49 — Orphan-cleanup Cloud Function for receipts**
   (FUTURE; filed during PR #48 per SRS schema doc line 312).
   Out of v1.0 unless required for compliance.
@@ -117,30 +128,22 @@ Candidates (in rough priority order):
 
 ---
 
-## PR #54 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #53 kickoff.
-
-Candidates: whatever doesn't land in PR #53 from the list above, plus:
-
-- A Bucket-B chore PR (remaining 27 / 37 items after PR #51 closed
-  R5a — activity rules coverage).
-- Pre-Sprint 3 design polish (FR-FR-01 chore #28 Friends HTML
-  mockup; SCR-09/10 wireframe alignment).
-- The deferred rate-limit transaction race refactor (PR #45 §2.2).
-- The deferred concurrent-edit detection for FR-EX-06.
-- Issue #47 rules-hardening for the non-creator update/delete gate.
-
----
-
 ## PR #55 — TBD
 
 **Status:** Slot reserved. Architect picks at PR #54 kickoff.
 
-Candidates: whatever doesn't land in PR #53 / PR #54 from the lists
-above.
+Candidates: whatever doesn't land in PR #54 from the list above.
 
 ---
+
+## PR #56 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #55 kickoff.
+
+Candidates: whatever doesn't land in PR #54 / PR #55 from the lists above.
+
+---
+
 
 ## Sequencing rationale
 
@@ -199,17 +202,34 @@ FR-AC-01 reads, and the settlement-trigger half is needed for the
 settlement leg of SCR-25 to render anything. The architect's call
 at kickoff reflects the current priority signal.
 
+PR #53 picks up FR-AC-03 + FR-AC-05 — the second natural P0 reader
+of the FR-AC-01 in-app routing surface PR #52 shipped. FCM is the
+cold-start signal (FR-AC-05) so the two stories pair naturally.
+The Functions notifications module (FCM admin-SDK helper, per-event-
+type renderer, prefs filter, 410 token cleanup, Functions-side INR
+formatter) is the bulk; the two trigger-extension hooks
+(`emitExpenseFcm` and `emitSettlementFcm`) close the FR-AC-03 TODO
+seams; the client lifecycle wires token register / refresh /
+sign-out cleanup; the pre-permission dialog appears on first
+transition to `AuthenticatedWithProfile`; the in-app banner
+overlays via `OverlayEntry`; the background handler is registered
+before `runApp`; the cold-start `getInitialMessage` payload routes
+after the auth check. The shared
+`lib/core/routing/notification_deep_links.dart` helper is consumed
+by both the activity-feed row-tap path (refactored) and the FCM
+tap surfaces, satisfying architect §2.3.
+
 ---
 
-## Snapshot — Sprint 2 status at end of PR #51
+## Snapshot — Sprint 2 status at end of PR #53
 
 | Metric | Value |
 |---|---|
-| PRs merged in Sprint 2 | 15 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51) |
-| Story points delivered | 55 (PR #41 was 0 SP — pure docs cross-refs; PR #42, #43, #46, #48, #51 were 5 SP each; PR #44 + PR #45 were 3 SP each — both chores) |
-| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b — PR #51 closed R5a with the new 12-test activity.test.ts suite). Remaining: 27 / 37. |
+| PRs merged in Sprint 2 | 17 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51, #52, #53) |
+| Story points delivered | 73 (PR #41 was 0 SP — pure docs cross-refs; PR #42, #43, #46, #48, #51 were 5 SP each; PR #44 + PR #45 were 3 SP each — both chores; PR #52 was 8 SP; PR #53 was 10 SP) |
+| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b — PR #51 closed R5a with the new 12-test activity.test.ts suite). Remaining: 27 / 37. **PR #53 made partial PY3 progress** with 11 trigger-level FCM tests + 63 module-level notifications unit tests; no Bucket-B items formally closed. |
 | Critical Cross-PR Constraints | C-1 RESOLVED (chore #25 closed in PR #38) |
-| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #51 did not file any new issues) |
-| Outstanding deadline-bound work | **None.** D5 shipped in PR #44; PR #45, PR #46, PR #48, PR #51 were non-deadline-bound. |
-| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. **Activity-feed WRITE-SIDE closed by PR #51** — every friendship-expense write now emits an `activity/{userId}/items/{auto-id}` document per member with type discriminator (`expense_added` / `expense_edited` / `expense_deleted`) and a payload sufficient for SCR-25 to render the row without additional reads. Read-side closure is the FR-AC-01 follow-on PR. |
+| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #53 did not file any new issues) |
+| Outstanding deadline-bound work | **None.** D5 shipped in PR #44; PR #45, PR #46, PR #48, PR #51, PR #52, PR #53 were non-deadline-bound. |
+| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. **Activity-feed WRITE-SIDE closed by PR #51**; READ-SIDE closed by PR #52. **FCM push-notification round-trip closed by PR #53** — every expense (create / edit / soft-delete) and settlement now produces an FCM push to all non-author recipients respecting `notificationPrefs`; foreground and background and cold-start are all hooked to the shared in-app routing surface; the FCM module is the stable consumer surface for FR-SE-09 reminders next. |
 

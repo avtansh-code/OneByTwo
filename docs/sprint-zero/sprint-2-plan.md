@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #52 (FR-AC-01 — activity feed read-side + settlement-trigger activity emission) — 16th merged PR.
+> Last updated: PR #53 (FR-AC-03 + FR-AC-05 — FCM push notifications + cold-start deep-link) — 17th merged PR.
 
 ---
 
@@ -88,6 +88,7 @@ work until the decision is recorded in the story file's Architect Notes.
 | #48 | FR-EX-05 | Receipt attachment (friendship) — Step 3 (SCR-21) + ReceiptStorageService + storage.rules friendship + group receipts predicates + Expense Detail thumbnail | 5 | Merged |
 | #51 | FR-EX-07 | Activity feed write-side (friendship) — activity-writer + payload-builder + activity-validator + activity/{userId}/items rules + trigger emission + 12 new rules tests + 41 new unit tests + 3 integration round-trips | 5 | Merged |
 | #52 | FR-AC-01 / FR-AC-02 | Activity feed read-side — SCR-25 ActivityFeedScreen + OBTActivityRow widget + activity feature folder + 4 telemetry events + settlement-trigger activity-emission extension (closes the on-settlement-write TODO) | 8 | Merged |
+| #53 | FR-AC-03 / FR-AC-05 | FCM push notifications + cold-start deep-link — Functions notifications module (fcm-send + payload-renderer + prefs-filter + Functions-side INR formatter) + expense + settlement trigger FCM emission + client FCM token lifecycle + pre-permission dialog + in-app banner + cold-start handler + shared notification_deep_links routing helper consumed by both the activity feed and notifications | 10 | Merged |
 
 ---
 
@@ -111,7 +112,8 @@ work until the decision is recorded in the story file's Architect Notes.
 | #48 | 5 | Merged |
 | #51 | 5 | Merged |
 | #52 | 8 | Merged |
-| **Total** | **63** | **16 PRs so far** |
+| #53 | 10 | Merged |
+| **Total** | **73** | **17 PRs so far** |
 
 Sprint 1 reference:
 

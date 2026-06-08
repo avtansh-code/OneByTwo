@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #52.
+> Last updated: PR #53.
 
 ---
 
@@ -173,6 +173,8 @@ PR #45 (CHORE-PR45):   30 remaining  ██████████████�
 PR #46 (FR-EX-06):     30 remaining  █████████████████████████████░░░░░░░░░  30/37
 PR #48 (FR-EX-05):     28 remaining  ███████████████████████████░░░░░░░░░░░  28/37
 PR #51 (FR-EX-07):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #52 (FR-AC-01):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #53 (FR-AC-03/05):  27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
 ```
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
@@ -584,4 +586,45 @@ close any Bucket-B items directly:
   it is not a regression introduced by PR #52.
 
 Net contribution of PR #52 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+PR #53 (FR-AC-03 FCM push notifications + FR-AC-05 cold-start
+deep-link) makes partial progress on **PY3** and does NOT close
+any Bucket-B items directly:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #53
+  extends the trigger-handler tests with 11 new FCM-side
+  assertions (the expense + settlement triggers now have explicit
+  test coverage for `sendExpenseNotification` /
+  `sendSettlementNotification` being called on the success branch
+  AND being NOT-called on the stale-event / CONTEXT_NOT_FOUND /
+  BALANCE_INVARIANT_VIOLATED branches AND being error-contained
+  per architect §2.9 item 2). PR #53 also adds 63 new unit tests
+  in the new `functions/test/notifications/` subdirectory
+  (`fcm-send.test.ts` + `payload-renderer.test.ts` +
+  `prefs-filter.test.ts` + `send-expense-notification.test.ts` +
+  `send-settlement-notification.test.ts` + a new
+  `format-inr.test.ts` mirror of the Flutter-side INR formatter
+  test). On the Flutter side, PR #53 ships 95 new tests under
+  `test/features/notifications/**` + `test/core/routing/**`
+  covering the FCM token service, the notification handler,
+  the permission controller, the deep-link handler, the
+  pre-permission dialog, the in-app banner, the
+  notifications boundary-contract grep, and the shared routing
+  helper. Partial credit only; PY3 remains open pending the
+  full emulator-side FCM round-trip integration test (deferred
+  per PR #53 functions-dev §1 deviation — the existing
+  emulator-side integration test infrastructure does not
+  exercise the FCM emission path because `jest.mock()` does
+  not survive the emulator process boundary).
+- **No Bucket-B items closed by PR #53.** The FCM infrastructure
+  is new ground and is not a separately tracked Bucket-B item.
+- **No new Bucket-B items filed by PR #53.** The
+  emulator-side FCM integration test infrastructure gap is
+  tracked as a candidate in `docs/sprint-zero/next-three-prs.md`
+  (PR #54 candidate slot). The pre-existing Functions emulator
+  `functions.config()` load issue noted in the PR #52 burndown
+  remains open and unrelated to this PR.
+
+Net contribution of PR #53 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.
