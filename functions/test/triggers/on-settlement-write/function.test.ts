@@ -21,6 +21,22 @@ import type {Change, DocumentSnapshot, FirestoreEvent} from
   "firebase-functions/v2/firestore";
 import {createTriggerHandler} from
   "../../../src/triggers/on-settlement-write/function";
+import {writeExpenseActivity} from
+  "../../../src/triggers/on-expense-write/activity-writer";
+
+jest.mock("../../../src/triggers/on-expense-write/activity-writer");
+
+const mockedWriteExpenseActivity = writeExpenseActivity as jest.MockedFunction<
+  typeof writeExpenseActivity
+>;
+
+beforeEach(() => {
+  mockedWriteExpenseActivity.mockReset();
+  mockedWriteExpenseActivity.mockResolvedValue({
+    membersSucceeded: 2,
+    membersFailed: 0,
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Mock helpers — copy the function.test.ts pattern with the settlements
@@ -765,5 +781,202 @@ describe("onSettlementWrite handler — boundary", () => {
     expect(
       (db as unknown as {collection: jest.Mock}).collection,
     ).toHaveBeenCalledWith("groups");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FR-AC-01: trigger ↔ activity-writer contract
+// ---------------------------------------------------------------------------
+
+describe("onSettlementWrite handler — FR-AC-01 activity-writer integration", () => {
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-10: create event invokes writeExpenseActivity with
+  // 'settlement' eventType targeting BOTH parties (fromUserId, toUserId).
+  // -------------------------------------------------------------------------
+  it("calls writeExpenseActivity with 'settlement' on create — both parties targeted", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({changeType: "create", afterData: validSettlementData()}),
+    );
+
+    expect(mockedWriteExpenseActivity).toHaveBeenCalledTimes(1);
+    const [, callRequest] = mockedWriteExpenseActivity.mock.calls[0];
+    expect(callRequest.eventType).toBe("settlement");
+    // Note: the activity-writer's WriteExpenseActivityRequest interface
+    // pre-dates the settlement consumer; the field names friendshipId
+    // and expenseId are misnomers when the source entity is a
+    // settlement (the rename to writeContextActivity + contextId +
+    // entityId is deferred per architect §2.3). The call site passes
+    // contextId via friendshipId and settlementId via expenseId.
+    expect(callRequest.friendshipId).toBe("fid");
+    expect(callRequest.expenseId).toBe("sid");
+    // memberIds resolves to [fromUserId, toUserId] per FR-AC-01 AC-10
+    // — the settlement-trigger does NOT re-read the parent friendship
+    // doc; both UIDs are already present on the settlement document
+    // (rules at firestore.rules:445-455 require them).
+    expect(callRequest.memberIds).toEqual(["userA", "userB"]);
+    // Payload includes the FR-AC-01 §2.4 settlement schema.
+    expect(callRequest.payload).toMatchObject({
+      settlementId: "sid",
+      fromUserId: "userA",
+      toUserId: "userB",
+      amountPaise: 5000,
+      contextType: "friendship",
+      contextId: "fid",
+      authorUid: "userA",
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-11: soft-delete (update with deleted: false -> true)
+  // does NOT invoke writeExpenseActivity. v1.0 decision per architect §2.2.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on soft-delete (AC-11)", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [
+        {id: "sid", data: validSettlementData({deleted: true})},
+      ],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "update",
+        beforeData: validSettlementData({deleted: false}),
+        afterData: validSettlementData({deleted: true}),
+      }),
+    );
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-12: stale-event drop branch does NOT invoke
+  // writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the stale-event-drop branch", async () => {
+    const eightDaysAgo = new Date(
+      Date.now() - 8 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({
+        changeType: "create",
+        eventTime: eightDaysAgo,
+        afterData: validSettlementData(),
+      }),
+    );
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-12: CONTEXT_NOT_FOUND branch does NOT invoke
+  // writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the CONTEXT_NOT_FOUND branch", async () => {
+    const db = createMockDb({contextExists: false, settlements: []});
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await handler(
+      makeEvent({changeType: "create", afterData: validSettlementData()}),
+    );
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-12: BALANCE_INVARIANT_VIOLATED branch (trigger throws
+  // for retry) does NOT invoke writeExpenseActivity.
+  // -------------------------------------------------------------------------
+  it("does NOT call writeExpenseActivity on the BALANCE_INVARIANT_VIOLATED branch", async () => {
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [
+        {
+          id: "exp1",
+          data: {
+            payerId: "userA",
+            amountPaise: 10000,
+            deleted: false,
+            splits: [
+              {userId: "userA", sharePaise: 4000},
+              {userId: "userB", sharePaise: 3000},
+            ],
+          },
+        },
+      ],
+      settlements: [],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validSettlementData()}),
+      ),
+    ).rejects.toThrow();
+
+    expect(mockedWriteExpenseActivity).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-12 error containment: when writeExpenseActivity itself
+  // throws (programmer error like a malformed payload caught by the
+  // validator), the trigger must STILL log
+  // simplified_debts_compute_completed and must NOT throw.
+  // -------------------------------------------------------------------------
+  it("contains activity-emission failures — trigger does not throw if writeExpenseActivity throws", async () => {
+    mockedWriteExpenseActivity.mockRejectedValueOnce(
+      new Error("simulated programmer error in payload validator"),
+    );
+
+    const db = createMockDb({
+      contextExists: true,
+      contextData: {memberIds: ["userA", "userB"]},
+      expenses: [],
+      settlements: [{id: "sid", data: validSettlementData()}],
+    });
+    const logger = createMockLogger();
+
+    const handler = createTriggerHandler({db, logger});
+    await expect(
+      handler(
+        makeEvent({changeType: "create", afterData: validSettlementData()}),
+      ),
+    ).resolves.toBeUndefined();
+
+    const completedLog = logger.calls.find(
+      (c) => c.data?.event === "simplified_debts_compute_completed",
+    );
+    expect(completedLog).toBeDefined();
+
+    const internalErrorLog = logger.calls.find(
+      (c) => c.data?.event === "activity_emission_internal_error",
+    );
+    expect(internalErrorLog).toBeDefined();
+    expect(internalErrorLog!.level).toBe("error");
   });
 });

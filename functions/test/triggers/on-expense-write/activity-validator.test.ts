@@ -15,6 +15,7 @@ import type {
   ExpenseAddedPayload,
   ExpenseDeletedPayload,
   ExpenseEditedPayload,
+  SettlementPayload,
 } from "../../../src/triggers/on-expense-write/payload-builder";
 
 function validExpenseAddedPayload(
@@ -277,3 +278,143 @@ describe("validateActivityPayload — guard rails", () => {
     ).toThrow(/unknown eventType/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// FR-AC-01 AC-13 — settlement payload validation
+// ---------------------------------------------------------------------------
+
+function validSettlementPayload(
+  overrides: Partial<SettlementPayload> = {},
+): SettlementPayload {
+  return {
+    settlementId: "set-1",
+    fromUserId: "uidA",
+    toUserId: "uidB",
+    amountPaise: 5000,
+    contextType: "friendship",
+    contextId: "uidA_uidB",
+    authorUid: "uidA",
+    ...overrides,
+  };
+}
+
+describe("validateActivityPayload — settlement (FR-AC-01)", () => {
+  it("accepts a complete valid settlement payload", () => {
+    expect(() =>
+      validateActivityPayload("settlement", validSettlementPayload()),
+    ).not.toThrow();
+  });
+
+  it("accepts a settlement payload with an optional note", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({note: "Lunch repayment"}),
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects payload missing settlementId", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).settlementId;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'settlementId'/);
+  });
+
+  it("rejects payload missing fromUserId", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).fromUserId;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'fromUserId'/);
+  });
+
+  it("rejects payload missing toUserId", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).toUserId;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'toUserId'/);
+  });
+
+  it("rejects payload missing amountPaise", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).amountPaise;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'amountPaise'/);
+  });
+
+  it("rejects payload missing contextType", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).contextType;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'contextType'/);
+  });
+
+  it("rejects payload missing contextId", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).contextId;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'contextId'/);
+  });
+
+  it("rejects payload missing authorUid", () => {
+    const bad = validSettlementPayload();
+    delete (bad as Partial<SettlementPayload>).authorUid;
+    expect(() =>
+      validateActivityPayload("settlement", bad as SettlementPayload),
+    ).toThrow(/missing required field 'authorUid'/);
+  });
+
+  it("rejects non-integer amountPaise (Invariant 1 negative guard)", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({amountPaise: 12.34 as unknown as number}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects zero amountPaise", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({amountPaise: 0}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects negative amountPaise", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({amountPaise: -1000}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects empty fromUserId", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({fromUserId: ""}),
+      ),
+    ).toThrow(/fromUserId must be a non-empty string/);
+  });
+
+  it("rejects invalid contextType (defence-in-depth — rules enforce too)", () => {
+    expect(() =>
+      validateActivityPayload(
+        "settlement",
+        validSettlementPayload({
+          contextType: "invalid" as unknown as "friendship" | "group",
+        }),
+      ),
+    ).toThrow(/contextType must be 'friendship' or 'group'/);
+  });
+});
+

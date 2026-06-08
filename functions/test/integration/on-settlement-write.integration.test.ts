@@ -419,4 +419,192 @@ describe("onSettlementWrite — integration (registered trigger)", () => {
       expect(final!.simplifiedBalances).toEqual({});
     });
   });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-18 (round-trip 1) — settlement create writes activity
+  // items to BOTH parties.
+  //
+  // 1. Seed friendship A↔B.
+  // 2. Create a settlement B→A 5000 contextId=fid.
+  // 3. Poll for one new activity item in each of
+  //    activity/A/items and activity/B/items.
+  // 4. Assert type='settlement' and key payload fields on each.
+  // -------------------------------------------------------------------------
+  describe("FR-AC-01 AC-18 — settlement-create writes activity items to BOTH parties", () => {
+    const fid = "int-on-settle-activity-create";
+    const contextPath = `friendships/${fid}`;
+
+    beforeEach(async () => {
+      await seedDoc(contextPath, {
+        memberIds: ["activityA", "activityB"],
+        createdBy: "activityA",
+        lastActivityAt: Timestamp.now(),
+        simplifiedBalances: {},
+      });
+    });
+
+    it("writes one settlement activity item to each party's subcollection", async () => {
+      const settlementPath = "settlements/int-on-settle-activity-create-s1";
+      await seedDoc(settlementPath, makeSettlement({
+        fromUserId: "activityB",
+        toUserId: "activityA",
+        amountPaise: 5000,
+        contextId: fid,
+        note: "Pizza repayment",
+      }));
+
+      // Wait for the recompute first (proves the trigger fired).
+      await waitForBalances(contextPath, {});
+
+      // Then poll each party's activity subcollection.
+      const itemsA = await waitForActivityItems(
+        "activityA",
+        (items) => items.length >= 1,
+      );
+      const itemsB = await waitForActivityItems(
+        "activityB",
+        (items) => items.length >= 1,
+      );
+
+      expect(itemsA).toHaveLength(1);
+      expect(itemsB).toHaveLength(1);
+
+      const payloadA = itemsA[0].data.payload as Record<string, unknown>;
+      expect(itemsA[0].data.type).toBe("settlement");
+      expect(payloadA.settlementId).toBe("int-on-settle-activity-create-s1");
+      expect(payloadA.fromUserId).toBe("activityB");
+      expect(payloadA.toUserId).toBe("activityA");
+      expect(payloadA.amountPaise).toBe(5000);
+      expect(payloadA.contextType).toBe("friendship");
+      expect(payloadA.contextId).toBe(fid);
+      expect(payloadA.authorUid).toBe("activityB");
+      expect(payloadA.note).toBe("Pizza repayment");
+
+      // Symmetric check on the second party (same payload, different
+      // recipient).
+      const payloadB = itemsB[0].data.payload as Record<string, unknown>;
+      expect(itemsB[0].data.type).toBe("settlement");
+      expect(payloadB.amountPaise).toBe(5000);
+      expect(payloadB.contextId).toBe(fid);
+
+      // Clean up the activity items (the friendship doc + settlement
+      // doc are tracked by createdDocPaths and will be cleaned
+      // automatically in afterEach).
+      await Promise.all([
+        ...itemsA.map((i) => db.doc(`activity/activityA/items/${i.id}`).delete()),
+        ...itemsB.map((i) => db.doc(`activity/activityB/items/${i.id}`).delete()),
+      ]);
+    }, 15000);
+  });
+
+  // -------------------------------------------------------------------------
+  // FR-AC-01 AC-18 (round-trip 2) — settlement soft-delete does NOT
+  // emit an activity item (architect §2.2 v1.0 decision).
+  //
+  // 1. Seed friendship + expense (B owes A 5000).
+  // 2. Create settlement B→A 5000 → one activity item per party.
+  // 3. Soft-delete the settlement.
+  // 4. Assert no NEW activity items appear (the post-delete count is
+  //    still 1 per party, NOT 2).
+  // -------------------------------------------------------------------------
+  describe("FR-AC-01 AC-18 — settlement soft-delete does NOT emit an activity item", () => {
+    const fid = "int-on-settle-activity-soft-delete";
+    const contextPath = `friendships/${fid}`;
+    const settlementPath = "settlements/int-on-settle-activity-soft-delete-s1";
+
+    beforeEach(async () => {
+      await seedDoc(contextPath, {
+        memberIds: ["softA", "softB"],
+        createdBy: "softA",
+        lastActivityAt: Timestamp.now(),
+        simplifiedBalances: {},
+      });
+      await seedDoc(`${contextPath}/expenses/exp1`, makeExpense({
+        payerId: "softA",
+        amountPaise: 10000,
+        splits: [
+          {userId: "softA", sharePaise: 5000},
+          {userId: "softB", sharePaise: 5000},
+        ],
+      }));
+      await waitForBalances(contextPath, {softB: {softA: 5000}});
+    });
+
+    it("no new activity items appear after soft-delete", async () => {
+      // Step 1: Create the settlement, wait for recompute and the
+      // post-create activity items.
+      await seedDoc(settlementPath, makeSettlement({
+        fromUserId: "softB",
+        toUserId: "softA",
+        amountPaise: 5000,
+        contextId: fid,
+      }));
+      await waitForBalances(contextPath, {});
+
+      const itemsAfterCreateA = await waitForActivityItems(
+        "softA",
+        (items) => items.length >= 1,
+      );
+      const itemsAfterCreateB = await waitForActivityItems(
+        "softB",
+        (items) => items.length >= 1,
+      );
+      const createdAtCountA = itemsAfterCreateA.length;
+      const createdAtCountB = itemsAfterCreateB.length;
+
+      // Step 2: Soft-delete the settlement.
+      await db.doc(settlementPath).update({deleted: true});
+
+      // Wait for the recompute (proves the trigger fired) — the debt
+      // reverts to {softB: {softA: 5000}}.
+      await waitForBalances(contextPath, {softB: {softA: 5000}});
+
+      // Step 3: Give the trigger a generous window to (NOT) emit a
+      // delete-activity, then assert no new items appeared.
+      await new Promise((r) => setTimeout(r, 2000));
+      const finalA = await readActivityItems("softA");
+      const finalB = await readActivityItems("softB");
+
+      // Per architect §2.2: settlement soft-delete emits NO activity item.
+      // The count is unchanged from before the soft-delete.
+      expect(finalA).toHaveLength(createdAtCountA);
+      expect(finalB).toHaveLength(createdAtCountB);
+
+      // Cleanup activity items.
+      await Promise.all([
+        ...finalA.map((i) => db.doc(`activity/softA/items/${i.id}`).delete()),
+        ...finalB.map((i) => db.doc(`activity/softB/items/${i.id}`).delete()),
+      ]);
+    }, 15000);
+  });
 });
+
+// ---------------------------------------------------------------------------
+// Activity-item polling helpers (FR-AC-01)
+// ---------------------------------------------------------------------------
+
+async function readActivityItems(userId: string): Promise<
+  Array<{id: string; data: FirebaseFirestore.DocumentData}>
+> {
+  const snapshot = await db
+    .collection("activity")
+    .doc(userId)
+    .collection("items")
+    .get();
+  return snapshot.docs.map((d) => ({id: d.id, data: d.data()}));
+}
+
+async function waitForActivityItems(
+  userId: string,
+  predicate: (items: Array<{id: string; data: FirebaseFirestore.DocumentData}>)
+    => boolean,
+): Promise<Array<{id: string; data: FirebaseFirestore.DocumentData}>> {
+  const start = Date.now();
+  let items: Array<{id: string; data: FirebaseFirestore.DocumentData}> = [];
+  while (Date.now() - start < POLL_TIMEOUT_MS) {
+    items = await readActivityItems(userId);
+    if (predicate(items)) return items;
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+  }
+  return items;
+}

@@ -1,11 +1,11 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #51 merged (FR-EX-07 — activity feed write-side, friendship expenses).
+> Last updated: PR #52 merged (FR-AC-01 — activity feed read-side + settlement-trigger activity emission).
 
 ---
 
-## GitHub issue / PR numbering note (post-PR #51)
+## GitHub issue / PR numbering note (post-PR #52)
 
 The numbering jumped because issues and PRs share the same sequential
 namespace on GitHub. The post-PR #48 sequence so far:
@@ -18,59 +18,56 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #49 | Issue | Orphan-cleanup Cloud Function for unreferenced receipts (90-day reaper) — OPEN (FUTURE-work chore, 2 SP) |
 | #50 | Issue | Trigger no-op-recompute optimisation when update touches only `receiptUrl` + `updatedAt` — OPEN (FUTURE-work chore, 1 SP). **EXPLICITLY CANNOT BE CLOSED** by any FR-EX-07-consuming PR — the optimisation would skip activity emission on receipt-only updates, breaking the FR-EX-07 contract (AC-2). |
 | #51 | PR | FR-EX-07 activity feed write-side, friendship expenses (merged 2026-06-07) |
-| **#52** | **PR** | **Next feature PR — see below** |
+| #52 | PR | FR-AC-01 activity feed read-side + settlement-trigger activity emission (merged 2026-06-08) |
+| **#53** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #52, PR #53, PR #54. Their issue-number
+**pull requests** — i.e. PR #53, PR #54, PR #55. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #52 = number 52 on GitHub.
+orchestrator should not assume PR #53 = number 53 on GitHub.
 
 ---
 
-## PR #52 — TBD
+## PR #53 — TBD
 
-**Status:** Next up. Architect picks at PR #52 kickoff per Sprint 2 velocity.
+**Status:** Next up. Architect picks at PR #53 kickoff per Sprint 2 velocity.
 
-PR #51 shipped FR-EX-07 (activity-feed write-side for friendship
-expenses). The `onExpenseWriteFriendship` trigger now emits one
-`activity/{userId}/items/{auto-id}` document per friendship member
-on every create / edit / soft-delete. The new
-`activity-writer.ts` + `payload-builder.ts` + `activity-validator.ts`
-modules are reusable by the settlement-trigger activity-emission
-extension. The `firestore.rules` block at
-`match /activity/{userId}/items/{itemId}` enforces member-read /
-server-only-write, mirroring the `simplifiedBalances` posture.
-12 new rules tests (176 → 188) cover AC-6 through AC-12;
-41 new unit tests (100 → 141 boundary, plus 13 trigger-integration
-tests = 154 total); 5 boundary-contract tests guard against
-monetary float drift across `functions/src/**`. The
-client read-side (SCR-25 — Activity tab) is the natural
-follow-on story (FR-AC-01).
+PR #52 shipped FR-AC-01 / FR-AC-02 — the SCR-25 Activity tab is now
+live as a temporary route reachable from `HomePlaceholderScreen`'s
+AppBar action; the `OBTActivityRow` widget primitive is in the
+component catalogue; the settlement-trigger TODO at
+`functions/src/triggers/on-settlement-write/function.ts:231` is
+closed (settlement events now emit `'settlement'` activity items to
+both parties). The bottom-nav shell remains deferred (architect §2.1
+in `docs/sprint-zero/stories/FR-AC-01-activity-feed-read-side.md`).
+Cold-start deep-link (FR-AC-05) and FCM push notifications (FR-AC-03)
+remain the natural next P0 stories — the FR-AC-01 in-app deep-link
+routing surface this PR shipped is the prerequisite both stories
+consume.
 
 Candidates (in rough priority order):
 
-- **FR-AC-01 — Activity tab (SCR-25) + settlement-trigger
-  activity-emission extension.** The highest unplaced P0. PR #51
-  shipped the write-side schema and rules; FR-AC-01 ships the
-  client read-side (route `/activity`, `OBTActivityRow`, deep-link
-  routing for FR-AC-02). Pair with the symmetric settlement-trigger
-  activity emission (the TODO at
-  `functions/src/triggers/on-settlement-write/function.ts:231` is
-  ready to consume `writeExpenseActivity` from PR #51 with a sibling
-  settlement-payload builder) — both halves are needed for the
-  settlement leg of SCR-25 to render anything. 8-10 SP — may split
-  into two sub-PRs (client vs server) at architect's call.
+- **FR-AC-03 — FCM push notifications + FR-AC-05 cold-start deep-link.**
+  The highest unplaced P0 pair. Introduces the FCM dependency + the
+  `notificationPrefs` schema + per-user `fcmTokens` plumbing.
+  FR-AC-05 (cold-start deep-link from a tapped push notification when
+  the app is not running) is naturally paired since the cold-start
+  signal comes from the FCM tap event. 8-10 SP — may split into two
+  sub-PRs (FCM infrastructure vs cold-start handler) at architect's
+  call. The FR-AC-01 deep-link routing this PR shipped is the
+  in-app target both stories use.
 - **FR-SE-09 — Send Reminder.** Closes the receiving-direction
   branch of the OBTSettleUpCard (per PR #43 §2.5 default-omit).
-  Requires FCM dependency + 24-hour rate-limit subcollection.
-  Now the highest unplaced P1. Will exercise the
+  Requires FCM dependency + 24-hour rate-limit subcollection. Now
+  the highest unplaced P1. Will exercise the
   `_rateLimits/{uid}/sends/counter` subcollection pattern
-  established by PR #45 Architect Notes §2.9.
-- **FR-AC-03 — FCM push notifications.** Separate P0 story;
-  introduces the FCM dependency + the `notificationPrefs` schema +
-  per-user `fcmTokens` plumbing. Requires FR-AC-01 client deep-link
-  surface as a prerequisite (paired by FR-AC-05 cold-start
-  deep-link).
+  established by PR #45 Architect Notes §2.9. Naturally bundles
+  with FR-AC-03 if the FCM infrastructure ships in the same PR
+  (one FCM dependency add, two consumers).
+- **`OBTBottomNav` shell.** UX foundation deferred from PR #52 per
+  architect §2.1. Becomes the canonical entry point for the
+  Friends / Groups / Activity / Profile tab cluster — needed before
+  the Sprint 3 groups epic ships.
 - **FR-SE-08 dedicated full-history screen** at
   `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
   v1.0 but the dedicated screen is still a backlog item).
@@ -78,9 +75,27 @@ Candidates (in rough priority order):
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
   documented.
+- **`OBTRupeeText` primitive** (UX foundation; small PR ~1 SP).
+  Deferred from PR #52 per architect §2.6. The component catalogue
+  declares it; a future PR adds the 5-line wrapper around
+  `Text(formatInrFromPaise(...))` once a second use site needs it.
+- **Activity-writer rename cleanup** (cosmetic; small chore PR
+  ~1-2 SP). Per FR-AC-01 architect §2.3 the rename of
+  `writeExpenseActivity` → `writeContextActivity` (+ `friendshipId`
+  → `contextId`, `expenseId` → `entityId`, `expenseIdHash` →
+  `entityIdHash`) was DEFERRED to minimise blast radius. A future
+  cleanup PR can do the full rename + Cloud Logging dashboard
+  migration as one focused change.
 - **Concurrent-edit detection for FR-EX-06** (operational
-  hardening; small standalone PR). Explicitly deferred from
-  PR #46.
+  hardening; small standalone PR). Explicitly deferred from PR #46.
+- **Integration-test infrastructure fix** (operational chore;
+  ~1-2 SP). The Functions emulator currently fails to load
+  `onExpenseWriteFriendship` with the warning
+  `functions.config() has been removed in firebase-functions v7`
+  during integration runs; this is a pre-existing issue not
+  caused by PR #52 (verified by stashing PR #52 changes and
+  reproducing on `main`). Track as a Sprint-3 cleanup item; CI
+  may have a workaround that local runs do not — to investigate.
 - **Issue #49 — Orphan-cleanup Cloud Function for receipts**
   (FUTURE; filed during PR #48 per SRS schema doc line 312).
   Out of v1.0 unless required for compliance.
@@ -102,11 +117,11 @@ Candidates (in rough priority order):
 
 ---
 
-## PR #53 — TBD
+## PR #54 — TBD
 
-**Status:** Slot reserved. Architect picks at PR #52 kickoff.
+**Status:** Slot reserved. Architect picks at PR #53 kickoff.
 
-Candidates: whatever doesn't land in PR #52 from the list above, plus:
+Candidates: whatever doesn't land in PR #53 from the list above, plus:
 
 - A Bucket-B chore PR (remaining 27 / 37 items after PR #51 closed
   R5a — activity rules coverage).
@@ -118,11 +133,11 @@ Candidates: whatever doesn't land in PR #52 from the list above, plus:
 
 ---
 
-## PR #54 — TBD
+## PR #55 — TBD
 
-**Status:** Slot reserved. Architect picks at PR #53 kickoff.
+**Status:** Slot reserved. Architect picks at PR #54 kickoff.
 
-Candidates: whatever doesn't land in PR #52 / PR #53 from the lists
+Candidates: whatever doesn't land in PR #53 / PR #54 from the lists
 above.
 
 ---
