@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #53.
+> Last updated: PR #54.
 
 ---
 
@@ -627,4 +627,50 @@ any Bucket-B items directly:
   remains open and unrelated to this PR.
 
 Net contribution of PR #53 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+PR #54 (FR-SE-09 Send Reminder + per-friend 24-hour rate limit) makes
+partial progress on **PY3** and does NOT close any Bucket-B items
+directly:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #54 adds
+  comprehensive callable-handler tests for the new
+  `sendReminderNotification` function (24 test cases covering auth,
+  input validation, non-member, recipient-doesn't-owe,
+  rate-limit pre-check rejection + post-window pass, prefs-filter,
+  no-tokens, full-failure dispatch FCM_DISPATCH_FAILED non-record,
+  group-context forward-compat error, happy-path rate-limit doc
+  shape, FCM dispatch params, activity emission to recipient, PII
+  hashing in structured logs, and the message-presence-only logging
+  contract). PR #54 also adds 7 helper-level unit tests for the
+  `notifications/send-reminder-notification.ts` FCM dispatch helper
+  mirroring the existing two helper test files, plus 13 activity-
+  validator extension tests for the new `'reminder'` event-type
+  shape. On the Flutter side, PR #54 ships 24 new tests under
+  `test/features/reminders/**` covering the reminder repository,
+  the send controller (success + per-error-code branches +
+  telemetry + concurrent-send short-circuit), the cooldown provider
+  (per-friendship isolation + in-memory reset on container
+  disposal), plus 4 new widget tests for the OBTSettleUpCard
+  receiving-direction variant and 3 new screen tests for the
+  FriendDetailScreen owed-branch wiring (tap → controller, RATE_
+  LIMITED snackbar, RECIPIENT_PREFS_DISABLED snackbar). Partial
+  credit only; PY3 remains open pending the full emulator-side
+  FCM round-trip integration tests across all callable + trigger
+  paths (deferred per PR #53 + PR #54 functions-dev notes — the
+  existing emulator-side integration test infrastructure does not
+  exercise the FCM emission path because `jest.mock()` does not
+  survive the emulator process boundary).
+- **No Bucket-B items closed by PR #54.** The reminder callable +
+  client feature folder are new ground and are not separately
+  tracked Bucket-B items.
+- **No new Bucket-B items filed by PR #54.** The
+  `reminderRepositoryProvider` production wiring gap (it shares the
+  throw-until-overridden pattern with `matchingRepositoryProvider`
+  and `cloud_functions` is not yet in pubspec) is tracked as a
+  candidate in `docs/sprint-zero/next-three-prs.md` for the PR #55
+  slot. The deferred FR-SE-09 message-compose dialog is tracked as
+  a follow-up UX PR candidate.
+
+Net contribution of PR #54 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.

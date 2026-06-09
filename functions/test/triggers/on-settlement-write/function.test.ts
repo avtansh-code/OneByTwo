@@ -52,10 +52,12 @@ beforeEach(() => {
 function createMockNotificationsApi(): NotificationsApi & {
   sendExpenseNotification: jest.Mock;
   sendSettlementNotification: jest.Mock;
+  sendReminderNotification: jest.Mock;
 } {
   return {
     sendExpenseNotification: jest.fn().mockResolvedValue(undefined),
     sendSettlementNotification: jest.fn().mockResolvedValue(undefined),
+    sendReminderNotification: jest.fn().mockResolvedValue(undefined),
   };
 }
 

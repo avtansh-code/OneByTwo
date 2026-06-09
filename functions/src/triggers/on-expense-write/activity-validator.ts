@@ -20,6 +20,7 @@ import type {
   ExpenseAddedPayload,
   ExpenseDeletedPayload,
   ExpenseEditedPayload,
+  ReminderPayload,
   SettlementPayload,
 } from "./payload-builder";
 
@@ -55,6 +56,9 @@ export function validateActivityPayload(
       return;
     case "settlement":
       validateSettlementPayload(payload as SettlementPayload);
+      return;
+    case "reminder":
+      validateReminderPayload(payload as ReminderPayload);
       return;
     default: {
       const _exhaustive: never = eventType;
@@ -217,6 +221,73 @@ function validateSettlementPayload(payload: SettlementPayload): void {
       "validateActivityPayload: settlement.note, when present, must be " +
         "a string.",
     );
+  }
+}
+
+/**
+ * Validates a `reminder` payload (FR-SE-09 architect §2.4). Required
+ * fields: senderUid, recipientUid, contextType, contextId, amountPaise.
+ * The `message` field is optional (max 500 chars).
+ */
+function validateReminderPayload(payload: ReminderPayload): void {
+  assertHasFields("reminder", payload, [
+    "senderUid",
+    "recipientUid",
+    "contextType",
+    "contextId",
+    "amountPaise",
+  ] as const);
+
+  if (typeof payload.senderUid !== "string" || payload.senderUid.length === 0) {
+    throw new Error(
+      "validateActivityPayload: reminder.senderUid must be a " +
+        "non-empty string.",
+    );
+  }
+  if (
+    typeof payload.recipientUid !== "string" ||
+    payload.recipientUid.length === 0
+  ) {
+    throw new Error(
+      "validateActivityPayload: reminder.recipientUid must be a " +
+        "non-empty string.",
+    );
+  }
+  if (payload.contextType !== "friendship" && payload.contextType !== "group") {
+    throw new Error(
+      "validateActivityPayload: reminder.contextType must be 'friendship' " +
+        "or 'group'.",
+    );
+  }
+  if (typeof payload.contextId !== "string" || payload.contextId.length === 0) {
+    throw new Error(
+      "validateActivityPayload: reminder.contextId must be a " +
+        "non-empty string.",
+    );
+  }
+  if (
+    typeof payload.amountPaise !== "number" ||
+    !Number.isInteger(payload.amountPaise) ||
+    payload.amountPaise <= 0
+  ) {
+    throw new Error(
+      "validateActivityPayload: reminder.amountPaise must be a positive " +
+        "integer.",
+    );
+  }
+  if (payload.message !== undefined) {
+    if (typeof payload.message !== "string") {
+      throw new Error(
+        "validateActivityPayload: reminder.message, when present, must be " +
+          "a string.",
+      );
+    }
+    if (payload.message.length > 500) {
+      throw new Error(
+        "validateActivityPayload: reminder.message length must be ≤ 500 " +
+          "characters.",
+      );
+    }
   }
 }
 

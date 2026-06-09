@@ -34,6 +34,14 @@ export {recomputeSimplifiedBalances} from "./simplified-debts/index";
 // Lookup user by phone number callable
 export {lookupUserByPhoneNumber} from "./lookup-user-by-phone-number/index";
 
+// FR-SE-09 send-reminder callable. First downstream consumer of the
+// FR-AC-03 FCM module via a callable Cloud Function path. Reads
+// simplifiedBalances for the precondition check (Invariant 2: read-
+// only); writes to `_rateLimits/{senderUid}/sends/{recipientUid}` for
+// the per-friend 24-hour rate limit and to `activity/{recipientUid}/
+// items/{auto}` for the in-app activity row.
+export {sendReminderNotification} from "./send-reminder-notification/index";
+
 // Firestore trigger: recompute simplifiedBalances when an expense is
 // created, updated, or deleted under a friendship (FR-SE-03/04).
 // First non-callable producer of simplifiedBalances (Invariant 2).

@@ -29,6 +29,8 @@ import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
+import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
+import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
@@ -203,6 +205,7 @@ Widget _buildSubject({
   required FakeAnalyticsService analytics,
   FakeExpenseRepository? expenseRepository,
   FakeSettlementRepository? settlementRepository,
+  ReminderRepository? reminderRepository,
 }) {
   return ProviderScope(
     overrides: [
@@ -215,6 +218,8 @@ Widget _buildSubject({
         expenseRepositoryProvider.overrideWithValue(expenseRepository),
       if (settlementRepository != null)
         settlementRepositoryProvider.overrideWithValue(settlementRepository),
+      if (reminderRepository != null)
+        reminderRepositoryProvider.overrideWithValue(reminderRepository),
       friendDetailProvider(_args).overrideWith((ref) {
         switch (initialValue) {
           case AsyncData(:final value):
@@ -624,7 +629,8 @@ void main() {
     });
 
     testWidgets(
-      'does NOT render the OBTSettleUpCard in the owed direction (§2.5 omit)',
+      'renders the receiving-direction OBTSettleUpCard in the owed direction '
+      '(FR-SE-09 supersedes the PR #43 §2.5 omit)',
       (tester) async {
         final state = FriendDetailStatePopulated(
           header: _header(
@@ -643,11 +649,18 @@ void main() {
             initialValue: AsyncData(state),
             analytics: analytics,
             settlementRepository: FakeSettlementRepository(),
+            reminderRepository: _StaticReminderRepository(
+              () => ReminderSendSuccess(
+                nextAllowedAt: DateTime.now().add(const Duration(hours: 24)),
+              ),
+            ),
           ),
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(OBTSettleUpCard), findsNothing);
+        expect(find.byType(OBTSettleUpCard), findsOneWidget);
+        expect(find.text('Send Reminder'), findsOneWidget);
+        expect(find.text('Settle Up'), findsNothing);
       },
     );
 
@@ -771,4 +784,144 @@ void main() {
       );
     });
   });
+
+  // ===================================================================
+  // FR-SE-09 — Send Reminder receiving-direction wiring
+  // ===================================================================
+
+  group('Send Reminder wiring (FR-SE-09)', () {
+    testWidgets(
+      'tapping Send Reminder fires the controller and updates cooldown',
+      (tester) async {
+        final repo = _StaticReminderRepository(
+          () => ReminderSendSuccess(
+            nextAllowedAt: DateTime.now().add(const Duration(hours: 24)),
+          ),
+        );
+        final state = FriendDetailStatePopulated(
+          header: _header(
+            netBalancePaise: 5000,
+            balanceState: BalanceState.owed,
+          ),
+          timeline: [
+            TimelineExpense(
+              doc: _expense(description: 'Tea', date: DateTime(2026, 6)),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          _buildSubject(
+            initialValue: AsyncData(state),
+            analytics: analytics,
+            settlementRepository: FakeSettlementRepository(),
+            reminderRepository: repo,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Send Reminder'));
+        await tester.pumpAndSettle();
+
+        expect(repo.callCount, 1);
+        expect(repo.lastToUserId, 'uid-friend');
+        expect(repo.lastContextId, 'uid-friend_uid-me');
+        expect(repo.lastContextType, 'friendship');
+      },
+    );
+
+    testWidgets('RATE_LIMITED surfaces snackbar with countdown', (
+      tester,
+    ) async {
+      final nextAt = DateTime.now().add(const Duration(hours: 5, minutes: 32));
+      final repo = _StaticReminderRepository(
+        () => ReminderSendRateLimited(nextAllowedAt: nextAt),
+      );
+      final state = FriendDetailStatePopulated(
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
+        timeline: const [],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+          reminderRepository: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Send Reminder'));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      // The snackbar text mentions the friend's display name and the
+      // remaining cooldown ("...in 5h 31m." or similar).
+      final snackbarText = find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.textContaining('Bina'),
+      );
+      expect(snackbarText, findsOneWidget);
+    });
+
+    testWidgets('RECIPIENT_PREFS_DISABLED surfaces a prefs-off snackbar', (
+      tester,
+    ) async {
+      final repo = _StaticReminderRepository(
+        () => const ReminderSendRecipientPrefsDisabled(),
+      );
+      final state = FriendDetailStatePopulated(
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
+        timeline: const [],
+      );
+
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+          reminderRepository: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Send Reminder'));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.textContaining('notifications turned off'),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+}
+
+/// Static reminder repository for widget-test wiring.
+class _StaticReminderRepository implements ReminderRepository {
+  _StaticReminderRepository(this._produce);
+
+  final ReminderSendResult Function() _produce;
+  int callCount = 0;
+  String? lastToUserId;
+  String? lastContextType;
+  String? lastContextId;
+
+  @override
+  Future<ReminderSendResult> sendReminder({
+    required String toUserId,
+    required String contextType,
+    required String contextId,
+    String? message,
+  }) async {
+    callCount += 1;
+    lastToUserId = toUserId;
+    lastContextType = contextType;
+    lastContextId = contextId;
+    return _produce();
+  }
 }

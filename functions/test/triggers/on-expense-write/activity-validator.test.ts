@@ -15,6 +15,7 @@ import type {
   ExpenseAddedPayload,
   ExpenseDeletedPayload,
   ExpenseEditedPayload,
+  ReminderPayload,
   SettlementPayload,
 } from "../../../src/triggers/on-expense-write/payload-builder";
 
@@ -418,3 +419,144 @@ describe("validateActivityPayload — settlement (FR-AC-01)", () => {
   });
 });
 
+
+// ===========================================================================
+// FR-SE-09: reminder event-type validator extension
+// ===========================================================================
+
+function validReminderPayload(
+  overrides: Partial<ReminderPayload> = {},
+): ReminderPayload {
+  return {
+    senderUid: "uid-sender",
+    recipientUid: "uid-recipient",
+    contextType: "friendship",
+    contextId: "uid-sender_uid-recipient",
+    amountPaise: 50000,
+    ...overrides,
+  };
+}
+
+describe("validateActivityPayload — reminder (FR-SE-09)", () => {
+  it("accepts a minimal valid payload (no message)", () => {
+    expect(() =>
+      validateActivityPayload("reminder", validReminderPayload()),
+    ).not.toThrow();
+  });
+
+  it("accepts a valid payload with optional message", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({message: "Please settle up when you can."}),
+      ),
+    ).not.toThrow();
+  });
+
+  it("accepts a payload with message at maximum length (500 chars)", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({message: "x".repeat(500)}),
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects payload with message longer than 500 chars", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({message: "x".repeat(501)}),
+      ),
+    ).toThrow(/message.*500/);
+  });
+
+  it("rejects payload missing senderUid", () => {
+    const bad = validReminderPayload();
+    delete (bad as Partial<ReminderPayload>).senderUid;
+    expect(() =>
+      validateActivityPayload("reminder", bad as ReminderPayload),
+    ).toThrow(/missing required field 'senderUid'/);
+  });
+
+  it("rejects payload missing recipientUid", () => {
+    const bad = validReminderPayload();
+    delete (bad as Partial<ReminderPayload>).recipientUid;
+    expect(() =>
+      validateActivityPayload("reminder", bad as ReminderPayload),
+    ).toThrow(/missing required field 'recipientUid'/);
+  });
+
+  it("rejects payload with empty senderUid string", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({senderUid: ""}),
+      ),
+    ).toThrow(/senderUid must be a non-empty string/);
+  });
+
+  it("rejects payload with empty recipientUid string", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({recipientUid: ""}),
+      ),
+    ).toThrow(/recipientUid must be a non-empty string/);
+  });
+
+  it("rejects payload with non-integer amountPaise", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({amountPaise: 100.5}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects payload with zero amountPaise", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({amountPaise: 0}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects payload with negative amountPaise", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({amountPaise: -100}),
+      ),
+    ).toThrow(/amountPaise must be a positive integer/);
+  });
+
+  it("rejects invalid contextType (defence-in-depth)", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({
+          contextType: "wedding" as unknown as "friendship" | "group",
+        }),
+      ),
+    ).toThrow(/contextType must be 'friendship' or 'group'/);
+  });
+
+  it("rejects empty contextId", () => {
+    expect(() =>
+      validateActivityPayload(
+        "reminder",
+        validReminderPayload({contextId: ""}),
+      ),
+    ).toThrow(/contextId must be a non-empty string/);
+  });
+
+  it("rejects payload where message is non-string (when present)", () => {
+    const bad = validReminderPayload();
+    (bad as {message: unknown}).message = 42;
+    expect(() => validateActivityPayload("reminder", bad)).toThrow(
+      /message.*string/,
+    );
+  });
+});

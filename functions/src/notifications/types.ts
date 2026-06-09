@@ -169,6 +169,28 @@ export interface SendSettlementNotificationParams {
 }
 
 /**
+ * Parameters for `sendReminderNotification` (FR-SE-09). Only one
+ * recipient (`toUserId`); the sender (`fromUserId`) is the actor and
+ * is NOT notified. The `amountPaise` is the OWED amount per
+ * `simplifiedBalances[toUserId][fromUserId]` (resolved by the
+ * callable's precondition check before invoking this helper).
+ */
+export interface SendReminderNotificationParams {
+  /** Sender UID — for log correlation. NOT a recipient. */
+  fromUserId: string;
+  /** Recipient UID — the friend who owes the sender. */
+  toUserId: string;
+  contextType: "friendship" | "group";
+  contextId: string;
+  /** Resolved displayName of the sender (fromUserId). */
+  senderName: string;
+  /** Integer paise the recipient owes the sender. */
+  amountPaise: number;
+  /** Server-side `now()` at the time the callable fires. */
+  eventTimestamp: Date;
+}
+
+/**
  * Aggregated result of an FCM dispatch. Per-recipient counts are
  * tallied across the multi-recipient expense case; the settlement
  * helper produces a result with counts ≤ 1.
@@ -202,5 +224,9 @@ export interface NotificationsApi {
   sendSettlementNotification(
     deps: NotificationsDependencies,
     params: SendSettlementNotificationParams,
+  ): Promise<NotificationDispatchResult>;
+  sendReminderNotification(
+    deps: NotificationsDependencies,
+    params: SendReminderNotificationParams,
   ): Promise<NotificationDispatchResult>;
 }

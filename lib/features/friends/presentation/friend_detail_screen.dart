@@ -11,6 +11,9 @@ import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_hea
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_states.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_timeline.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
+import 'package:onebytwo/features/reminders/application/reminder_cooldown_provider.dart';
+import 'package:onebytwo/features/reminders/application/send_reminder_controller.dart';
+import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 
@@ -106,6 +109,15 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                         suggestedAmountPaise: state.header.netBalancePaise
                             .abs(),
                         onSettleUp: () => _onSettleUpTapped(context, state),
+                      )
+                    else if (state.header.balanceState == BalanceState.owed)
+                      _ReceivingDirectionCard(
+                        friendshipId: widget.friendshipId,
+                        otherDisplayName: state.header.displayName,
+                        otherPhotoUrl: state.header.photoUrl,
+                        suggestedAmountPaise: state.header.netBalancePaise
+                            .abs(),
+                        otherUserUid: widget.otherUserUid,
                       ),
                     FriendDetailTimelineWidget(
                       timeline: state.timeline,
@@ -218,5 +230,104 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
         suggestedAmountPaise: state.header.netBalancePaise.abs(),
       ),
     );
+  }
+}
+
+/// FR-SE-09 receiving-direction host for the OBTSettleUpCard.
+///
+/// Owns its own [ConsumerState] so it can watch the per-friendship
+/// `reminderCooldownProvider` (which drives the live disabled state +
+/// countdown caption) AND listen for [SendReminderController] state
+/// transitions to surface per-error-code snackbars without leaking
+/// into the parent [FriendDetailScreen].
+class _ReceivingDirectionCard extends ConsumerStatefulWidget {
+  const _ReceivingDirectionCard({
+    required this.friendshipId,
+    required this.otherDisplayName,
+    required this.otherPhotoUrl,
+    required this.suggestedAmountPaise,
+    required this.otherUserUid,
+  });
+
+  final String friendshipId;
+  final String otherDisplayName;
+  final String? otherPhotoUrl;
+  final int suggestedAmountPaise;
+  final String otherUserUid;
+
+  @override
+  ConsumerState<_ReceivingDirectionCard> createState() =>
+      _ReceivingDirectionCardState();
+}
+
+class _ReceivingDirectionCardState
+    extends ConsumerState<_ReceivingDirectionCard> {
+  @override
+  Widget build(BuildContext context) {
+    final cooldown = ref.watch(reminderCooldownProvider(widget.friendshipId));
+
+    ref.listen<SendReminderState>(
+      sendReminderControllerProvider(widget.friendshipId),
+      (previous, next) {
+        if (!mounted) return;
+        if (next is SendReminderError) {
+          _surfaceErrorSnackbar(context, next.error);
+        }
+      },
+    );
+
+    return OBTSettleUpCard(
+      payerDisplayName: widget.otherDisplayName,
+      payerPhotoUrl: widget.otherPhotoUrl,
+      payeeDisplayName: 'You',
+      payeePhotoUrl: null,
+      suggestedAmountPaise: widget.suggestedAmountPaise,
+      onSettleUp: () {},
+      isReceivingDirection: true,
+      nextAllowedAt: cooldown,
+      onSendReminder: () => _onSendReminderTapped(context),
+    );
+  }
+
+  Future<void> _onSendReminderTapped(BuildContext context) async {
+    final controller = ref.read(
+      sendReminderControllerProvider(widget.friendshipId).notifier,
+    );
+    await controller.send(
+      toUserId: widget.otherUserUid,
+      contextType: 'friendship',
+      contextId: widget.friendshipId,
+    );
+  }
+
+  void _surfaceErrorSnackbar(BuildContext context, ReminderSendResult error) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    final text = switch (error) {
+      ReminderSendRateLimited(:final nextAllowedAt) => _rateLimitedSnackbar(
+        nextAllowedAt,
+      ),
+      ReminderSendRecipientPrefsDisabled() =>
+        '${widget.otherDisplayName} has notifications turned off.',
+      ReminderSendRecipientNoTokens() =>
+        "${widget.otherDisplayName} hasn't enabled push notifications yet.",
+      ReminderSendRecipientDoesntOwe() =>
+        "${widget.otherDisplayName}'s balance has changed. Pull to refresh.",
+      ReminderSendFailed() => 'Reminder could not be sent. Please try again.',
+      ReminderSendSuccess() => null,
+    };
+
+    if (text == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  String _rateLimitedSnackbar(DateTime nextAllowedAt) {
+    final remaining = nextAllowedAt.difference(DateTime.now());
+    final h = remaining.inHours;
+    final m = remaining.inMinutes.remainder(60);
+    final hm = h > 0 ? '${h}h ${m}m' : '${m.clamp(1, 59)}m';
+    return 'You can send another reminder to '
+        '${widget.otherDisplayName} in $hm.';
   }
 }

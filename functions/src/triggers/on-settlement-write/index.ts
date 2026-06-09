@@ -35,6 +35,7 @@ import {createTriggerHandler} from "./function";
 import {
   sendExpenseNotification,
   sendSettlementNotification,
+  sendReminderNotification,
 } from "../../notifications";
 
 const REGION = "asia-south1";
@@ -81,6 +82,7 @@ export const onSettlementWrite = onDocumentWritten(
       notificationsApi: {
         sendExpenseNotification,
         sendSettlementNotification,
+        sendReminderNotification,
       },
       messaging: getMessaging(),
     });
