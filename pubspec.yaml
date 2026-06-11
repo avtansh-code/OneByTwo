@@ -11,7 +11,7 @@ environment:
 dependencies:
   cloud_firestore: ^6.3.0 # Firestore database
   cloud_functions: ^6.3.2
-  connectivity_plus: ^7.1.1 # Network connectivity detection (FR-PR-03 AC-10)
+  connectivity_plus: ^6.1.5 # Network connectivity detection (FR-PR-03 AC-10) — pinned to 6.x because 7.x requires iOS 17+ (uses NWPath.isUltraConstrained); the project Podfile targets iOS 15
   crypto: ^3.0.6 # SHA-256 hashing for phone number privacy
   firebase_analytics: ^12.3.0 # Usage analytics (SRS 5.10)
   firebase_app_check: ^0.4.3 # API abuse protection
