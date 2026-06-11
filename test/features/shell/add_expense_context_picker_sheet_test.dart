@@ -19,7 +19,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
@@ -27,6 +31,8 @@ import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_list_tile.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
+
+import '../expenses/helpers/fake_services.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -43,6 +49,47 @@ class _FakeAnalyticsService implements AnalyticsService {
   }) async {
     events.add((name: name, parameters: parameters));
   }
+}
+
+/// Minimal `ExpenseRepository` fake so the integration friend-tap test
+/// can mount `AddExpenseBottomSheet` without booting Firebase. The
+/// sheet only watches the controller's initial state; it never calls
+/// any repository method until the user submits the form.
+class _FakeExpenseRepository implements ExpenseRepository {
+  @override
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  }) async => 'fake-expense-id';
+
+  @override
+  String newExpenseId({required String friendshipId}) => 'fake-expense-id';
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {}
+
+  @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {}
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {}
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    int limit = 5,
+  }) => const Stream<List<ExpenseDoc>>.empty();
 }
 
 FriendListItem _friend({
@@ -103,6 +150,16 @@ Widget _buildSubject({
     overrides: <Override>[
       analyticsServiceProvider.overrideWithValue(analytics),
       currentUserIdProvider.overrideWithValue(currentUid),
+      // AddExpenseBottomSheet (mounted post friend-tap) watches the
+      // family-provider `addExpenseControllerProvider(args)`, which
+      // resolves `expenseRepositoryProvider` / `receiptStorageServiceProvider`
+      // / `imagePickerServiceProvider`. Override them with non-Firebase
+      // fakes so the sheet can mount without booting the real SDK.
+      expenseRepositoryProvider.overrideWithValue(_FakeExpenseRepository()),
+      receiptStorageServiceProvider.overrideWithValue(
+        FakeReceiptStorageService(),
+      ),
+      imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
       friendsListProvider.overrideWith((ref) {
         switch (friendsState) {
           case AsyncData(:final value):
@@ -181,7 +238,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Groups'), findsOneWidget);
+      // Two "Groups" texts: the section header (labelLarge) AND the
+      // stub row's ListTile title (titleMedium) per
+      // architect notes §2.3 / §2.6.
+      expect(find.text('Groups'), findsNWidgets(2));
       expect(find.text('Coming in Sprint 3'), findsOneWidget);
     });
   });
@@ -220,12 +280,19 @@ void main() {
         await tester.tap(find.text('Bina'));
         await tester.pumpAndSettle();
 
-        // Telemetry fired exactly once with the friend context_type.
-        expect(analytics.events, hasLength(1));
-        final event = analytics.events.single;
-        expect(event.name, expenseContextSelectedEvent);
-        expect(event.parameters, isNotNull);
-        expect(event.parameters![contextTypeParam], contextTypeFriend);
+        // The picker fires `expense_context_selected` exactly once. The
+        // mounted AddExpenseBottomSheet's controller fires its own
+        // `step_1_opened` event on construction — filter to isolate the
+        // picker's contribution.
+        final ctxEvents = analytics.events
+            .where((e) => e.name == expenseContextSelectedEvent)
+            .toList();
+        expect(ctxEvents, hasLength(1));
+        expect(ctxEvents.single.parameters, isNotNull);
+        expect(
+          ctxEvents.single.parameters![contextTypeParam],
+          contextTypeFriend,
+        );
 
         // Picker has been dismissed.
         expect(find.byType(AddExpenseContextPickerSheet), findsNothing);
@@ -255,7 +322,13 @@ void main() {
         await tester.tap(find.text('Alice'));
         await tester.pumpAndSettle();
 
-        final params = analytics.events.single.parameters!;
+        // Filter for the picker's own event — the mounted
+        // AddExpenseBottomSheet fires `step_1_opened` after which we
+        // do NOT inspect here.
+        final ctxEvent = analytics.events.firstWhere(
+          (e) => e.name == expenseContextSelectedEvent,
+        );
+        final params = ctxEvent.parameters!;
         expect(params.keys.toSet(), <String>{contextTypeParam});
         const forbidden = <String>[
           'userId',
@@ -293,8 +366,9 @@ void main() {
 
         expect(find.text('You have no friends yet'), findsOneWidget);
         expect(find.text('Add your first friend'), findsOneWidget);
-        // Groups section still renders.
-        expect(find.text('Groups'), findsOneWidget);
+        // Groups section still renders (header + row title both say
+        // "Groups" per architect §2.6).
+        expect(find.text('Groups'), findsNWidgets(2));
         expect(find.text('Coming in Sprint 3'), findsOneWidget);
       },
     );
@@ -342,8 +416,9 @@ void main() {
         await tester.pump();
 
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        // Groups section still renders.
-        expect(find.text('Groups'), findsOneWidget);
+        // Groups section still renders (header + row title both say
+        // "Groups").
+        expect(find.text('Groups'), findsNWidgets(2));
         expect(find.text('Coming in Sprint 3'), findsOneWidget);
       },
     );
@@ -369,10 +444,7 @@ void main() {
         expect(find.text('Retry'), findsOneWidget);
         // The error copy can vary but MUST be present in some form —
         // assert a non-empty error indicator.
-        expect(
-          find.textContaining('went wrong', findRichText: false),
-          findsWidgets,
-        );
+        expect(find.textContaining('went wrong'), findsWidgets);
 
         // Tapping Retry must not throw and the button is wired.
         await tester.tap(find.text('Retry'));
@@ -411,17 +483,34 @@ void main() {
             _buildSubject(friendsState: state, analytics: analytics),
           );
           // Loading state never completes — use pump() not pumpAndSettle.
+          // Pump enough frames to (a) trigger the post-frame callback
+          // that opens the bottom sheet, and (b) advance past the
+          // bottom-sheet enter animation (default 250 ms) so the
+          // Groups row is in-viewport for the tap below.
           if (state is AsyncLoading) {
             await tester.pump();
-            await tester.pump(const Duration(milliseconds: 100));
+            await tester.pump(const Duration(milliseconds: 50));
+            await tester.pump(const Duration(milliseconds: 300));
             await tester.pump();
           } else {
             await tester.pumpAndSettle();
           }
 
-          // Tap the Groups stub row.
-          await tester.tap(find.text('Groups'));
-          // Snackbar shows on the next frame.
+          // Tap the Groups stub row. Scope to the ListTile that owns
+          // the unique "Coming in Sprint 3" trailing label (the bare
+          // text "Groups" appears twice: section header + row title).
+          await tester.tap(
+            find.ancestor(
+              of: find.text('Coming in Sprint 3'),
+              matching: find.byType(ListTile),
+            ),
+          );
+          // The snackbar is enqueued asynchronously by ScaffoldMessenger
+          // — pump a few frames so the SnackBar's enter-transition
+          // mounts the Text in the overlay. (`pumpAndSettle` would
+          // deadlock on the loading-state CircularProgressIndicator.)
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
           await tester.pump();
 
           // Snackbar copy per architect §2.3.

@@ -18,15 +18,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
 import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
+
+import '../expenses/helpers/fake_services.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes + helpers
@@ -43,6 +49,44 @@ class _FakeAnalyticsService implements AnalyticsService {
   }) async {
     events.add((name: name, parameters: parameters));
   }
+}
+
+/// Minimal `ExpenseRepository` fake — see picker test for rationale.
+class _FakeExpenseRepository implements ExpenseRepository {
+  @override
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  }) async => 'fake-expense-id';
+
+  @override
+  String newExpenseId({required String friendshipId}) => 'fake-expense-id';
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {}
+
+  @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {}
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {}
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    int limit = 5,
+  }) => const Stream<List<ExpenseDoc>>.empty();
 }
 
 class _TabStub extends StatelessWidget {
@@ -90,6 +134,14 @@ Widget _buildShell({
     overrides: <Override>[
       analyticsServiceProvider.overrideWithValue(analytics),
       currentUserIdProvider.overrideWithValue(currentUid),
+      // Same rationale as the picker test — fake the Firebase-backed
+      // providers so AddExpenseBottomSheet can mount on the
+      // post-friend-tap leg without initialising Firebase.
+      expenseRepositoryProvider.overrideWithValue(_FakeExpenseRepository()),
+      receiptStorageServiceProvider.overrideWithValue(
+        FakeReceiptStorageService(),
+      ),
+      imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
       friendsListProvider.overrideWith((ref) {
         switch (friendsState) {
           case AsyncData(:final value):

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
@@ -132,10 +133,9 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Add expense',
+      floatingActionButton: OBTFloatingActionButton(
+        heroTag: 'friendDetailFab',
         onPressed: () => _openAddExpenseSheet(context),
-        child: const Icon(Icons.add, semanticLabel: 'Add expense'),
       ),
     );
   }

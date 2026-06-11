@@ -351,6 +351,41 @@ void main() {
     });
   });
 
+  group('AuthenticatedShell — push-over-shell pattern (AC-13)', () {
+    testWidgets('a pushed MaterialPageRoute paints over the bottom nav', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_buildShell(tabContentOverride: _stubTabs()));
+      await tester.pump();
+
+      // Push a new route programmatically — mirror of the SCR-26 ->
+      // SCR-27 push pattern.
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      unawaited(
+        navigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                const Scaffold(body: Center(child: Text('pushed route'))),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The pushed Scaffold is visible; the shell's BottomNavigationBar
+      // is no longer reachable from the screen (it's still in the
+      // widget tree under the shell, but the route stack hides it).
+      expect(find.text('pushed route'), findsOneWidget);
+      // The shell's tab content is no longer painted.
+      expect(find.text('content of home'), findsNothing);
+
+      // Pop the route — we return to the shell with tab 0 still active.
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('content of home'), findsOneWidget);
+      expect(find.byType(OBTBottomNav), findsOneWidget);
+    });
+  });
+
   group('AuthenticatedShell — persistent FAB (FR-HD-04 AC-1)', () {
     testWidgets('Scaffold.floatingActionButton is non-null and is an '
         'OBTFloatingActionButton on every primary tab (parameterised 0..4)', (
