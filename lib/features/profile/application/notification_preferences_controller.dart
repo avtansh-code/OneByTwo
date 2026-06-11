@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/connectivity/connectivity_provider.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
@@ -50,12 +51,17 @@ final class NotificationPreferencesError extends NotificationPreferencesState {
 /// The toggles are populated and interactive. `prefs` is the
 /// optimistic state (reflects in-flight flips). `savingKeys` is the
 /// set of categories with a debounce timer pending or a write in
-/// flight.
+/// flight. `offlineWriteJustQueued` is a one-shot signal that
+/// transitions `false → true` exactly once per controller session
+/// (the first time a toggle is flipped while the device is offline);
+/// the screen listens for the transition and surfaces the AC-10
+/// snackbar.
 final class NotificationPreferencesReady extends NotificationPreferencesState {
   /// Creates a [NotificationPreferencesReady].
   const NotificationPreferencesReady({
     required this.prefs,
     required this.savingKeys,
+    this.offlineWriteJustQueued = false,
   });
 
   /// The current (optimistic) preferences. Keys are
@@ -66,14 +72,27 @@ final class NotificationPreferencesReady extends NotificationPreferencesState {
   /// write. UI may render per-row activity indicators based on this.
   final Set<String> savingKeys;
 
-  /// Creates a copy with the given fields replaced.
+  /// One-shot AC-10 signal — `true` exactly once per controller
+  /// session the first time a flip is detected while offline. Stays
+  /// `true` for the remainder of the controller's lifetime (so the
+  /// screen-side false→true transition fires only once), then resets
+  /// when the screen is popped and a fresh autoDispose controller is
+  /// created.
+  final bool offlineWriteJustQueued;
+
+  /// Creates a copy with the given fields replaced. Preserves
+  /// [offlineWriteJustQueued] by default so the one-shot signal
+  /// stays latched.
   NotificationPreferencesReady copyWith({
     Map<String, bool>? prefs,
     Set<String>? savingKeys,
+    bool? offlineWriteJustQueued,
   }) {
     return NotificationPreferencesReady(
       prefs: prefs ?? this.prefs,
       savingKeys: savingKeys ?? this.savingKeys,
+      offlineWriteJustQueued:
+          offlineWriteJustQueued ?? this.offlineWriteJustQueued,
     );
   }
 }
@@ -115,9 +134,11 @@ class NotificationPreferencesController
   NotificationPreferencesController({
     required UserRepository repository,
     required AnalyticsService analytics,
+    required IsOnline isOnline,
     required String uid,
   }) : _repository = repository,
        _analytics = analytics,
+       _isOnline = isOnline,
        _uid = uid,
        super(const NotificationPreferencesLoading()) {
     // Fire and forget — the future drives the state transitions.
@@ -126,6 +147,7 @@ class NotificationPreferencesController
 
   final UserRepository _repository;
   final AnalyticsService _analytics;
+  final IsOnline _isOnline;
   final String _uid;
 
   /// Per-toggle debounce timers (one per category key).
@@ -139,6 +161,12 @@ class NotificationPreferencesController
   /// The last successfully persisted snapshot. Used to revert
   /// `prefs[key]` on persist failure.
   final Map<String, bool> _persistedPrefs = <String, bool>{};
+
+  /// AC-10 single-fire-per-session latch — set the first time a flip
+  /// is detected while offline. Prevents subsequent offline flips from
+  /// re-showing the banner. Reset implicitly when the autoDispose
+  /// controller is recreated on the next SCR-27 mount.
+  bool _offlineBannerSignalled = false;
 
   /// Loads the initial preferences from `users/{_uid}`.
   Future<void> _load() async {
@@ -208,6 +236,31 @@ class NotificationPreferencesController
       _debounceTimers.remove(key);
       _writeChain = _writeChain.then((_) => _persist(key, value));
     });
+
+    // (4) AC-10 — fire-and-forget connectivity probe. If we're
+    //     offline AND haven't shown the banner this session yet,
+    //     latch the one-shot signal on state so the screen can
+    //     surface the AC-10 snackbar. Subsequent flips are silent.
+    unawaited(_maybeSignalOffline());
+  }
+
+  Future<void> _maybeSignalOffline() async {
+    if (_offlineBannerSignalled) return;
+    final bool online;
+    try {
+      online = await _isOnline();
+    } on Exception {
+      // Connectivity check itself failed — assume online (don't show
+      // a false-positive banner).
+      return;
+    }
+    if (online) return;
+    if (_offlineBannerSignalled) return;
+    _offlineBannerSignalled = true;
+    if (!mounted) return;
+    final current = state;
+    if (current is! NotificationPreferencesReady) return;
+    state = current.copyWith(offlineWriteJustQueued: true);
   }
 
   Future<void> _persist(String key, bool value) async {
@@ -312,6 +365,7 @@ final notificationPreferencesControllerProvider =
       return NotificationPreferencesController(
         repository: ref.watch(userRepositoryProvider),
         analytics: ref.watch(analyticsServiceProvider),
+        isOnline: ref.watch(connectivityCheckProvider),
         uid: uid,
       );
     });

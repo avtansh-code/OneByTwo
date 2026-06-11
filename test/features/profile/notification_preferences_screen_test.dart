@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/core/connectivity/connectivity_provider.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
@@ -117,23 +118,29 @@ Widget _buildSubject({
   required _FakeUserRepository repository,
   required _FakeAnalyticsService analytics,
   PermissionState permissionState = PermissionState.granted,
+  IsOnline? isOnline,
+  AuthState? authState,
 }) {
   return ProviderScope(
     overrides: [
       userRepositoryProvider.overrideWithValue(repository),
       analyticsServiceProvider.overrideWithValue(analytics),
+      connectivityCheckProvider.overrideWithValue(
+        isOnline ?? (() async => true),
+      ),
       authStateNotifierProvider.overrideWith(
         (ref) => Stream<AuthState>.value(
-          AuthenticatedWithProfile(
-            uid: _uid,
-            user:
-                repository.userToReturn ??
-                _userWithPrefs({
-                  'newExpense': true,
-                  'settlement': true,
-                  'reminder': true,
-                }),
-          ),
+          authState ??
+              AuthenticatedWithProfile(
+                uid: _uid,
+                user:
+                    repository.userToReturn ??
+                    _userWithPrefs({
+                      'newExpense': true,
+                      'settlement': true,
+                      'reminder': true,
+                    }),
+              ),
         ),
       ),
       notificationPermissionControllerProvider.overrideWith(
@@ -247,6 +254,41 @@ void main() {
       expect(find.text('Could not load your preferences.'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
+
+    testWidgets(
+      'AC-8: tapping Retry re-issues the read and renders toggles on success',
+      (tester) async {
+        // First getUser throws; second returns the user. The Retry
+        // tap must drive the controller's reload() path.
+        final repo = _FakeUserRepository()
+          ..throwOnGet = Exception('Firestore offline')
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+        final analytics = _FakeAnalyticsService();
+
+        await tester.pumpWidget(
+          _buildSubject(repository: repo, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Retry'), findsOneWidget);
+
+        // Clear the throw before tapping Retry so the next read
+        // succeeds and the screen transitions to the populated state.
+        repo.throwOnGet = null;
+
+        await tester.tap(find.text('Retry'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Retry'), findsNothing);
+        expect(find.text('New Expenses'), findsOneWidget);
+        expect(find.text('Settlements'), findsOneWidget);
+        expect(find.text('Reminders'), findsOneWidget);
+      },
+    );
   });
 
   group('NotificationPreferencesScreen — telemetry', () {
@@ -404,5 +446,189 @@ void main() {
         findsNothing,
       );
     });
+  });
+
+  group('NotificationPreferencesScreen — AC-7 persist failure snackbar', () {
+    testWidgets(
+      'snackbar surfaces with the architect-ratified copy on persist failure',
+      (tester) async {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          })
+          ..throwOnUpdate = Exception('Firestore write rejected');
+        final analytics = _FakeAnalyticsService();
+
+        await tester.pumpWidget(
+          _buildSubject(repository: repo, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap Reminders (third switch). The optimistic flip is
+        // immediate; the persist fires after the 500 ms debounce and
+        // throws, which triggers the revert + AC-7 snackbar.
+        await tester.tap(find.byType(Switch).at(2));
+        await tester.pump();
+
+        // Drive the debounce + persist + revert through the pipeline.
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Could not update preference. Try again.'),
+          findsOneWidget,
+          reason:
+              'AC-7: the screen MUST surface the revert snackbar when a '
+              'persist throws.',
+        );
+
+        // The optimistic flip reverted (Reminders back to ON).
+        final remindersSwitch = tester
+            .widgetList<Switch>(find.byType(Switch))
+            .toList()[2];
+        expect(remindersSwitch.value, isTrue);
+
+        // The error telemetry fired.
+        final errors = analytics.events
+            .where((e) => e.name == notificationPrefErrorEvent)
+            .toList();
+        expect(errors.length, 1);
+      },
+    );
+  });
+
+  group('NotificationPreferencesScreen — auth guard', () {
+    testWidgets('unauthenticated state surfaces "Please sign in again."', (
+      tester,
+    ) async {
+      final repo = _FakeUserRepository();
+
+      await tester.pumpWidget(
+        _buildSubject(
+          repository: repo,
+          analytics: _FakeAnalyticsService(),
+          authState: const AuthUnauthenticated(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Please sign in again.'), findsOneWidget);
+      // Toggles are NOT rendered.
+      expect(find.text('New Expenses'), findsNothing);
+      // The repository was never asked to persist anything.
+      expect(repo.updateCalls, isEmpty);
+    });
+
+    testWidgets(
+      'AuthenticatedNoProfile state surfaces "Please sign in again."',
+      (tester) async {
+        final repo = _FakeUserRepository();
+
+        await tester.pumpWidget(
+          _buildSubject(
+            repository: repo,
+            analytics: _FakeAnalyticsService(),
+            authState: const AuthenticatedNoProfile(
+              uid: 'uid-no-profile',
+              phoneNumber: '+919876543210',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Please sign in again.'), findsOneWidget);
+        expect(find.text('New Expenses'), findsNothing);
+      },
+    );
+  });
+
+  group('NotificationPreferencesScreen — AC-10 offline banner', () {
+    testWidgets(
+      'first offline toggle surfaces the offline snackbar exactly once',
+      (tester) async {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+        final analytics = _FakeAnalyticsService();
+
+        await tester.pumpWidget(
+          _buildSubject(
+            repository: repo,
+            analytics: analytics,
+            isOnline: () async => false,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // First flip — banner must surface.
+        await tester.tap(find.byType(Switch).at(2));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('You are offline. Changes will sync when you reconnect.'),
+          findsOneWidget,
+          reason: 'AC-10: first offline flip must surface the banner.',
+        );
+
+        // Dismiss the snackbar so it does not interfere with the
+        // second-flip assertion.
+        ScaffoldMessenger.of(
+          tester.element(find.byType(Switch).first),
+        ).hideCurrentSnackBar();
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('You are offline. Changes will sync when you reconnect.'),
+          findsNothing,
+        );
+
+        // Second flip — banner must NOT re-surface (single-fire per
+        // session).
+        await tester.tap(find.byType(Switch).at(0));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('You are offline. Changes will sync when you reconnect.'),
+          findsNothing,
+          reason:
+              'AC-10 single-fire-per-session: subsequent offline flips '
+              'must NOT re-surface the banner.',
+        );
+      },
+    );
+
+    testWidgets(
+      'online toggles never surface the offline banner (no false positives)',
+      (tester) async {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+
+        await tester.pumpWidget(
+          _buildSubject(
+            repository: repo,
+            analytics: _FakeAnalyticsService(),
+            isOnline: () async => true,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(Switch).at(2));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('You are offline. Changes will sync when you reconnect.'),
+          findsNothing,
+        );
+      },
+    );
   });
 }

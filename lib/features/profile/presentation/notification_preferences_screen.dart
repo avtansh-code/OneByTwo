@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
+import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/notifications/application/notification_permission_controller.dart';
 import 'package:onebytwo/features/profile/application/notification_preferences_controller.dart';
 import 'package:onebytwo/features/profile/application/notification_preferences_telemetry.dart';
@@ -70,10 +72,51 @@ class _NotificationPreferencesScreenState
         }
       }
     }
+
+    // AC-10 offline banner — single-fire-per-controller-session.
+    // The controller latches `offlineWriteJustQueued` to `true` on
+    // the first offline toggle and preserves it via copyWith for the
+    // remainder of the session, so this listener fires the snackbar
+    // exactly once on the false → true edge.
+    final wasOfflineSignal =
+        previous is NotificationPreferencesReady &&
+        previous.offlineWriteJustQueued;
+    final isOfflineSignal =
+        next is NotificationPreferencesReady && next.offlineWriteJustQueued;
+    if (!wasOfflineSignal && isOfflineSignal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You are offline. Changes will sync when you reconnect.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Defence-in-depth: SCR-27 is only navigable from SCR-26 which is
+    // itself behind auth. If the auth state flips during navigation
+    // (e.g. token expiry), surface an honest 'Please sign in again.'
+    // rather than letting an empty-uid Firestore read masquerade as a
+    // generic load failure. AsyncLoading is treated as "not yet
+    // known, don't gate" — the screen waits for resolution.
+    final authState = ref.watch(authStateNotifierProvider);
+    final isAuthed = authState.maybeWhen(
+      data: (s) => s is AuthenticatedWithProfile,
+      orElse: () => true,
+    );
+    if (!isAuthed) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Notification Preferences')),
+        body: _ErrorBody(
+          message: 'Please sign in again.',
+          onRetry: () => Navigator.of(context).maybePop(),
+        ),
+      );
+    }
+
     ref.listen<NotificationPreferencesState>(
       notificationPreferencesControllerProvider,
       _onStateChange,

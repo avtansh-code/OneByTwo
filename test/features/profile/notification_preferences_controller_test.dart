@@ -17,6 +17,7 @@ import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/core/connectivity/connectivity_provider.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
@@ -125,10 +126,12 @@ NotificationPreferencesController _controller({
   required _FakeUserRepository repository,
   required _FakeAnalyticsService analytics,
   String uid = _uid,
+  IsOnline? isOnline,
 }) {
   return NotificationPreferencesController(
     repository: repository,
     analytics: analytics,
+    isOnline: isOnline ?? (() async => true),
     uid: uid,
   );
 }
@@ -544,6 +547,159 @@ void main() {
             expect(v.toString(), isNot(equals(_uid)), reason: event.name);
           }
         }
+      });
+    });
+  });
+
+  group('NotificationPreferencesController — AC-10 offline banner', () {
+    test('first offline flip latches offlineWriteJustQueued true and stays '
+        'latched', () {
+      fakeAsync((async) {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+        final analytics = _FakeAnalyticsService();
+        final controller = _controller(
+          repository: repo,
+          analytics: analytics,
+          isOnline: () async => false,
+        );
+        addTearDown(controller.dispose);
+
+        async.flushMicrotasks();
+
+        final initial = controller.state as NotificationPreferencesReady;
+        expect(initial.offlineWriteJustQueued, isFalse);
+
+        controller.setReminder(false);
+        async.flushMicrotasks();
+
+        // The offline signal latches after the async check resolves.
+        final latched = controller.state as NotificationPreferencesReady;
+        expect(latched.offlineWriteJustQueued, isTrue);
+        // Optimistic flip still works.
+        expect(latched.prefs['reminder'], isFalse);
+
+        // The flag stays latched after the debounce + persist cycle.
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        final settled = controller.state as NotificationPreferencesReady;
+        expect(settled.offlineWriteJustQueued, isTrue);
+      });
+    });
+
+    test('second offline flip in same session does not re-emit the signal', () {
+      fakeAsync((async) {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+        final analytics = _FakeAnalyticsService();
+        final controller = _controller(
+          repository: repo,
+          analytics: analytics,
+          isOnline: () async => false,
+        );
+        addTearDown(controller.dispose);
+
+        async.flushMicrotasks();
+
+        // Subscribe to state changes so we can count signal transitions.
+        var signalTransitions = 0;
+        bool? previousFlag;
+        controller.addListener((s) {
+          if (s is NotificationPreferencesReady) {
+            if (previousFlag == false && s.offlineWriteJustQueued) {
+              signalTransitions++;
+            }
+            previousFlag = s.offlineWriteJustQueued;
+          }
+        });
+
+        controller.setReminder(false);
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        controller.setNewExpense(false);
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        controller.setSettlement(false);
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        expect(
+          signalTransitions,
+          1,
+          reason:
+              'AC-10 single-fire-per-session: only the first false→true '
+              'transition fires; subsequent offline flips must not '
+              're-emit the signal',
+        );
+      });
+    });
+
+    test(
+      'online flip never sets offlineWriteJustQueued (no false positives)',
+      () {
+        fakeAsync((async) {
+          final repo = _FakeUserRepository()
+            ..userToReturn = _userWithPrefs({
+              'newExpense': true,
+              'settlement': true,
+              'reminder': true,
+            });
+          final analytics = _FakeAnalyticsService();
+          final controller = _controller(
+            repository: repo,
+            analytics: analytics,
+            isOnline: () async => true,
+          );
+          addTearDown(controller.dispose);
+
+          async.flushMicrotasks();
+
+          controller.setReminder(false);
+          async.elapse(const Duration(milliseconds: 500));
+          async.flushMicrotasks();
+
+          final settled = controller.state as NotificationPreferencesReady;
+          expect(settled.offlineWriteJustQueued, isFalse);
+        });
+      },
+    );
+
+    test('connectivity check throwing does not surface offline banner '
+        '(graceful degradation)', () {
+      fakeAsync((async) {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+          });
+        final analytics = _FakeAnalyticsService();
+        final controller = _controller(
+          repository: repo,
+          analytics: analytics,
+          isOnline: () async => throw Exception('platform channel missing'),
+        );
+        addTearDown(controller.dispose);
+
+        async.flushMicrotasks();
+
+        controller.setReminder(false);
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        final settled = controller.state as NotificationPreferencesReady;
+        expect(settled.offlineWriteJustQueued, isFalse);
       });
     });
   });
