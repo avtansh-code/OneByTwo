@@ -307,7 +307,6 @@ void main() {
         final eventCountBefore = analytics.events.length;
 
         // Invoke the system back button. The shell's PopScope intercepts.
-        // ignore: deprecated_member_use
         final didPop = await tester.binding
             .handlePopRoute(); // returns true if a handler consumed
         expect(didPop, isTrue, reason: 'PopScope must consume the pop');
@@ -336,7 +335,6 @@ void main() {
       // handles the back gesture (i.e. would close the app on a real
       // device; in the test environment handlePopRoute returns false
       // because there is no further route to pop on the root navigator).
-      // ignore: deprecated_member_use
       final didPop = await tester.binding.handlePopRoute();
       await tester.pump();
 

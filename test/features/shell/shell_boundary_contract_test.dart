@@ -1,4 +1,4 @@
-// PR #56 OBTBottomNav + AuthenticatedShell boundary-contract tests.
+// OBTBottomNav + AuthenticatedShell boundary-contract tests.
 //
 // Mirrors STRUCTURE of test/features/profile/notification_preferences_boundary_contract_test.dart:
 //   - hard-coded constant list of NEW files (so spurious recursive
@@ -9,9 +9,9 @@
 //   - the _isCommentLine helper to skip comments.
 //
 // Per the chore story §Invariant Compliance: all four invariants are
-// N/A on this PR (no money, no simplifiedBalances, no share sheet, no
-// Firebase SDK). This grep is the defence-in-depth assertion that the
-// shell does not accidentally pick up forbidden patterns through
+// N/A on this surface (no money, no simplifiedBalances, no share sheet,
+// no Firebase SDK). This grep is the defence-in-depth assertion that
+// the shell does not accidentally pick up forbidden patterns through
 // future refactors.
 
 // ignore_for_file: cascade_invocations
@@ -42,7 +42,7 @@ void main() {
           violations,
           isEmpty,
           reason:
-              'Boundary violations in PR #56 new shell files:\n'
+              'Boundary violations in new shell files:\n'
               '${violations.join('\n')}',
         );
       });
@@ -112,7 +112,7 @@ void main() {
     );
   });
 
-  group('shell boundary contract — PR #56 new files exist', () {
+  group('shell boundary contract — new shell files exist', () {
     test(
       'the five new files are present so the greps have something to scan',
       () {
@@ -124,10 +124,10 @@ void main() {
           missing,
           isEmpty,
           reason:
-              'PR #56 added these files; if any is missing, the contract '
-              'is broken and the greps above cannot enforce paise / '
-              'simplifiedBalances / PII guarantees against the new code '
-              'paths.\nMissing: ${missing.join(', ')}',
+              'The OBTBottomNav shell change added these files; if any is '
+              'missing, the contract is broken and the greps above cannot '
+              'enforce paise / simplifiedBalances / PII guarantees '
+              'against the new code paths.\nMissing: ${missing.join(', ')}',
         );
       },
     );
@@ -144,10 +144,10 @@ void main() {
         isFalse,
         reason:
             'Per architect §2.4 and AC-14, the temporary '
-            'HomePlaceholderScreen must be deleted in PR #56. Its body '
-            'content is extracted to HomeDashboardPlaceholder; the '
-            'in-AppBar Activity/Profile shortcut buttons are obsoleted '
-            'by the OBTBottomNav.',
+            'HomePlaceholderScreen must be deleted by the OBTBottomNav '
+            'shell change. Its body content is extracted to '
+            'HomeDashboardPlaceholder; the in-AppBar Activity/Profile '
+            'shortcut buttons are obsoleted by the OBTBottomNav.',
       );
     });
   });
