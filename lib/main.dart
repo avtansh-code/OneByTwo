@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -12,14 +13,22 @@ import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
+import 'package:onebytwo/features/friends/data/matching_callable_adapter.dart';
+import 'package:onebytwo/features/friends/data/matching_repository.dart';
 import 'package:onebytwo/features/notifications/data/notification_handler.dart';
 import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
+import 'package:onebytwo/features/reminders/data/reminder_callable_adapter.dart';
+import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 
 /// Whether to use the Firebase Auth Emulator.
 ///
 /// Pass `--dart-define=USE_EMULATOR=true` to `flutter run` to enable:
 ///   flutter run --dart-define=USE_EMULATOR=true
 const _useEmulator = bool.fromEnvironment('USE_EMULATOR');
+
+/// Cloud Functions region — pinned to Mumbai per SRS section 7.1 and
+/// matches `functions/src/index.ts:16` (`REGION = "asia-south1"`).
+const _functionsRegion = 'asia-south1';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,11 +54,43 @@ void main() async {
     debugPrint('[OneByTwo] Connecting to Storage emulator $host:9199...');
     await FirebaseStorage.instance.useStorageEmulator(host, 9199);
     debugPrint('[OneByTwo] Storage emulator connected.');
+    debugPrint('[OneByTwo] Connecting to Functions emulator $host:5001...');
+    FirebaseFunctions.instanceFor(
+      region: _functionsRegion,
+    ).useFunctionsEmulator(host, 5001);
+    debugPrint('[OneByTwo] Functions emulator connected.');
     // FCM emulator is NOT part of the Firebase Emulator Suite
     // (architect §2.5) — manual smoke uses real FCM tokens on a debug
     // build; tests mock at the SDK boundary via Riverpod overrides.
   }
-  runApp(const ProviderScope(child: OneBytwoApp()));
+
+  // Production wiring (FR-AC-04 architect §2.7): the repositories
+  // hide `cloud_functions` behind the `ReminderCallable` /
+  // `LookupCallable` typedefs. main.dart is the ONLY place that
+  // constructs the adapters and injects them via ProviderScope
+  // overrides — tests inject their own fake callables and never load
+  // `cloud_functions` Firebase.
+  final functions = FirebaseFunctions.instanceFor(region: _functionsRegion);
+  final reminderAdapter = ReminderCallableAdapter(
+    functions.httpsCallable('sendReminderNotification'),
+  );
+  final matchingAdapter = MatchingCallableAdapter(
+    functions.httpsCallable('lookupUserByPhoneNumber'),
+  );
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        reminderRepositoryProvider.overrideWithValue(
+          ReminderRepository(callable: reminderAdapter.asCallable),
+        ),
+        matchingRepositoryProvider.overrideWithValue(
+          MatchingRepository(lookupCallable: matchingAdapter.asCallable),
+        ),
+      ],
+      child: const OneBytwoApp(),
+    ),
+  );
 }
 
 /// Root widget for the One By Two application.

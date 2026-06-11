@@ -11,8 +11,6 @@
 
 // ignore_for_file: cascade_invocations
 
-import 'dart:async';
-
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,8 +22,8 @@ import 'package:onebytwo/features/friends/data/matching_repository.dart';
 // ---------------------------------------------------------------------------
 
 class _TestFirebaseFunctionsException extends FirebaseFunctionsException {
-  _TestFirebaseFunctionsException({required String code, dynamic details})
-    : super(message: 'test: $code', code: code, details: details);
+  _TestFirebaseFunctionsException({required super.code, super.details})
+    : super(message: 'test: $code');
 }
 
 class _FakeHttpsCallableResult<T> implements HttpsCallableResult<T> {
@@ -101,7 +99,7 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'resource-exhausted',
-          details: <String, dynamic>{'errorCode': 'RATE_LIMITED'},
+          details: const <String, dynamic>{'errorCode': 'RATE_LIMITED'},
         );
 
         try {
@@ -120,7 +118,7 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'invalid-argument',
-          details: <String, dynamic>{'errorCode': 'INVALID_INPUT'},
+          details: const <String, dynamic>{'errorCode': 'INVALID_INPUT'},
         );
 
         try {
@@ -138,7 +136,7 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'internal',
-          details: <String, dynamic>{'errorCode': 'INTERNAL'},
+          details: const <String, dynamic>{'errorCode': 'INTERNAL'},
         );
 
         try {

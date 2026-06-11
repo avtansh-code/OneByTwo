@@ -12,8 +12,6 @@
 
 // ignore_for_file: cascade_invocations
 
-import 'dart:async';
-
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,8 +23,8 @@ import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 // ---------------------------------------------------------------------------
 
 class _TestFirebaseFunctionsException extends FirebaseFunctionsException {
-  _TestFirebaseFunctionsException({required String code, dynamic details})
-    : super(message: 'test: $code', code: code, details: details);
+  _TestFirebaseFunctionsException({required super.code, super.details})
+    : super(message: 'test: $code');
 }
 
 class _FakeHttpsCallableResult<T> implements HttpsCallableResult<T> {
@@ -103,7 +101,7 @@ void main() {
         '+ nextAllowedAtIso preserved across the boundary', () async {
       callable.throwError = _TestFirebaseFunctionsException(
         code: 'resource-exhausted',
-        details: <String, dynamic>{
+        details: const <String, dynamic>{
           'errorCode': 'RATE_LIMITED',
           'nextAllowedAtIso': '2026-06-12T00:00:00.000Z',
         },
@@ -124,7 +122,7 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'failed-precondition',
-          details: <String, dynamic>{'errorCode': 'RECIPIENT_DOESNT_OWE'},
+          details: const <String, dynamic>{'errorCode': 'RECIPIENT_DOESNT_OWE'},
         );
 
         try {
@@ -143,7 +141,9 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'failed-precondition',
-          details: <String, dynamic>{'errorCode': 'RECIPIENT_PREFS_DISABLED'},
+          details: const <String, dynamic>{
+            'errorCode': 'RECIPIENT_PREFS_DISABLED',
+          },
         );
 
         try {
@@ -162,7 +162,7 @@ void main() {
       () async {
         callable.throwError = _TestFirebaseFunctionsException(
           code: 'failed-precondition',
-          details: <String, dynamic>{'errorCode': 'RECIPIENT_NO_TOKENS'},
+          details: const <String, dynamic>{'errorCode': 'RECIPIENT_NO_TOKENS'},
         );
 
         try {

@@ -26,7 +26,7 @@ import 'package:onebytwo/features/friends/data/matching_repository.dart';
 ///   - Success: returns `result.data` cast to `Map<String, dynamic>`
 ///     verbatim.
 class MatchingCallableAdapter {
-  /// Creates a [MatchingCallableAdapter] backed by [callable].
+  /// Creates a [MatchingCallableAdapter] backed by an [HttpsCallable].
   const MatchingCallableAdapter(this._callable);
 
   final HttpsCallable _callable;
@@ -37,10 +37,13 @@ class MatchingCallableAdapter {
   Future<Map<String, dynamic>> call(Map<String, dynamic> params) async {
     try {
       final result = await _callable.call<Object?>(params);
-      return Map<String, dynamic>.from(result.data as Map);
+      final data = result.data;
+      if (data is! Map) return <String, dynamic>{};
+      return Map<String, dynamic>.from(data);
     } on FirebaseFunctionsException catch (e) {
-      final details = e.details is Map
-          ? Map<String, dynamic>.from(e.details as Map)
+      final rawDetails = e.details;
+      final details = rawDetails is Map
+          ? Map<String, dynamic>.from(rawDetails)
           : <String, dynamic>{};
       final errorCode = (details['errorCode'] as String?) ?? e.code;
       throw CloudFunctionException(code: e.code, details: errorCode);
