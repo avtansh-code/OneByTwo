@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #55.
+> Last updated: PR #56 (OBTBottomNav shell + AuthenticatedShell).
 
 ---
 
@@ -744,4 +744,61 @@ on **PY3** and does NOT close any Bucket-B items directly:
   candidate list in `next-three-prs.md`.
 
 Net contribution of PR #55 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+### PR #56 (OBTBottomNav shell + AuthenticatedShell — UX foundation chore)
+
+PR #56 is a **3 SP UX-foundation chore** that closes the long-deferred
+**PR #52 §2.1 OBTBottomNav shell deferral**. No SRS-functional-requirement
+closes; the closure target is the design-system spec
+`docs/design/02-design-system/components.md §2 OBTBottomNav` and the
+information-architecture spec
+`docs/design/01-information-architecture/navigation-flow.md §1`
+(MainTabs subgraph). PR #56 ships:
+
+- `lib/core/widgets/nav/obt_bottom_nav.dart` — the design-system primitive
+  with five spec-ratified tabs (Home / Friends / Groups / Activity /
+  Profile), outlined-vs-filled icon swap on selection, and accessibility
+  semantics carrying `isSelected` on the active tab.
+- `lib/features/shell/presentation/authenticated_shell.dart` — the
+  `ConsumerStatefulWidget` host with an `IndexedStack` over the five
+  tab content widgets for state preservation, PopScope snap-to-tab-0 on
+  Android back from non-zero tabs, and per-tap
+  `bottom_nav_tab_selected` telemetry.
+- `lib/features/shell/presentation/{home_dashboard_placeholder,groups_list_placeholder}.dart`
+  — the two tab content placeholders (Home dashboard pending FR-HD-01..04;
+  Groups list pending the Sprint 3 Groups epic).
+- `lib/features/shell/application/shell_telemetry.dart` — telemetry
+  constants for the new `bottom_nav_tab_selected` event.
+- `lib/main.dart` line 133 wire change swapping `HomePlaceholderScreen`
+  for `AuthenticatedShell`, plus the matching push update in
+  `lib/features/auth/presentation/phone_entry_screen.dart`.
+- DELETION of `lib/features/auth/presentation/home_placeholder_screen.dart`
+  per architect §2.4. The body content is extracted to
+  `HomeDashboardPlaceholder`; the in-AppBar Activity/Profile shortcut
+  buttons are obsoleted by the bottom nav.
+- One new row in `docs/design/07-technical/telemetry-plan.md` §1.8
+  Cross-Cutting Events for `bottom_nav_tab_selected`.
+- 33 new tests (5 telemetry constants + 14 OBTBottomNav widget tests
+  + 10 AuthenticatedShell widget tests + 4 boundary-contract greps).
+
+**No Bucket-B items closed by PR #56.** The OBTBottomNav shell deferral
+was tracked in `docs/sprint-zero/next-three-prs.md` as a PR candidate
+and in PR #52's architect §2.1 — not as a separately tracked Bucket-B
+item. Invariants 1 / 2 / 3 / 4 are all N/A on this PR (no money flows
+through the shell, no `simplifiedBalances` access, no share-sheet code
+paths, no new Firebase SDK usage); the boundary-contract grep at
+`test/features/shell/shell_boundary_contract_test.dart` is the
+defence-in-depth assertion.
+
+**No new Bucket-B items filed by PR #56.** Two follow-up candidates
+are tracked in `docs/sprint-zero/next-three-prs.md` rather than as
+Bucket-B items: (a) the FR-HD-04 persistent FAB + Add Expense context
+picker (P0 — natural pair with the shell that just shipped), and (b)
+the `shellNavigationControllerProvider` Riverpod `Notifier<int>` that
+the FR-AC-05 cold-start deep-link expansion will need for
+programmatic tab switching (the FCM handler runs outside the widget
+tree).
+
+Net contribution of PR #56 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.
