@@ -644,3 +644,576 @@ following candidate issues once PR #55 is squash-merged:
 
 These are tracked as candidates; the orchestrator decides which (if
 any) are filed as GitHub issues at PR-#55 merge time.
+
+---
+
+## Architect Notes
+
+This section formally ratifies the ten architect calls (§2.1–§2.10)
+enumerated in the "Architect-Call Sub-Questions" section above. The
+implementing Flutter-dev MAY treat every paragraph below as a binding
+contract for PR #55 — each ratification either CONFIRMS the PM's
+recommendation with concrete technical detail, or substitutes a
+verified pattern from the actual source files at the PR #55 kickoff
+SHA. Where this section conflicts with an unverified sketch in the
+Phase-2 hand-off (notably the `MatchingRepository` constructor
+parameter name in §2.7 and the boundary-contract test scope in
+"Additional emphases"), THIS section is authoritative.
+
+### §2.1 Debounce strategy
+
+**RATIFIED: per-toggle 500 ms debounce.** Each toggle key
+(`newExpense`, `settlement`, `reminder`) owns its OWN `Timer` field
+on the controller. Flipping the SAME toggle CANCELS that key's
+pending timer and starts a fresh one. Flipping a DIFFERENT toggle
+starts ITS OWN timer without touching the others. Rapid same-toggle
+flips (AC-6) collapse to a single Firestore write with the final
+state. Independent flips across toggles (AC-5) fire at independent
+times.
+
+**REJECTED: a single global debounce.** It would lag a flip of
+toggle A behind an unrelated flip of toggle B, violating AC-5.
+
+**Storage shape on the controller:**
+
+```dart
+final Map<String, Timer?> _debounceTimers = {};
+
+void _scheduleWrite(String category, bool value) {
+  _debounceTimers[category]?.cancel();
+  _debounceTimers[category] = Timer(
+    const Duration(milliseconds: 500),
+    () => _flush(category, value),
+  );
+}
+```
+
+**Dispose hygiene:** the controller MUST cancel every entry in
+`_debounceTimers` in its `dispose()` override before clearing the
+map — mirror of the `SendReminderController` cleanup pattern.
+
+### §2.2 Dot-path partial-update writer shape
+
+**RATIFIED: a single `update()` with dot-path entries plus a
+server-timestamped `updatedAt`.** The new method
+`UserRepository.updateNotificationPrefs({required String uid,
+required Map<String, bool> prefs})` mirrors the existing
+`updateProfile` shape at
+`lib/features/auth/data/user_repository.dart:80-96` — same
+`<String, dynamic>` map type, same `_firestore.collection('users')
+.doc(uid).update(updates)` call site.
+
+**Reference implementation:**
+
+```dart
+Future<void> updateNotificationPrefs({
+  required String uid,
+  required Map<String, bool> prefs,
+}) async {
+  assert(prefs.isNotEmpty, 'prefs map must contain at least one key');
+  final updates = <String, dynamic>{
+    for (final entry in prefs.entries)
+      'notificationPrefs.${entry.key}': entry.value,
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
+  await _firestore.collection('users').doc(uid).update(updates);
+}
+```
+
+Only DIRTY keys appear in the `prefs` parameter — the writer NEVER
+sends untouched keys. Concurrent in-flight writes NEVER overwrite
+each other's untouched keys because Firestore dot-path semantics
+merge each entry into the existing `notificationPrefs` map field
+without touching siblings.
+
+**REJECTED: the legacy full-map shape**
+`update({'notificationPrefs': {...}})`. Two in-flight writes would
+race: the later one wins, silently clobbering the earlier one's
+mutation on any key it did not touch.
+
+**Rules-layer safety (cross-reference `firestore.rules:72-99`):**
+`isValidUserUpdate` re-validates the post-merge
+`request.resource.data.notificationPrefs` against
+`isValidNotificationPrefs` on EVERY update. Because Firestore
+evaluates rules against the merged document (the existing map plus
+the dot-path mutation), and because FR-AU-06 / PR #10 guarantees
+every user doc has the fully-shaped map at creation, the
+partial-map path satisfies `hasAll(['newExpense', 'settlement',
+'reminder'])` automatically. AC-17 / AC-18 / AC-19 are
+defence-in-depth proofs of this contract.
+
+### §2.3 State sealed hierarchy placement
+
+**RATIFIED: in-file with the controller.** The single file
+`lib/features/profile/application/notification_preferences_controller.dart`
+holds both the `NotificationPreferencesController` (a Riverpod 2.x
+`AutoDisposeNotifier`) and the sealed state hierarchy below it.
+Mirror of
+`lib/features/reminders/application/send_reminder_controller.dart`
+which colocates `SendReminderState` with `SendReminderController`.
+
+**Three states (sealed hierarchy):**
+
+- `NotificationPreferencesLoading` — initial state during the
+  `users/{uid}.get()` read. Renders the screen's
+  `CircularProgressIndicator`.
+- `NotificationPreferencesError({required String message})` —
+  on read failure. Renders `OBTErrorState` per AC-8 with a Retry
+  button that re-issues the read.
+- `NotificationPreferencesReady({required Map<String, bool>
+  prefs, required Set<String> savingKeys})` — populated state.
+  `prefs` is mutated in-place for optimistic updates (per AC-4);
+  `savingKeys` tracks per-key in-flight writes — the controller
+  adds a key on debounce-flush and removes it on persist
+  resolution (success or failure). The UI MAY render a subtle
+  per-row indicator (e.g. trailing spinner) when a key is in
+  `savingKeys`, though v1.0 is allowed to omit this indicator.
+
+**REJECTED: a separate `notification_preferences_state.dart`
+file.** The state hierarchy is small (three cases, no draft
+model) and there is no second consumer of the state classes. The
+per-key "saving" indicator lives INSIDE the `Ready` state as a
+`Set<String>`, NOT as a separate hierarchy variant — a separate
+`Saving` variant would require state copying on every per-key
+transition and would not compose with `Ready`'s `prefs` map.
+
+### §2.4 OS-permission "Open Settings" implementation
+
+**RATIFIED: use `FirebaseMessaging.instance.openAppNotificationSettings()`
+from the EXISTING `firebase_messaging: ^16.2.0`** (pubspec.yaml
+line 19 — no version bump). The Flutter-dev MUST verify at
+implementation kickoff:
+
+1. The method signature exists in the installed version — confirm
+   via the `firebase_messaging` package source or the pub.dev API
+   docs (grep of `lib/` confirms the API is NOT yet used anywhere
+   in this codebase, so this is a first-use).
+2. Both iOS and Android implementations route correctly — Android
+   should open `Settings.ACTION_APP_NOTIFICATION_SETTINGS`; iOS
+   should open `UIApplication.openSettingsURLString`.
+
+**Fallback ladder (graceful degradation):**
+
+- BOTH platforms support the API → ship the "Open Settings"
+  button on both.
+- ONLY ONE platform supports the API → ship the button on the
+  supported platform; ship the banner copy alone on the
+  unsupported platform; file a follow-up issue tracking the
+  deep-link gap.
+- NEITHER platform supports the API → file a follow-up issue;
+  ship the banner without the button on both platforms.
+
+The banner ITSELF (copy verbatim: "Notifications are turned off
+for this app. Enable them in your device settings to receive
+alerts.") SHIPS regardless of the API-check outcome — AC-11
+demands the banner; the button is a graceful-degradation
+extension. The banner triggers when
+`NotificationPermissionController` reports `denied` OR
+`permanentlyDenied` (per the enum at
+`lib/features/notifications/application/notification_permission_controller.dart:30-36`).
+
+**REJECTED: pulling `app_settings` or `permission_handler` as
+new pubspec dependencies.** Those are separate scope chores;
+the goal of PR #55 is to land FR-PR-03 + FR-AC-04 +
+`cloud_functions` wiring in 5 SP, not to grow the dependency
+graph for an OS-deep-link convenience. The fallback ladder
+preserves AC-11 without the new dependency.
+
+### §2.5 Adapter file placement
+
+**RATIFIED: two new files, both pure Firebase-SDK-binding shims**
+with zero business logic. The repository classes
+(`ReminderRepositoryImpl` at
+`lib/features/reminders/data/reminder_repository.dart:81-132` and
+`MatchingRepository` at
+`lib/features/friends/data/matching_repository.dart:78-106`) stay
+Firebase-SDK-free — they remain importable in pure-Dart unit tests
+with no Firebase initialisation.
+
+**File 1 — `lib/features/reminders/data/reminder_callable_adapter.dart`:**
+
+- Constructor takes the `cloud_functions` `HttpsCallable` instance
+  pointing at `sendReminderNotification` in region `asia-south1`.
+- Exposes a `Future<Map<String, dynamic>> call(Map<String, dynamic>
+  params)` method matching the `ReminderCallable` typedef at
+  `reminder_repository.dart:17-18` (note: `Map<String, dynamic>`,
+  NOT `Map<String, Object?>`).
+- Translates `FirebaseFunctionsException(code, message, details)`
+  to `ReminderCallableException(code: e.code, errorCode:
+  (e.details as Map?)?['errorCode'] as String? ?? 'UNKNOWN',
+  nextAllowedAtIso: (e.details as Map?)?['nextAllowedAtIso'] as
+  String?)` per the field shape at `reminder_repository.dart:25-46`.
+- Any NON-`FirebaseFunctionsException` (`PlatformException`,
+  `TimeoutException`, etc.) is re-thrown UNCHANGED. The
+  repository's `on Exception` branch at
+  `reminder_repository.dart:128-130` catches it and yields
+  `ReminderSendFailed('UNKNOWN')`.
+
+**File 2 — `lib/features/friends/data/matching_callable_adapter.dart`:**
+
+- Constructor takes the `cloud_functions` `HttpsCallable` instance
+  pointing at `lookupUserByPhoneNumber` in region `asia-south1`.
+- Exposes a `Future<Map<String, dynamic>> call(Map<String, dynamic>
+  params)` method matching the `LookupCallable` typedef at
+  `matching_repository.dart:4-5`.
+- Translates `FirebaseFunctionsException(code, message, details)`
+  to the EXISTING `CloudFunctionException(code: e.code, details:
+  (e.details as Map?)?['errorCode'] as String? ?? e.code)`. **Note
+  the shape: `CloudFunctionException.details` is a single `String`
+  (not a Map)** — see `matching_repository.dart:8-20`. The adapter
+  populates it from `e.details['errorCode']` (the server-side
+  `HttpsError` details key) and falls back to `e.code` if the
+  details map is absent. This matches how
+  `MatchingRepository.lookupUser` consumes the field at
+  `matching_repository.dart:99-101`
+  (`if (e.details == 'RATE_LIMITED')`).
+- DO NOT rename `CloudFunctionException` to a shared base in this
+  PR — §2.10 reconciliation 2 keeps both exception classes as-is.
+
+### §2.6 `cloud_functions` version pin
+
+**RATIFIED: pin to the latest STABLE major version on pub.dev as
+of PR #55 kickoff.** NEVER a beta, RC, or pre-release.
+
+**Flutter-dev procedure:**
+
+1. Run `flutter pub add cloud_functions` — picks the latest
+   stable automatically.
+2. Inspect the resolved version in `pubspec.lock`.
+3. Confirm the major aligns with the existing FlutterFire
+   coordinated release line at `pubspec.yaml:12-21`:
+   `cloud_firestore: ^6.3.0`, `firebase_auth: ^6.4.0`,
+   `firebase_core: ^4.7.0`, `firebase_messaging: ^16.2.0`,
+   `firebase_remote_config: ^6.4.0`, `firebase_storage:
+   ^13.3.0`. The `cloud_functions` plugin's major version moves
+   in lockstep with the rest of the FlutterFire suite — for the
+   current line (`firebase_core: ^4.x`) the resolved version is
+   most likely `cloud_functions: ^6.x`.
+4. If the resolved major MATCHES the suite line → pin with
+   caret (`^X.Y.Z`) in `pubspec.yaml`, commit `pubspec.lock`,
+   proceed.
+5. If the resolved major DOES NOT match → **STOP.** A coordinated
+   Firebase-SDK bump is a separate chore PR (it would touch every
+   Firebase plugin's pubspec entry and force a full smoke
+   regression). Surface the friction back to the orchestrator;
+   do NOT silently bump the whole suite inside PR #55 — that
+   would blow the 5-SP envelope.
+
+**REJECTED:** pinning to a beta or RC; pinning to an exact patch
+(`X.Y.Z` without caret) on a non-breaking line.
+
+### §2.7 `ProviderScope` override placement
+
+**RATIFIED: in `lib/main.dart`, REPLACE line 52
+(`runApp(const ProviderScope(child: OneBytwoApp()));`) with a
+`ProviderScope` carrying exactly two overrides.** ALSO add a single
+`useFunctionsEmulator` call inside the existing `_useEmulator`
+block at lines 34-51, placed AFTER the Storage emulator wiring at
+lines 45-47 and BEFORE the "FCM emulator is NOT part of..." comment
+at lines 48-50.
+
+**Verified constructor signatures (Flutter-dev MUST use exactly
+these param names):**
+
+- `ReminderRepositoryImpl({required ReminderCallable callable})`
+  — param name is **`callable`**. See
+  `lib/features/reminders/data/reminder_repository.dart:83`.
+- `MatchingRepository({required LookupCallable lookupCallable})`
+  — param name is **`lookupCallable`** (NOT `callable`; the
+  Phase-2 hand-off sketch had this wrong). See
+  `lib/features/friends/data/matching_repository.dart:80`.
+
+**Verified callable export names:**
+
+- `sendReminderNotification` — exported at
+  `functions/src/index.ts:43` (FR-SE-09 callable, region
+  `asia-south1`).
+- `lookupUserByPhoneNumber` — exported at
+  `functions/src/index.ts:35` (PR #34 matching callable, region
+  `asia-south1`).
+
+**Replacement for `lib/main.dart:52`:**
+
+```dart
+runApp(
+  ProviderScope(
+    overrides: [
+      reminderRepositoryProvider.overrideWithValue(
+        ReminderRepositoryImpl(
+          callable: ReminderCallableAdapter(
+            FirebaseFunctions.instanceFor(region: 'asia-south1')
+                .httpsCallable('sendReminderNotification'),
+          ),
+        ),
+      ),
+      matchingRepositoryProvider.overrideWithValue(
+        MatchingRepository(
+          lookupCallable: MatchingCallableAdapter(
+            FirebaseFunctions.instanceFor(region: 'asia-south1')
+                .httpsCallable('lookupUserByPhoneNumber'),
+          ),
+        ),
+      ),
+    ],
+    child: const OneBytwoApp(),
+  ),
+);
+```
+
+**Addition inside the `_useEmulator` block (insert AFTER line 47,
+BEFORE the FCM comment at lines 48-50):**
+
+```dart
+debugPrint('[OneByTwo] Connecting to Functions emulator $host:5001...');
+FirebaseFunctions.instanceFor(region: 'asia-south1')
+    .useFunctionsEmulator(host, 5001);
+debugPrint('[OneByTwo] Functions emulator connected.');
+```
+
+Mirror the EXACT `debugPrint` style at
+`lib/main.dart:39/42/45/47`. Note that `useFunctionsEmulator` is
+a SYNCHRONOUS void method (no `await`) — same pattern as
+`useFirestoreEmulator` at line 43.
+
+**Import additions to `lib/main.dart` (alphabetised per the
+existing convention at lines 1-16):**
+
+```dart
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:onebytwo/features/friends/data/matching_callable_adapter.dart';
+import 'package:onebytwo/features/friends/data/matching_repository.dart';
+import 'package:onebytwo/features/reminders/data/reminder_callable_adapter.dart';
+import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
+```
+
+### §2.8 Exhaustive files-to-touch list (PR diff scope)
+
+The PR #55 diff MUST contain exactly the files below. Anything
+outside this list is scope creep and must be challenged at QA
+diff review.
+
+**Documentation:**
+
+- `docs/sprint-zero/stories/FR-PR-03-FR-AC-04-notification-preferences.md`
+  (NEW — created by PM commit `61be1b1`; this `## Architect Notes`
+  appendix lands in a follow-up commit on the same branch).
+- `docs/sprint-zero/sprint-2-plan.md` (EXTEND — append the PR #55
+  row).
+- `docs/sprint-zero/next-three-prs.md` (EXTEND — roll PR #55 to
+  merged; surface PR #56 / #57 / #58 candidates).
+- `docs/audits/sprint-1/07-bucket-b-burndown.md` (EXTEND —
+  header timestamp + PR #55 entry).
+- `docs/copilot_prompts/sprint_2/18.md` (NEW — already committed
+  in prep commit `9ba9503`).
+
+**Flutter source (NEW):**
+
+- `lib/features/profile/application/notification_preferences_telemetry.dart`
+- `lib/features/profile/application/notification_preferences_controller.dart`
+  (includes the in-file sealed state hierarchy per §2.3)
+- `lib/features/profile/presentation/notification_preferences_screen.dart`
+- `lib/features/reminders/data/reminder_callable_adapter.dart`
+- `lib/features/friends/data/matching_callable_adapter.dart`
+
+**Flutter source (EXTEND):**
+
+- `lib/features/auth/data/user_repository.dart` — ADD the
+  `updateNotificationPrefs({required String uid, required
+  Map<String, bool> prefs})` method per §2.2.
+- `lib/features/profile/presentation/profile_screen.dart` lines
+  317-333 — swap the `onTap` snackbar at lines 327-331 for a
+  `Navigator.of(context).push(MaterialPageRoute<void>(builder:
+  (_) => const NotificationPreferencesScreen()))`. The
+  `Semantics` wrapper, label, icon, trailing chevron, and the
+  enclosing `_ProfileRow` are UNCHANGED.
+- `lib/main.dart` — wrap `ProviderScope` with two overrides per
+  §2.7; add `useFunctionsEmulator` under `_useEmulator`; add
+  the five new imports per §2.7.
+
+**Pubspec:**
+
+- `pubspec.yaml` — ADD `cloud_functions: ^X.Y.Z` per §2.6
+  (alphabetical position between `cloud_firestore` and `crypto`).
+- `pubspec.lock` — REGENERATED via `flutter pub get`.
+
+**Flutter tests (NEW):**
+
+- `test/features/profile/notification_preferences_controller_test.dart`
+- `test/features/profile/notification_preferences_screen_test.dart`
+- `test/features/profile/notification_preferences_boundary_contract_test.dart`
+  (Inv-1 + Inv-2 + PII-leak greps; scope per the narrowing
+  rationale in "Additional emphases" below)
+- `test/features/reminders/data/reminder_callable_adapter_test.dart`
+- `test/features/friends/data/matching_callable_adapter_test.dart`
+
+**Flutter tests (EXTEND):**
+
+- `test/features/auth/user_repository_test.dart` — ADD
+  `updateNotificationPrefs` writer tests (dot-path partial-map
+  merge assertion + `updatedAt` server timestamp assertion).
+
+**Functions tests (EXTEND):**
+
+- `functions/test/firestore-rules/users-update.test.ts` — ADD a
+  new `describe("users/{userId} — notificationPrefs updates",
+  ...)` block with three tests covering AC-17 / AC-18 / AC-19.
+
+### §2.9 Negative scope guardrails (files NOT to touch)
+
+The following paths MUST remain UNCHANGED in the PR #55 diff. CI
+diff review at PR open should reject any deviation.
+
+- **`firestore.rules`** — the existing `isValidUserUpdate` (lines
+  72-91) + `isValidNotificationPrefs` (lines 93-99) cover the new
+  partial-map path automatically. The three new rules tests in
+  `users-update.test.ts` are the defence-in-depth proof that the
+  existing rules behave correctly on the new write shape.
+- **`firestore.indexes.json`** — UNCHANGED.
+- **`storage.rules`** — UNCHANGED.
+- **`functions/package.json`** — UNCHANGED.
+- **All of `functions/src/**`** — UNCHANGED. PR #55 ships ZERO
+  new server-side code. The FR-AC-04 server-side filter (PR #53)
+  and the FR-SE-09 callable's `RECIPIENT_PREFS_DISABLED` branch
+  (PR #54) already consume `notificationPrefs.*` correctly.
+- **All `functions/test/**` EXCEPT the `users-update.test.ts`
+  extension** — UNCHANGED.
+- **`lib/features/expenses/**`, `lib/features/settlements/**`,
+  `lib/features/activity/**`, `lib/features/notifications/**`
+  (FR-AC-03 surface stable), `lib/features/reminders/**` (FR-SE-09
+  surface stable EXCEPT the new adapter file),
+  `lib/features/friends/**` (PR #34 surface stable EXCEPT the
+  new adapter file)** — UNCHANGED.
+- **`lib/features/auth/domain/user_model.dart`** — UNCHANGED.
+  The schema is fine; only the writer extends.
+- **`lib/features/auth/presentation/{home_placeholder_screen,
+  profile_setup_screen, otp_entry_screen, phone_entry_screen,
+  splash_screen, authenticated_screen}.dart`** — UNCHANGED.
+- **`lib/features/profile/presentation/{edit_profile_screen,
+  profile_placeholder_screen}.dart`,
+  `lib/features/profile/application/edit_profile_controller.dart`,
+  `lib/features/profile/presentation/widgets/photo_picker_sheet.dart`**
+  — UNCHANGED.
+- **`.github/workflows/*.yml`** — UNCHANGED.
+- **`docs/design/**`** — read-only references; NO spec updates in
+  this PR. The three new telemetry events
+  (`notification_prefs_viewed`, `notification_pref_changed`,
+  `notification_pref_error`) are ALREADY pre-declared at
+  `docs/design/07-technical/telemetry-plan.md:204-206`.
+
+### §2.10 Anticipated reconciliations
+
+1. **`profile_placeholder_screen.dart` dead-code check.** The file
+   lives alongside the real `profile_screen.dart`. The Flutter-dev
+   MUST grep `lib/**` for any reference to the placeholder
+   class/file. If dead, FILE a follow-up cleanup chore issue;
+   do NOT delete the file in PR #55 (deletion is its own
+   focused-chore PR).
+2. **`ReminderCallableException` vs `CloudFunctionException`
+   parallel classes.** Two separate exception classes for two
+   callable surfaces. PR #55 keeps both AS-IS (no rename, no
+   harmonisation). A future cosmetic chore PR MAY unify them
+   under a shared `CloudFunctionFailure` base — that work is
+   explicitly deferred per the §2.5 ratification.
+3. **`firebase_messaging.openAppNotificationSettings()` cross-
+   platform availability.** Verify at kickoff per §2.4. If only
+   one platform supports the API, ship the banner without the
+   button on the unsupported platform (graceful degradation) and
+   file a follow-up issue tracking the deep-link gap.
+4. **Future fourth `notificationPrefs.groupInvite` key (Sprint 3
+   groups epic).** The `notificationPrefs` map currently has
+   exactly three keys. If a future story adds a fourth key (e.g.
+   `groupInvite` for the Sprint 3 groups feature),
+   `firestore.rules:93-99` `isValidNotificationPrefs` will reject
+   EVERY existing user doc on the next update — because
+   `hasAll(['newExpense', 'settlement', 'reminder', 'groupInvite'])`
+   would fail until a one-shot migration backfills the new key on
+   every existing user doc. NOT in scope for PR #55; documented
+   here so the Sprint 3 planner factors a migration step into
+   that epic's story-point estimate.
+5. **`_useEmulator` Functions-emulator wiring shape.** The
+   Functions emulator connection added under `_useEmulator` (per
+   §2.7) MUST mirror the existing Firestore / Storage / Auth
+   pattern at `lib/main.dart:36-50` exactly: same `host` constant
+   (`String.fromEnvironment('EMULATOR_HOST', defaultValue:
+   'localhost')`), same `debugPrint` style (`[OneByTwo]
+   Connecting to ...` and `[OneByTwo] ... emulator connected.`),
+   same call ordering (`Firebase.initializeApp()` first, then
+   emulator wiring inside the `_useEmulator` block, then
+   `runApp`).
+
+### Additional emphases
+
+- **Boundary contract test scope (narrowed from precedent).** The
+  new file
+  `test/features/profile/notification_preferences_boundary_contract_test.dart`
+  MUST mirror the STRUCTURE of
+  `test/features/reminders/reminders_boundary_contract_test.dart`
+  (group blocks + per-file scan + `_isCommentLine` helper for
+  comment-stripping). However, the SCAN TARGET differs from the
+  reminders precedent: instead of recursively walking the entire
+  `lib/features/profile/` directory, the test MUST scan ONLY the
+  three new files explicitly:
+  - `lib/features/profile/application/notification_preferences_telemetry.dart`
+  - `lib/features/profile/application/notification_preferences_controller.dart`
+  - `lib/features/profile/presentation/notification_preferences_screen.dart`
+
+  **Rationale for the scope narrowing:**
+  `lib/features/profile/presentation/profile_screen.dart` already
+  contains legitimate layout-related `double` declarations at
+  lines 497 (`final double size;`), 518 (`final double width;`),
+  and 519 (`final double height;`) for widget sizing fields.
+  These are NOT monetary doubles (Invariant 1 governs paise
+  integers, not Flutter layout primitives), but a naive recursive
+  grep would flag them as Inv-1 violations and fail the test
+  spuriously. The three new files are the only place where new
+  monetary doubles COULD have been introduced in PR #55, so
+  narrowing the scan to that fixed list preserves the
+  defence-in-depth intent without false positives. The Inv-1
+  grep asserts ZERO matches of `.toDouble()`, `parseFloat`,
+  `/ 100` (regex `/\s*100\b` excluding `~/`), `.toFixed`, or
+  ` double `/`(double ` declarations. The Inv-2 grep asserts
+  ZERO `simplifiedBalances` references. The PII-leak grep
+  asserts ZERO literal string matches of `'userId'`, `'uid'`,
+  `'friendship_id'`, or `'friendship_id_hash'` (defence-in-depth
+  for the three new telemetry events per AC-20). All three greps
+  use the same narrowed file list.
+
+- **`hashFriendshipId` is NOT needed.** NONE of the three new
+  events (`notification_prefs_viewed`, `notification_pref_changed`,
+  `notification_pref_error`) emit a `friendshipId` or any
+  UID-composite identifier. The user is implicit — they own the
+  document being mutated. No hashing helper from
+  `lib/core/telemetry/event_id_hash.dart` is invoked from any new
+  file. The PII-leak grep described above is the affirmative gate
+  per ADR-0013; no positive-test for a hash output is required
+  for PR #55.
+
+- **`describe` block name for the new rules tests.** The three
+  new tests in
+  `functions/test/firestore-rules/users-update.test.ts` MUST be
+  wrapped in a single new
+  `describe("users/{userId} — notificationPrefs updates", ...)`
+  block (verbatim; the em-dash `—` and the trailing word
+  "updates" are part of the canonical name). The three tests
+  inside that block:
+  - **AC-17** — dot-path partial-map flip
+    (`{'notificationPrefs.reminder': false, 'updatedAt':
+    serverTimestamp()}`) is ALLOWED.
+  - **AC-18** — dot-path partial-map with a non-bool value
+    (`{'notificationPrefs.reminder': 'yes', ...}`) is REJECTED.
+  - **AC-19** — full-replace dropping a required key
+    (`{'notificationPrefs': {newExpense: true, settlement:
+    true}, ...}`) is REJECTED.
+
+### Sign-off
+
+The Architect agent RATIFIES all ten calls §2.1 through §2.10
+(plus the three additional emphases above) as binding contracts
+for PR #55. The implementing Flutter-dev MAY proceed with Phase 4
+(test-first cadence per `docs/copilot_prompts/sprint_2/18.md`
+lines 263-282) using the ratifications above as the design source
+of truth. Any deviation discovered during implementation MUST
+come back to the Architect for a follow-up amendment BEFORE the
+deviation lands in code, NOT during code review.
+
+— Architect, FR-PR-03 + FR-AC-04 (PR #55), 2026-06-11.
