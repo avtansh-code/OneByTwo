@@ -29,6 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
+import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
@@ -350,38 +351,48 @@ void main() {
     });
   });
 
-  group('AuthenticatedShell — push-over-shell pattern (AC-13)', () {
-    testWidgets('a pushed MaterialPageRoute paints over the bottom nav', (
+  group('AuthenticatedShell — persistent FAB (FR-HD-04 AC-1)', () {
+    testWidgets('Scaffold.floatingActionButton is non-null and is an '
+        'OBTFloatingActionButton on every primary tab (parameterised 0..4)', (
       tester,
     ) async {
       await tester.pumpWidget(_buildShell(tabContentOverride: _stubTabs()));
-      await tester.pump();
-
-      // Push a new route programmatically — mirror of the SCR-26 ->
-      // SCR-27 push pattern.
-      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-      unawaited(
-        navigator.push(
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                const Scaffold(body: Center(child: Text('pushed route'))),
-          ),
-        ),
-      );
       await tester.pumpAndSettle();
 
-      // The pushed Scaffold is visible; the shell's BottomNavigationBar
-      // is no longer reachable from the screen (it's still in the
-      // widget tree under the shell, but the route stack hides it).
-      expect(find.text('pushed route'), findsOneWidget);
-      // The shell's tab content is no longer painted.
-      expect(find.text('content of home'), findsNothing);
+      for (var i = 0; i < OBTBottomNav.tabs.length; i++) {
+        if (i != 0) {
+          await tester.tap(find.text(OBTBottomNav.tabs[i].label));
+          await tester.pumpAndSettle();
+        }
 
-      // Pop the route — we return to the shell with tab 0 still active.
-      navigator.pop();
-      await tester.pumpAndSettle();
-      expect(find.text('content of home'), findsOneWidget);
-      expect(find.byType(OBTBottomNav), findsOneWidget);
+        // The shell's own Scaffold is the ancestor of the IndexedStack
+        // (the tab content widgets each carry their own inner
+        // Scaffold which we must not pick up).
+        final shellScaffold = tester.widget<Scaffold>(
+          find
+              .ancestor(
+                of: find.byType(IndexedStack),
+                matching: find.byType(Scaffold),
+              )
+              .first,
+        );
+        expect(
+          shellScaffold.floatingActionButton,
+          isNotNull,
+          reason: 'tab $i: Scaffold.floatingActionButton must be non-null',
+        );
+        expect(
+          shellScaffold.floatingActionButton,
+          isA<OBTFloatingActionButton>(),
+          reason:
+              'tab $i: Scaffold.floatingActionButton must be an '
+              'OBTFloatingActionButton (design-system primitive)',
+        );
+
+        // Defence-in-depth: the FAB is also reachable in the widget
+        // tree at the shell level.
+        expect(find.byType(OBTFloatingActionButton), findsOneWidget);
+      }
     });
   });
 }

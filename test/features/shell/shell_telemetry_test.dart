@@ -17,6 +17,14 @@ void main() {
     test('bottomNavTabSelectedEvent has the canonical name', () {
       expect(bottomNavTabSelectedEvent, 'bottom_nav_tab_selected');
     });
+
+    test('fabTappedEvent has the canonical name', () {
+      expect(fabTappedEvent, 'fab_tapped');
+    });
+
+    test('expenseContextSelectedEvent has the canonical name', () {
+      expect(expenseContextSelectedEvent, 'expense_context_selected');
+    });
   });
 
   group('shell telemetry — parameter keys', () {
@@ -26,6 +34,33 @@ void main() {
 
     test('tabLabelParam is "tab_label"', () {
       expect(tabLabelParam, 'tab_label');
+    });
+
+    test('sourceTabParam is "source_tab"', () {
+      expect(sourceTabParam, 'source_tab');
+    });
+
+    test('contextTypeParam is "context_type"', () {
+      expect(contextTypeParam, 'context_type');
+    });
+  });
+
+  group('shell telemetry — context-type tokens (FR-HD-04)', () {
+    test('contextTypeFriend is "friend"', () {
+      expect(contextTypeFriend, 'friend');
+    });
+
+    test('contextTypeGroup is "group"', () {
+      expect(contextTypeGroup, 'group');
+    });
+
+    test('every token is lowercase and contains no whitespace', () {
+      const tokens = <String>[contextTypeFriend, contextTypeGroup];
+      for (final token in tokens) {
+        expect(token, equals(token.toLowerCase()));
+        expect(token.contains(' '), isFalse);
+        expect(token.isNotEmpty, isTrue);
+      }
     });
   });
 
@@ -71,6 +106,12 @@ void main() {
         tabLabelGroups,
         tabLabelActivity,
         tabLabelProfile,
+        fabTappedEvent,
+        expenseContextSelectedEvent,
+        sourceTabParam,
+        contextTypeParam,
+        contextTypeFriend,
+        contextTypeGroup,
       ];
       for (final c in allConstants) {
         for (final f in forbidden) {
