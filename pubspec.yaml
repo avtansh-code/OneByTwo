@@ -11,6 +11,7 @@ environment:
 dependencies:
   cloud_firestore: ^6.3.0 # Firestore database
   cloud_functions: ^6.3.2
+  connectivity_plus: ^7.1.1 # Network connectivity detection (FR-PR-03 AC-10)
   crypto: ^3.0.6 # SHA-256 hashing for phone number privacy
   firebase_analytics: ^12.3.0 # Usage analytics (SRS 5.10)
   firebase_app_check: ^0.4.3 # API abuse protection
