@@ -95,6 +95,32 @@ class UserRepository {
     await _firestore.collection('users').doc(uid).update(updates);
   }
 
+  /// Updates the user's notification preferences at
+  /// `users/{uid}.notificationPrefs.*` via a dot-path partial-map
+  /// Firestore merge.
+  ///
+  /// Only the keys present in [prefs] are written; untouched keys are
+  /// preserved by Firestore's dot-path merge semantics. Always sets
+  /// `updatedAt` to the server timestamp. Empty [prefs] is a no-op so
+  /// callers can flush an "empty" debounce without issuing a wasted
+  /// write.
+  ///
+  /// Per FR-PR-03 architect §2.2 + AC-23: this writer NEVER touches
+  /// `displayName`, `photoUrl`, `fcmTokens`, `locale`, `phoneNumber`,
+  /// or `createdAt`. The Firestore security rules enforce the same
+  /// invariant server-side (`request.resource.data.diff(...).changedKeys()`).
+  Future<void> updateNotificationPrefs({
+    required String uid,
+    required Map<String, bool> prefs,
+  }) async {
+    if (prefs.isEmpty) return;
+    await _firestore.collection('users').doc(uid).update(<String, Object?>{
+      for (final entry in prefs.entries)
+        'notificationPrefs.${entry.key}': entry.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Deletes the avatar file at `avatars/{uid}` from
   /// Firebase Storage.
   ///
