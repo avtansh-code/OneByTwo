@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #56 (OBTBottomNav shell + AuthenticatedShell) — 20th merged PR.
+> Last updated: PR #57 (FR-HD-04 persistent FAB + Add Expense context picker + bundled `currentUserIdProvider` production-wiring closure) — 21st merged PR.
 
 ---
 
@@ -167,6 +167,7 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #54 | FR-SE-09 | Send Reminder — sendReminderNotification callable (auth + simplifiedBalances precondition + 5-segment `_rateLimits/{senderUid}/sends/{recipientUid}` 24-hour rate-limit + prefs filter + FCM dispatch + recipient-only activity emission) + notifications/send-reminder-notification.ts FCM helper + activity-validator 'reminder' event-type extension + lib/features/reminders/ feature folder (repository + sealed result hierarchy + send controller + cooldown provider + telemetry) + OBTSettleUpCard receiving-direction variant + FriendDetailScreen owed-branch wiring | 6 | Merged |
 | #55 | FR-PR-03 + FR-AC-04 | Notification preferences UI (SCR-27) — `/profile/notifications` route with three per-event toggles (`newExpense` / `settlement` / `reminder`) + per-toggle 500 ms debounced auto-save controller + `UserRepository.updateNotificationPrefs` Firestore dot-path partial-map writer (avoids the read-modify-write race the full-map form would inherit) + production `cloud_functions` adapter wiring for `reminderRepositoryProvider` + `matchingRepositoryProvider` (closes the throw-until-overridden gap surfaced by PR #54; FR-SE-09 Send Reminder callable now reaches its production handler from the app shell) + OS-permission banner with graceful "Open Settings" degradation per architect §2.4 (`firebase_messaging: ^16.2.0` Dart API does not expose `openAppNotificationSettings()` on either platform; CTA deferred to a future `app_settings` / `permission_handler` follow-up chore) + 3 new partial-map `users-update.test.ts` rules tests | 5 | Merged |
 | #56 | CHORE-PR56 | OBTBottomNav design-system primitive (`components.md §2`) + `AuthenticatedShell` IndexedStack host for the five primary tabs (Home / Friends / Groups / Activity / Profile) + 2 new placeholder screens (Home dashboard + Groups list) + `bottom_nav_tab_selected` telemetry event + PopScope snap-to-tab-0 on Android back + `lib/main.dart` wire-change swapping `HomePlaceholderScreen` for `AuthenticatedShell` + deletion of the temporary `HomePlaceholderScreen` (closes the long-deferred PR #52 §2.1 OBTBottomNav shell deferral) | 3 | Merged |
+| #57 | FR-HD-04 | Persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive (`components.md`) at `lib/core/widgets/nav/obt_floating_action_button.dart` (50 LOC) + `AuthenticatedShell` `Scaffold.floatingActionButton` slot + `_onFabTapped` handler (FAB hidden on Activity tab per architect §2.3) + `AddExpenseContextPickerSheet` bottom sheet (282 LOC; Friend path routes to existing Add Expense bottom sheet from PR #38; Group path stubbed with "Coming soon" snackbar pending Sprint 3 Groups epic) + 6 new `shell_telemetry.dart` constants for the FAB-tap → picker-open → friend-select / group-select-stub funnel + `friend_detail_screen.dart` FAB refactor (`heroTag: 'friendDetailFab'` to avoid Hero animation collision with the shell-owned FAB) + **bundled `currentUserIdProvider` production wiring** in the `AuthenticatedWithProfile` arm of `lib/main.dart` per-arm `ProviderScope` override (closes the FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing `UnimplementedError` on first read in production) + Riverpod 2.x `dependencies: [currentUserIdProvider]` 2-character addition each on those two providers (architect §2.9 reconciliation discovery — natural completion of PR #56 architect §2.1) | 3 | Merged |
 
 ---
 
@@ -194,7 +195,8 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #54 | 6 | Merged |
 | #55 | 5 | Merged |
 | #56 | 3 | Merged (chore — UX foundation) |
-| **Total** | **87** | **20 PRs so far** |
+| #57 | 3 | Merged (FR-HD-04 + bundled regression closure) |
+| **Total** | **90** | **21 PRs so far** |
 
 Sprint 1 reference:
 
