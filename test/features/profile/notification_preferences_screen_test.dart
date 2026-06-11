@@ -22,7 +22,6 @@ import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/notifications/application/notification_permission_controller.dart';
-import 'package:onebytwo/features/profile/application/notification_preferences_controller.dart';
 import 'package:onebytwo/features/profile/application/notification_preferences_telemetry.dart';
 import 'package:onebytwo/features/profile/presentation/notification_preferences_screen.dart';
 

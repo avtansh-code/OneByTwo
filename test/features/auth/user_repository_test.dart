@@ -18,8 +18,7 @@
 // tests don't model.
 
 // ignore_for_file: cascade_invocations
-
-import 'dart:async';
+// ignore_for_file: subtype_of_sealed_class, must_be_immutable
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -30,6 +29,12 @@ import 'package:onebytwo/features/auth/data/user_repository.dart';
 // ---------------------------------------------------------------------------
 // Minimal Firestore fakes
 // ---------------------------------------------------------------------------
+//
+// `DocumentReference` and `CollectionReference` are sealed at the
+// cloud_firestore package boundary, but `implements` + `noSuchMethod`
+// remains the only way to inject a fake without pulling in
+// `fake_cloud_firestore` (which is not in pubspec). The fakes only
+// model the methods the writer touches (`collection().doc().update()`).
 
 class _FakeDocumentReference
     implements DocumentReference<Map<String, dynamic>> {
