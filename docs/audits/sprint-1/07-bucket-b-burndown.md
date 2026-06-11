@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #54.
+> Last updated: PR #55.
 
 ---
 
@@ -673,4 +673,75 @@ directly:
   a follow-up UX PR candidate.
 
 Net contribution of PR #54 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+PR #55 (FR-PR-03 + FR-AC-04 — Notification preferences UI +
+production `cloud_functions` adapter wiring) makes partial progress
+on **PY3** and does NOT close any Bucket-B items directly:
+
+- **PY3 — Expand integration tests for Sprint 2 flows:** PR #55
+  adds 43 new Flutter tests across the notification-preferences
+  feature folder and the production-adapter wiring path. The
+  breakdown: screen widget tests for SCR-27 (toggle render +
+  tap → controller invocation + per-toggle saving-state spinner
+  + error-snackbar branches + OS-permission banner visibility
+  per permission state); `NotificationPreferencesController`
+  unit tests (initial-load → Ready transition; per-toggle 500 ms
+  debounce; concurrent multi-toggle without inter-key blocking;
+  Firestore write success → `savingKeys` clear; write failure
+  → snackbar + state revert; controller dispose cancels pending
+  debounces); 2 new adapter unit tests for the production
+  `cloud_functions` overrides of `reminderRepositoryProvider`
+  and `matchingRepositoryProvider` (callable construction +
+  region pinning + the `FirebaseFunctionsException` → typed-
+  result mapping shape); `UserRepository` extension
+  tests for the new `updateNotificationPrefs(...)` writer (dot-
+  path partial-map payload shape; rejects empty map; correct
+  field-mask semantics); and a boundary-contract test asserting
+  the `cloud_functions` package boundary is consumed only via
+  the two production adapter factories (not direct in feature
+  code). On the rules side PR #55 ships 3 new `users-update.test.ts`
+  cases for the partial-map shape: positive partial-map write
+  (`notificationPrefs.reminder: false` accepted by
+  `isValidNotificationPrefs` after merge); rejection on invalid
+  value type (non-bool rejected); rejection on full-replace
+  dropping a required key (`update({'notificationPrefs': {newExpense: true, settlement: true}, ...})`
+  rejected because the merged map fails `hasAll(['newExpense','settlement','reminder'])`
+  — defence-in-depth that the partial-merge writer never
+  accidentally degrades to a clobbering full-replace). Total
+  contribution: **+43 Flutter tests + 3 rules tests.** Partial
+  credit only; PY3 remains open pending the full emulator-side
+  Flutter integration harness (orthogonal to this PR's client-only
+  scope) and the FCM round-trip emulator-side integration test
+  infrastructure (still deferred per PR #53 + PR #54 functions-dev
+  notes — the `jest.mock()` boundary limitation is unchanged).
+- **No Bucket-B items closed by PR #55.** The notification-
+  preferences screen and the `cloud_functions` adapter wiring
+  are new ground and are not separately tracked Bucket-B items.
+  Note for the reviewer cross-checking the "remaining" totals:
+  CV3 (Functions `function.ts` branch coverage at 76%) was
+  CLOSED long ago by PR #36 (now 88.57%) — the client-side
+  `cloud_functions` package wiring shipped in PR #55 is a
+  DIFFERENT chore that was tracked in `docs/sprint-zero/next-three-prs.md`
+  as a candidate for the PR #55 slot, not as a Bucket-B item.
+- **No new Bucket-B items filed by PR #55.** One follow-up
+  candidate was surfaced by QA and is tracked in
+  `docs/sprint-zero/next-three-prs.md` as a PR #56-candidate
+  rather than a Bucket-B item: the `app_settings` /
+  `permission_handler` pubspec dependency that would wire
+  AC-11's "Open Settings" CTA on both platforms (currently
+  shipping in graceful-degradation form because
+  `firebase_messaging: ^16.2.0` does not expose
+  `openAppNotificationSettings()` on the Dart API per
+  architect §2.4 ratification). The story file §2.4 (lines
+  815-819) explicitly REJECTED bundling this inside PR #55 to
+  stay within the 5 SP envelope. The remaining five follow-up
+  issue candidates (FR-PR-02 phone-number-change flow; FR-PR-05
+  Contact Support `mailto:` flow; `shared_preferences` adoption
+  tracker; `OBTBottomNav` shell; FR-SE-08 dedicated full-history
+  settlement screen) listed in the story's "Follow-up Issues to
+  File After Merge" section (lines 625-647) remain on the
+  candidate list in `next-three-prs.md`.
+
+Net contribution of PR #55 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.
