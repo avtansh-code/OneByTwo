@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
+import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/activity/presentation/activity_feed_screen.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friends_list_screen.dart';
 import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
+import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 import 'package:onebytwo/features/shell/presentation/groups_list_placeholder.dart';
 import 'package:onebytwo/features/shell/presentation/home_dashboard_placeholder.dart';
 
@@ -91,6 +93,37 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
     setState(() => _currentIndex = index);
   }
 
+  void _onFabTapped() {
+    // FR-HD-04 — emit fab_tapped with the source_tab token of the
+    // currently-active tab, then open the AddExpenseContextPickerSheet
+    // as a modal bottom sheet. PII guard: payload carries ONLY the
+    // canonical lowercase tab token (no UID-derived parameters).
+    // See `docs/design/07-technical/telemetry-plan.md §1.3` line 88.
+    //
+    // Telemetry is deliberately fire-and-forget here (no `await` on
+    // `logEvent`) so the modal sheet opens on the same frame as the
+    // FAB tap — primary-action latency must never be coupled to the
+    // analytics SDK. The picker's per-row handlers
+    // (`_onFriendSelected`, `_onGroupsTapped` in
+    // `add_expense_context_picker_sheet.dart`) DO `await` their
+    // `logEvent` calls because they sequence with `Navigator.pop` /
+    // `ScaffoldMessenger.showSnackBar` where ordering matters; the
+    // FAB-tap path has no such sequencing requirement.
+    final sourceTab = OBTBottomNav.tabs[_currentIndex].telemetryLabel;
+    ref
+        .read(analyticsServiceProvider)
+        .logEvent(
+          name: fabTappedEvent,
+          parameters: <String, Object>{sourceTabParam: sourceTab},
+        );
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const AddExpenseContextPickerSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -101,6 +134,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
       },
       child: Scaffold(
         body: IndexedStack(index: _currentIndex, children: _tabContent),
+        floatingActionButton: OBTFloatingActionButton(onPressed: _onFabTapped),
         bottomNavigationBar: OBTBottomNav(
           currentIndex: _currentIndex,
           onTabSelected: _onTabSelected,

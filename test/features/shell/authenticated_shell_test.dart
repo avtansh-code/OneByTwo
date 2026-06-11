@@ -29,6 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
+import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
@@ -382,6 +383,51 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('content of home'), findsOneWidget);
       expect(find.byType(OBTBottomNav), findsOneWidget);
+    });
+  });
+
+  group('AuthenticatedShell — persistent FAB (FR-HD-04 AC-1)', () {
+    testWidgets('Scaffold.floatingActionButton is non-null and is an '
+        'OBTFloatingActionButton on every primary tab (parameterised 0..4)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_buildShell(tabContentOverride: _stubTabs()));
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < OBTBottomNav.tabs.length; i++) {
+        if (i != 0) {
+          await tester.tap(find.text(OBTBottomNav.tabs[i].label));
+          await tester.pumpAndSettle();
+        }
+
+        // The shell's own Scaffold is the ancestor of the IndexedStack
+        // (the tab content widgets each carry their own inner
+        // Scaffold which we must not pick up).
+        final shellScaffold = tester.widget<Scaffold>(
+          find
+              .ancestor(
+                of: find.byType(IndexedStack),
+                matching: find.byType(Scaffold),
+              )
+              .first,
+        );
+        expect(
+          shellScaffold.floatingActionButton,
+          isNotNull,
+          reason: 'tab $i: Scaffold.floatingActionButton must be non-null',
+        );
+        expect(
+          shellScaffold.floatingActionButton,
+          isA<OBTFloatingActionButton>(),
+          reason:
+              'tab $i: Scaffold.floatingActionButton must be an '
+              'OBTFloatingActionButton (design-system primitive)',
+        );
+
+        // Defence-in-depth: the FAB is also reachable in the widget
+        // tree at the shell level.
+        expect(find.byType(OBTFloatingActionButton), findsOneWidget);
+      }
     });
   });
 }

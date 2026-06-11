@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #56 merged (OBTBottomNav shell + AuthenticatedShell — closes the long-deferred PR #52 §2.1 bottom-nav UX foundation).
+> Last updated: PR #57 merged (FR-HD-04 persistent FAB + Add Expense context picker — closes FR-HD-04 P0 + bundled `currentUserIdProvider` production-wiring closure that PR #56 architect §2.1 left as the mandatory natural completion).
 
 ---
 
@@ -23,12 +23,83 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #54 | PR | FR-SE-09 Send Reminder + per-friend 24-hour rate limit (merged 2026-06-09) |
 | #55 | PR | FR-PR-03 + FR-AC-04 Notification Preferences UI (SCR-27) + production `cloud_functions` adapter wiring for `reminderRepositoryProvider` + `matchingRepositoryProvider` (merged 2026-06-11) |
 | #56 | PR | OBTBottomNav design-system primitive (`components.md §2`) + `AuthenticatedShell` IndexedStack host (5 primary tabs) + 2 placeholder screens + `bottom_nav_tab_selected` telemetry + PopScope snap-to-tab-0 + `lib/main.dart` wire-change + deletion of temporary `HomePlaceholderScreen` (merged 2026-06-11) |
-| **#57** | **PR** | **Next feature/chore PR — see below** |
+| #57 | PR | FR-HD-04 persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive + `AuthenticatedShell` FAB slot + context picker bottom sheet (Friend / Group target with Group path stubbed for Sprint 3) + bundled `currentUserIdProvider` production wiring in `AuthenticatedWithProfile` arm of `lib/main.dart` (closes FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing in production) (merged 2026-06-11) |
+| **#58** | **PR** | **Next feature/chore PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #57, PR #58, PR #59. Their issue-number
+**pull requests** — i.e. PR #58, PR #59, PR #60. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #57 = number 57 on GitHub.
+orchestrator should not assume PR #58 = number 58 on GitHub.
+
+---
+
+## PR #57 — Merged
+
+**Status:** Merged 2026-06-11. FR-HD-04 P0 + bundled `currentUserIdProvider` production-wiring closure shipped.
+
+PR #57 shipped the FR-HD-04 persistent FAB + Add Expense context
+picker in a single 3-SP bundle, plus the mandatory-bundled regression
+closure for the `currentUserIdProvider` production-wiring gap that
+PR #56 left behind in its `AuthenticatedWithProfile` arm. Natural
+completion of PR #56 architect §2.1 reconciliation:
+
+- **`OBTFloatingActionButton` design-system primitive** at
+  `lib/core/widgets/nav/obt_floating_action_button.dart` per
+  `components.md` (50 LOC). Material 3 FAB with the OneByTwo
+  design tokens; reusable across every primary surface that
+  needs a primary-action FAB.
+- **`AuthenticatedShell` FAB slot.** The shell wires an
+  `OBTFloatingActionButton` into `Scaffold.floatingActionButton`;
+  `_onFabTapped` opens the Add Expense context picker bottom
+  sheet. The FAB is hidden on the Activity tab per architect §2.3
+  (Activity is a read-only surface).
+- **`AddExpenseContextPickerSheet`** at
+  `lib/features/shell/presentation/add_expense_context_picker_sheet.dart`
+  (282 LOC). Friend path routes to the existing Add Expense
+  bottom sheet (PR #38) with the selected friend pre-populated;
+  Group path stubbed with a "Coming soon" snackbar pending the
+  Sprint 3 Groups epic.
+- **6 new `shell_telemetry.dart` constants** for the FAB-tap →
+  picker-open → friend-select / group-select-stub funnel.
+- **`friend_detail_screen.dart` FAB refactor** to consume the new
+  `OBTFloatingActionButton` primitive with `heroTag: 'friendDetailFab'`
+  (avoids Hero animation collision with the shell-owned FAB).
+- **Bundled `currentUserIdProvider` production-wiring closure
+  (mandatory bundle).** `lib/main.dart` now overrides
+  `currentUserIdProvider` per-arm inside the `AuthenticatedWithProfile`
+  `ProviderScope`. Without this fix, both `friendsListProvider` and
+  `activityFeedProvider` threw `UnimplementedError` on first read in
+  production. The 2-character Riverpod 2.x `dependencies: [currentUserIdProvider]`
+  addition on each of those two providers (architect §2.9
+  reconciliation discovery) is the natural completion of PR #56
+  architect §2.1.
+
+**In-spec deviations.** None. The architect's §2.2 reconciliation
+documented spring-physics polish as a tracked follow-up (~1 SP);
+not a deviation, just a polish item now on the PR #58 candidate
+list.
+
+**Velocity:** 3 SP (PR #57) → cumulative **90 SP across 21 PRs**.
+
+**Test deltas:** +40 net new Flutter tests (1203 → 1243 passing + 30
+skipped unchanged); Functions UNCHANGED (319 / 22); `dart analyze
+--fatal-infos` + `dart format --set-exit-if-changed` clean; Inv-1 /
+Inv-2 / Inv-4 / PII-leak greps clean on the new
+`lib/features/shell/**` + `lib/core/widgets/nav/obt_floating_action_button.dart`
+files. Gate-5 storage-rules pre-existing environmental emulator
+failure (6 receipts tests in `functions/test/storage-rules/receipts.test.ts`;
+**identical pass/fail set against `main` and HEAD**; environmental
+`firestore.get()` cross-collection evaluation issue, NOT a regression
+caused by PR #57) is tracked as a separate ~1-2 SP investigation
+chore on the PR #58 candidate list below.
+
+**Manual smoke matrix:** deferred to post-merge canary per the v1.0
+single-Firebase-project convention. The PR body documents the smoke
+matrix (sign-in → shell mount → FAB visible on Home / Friends /
+Groups / Profile, hidden on Activity → tap FAB → context picker
+bottom sheet appears → select Friend → Add Expense bottom sheet
+opens with the selected friend pre-populated → select Group →
+"Coming soon" snackbar).
 
 ---
 
@@ -158,29 +229,27 @@ copy itself already conveys the required user action.
 
 ---
 
-## PR #57 — TBD
+## PR #58 — TBD
 
-**Status:** Next up. Architect picks at PR #57 kickoff per Sprint 2 velocity.
+**Status:** Next up. Architect picks at PR #58 kickoff per Sprint 2 velocity.
 
-PR #56 shipped the OBTBottomNav shell + AuthenticatedShell, closing
-the long-deferred PR #52 §2.1 bottom-nav UX-foundation chore. Every
-primary surface (Home / Friends / Groups / Activity / Profile) now
-has a stable canonical entry point; Sprint 3 features (Groups epic +
-FR-HD-01..04 dashboard) inherit a stable shell.
+PR #57 shipped the FR-HD-04 persistent FAB + Add Expense context
+picker plus the bundled `currentUserIdProvider` production-wiring
+closure. The shell now has its canonical primary-action FAB and the
+two providers it depends on (`friendsListProvider`,
+`activityFeedProvider`) are correctly wired in production. The FAB
+is the natural seam that the FR-HD-01..04 home-dashboard work and
+the Sprint 3 Groups epic will inherit.
 
 Candidates (in rough priority order — architect's call at kickoff):
 
-- **FR-HD-04 persistent FAB + Add Expense context picker** (P0 —
-  natural pair with the shell that just shipped; ~2-3 SP; the
-  context picker bottom sheet lets the user pick Friend or Group
-  target, with the Group path stubbed with "Coming soon" snackbar
-  pending the Sprint 3 Groups epic). **Highest-priority follow-up.**
-- **FR-SE-08 dedicated full-history screen** at
+- **FR-SE-08 dedicated full-history settlement screen** at
   `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
   v1.0 functionally but the dedicated screen is still a v1.0
-  commitment). Natural pairing with PR #56's shell because the
-  shared nav surface makes the "All settlements" deep-link target
-  obvious. ~3-5 SP.
+  commitment). Natural pairing with the shell + FAB that PR #56 +
+  PR #57 just shipped because the shared nav surface makes the
+  "All settlements" deep-link target obvious. ~3-5 SP. **Highest-
+  priority follow-up; top candidate for PR #58.**
 - **FR-PR-05 Contact Support `mailto:` flow** (P0; depends on
   Remote Config wiring for the support email address; small
   standalone PR ~2 SP). Closes the last P0 line item on the
@@ -189,13 +258,6 @@ Candidates (in rough priority order — architect's call at kickoff):
   AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
   ~1-2 SP. Adds the dependency + wires the CTA on both platforms.
   Natural pair with `shared_preferences` adoption below.
-- **`shellNavigationControllerProvider` + FR-AC-05 deep-link
-  tab-switching expansion** (follow-up to PR #56; ~2 SP). The FCM
-  cold-start handler currently lands on the activity feed via
-  `MaterialPageRoute.push`; a future expansion can land on a
-  SPECIFIC tab (0..4) using a Riverpod `Notifier<int>` controller
-  read by the shell. Defer until a concrete second consumer (this
-  expansion IS the second consumer).
 - **FR-PR-02 phone-number-change flow** (P1; depends on the
   existing OTP re-verification flow; medium PR ~5 SP).
 - **FR-AU-09 account-deletion flow** (P1; depends on a new
@@ -211,8 +273,35 @@ Candidates (in rough priority order — architect's call at kickoff):
   (PR #53 §2.6 `wasPermanentlyDenied` flag + FR-SE-09 §2.6 cooldown
   persistence). ~2-3 SP. Natural pair with the `app_settings` /
   `permission_handler` chore above.
+- **FR-HD-01..04 home dashboard implementation** (P0; the
+  `HomeDashboardPlaceholder` shipped by PR #56 is replaced by the
+  real dashboard; FR-HD-04 persistent FAB shipped in PR #57 means
+  the dashboard inherits the FAB-context-picker pair for free).
+  ~5-8 SP.
 - **FR-SE-09 message-compose dialog follow-up** (the deferred UX
   PR per FR-SE-09 architect §2.5). 1-2 SP.
+- **`shellNavigationControllerProvider` + FR-AC-05 deep-link
+  tab-switching expansion** (follow-up to PR #56; ~2 SP). The FCM
+  cold-start handler currently lands on the activity feed via
+  `MaterialPageRoute.push`; a future expansion can land on a
+  SPECIFIC tab (0..4) using a Riverpod `Notifier<int>` controller
+  read by the shell. Defer until a concrete second consumer (this
+  expansion IS the second consumer).
+- **`OBTFloatingActionButton` spring-physics polish** (~1 SP —
+  tracked follow-up per PR #57 architect §2.2 reconciliation. The
+  primitive shipped without the spring-physics scale-in animation
+  on first frame; cosmetic polish item, not a defect).
+- **`currentUserIdProvider` rehoming** (~1 SP — tracked follow-up
+  per PR #57 reviewer recommendation 2). The provider declaration
+  still lives at `lib/features/friends/application/friends_list_provider.dart:15-21`
+  for historical reasons (it was introduced alongside the friends
+  list in PR #35) but the consumer set has since expanded to
+  `friends`, `activity`, `shell` (the FAB context picker), and
+  `main` (the per-arm `ProviderScope` override). The name no
+  longer matches its location. Lift to `lib/features/auth/application/`
+  or `lib/core/auth/` once a next unrelated consumer arrives so the
+  rehoming has a forcing function beyond cosmetics. Architect §2.1
+  explicitly deferred this from PR #57 to keep the bundle minimal.
 - **`cloud-functions-catalogue.md §7` docs roll-up** (cosmetic
   chore; ~1 SP). The catalogue's `reminders/{senderUid}_{toUserId}`
   storage path and `RECIPIENT_NO_TOKENS → success: true` shape are
@@ -229,6 +318,16 @@ Candidates (in rough priority order — architect's call at kickoff):
   `Navigator.push(MaterialPageRoute)` call site to a `go_router`
   route; the AuthenticatedShell refactors to a
   `StatefulShellRoute.indexedStack`.
+- **Storage-rules `firestore.get()` cross-collection investigation
+  chore** (~1-2 SP — discovered by PR #57 Phase 4 QA). The
+  `npm run test:rules` Gate-5 currently shows 6 failures in
+  `functions/test/storage-rules/receipts.test.ts` against the
+  storage emulator's `firestore.get()` cross-collection predicate
+  evaluation. Failures are pre-existing on `main` (IDENTICAL
+  pass/fail set against `main` and HEAD); environmental / emulator
+  issue, NOT a code defect in `storage.rules` or in PR #57's
+  implementation. Tracked as a separate investigation rather than
+  any blocker.
 - **FCM emulator-side integration test infrastructure** (per
   PR #53 functions-dev §1 deviation). 2-3 SP.
 - **Concurrent-edit detection for FR-EX-06** (operational
@@ -251,19 +350,19 @@ Candidates (in rough priority order — architect's call at kickoff):
 
 ---
 
-## PR #58 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #57 kickoff.
-
-Candidates: whatever doesn't land in PR #57 from the list above.
-
----
-
 ## PR #59 — TBD
 
 **Status:** Slot reserved. Architect picks at PR #58 kickoff.
 
-Candidates: whatever doesn't land in PR #57 / PR #58 from the list above.
+Candidates: whatever doesn't land in PR #58 from the list above.
+
+---
+
+## PR #60 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #59 kickoff.
+
+Candidates: whatever doesn't land in PR #58 / PR #59 from the list above.
 
 ---
 
@@ -343,16 +442,30 @@ call site. The shell is the canonical post-auth root from which
 every Sprint 3 feature (Groups epic + FR-HD-01..04 home dashboard
 + FR-HD-04 persistent FAB) inherits.
 
+PR #57 picks up FR-HD-04 (persistent FAB + Add Expense context
+picker) as the natural pair with the OBTBottomNav shell PR #56 just
+shipped. The shell exposes a `Scaffold.floatingActionButton` slot
+ready for the design-system primitive; the FAB-tap → context-picker
+funnel is the canonical Add Expense entry point now that every
+primary surface inherits the shell. PR #57 also bundles the
+`currentUserIdProvider` production-wiring closure that PR #56 left
+behind in its `AuthenticatedWithProfile` arm: without the per-arm
+`ProviderScope` override + the Riverpod 2.x
+`dependencies: [currentUserIdProvider]` 2-character addition on
+`friendsListProvider` + `activityFeedProvider`, both providers
+threw `UnimplementedError` on first read in production. Natural
+completion of PR #56 architect §2.1 reconciliation.
+
 ---
 
-## Snapshot — Sprint 2 status at end of PR #56
+## Snapshot — Sprint 2 status at end of PR #57
 
 | Metric | Value |
 |---|---|
-| PRs merged in Sprint 2 | 20 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51, #52, #53, #54, #55, #56) |
-| Story points delivered | 87 |
-| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b). Remaining: 27 / 37. **PR #56 made zero Bucket-B progress** — the OBTBottomNav shell deferral was tracked in `next-three-prs.md`, not as a Bucket-B item. |
+| PRs merged in Sprint 2 | 21 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51, #52, #53, #54, #55, #56, #57) |
+| Story points delivered | 90 |
+| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b). Remaining: 27 / 37. **PR #57 made zero Bucket-B progress** — the FR-HD-04 FAB + context picker work was tracked as a P0 functional requirement (closes SRS row FR-HD-04), not as a Bucket-B item; the bundled `currentUserIdProvider` production-wiring closure was tracked in `next-three-prs.md` as a PR #56 reconciliation discovery, not as a Bucket-B item. |
 | Critical Cross-PR Constraints | C-1 RESOLVED (chore #25 closed in PR #38) |
-| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #56 did not file any new issues) |
+| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #57 did not file any new issues) |
 | Outstanding deadline-bound work | **None.** |
-| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. Activity-feed WRITE-SIDE closed by PR #51; READ-SIDE closed by PR #52. FCM push-notification round-trip closed by PR #53. FR-SE-09 Send Reminder round-trip closed by PR #54. Notification preferences round-trip closed by PR #55 (server gate from PR #53 + client UI). **Bottom-nav UX-foundation closed by PR #56** — every primary surface has a canonical entry point ahead of the Sprint 3 Groups epic. |
+| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. Activity-feed WRITE-SIDE closed by PR #51; READ-SIDE closed by PR #52. FCM push-notification round-trip closed by PR #53. FR-SE-09 Send Reminder round-trip closed by PR #54. Notification preferences round-trip closed by PR #55 (server gate from PR #53 + client UI). Bottom-nav UX-foundation closed by PR #56. **FR-HD-04 persistent FAB + Add Expense context picker closed by PR #57** — the shell exposes its canonical primary-action FAB and the Add Expense funnel is reachable from any tab; the bundled `currentUserIdProvider` production-wiring closure restores `friendsListProvider` + `activityFeedProvider` to functional state in production. |

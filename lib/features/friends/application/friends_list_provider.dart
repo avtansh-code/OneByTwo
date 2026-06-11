@@ -58,7 +58,7 @@ final friendsListProvider = StreamProvider<List<FriendListItem>>((ref) {
     );
     return List<FriendListItem>.unmodifiable(items);
   });
-});
+}, dependencies: [currentUserIdProvider]);
 
 Future<FriendListItem?> _projectItem(
   Ref ref,

@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #56 (OBTBottomNav shell + AuthenticatedShell).
+> Last updated: PR #57 (FR-HD-04 persistent FAB + Add Expense context picker + bundled `currentUserIdProvider` production-wiring closure).
 
 ---
 
@@ -801,4 +801,116 @@ programmatic tab switching (the FCM handler runs outside the widget
 tree).
 
 Net contribution of PR #56 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+
+### PR #57 (FR-HD-04 persistent FAB + Add Expense context picker — P0 feature + bundled `currentUserIdProvider` production-wiring closure)
+
+PR #57 is a **3 SP feature PR** that closes the **FR-HD-04 P0**
+SRS row (persistent FAB + Add Expense context picker) AND the
+bundled **`currentUserIdProvider` production-wiring regression**
+that PR #56 left behind in its `AuthenticatedWithProfile` arm.
+The regression closure is a mandatory bundle per architect §2.1 —
+the natural completion of PR #56 architect §2.1 reconciliation.
+PR #57 ships:
+
+- `lib/core/widgets/nav/obt_floating_action_button.dart` — the
+  design-system primitive per `components.md` (50 LOC). Material 3
+  FAB with OneByTwo design tokens; reusable across every primary
+  surface that needs a primary-action FAB.
+- `lib/features/shell/presentation/add_expense_context_picker_sheet.dart`
+  — the Add Expense context picker bottom sheet (282 LOC). Friend
+  path routes to the existing Add Expense bottom sheet (PR #38)
+  with the selected friend pre-populated; Group path stubbed with
+  a "Coming soon" snackbar pending the Sprint 3 Groups epic.
+- `lib/features/shell/application/shell_telemetry.dart` — 6 new
+  telemetry constants for the FAB-tap → picker-open →
+  friend-select / group-select-stub funnel.
+- `lib/features/shell/presentation/authenticated_shell.dart` —
+  `Scaffold.floatingActionButton` slot wiring + `_onFabTapped`
+  handler. The FAB is hidden on the Activity tab per architect
+  §2.3 (Activity is a read-only surface).
+- `lib/features/friends/presentation/friend_detail_screen.dart`
+  — FAB refactor to consume the new `OBTFloatingActionButton`
+  primitive with `heroTag: 'friendDetailFab'` (avoids Hero
+  animation collision with the shell-owned FAB).
+- `lib/main.dart` — per-arm `ProviderScope` override for
+  `currentUserIdProvider` inside the `AuthenticatedWithProfile`
+  branch. Closes the throw-until-overridden gap PR #56 left
+  behind (`friendsListProvider` + `activityFeedProvider` were
+  throwing `UnimplementedError` on first read in production
+  because the providers were declared without overrides).
+- `lib/features/friends/application/friends_list_provider.dart`
+  + `lib/features/activity/application/activity_feed_provider.dart`
+  — 2-character Riverpod 2.x `dependencies: [currentUserIdProvider]`
+  addition each so the providers correctly invalidate when the
+  signed-in user changes (architect §2.9 reconciliation
+  discovery; natural completion of §2.1).
+- 4 new test files: `test/core/widgets/nav/obt_floating_action_button_test.dart`,
+  `test/features/shell/add_expense_context_picker_sheet_test.dart`,
+  `test/features/shell/authenticated_shell_fab_integration_test.dart`,
+  `test/main_test.dart`. Plus extensions to 4 existing test files
+  (`test/features/shell/authenticated_shell_test.dart`,
+  `test/features/shell/shell_telemetry_test.dart`,
+  `test/features/shell/shell_boundary_contract_test.dart`,
+  `test/features/friends/friend_detail_screen_widget_test.dart`).
+- **40 net new Flutter tests** (1203 → 1243 passing + 30 skipped
+  unchanged). Zero new Functions tests (no server-side code).
+  All gates green: 1243 Flutter tests pass; Functions 319 / 22
+  unchanged; `dart analyze --fatal-infos` + `dart format --set-exit-if-changed`
+  clean; Inv-1 / Inv-2 / Inv-4 / PII-leak greps clean on the
+  new `lib/features/shell/**` + `lib/core/widgets/nav/obt_floating_action_button.dart`
+  files.
+
+**Closes:** **FR-HD-04 P0** (SRS row). PLUS the bundled
+**`currentUserIdProvider` production-wiring regression** that
+PR #56 left behind (per architect §2.1) — not an SRS row but the
+natural completion of PR #56 architect §2.1 reconciliation, and
+a mandatory bundle because `friendsListProvider` +
+`activityFeedProvider` were throwing `UnimplementedError` on
+first read in production until the per-arm `ProviderScope`
+override landed.
+
+**Partial UX-foundation progress.** The FAB + context picker
+shipped; two related polish items remain deferred in parallel
+and are tracked as follow-up candidates in
+`docs/sprint-zero/next-three-prs.md`:
+
+1. The `OBTBottomNav` indicator-pill-behind-icon affordance per
+   `components.md §2` — deferred by PR #56 architect §2.10
+   reconciliation 4 (Material's `BottomNavigationBar` does not
+   render the pill; pillless ship for v1.0 with revisit if/when a
+   `NavigationBar` migration is approved).
+2. The `OBTFloatingActionButton` spring-physics scale-in animation
+   on first frame — deferred by PR #57 architect §2.2
+   (cosmetic polish item, not a defect; ~1 SP follow-up).
+
+**No Bucket-B items closed by PR #57.** The FR-HD-04 FAB +
+context picker work is a P0 functional requirement (closes an
+SRS row) rather than a Bucket-B audit item; the bundled
+`currentUserIdProvider` production-wiring closure is the natural
+completion of a PR #56 reconciliation discovery, tracked in
+`next-three-prs.md`, not as a separately tracked Bucket-B item.
+Invariants 1 / 2 / 4 are all N/A on this PR (no money flows
+through the FAB or context picker, no `simplifiedBalances`
+access, no new Firebase SDK usage); Invariant 3 (share-sheet) is
+also N/A (no share-sheet code paths). The boundary-contract
+greps under `test/features/shell/shell_boundary_contract_test.dart`
+continue to pass after extension for the FAB surface.
+
+**No new Bucket-B items filed by PR #57.** One follow-up
+candidate was surfaced by Phase 4 QA and is tracked in
+`docs/sprint-zero/next-three-prs.md` rather than as a Bucket-B
+item: the **storage-rules `firestore.get()` cross-collection
+predicate evaluation gap** discovered by `npm run test:rules`
+Gate-5 — 6 failures in `functions/test/storage-rules/receipts.test.ts`
+that have an **IDENTICAL pass/fail set against `main` and HEAD**
+(i.e., they pre-exist PR #57 and are NOT a regression caused by
+this PR). The failures are an environmental / emulator issue
+with `firestore.get()` evaluation inside the storage emulator,
+not a code defect in `storage.rules` or in PR #57's
+implementation. Tracked as a separate ~1-2 SP investigation
+chore on the PR #58 candidate list.
+
+Net contribution of PR #57 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.

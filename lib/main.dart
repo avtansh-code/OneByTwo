@@ -12,6 +12,7 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
+import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/data/matching_callable_adapter.dart';
 import 'package:onebytwo/features/friends/data/matching_repository.dart';
 import 'package:onebytwo/features/notifications/data/notification_handler.dart';
@@ -130,7 +131,17 @@ class OneBytwoApp extends ConsumerWidget {
         AuthUnauthenticated() => const PhoneEntryScreen(),
         AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
           ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
-        AuthenticatedWithProfile() => const AuthenticatedShell(),
+        // Per-arm ProviderScope binds `currentUserIdProvider` to the
+        // signed-in UID for the lifetime of the AuthenticatedShell
+        // subtree. The override is dropped automatically on sign-out
+        // when the auth state transitions away from
+        // `AuthenticatedWithProfile`. See
+        // `docs/sprint-zero/stories/FR-HD-04-persistent-fab-and-context-picker.md`
+        // Architect Notes §2.1.
+        AuthenticatedWithProfile(:final uid) => ProviderScope(
+          overrides: [currentUserIdProvider.overrideWithValue(uid)],
+          child: const AuthenticatedShell(),
+        ),
       },
       loading: () => const SplashScreen(),
       error: (_, __) => const SplashScreen(),

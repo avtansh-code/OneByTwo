@@ -26,6 +26,12 @@ const _newShellFiles = <String>[
   'lib/features/shell/presentation/home_dashboard_placeholder.dart',
   'lib/features/shell/presentation/groups_list_placeholder.dart',
   'lib/core/widgets/nav/obt_bottom_nav.dart',
+  // FR-HD-04 additions — the two new shell-owned files that ship the
+  // persistent FAB primitive and the Add Expense context picker. The
+  // boundary-contract grep extends to these so AC-16 (PII guard) +
+  // AC-17 (Inv-1 paise) + AC-18 (Inv-2 simplifiedBalances) cover them.
+  'lib/core/widgets/nav/obt_floating_action_button.dart',
+  'lib/features/shell/presentation/add_expense_context_picker_sheet.dart',
 ];
 
 void main() {
@@ -114,7 +120,7 @@ void main() {
 
   group('shell boundary contract — new shell files exist', () {
     test(
-      'the five new files are present so the greps have something to scan',
+      'the new shell files are present so the greps have something to scan',
       () {
         final missing = <String>[
           for (final path in _newShellFiles)
@@ -124,10 +130,11 @@ void main() {
           missing,
           isEmpty,
           reason:
-              'The OBTBottomNav shell change added these files; if any is '
-              'missing, the contract is broken and the greps above cannot '
-              'enforce paise / simplifiedBalances / PII guarantees '
-              'against the new code paths.\nMissing: ${missing.join(', ')}',
+              'The OBTBottomNav shell change + the FR-HD-04 persistent-FAB '
+              'change collectively added these files; if any is missing, '
+              'the contract is broken and the greps above cannot enforce '
+              'paise / simplifiedBalances / PII guarantees against the new '
+              'code paths.\nMissing: ${missing.join(', ')}',
         );
       },
     );

@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
@@ -462,9 +463,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Add expense'), findsOneWidget);
+      // Per FR-HD-04 AC-15, the FriendDetailScreen FAB is refactored
+      // to consume the OBTFloatingActionButton primitive whose tooltip
+      // is "Add new expense" (components.md §3).
+      expect(find.byTooltip('Add new expense'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Add expense'));
+      await tester.tap(find.byTooltip('Add new expense'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AddExpenseBottomSheet), findsOneWidget);
@@ -581,7 +585,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // The FAB exposes a tooltip / semantic label.
-      expect(find.byTooltip('Add expense'), findsOneWidget);
+      // Per FR-HD-04 AC-15, the tooltip is the OBTFloatingActionButton
+      // primitive's "Add new expense" (components.md §3).
+      expect(find.byTooltip('Add new expense'), findsOneWidget);
     });
   });
 
@@ -897,6 +903,47 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  // ===================================================================
+  // FR-HD-04 AC-15 — FriendDetailScreen FAB refactor to use the
+  // OBTFloatingActionButton primitive with heroTag 'friendDetailFab'.
+  // ===================================================================
+
+  group('OBTFloatingActionButton refactor (FR-HD-04 AC-15)', () {
+    final state = FriendDetailStateEmpty(header: _header());
+
+    testWidgets('FAB is an OBTFloatingActionButton (design-system primitive)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          expenseRepository: FakeExpenseRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OBTFloatingActionButton), findsOneWidget);
+    });
+
+    testWidgets('FAB carries the explicit heroTag "friendDetailFab" to avoid '
+        'hero-collision with the shell FAB', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          expenseRepository: FakeExpenseRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final fab = tester.widget<OBTFloatingActionButton>(
+        find.byType(OBTFloatingActionButton),
+      );
+      expect(fab.heroTag, 'friendDetailFab');
     });
   });
 }
