@@ -229,6 +229,7 @@ via system share sheet per SRS section 3.4 / Invariant 3).
 | `notification_permission_granted` | — | — | User grants push notification permission | SRS section 4.10 |
 | `notification_permission_denied` | — | — | User denies push notification permission | SRS section 4.10 |
 | `dark_mode_toggled` | `mode` | `string` (`light` / `dark`) | Theme changes (manual toggle, if implemented) | SRS section 6.2 |
+| `bottom_nav_tab_selected` | `tab_index`, `tab_label` | `int` (0..4), `string` (`home` / `friends` / `groups` / `activity` / `profile`) | User taps a tab in `OBTBottomNav`. Fires on every tap (including taps on the already-active tab). Does NOT fire on programmatic switches (Android back-button snap-to-zero, FCM deep-link tab switches). | `components.md §2`; `navigation-flow.md §1` MainTabs subgraph |
 
 ---
 

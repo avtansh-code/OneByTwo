@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
-import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
@@ -19,6 +18,7 @@ import 'package:onebytwo/features/notifications/data/notification_handler.dart';
 import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
 import 'package:onebytwo/features/reminders/data/reminder_callable_adapter.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
+import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 
 /// Whether to use the Firebase Auth Emulator.
 ///
@@ -130,7 +130,7 @@ class OneBytwoApp extends ConsumerWidget {
         AuthUnauthenticated() => const PhoneEntryScreen(),
         AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
           ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
-        AuthenticatedWithProfile() => const HomePlaceholderScreen(),
+        AuthenticatedWithProfile() => const AuthenticatedShell(),
       },
       loading: () => const SplashScreen(),
       error: (_, __) => const SplashScreen(),
