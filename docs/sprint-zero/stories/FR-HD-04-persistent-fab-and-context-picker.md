@@ -549,4 +549,314 @@ any) are filed as GitHub issues at PR-#57 merge time.
 
 ## Architect Notes
 
-*To be appended in Phase 2 by the architect agent.*
+The following ratifies the §2.1–§2.9 decisions from the canonical
+prompt (`docs/copilot_prompts/sprint_2/20.md` §2). Where these
+decisions DIVERGE from the PM agent's recommendations in §2.1 /
+§2.2 / §2.3 / §2.4 of the **Architect-Call Sub-Questions** section
+above, this appendix is the **authoritative override** and the
+affected sub-question paragraphs are superseded. The 18 ACs
+(AC-1 … AC-18) remain location-agnostic and are NOT modified —
+this appendix only refines the implementation details (file paths,
+provider-override scoping, and the exhaustive files-to-touch list).
+
+### §2.1 — `currentUserIdProvider` override location (OVERRIDES PM §2.4)
+
+**RATIFY:** `lib/main.dart` `AuthenticatedWithProfile(:final uid)`
+arm wrapped in a **per-arm `ProviderScope`** overriding
+`currentUserIdProvider.overrideWithValue(uid)`. Concretely:
+
+```dart
+AuthenticatedWithProfile(:final uid) => ProviderScope(
+  overrides: [currentUserIdProvider.overrideWithValue(uid)],
+  child: const AuthenticatedShell(),
+),
+```
+
+**Explicit override of PM §2.4** (which recommended a root-scope
+`Provider.overrideWith(...)` that reads `authStateProvider` and
+exposes the `uid` field of `AuthenticatedWithProfile`). The
+per-arm scope is preferred because:
+
+1. The override is correctly DROPPED when the user signs out
+   (auth state transitions to `AuthUnauthenticated`); a root-scope
+   `Provider.overrideWith` would either always-throw outside the
+   authenticated arm or leak the previous UID across sign-out
+   transitions until the root scope is rebuilt by the
+   `MaterialApp` `ValueKey('app-$stateCategory')` swap.
+2. Mirrors the existing precedent at `main.dart:81-93` — the
+   production `cloud_functions` adapters for
+   `reminderRepositoryProvider` + `matchingRepositoryProvider`
+   live in the root `ProviderScope`; this PR introduces the
+   SECOND `ProviderScope` (per-arm, narrower) for auth-derived
+   overrides.
+3. Keeps `AuthenticatedShell` provider-agnostic — no
+   `authStateProvider` read inside the shell, no auth-state
+   coupling in the shell's widget tree. The shell continues to
+   read `currentUserIdProvider` directly (the existing
+   `friends_list_provider.dart:15-21` declaration is unchanged
+   and still throws `UnimplementedError` when read outside the
+   per-arm scope, which is the desired defence-in-depth).
+
+### §2.2 — Spring-physics polish OUT OF SCOPE
+
+**RATIFY:** ship `OBTFloatingActionButton` without the
+spring-physics scale-down + 200 ms spring release described in
+`docs/design/02-design-system/components.md §3 States`. Flutter's
+default `Material` ink-response (the press ripple inside the
+underlying `FloatingActionButton`) provides the baseline tap
+feedback. The spring physics would require a custom
+`AnimationController` + `Transform.scale` wrapper (~30 LOC + a
+controller-lifecycle test + a golden test for the scaled frame).
+The tap-feedback baseline is acceptable for v1.0. Track as a
+follow-up — parallel to the OBTBottomNav indicator-pill deferral
+(PR #56 §2.10 reconciliation 4).
+
+### §2.3 — Group-path stub: "Coming in Sprint 3" snackbar + telemetry fires
+
+**RATIFY:** the Groups row in the picker is always tappable (even
+though the Sprint 3 Groups feature is not yet shipped). Tapping
+the row:
+
+1. Shows a `SnackBar` with copy **"Group expenses coming in Sprint 3."**
+2. Fires `expense_context_selected` with `context_type: 'group'`
+   so the analytics funnel captures user intent to add a Group
+   expense even though the path is stubbed — Sprint 3 PM can size
+   the Groups feature against actual intent volume.
+3. KEEPS the picker mounted (does NOT `Navigator.pop`); the user
+   can then pick a friend OR dismiss the picker via scrim tap or
+   back gesture.
+
+The disabled / muted visual style on the Groups row communicates
+the deferred state per `components.md §3` disabled-state token.
+
+### §2.4 — `FriendDetailScreen` FAB refactor + hero-tag mitigation
+
+**RATIFY:** refactor the existing FAB at
+`lib/features/friends/presentation/friend_detail_screen.dart:135-140`
+to consume:
+
+```dart
+OBTFloatingActionButton(
+  heroTag: 'friendDetailFab',
+  onPressed: () => _openAddExpenseSheet(context),
+)
+```
+
+The explicit `heroTag` (a `String`, not the default `Object`)
+prevents the theoretical hero-tag collision-with-shell-FAB
+scenario even if a future refactor introduces `Stack`-based
+layering between the shell and a detail screen. The existing
+`_openAddExpenseSheet` helper body is UNCHANGED — the screen
+already knows `friendshipId` + `currentUserUid` + `otherUserUid`
+from its constructor args, so the picker is bypassed (contextual
+pre-fill is the entire point of the per-friend FAB). Surgical-diff
+scope per PM §2.7 recommendation is correct and ratified.
+
+### §2.5 — Picker file location (OVERRIDES PM §2.2)
+
+**RATIFY:** `lib/features/shell/presentation/add_expense_context_picker_sheet.dart`
+(under the `shell/` folder, NOT under
+`lib/features/expenses/presentation/`).
+
+**Explicit override of PM §2.2** (which recommended
+`lib/features/expenses/presentation/add_expense_context_picker_sheet.dart`
+on the grounds that the picker sits next to `add_expense_bottom_sheet.dart`).
+Rationale for the override:
+
+1. The picker is a SHELL-level routing affordance that DECIDES
+   which context to enter (Friend / Group); it is invoked by the
+   shell's persistent FAB, not by the expenses feature.
+2. Placing it under `expenses/` would conflate "where the picker
+   lives" with "where the add-expense flow lives". The picker's
+   destination happens to be `AddExpenseBottomSheet`, but the
+   picker itself owns no expense state — it only chooses the
+   `friendshipId` + `currentUserUid` + `otherUserUid` arguments
+   to pass through.
+3. When `go_router` ships a real router decision in Sprint 3
+   (per the deferred navigation-flow ShellRoute migration), the
+   picker can be deleted in favour of a router-native typed-route
+   resolver without disturbing the expenses feature; placing it
+   under `expenses/` would create a misleading deletion target.
+
+### §2.6 — `OBTFloatingActionButton` location (OVERRIDES PM §2.1)
+
+**RATIFY:** `lib/core/widgets/nav/obt_floating_action_button.dart`
+(same `nav/` sub-folder as the existing `obt_bottom_nav.dart`).
+
+**Explicit override of PM §2.1** (which recommended a new
+`lib/core/widgets/fab/obt_floating_action_button.dart`
+sub-folder). Rationale for the override:
+
+1. The FAB and the bottom nav are visually + semantically paired
+   on every primary tab per
+   `docs/design/02-design-system/components.md §3` — the FAB is
+   described as "floating above the bottom navigation bar".
+   Co-locating them in `nav/` keeps the navigation primitives
+   together as a single design-system family.
+2. PR #56 (`OBTBottomNav`) established the `nav/` sub-folder
+   precedent. Spawning a new `fab/` sub-folder for a single leaf
+   primitive that is semantically a nav-bar peer fragments the
+   design-system primitive home without architectural benefit.
+3. If a non-nav-paired FAB primitive ever ships (e.g. an inline
+   FAB inside a scrollable list), a `fab/` sub-folder can be
+   carved out at THAT point — but the persistent shell FAB is a
+   nav-bar peer and belongs in `nav/`.
+
+### §2.7 — Telemetry constants placement (OVERRIDES PM §2.3) + exhaustive file-touch list
+
+**Telemetry constants placement.** **RATIFY:** EXTEND
+`lib/features/shell/application/shell_telemetry.dart` with the
+new constants. **Explicit override of PM §2.3** (which recommended
+a NEW `lib/features/expenses/application/add_expense_telemetry.dart`
+file). Rationale: both events are emitted by code that lives under
+`lib/features/shell/` — `fab_tapped` by the shell's `_onFabTapped`
+handler, and `expense_context_selected` by the picker (which
+lives under `lib/features/shell/presentation/` per §2.5 above).
+The shell-telemetry file is the canonical home; spawning a new
+file under `expenses/application/` would split the
+shell-emitted-event constants across two files for no
+architectural benefit and would imply (incorrectly) that the
+expenses feature owns the events.
+
+Constants to ADD to `shell_telemetry.dart`:
+
+| Constant | Value |
+|---|---|
+| `fabTappedEvent` | `'fab_tapped'` |
+| `expenseContextSelectedEvent` | `'expense_context_selected'` |
+| `sourceTabParam` | `'source_tab'` |
+| `contextTypeParam` | `'context_type'` |
+| `contextTypeFriend` | `'friend'` |
+| `contextTypeGroup` | `'group'` |
+
+The existing `tabLabelHome` / `tabLabelFriends` / `tabLabelGroups`
+/ `tabLabelActivity` / `tabLabelProfile` constants in
+`shell_telemetry.dart` (PR #56) ARE REUSED as the `source_tab`
+parameter values — no duplicate token set, single source of truth
+for the lowercase tab tokens.
+
+**Files to touch (exhaustive — anything outside this set is
+scope creep):**
+
+**NEW files (5):**
+
+- `lib/core/widgets/nav/obt_floating_action_button.dart` — the
+  design-system primitive (per §2.6 above).
+- `lib/features/shell/presentation/add_expense_context_picker_sheet.dart`
+  — the picker (per §2.5 above).
+- `test/core/widgets/nav/obt_floating_action_button_test.dart`
+  — primitive widget tests (render, tap, hero-tag, semantics).
+- `test/features/shell/add_expense_context_picker_sheet_test.dart`
+  — picker state-matrix tests (Friends populated / empty /
+  loading / error + Groups stub row).
+- `test/features/shell/authenticated_shell_fab_integration_test.dart`
+  — FAB → picker → `AddExpenseBottomSheet` flow + the AC-4 /
+  AC-5 5-tab parameterised telemetry assertions.
+
+**MODIFY files (up to 9):**
+
+- `lib/features/shell/application/shell_telemetry.dart` — extend
+  with the 6 new constants enumerated above.
+- `lib/features/shell/presentation/authenticated_shell.dart` —
+  add `floatingActionButton: OBTFloatingActionButton(onPressed: _onFabTapped)`
+  to the `Scaffold` + a `_onFabTapped()` handler that (a) emits
+  `fab_tapped` with `source_tab` = canonical lowercase token for
+  `_currentIndex`, then (b) calls `showModalBottomSheet` with
+  `AddExpenseContextPickerSheet`.
+- `lib/features/friends/presentation/friend_detail_screen.dart`
+  — lines 135-140 refactor ONLY (per §2.4 above);
+  `_openAddExpenseSheet` body UNCHANGED.
+- `lib/main.dart` — `AuthenticatedWithProfile(:final uid)` arm
+  wrapped in
+  `ProviderScope(overrides: [currentUserIdProvider.overrideWithValue(uid)], child: const AuthenticatedShell())`
+  (per §2.1 above).
+- `test/features/shell/authenticated_shell_test.dart` — extend
+  with the AC-1 parameterised "FAB rendered on every tab" test.
+- `test/features/shell/shell_telemetry_test.dart` — extend with
+  string-equality tests for the 6 new constants (event-name +
+  param-key tokens).
+- `test/features/shell/shell_boundary_contract_test.dart` —
+  extend the `_newShellFiles` list with the 2 new file paths
+  (`obt_floating_action_button.dart` +
+  `add_expense_context_picker_sheet.dart`) so the AC-16 / AC-17
+  / AC-18 defence-in-depth greps cover them.
+- Either NEW `test/main_test.dart` OR EXTEND
+  `test/features/auth/auth_gate_test.dart` for the AC-13 + AC-14
+  regression-guard tests on the `currentUserIdProvider` per-arm
+  override (scope dropped on sign-out; UID accessible inside the
+  authenticated arm).
+- Possibly EXTEND
+  `test/features/friends/presentation/friend_detail_screen_test.dart`
+  for AC-15 (`FriendDetailScreen` FAB primitive type +
+  `heroTag: 'friendDetailFab'` assertion).
+
+### §2.8 — Files explicitly NOT to touch (negative scope guardrails)
+
+**RATIFY:**
+
+- `firestore.rules`, `firestore.indexes.json`, `storage.rules`
+  — UNCHANGED.
+- `functions/package.json`, all of `functions/src/**`, all of
+  `functions/test/**` — UNCHANGED. (Functions test counts:
+  319 / 22 + 191 / 9 unchanged — asserted in Definition of Done.)
+- `lib/features/expenses/**` — zero changes. The picker invokes
+  the existing `AddExpenseBottomSheet` via its existing
+  constructor API at `add_expense_bottom_sheet.dart:29-58`
+  (`friendshipId`, `currentUserUid`, `otherUserUid`,
+  `initialExpense`, `initialExpenseId`).
+- `lib/features/settlements/**`, `lib/features/activity/**`,
+  `lib/features/notifications/**`, `lib/features/reminders/**`,
+  `lib/features/profile/**`, `lib/features/auth/**` — UNCHANGED
+  (these features are UNAFFECTED by the FAB / picker /
+  `currentUserIdProvider` wiring; the wiring change is in
+  `lib/main.dart` ONLY).
+- `lib/features/friends/**` except
+  `friend_detail_screen.dart:135-140` (FAB refactor) — UNCHANGED.
+- `lib/core/connectivity/**`, `lib/core/balances/**`,
+  `lib/core/formatters/**`, `lib/core/routing/**`,
+  `lib/core/services/**`, `lib/core/telemetry/**` — UNCHANGED.
+- `lib/core/widgets/**` except the NEW
+  `nav/obt_floating_action_button.dart` — UNCHANGED.
+- `pubspec.yaml`, `pubspec.lock`, `ios/Podfile.lock` — UNCHANGED
+  (no new FlutterFire plugins; no new Dart deps).
+- `.github/workflows/*.yml` — UNCHANGED.
+- `docs/design/**` — read-only references; no spec updates in
+  this PR.
+- `docs/design/07-technical/telemetry-plan.md` — UNCHANGED; both
+  events (`fab_tapped`, `expense_context_selected`) were
+  PRE-DECLARED in §1.3 lines 88-89.
+
+### §2.9 — Anticipated reconciliations
+
+**RATIFY** the following 5 reconciliations against prior PRs:
+
+1. `lib/features/profile/presentation/profile_placeholder_screen.dart`
+   still exists alongside the real `profile_screen.dart`
+   (PR #55 §2.10 reconciliation 1; PR #56 §2.10 reconciliation 1).
+   Still NOT touched by this PR — the placeholder cleanup is a
+   separate chore.
+2. The shell's `Scaffold` now has `appBar: null` AND
+   `floatingActionButton: OBTFloatingActionButton(...)` — the
+   AC-18 negative-`AppBar` assertion from PR #56 still holds
+   (the shell does NOT inject an outer `AppBar`; every tab
+   content widget owns its own), augmented by the new
+   positive-FAB assertion from AC-1.
+3. The `OBTBottomNav` indicator pill is still deferred per
+   PR #56 §2.10 reconciliation 4. The `OBTFloatingActionButton`
+   spring physics are deferred per §2.2 above — parallel
+   design-system polish deferrals.
+4. The Groups feature folder `lib/features/groups/` is still
+   empty. The picker's Groups stub row is colocated under
+   `lib/features/shell/presentation/` (inside the picker file)
+   for the same architectural reason as the
+   `GroupsListPlaceholder` (PR #56 §2.5) — placeholder UI for an
+   unshipped feature lives with the shell that hosts it, not in
+   a phantom feature folder.
+5. The `currentUserIdProvider` regression closure means the
+   Friends + Activity tabs are now functionally complete from a
+   code-path perspective (PR #56 shipped the tabs but the
+   Friends tab crashed on first tap because
+   `currentUserIdProvider` threw `UnimplementedError` in
+   production). The PR #56 manual smoke matrix (still deferred
+   per PR #56 §2.10) can be folded into the PR #57 smoke matrix
+   executed by QA in Phase 4.
