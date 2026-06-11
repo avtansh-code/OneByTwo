@@ -99,6 +99,16 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
     // as a modal bottom sheet. PII guard: payload carries ONLY the
     // canonical lowercase tab token (no UID-derived parameters).
     // See `docs/design/07-technical/telemetry-plan.md §1.3` line 88.
+    //
+    // Telemetry is deliberately fire-and-forget here (no `await` on
+    // `logEvent`) so the modal sheet opens on the same frame as the
+    // FAB tap — primary-action latency must never be coupled to the
+    // analytics SDK. The picker's per-row handlers
+    // (`_onFriendSelected`, `_onGroupsTapped` in
+    // `add_expense_context_picker_sheet.dart`) DO `await` their
+    // `logEvent` calls because they sequence with `Navigator.pop` /
+    // `ScaffoldMessenger.showSnackBar` where ordering matters; the
+    // FAB-tap path has no such sequencing requirement.
     final sourceTab = OBTBottomNav.tabs[_currentIndex].telemetryLabel;
     ref
         .read(analyticsServiceProvider)

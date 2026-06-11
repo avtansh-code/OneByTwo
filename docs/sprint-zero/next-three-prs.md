@@ -291,6 +291,17 @@ Candidates (in rough priority order — architect's call at kickoff):
   tracked follow-up per PR #57 architect §2.2 reconciliation. The
   primitive shipped without the spring-physics scale-in animation
   on first frame; cosmetic polish item, not a defect).
+- **`currentUserIdProvider` rehoming** (~1 SP — tracked follow-up
+  per PR #57 reviewer recommendation 2). The provider declaration
+  still lives at `lib/features/friends/application/friends_list_provider.dart:15-21`
+  for historical reasons (it was introduced alongside the friends
+  list in PR #35) but the consumer set has since expanded to
+  `friends`, `activity`, `shell` (the FAB context picker), and
+  `main` (the per-arm `ProviderScope` override). The name no
+  longer matches its location. Lift to `lib/features/auth/application/`
+  or `lib/core/auth/` once a next unrelated consumer arrives so the
+  rehoming has a forcing function beyond cosmetics. Architect §2.1
+  explicitly deferred this from PR #57 to keep the bundle minimal.
 - **`cloud-functions-catalogue.md §7` docs roll-up** (cosmetic
   chore; ~1 SP). The catalogue's `reminders/{senderUid}_{toUserId}`
   storage path and `RECIPIENT_NO_TOKENS → success: true` shape are
