@@ -1,5 +1,5 @@
 /// Telemetry event-name, parameter-key, and tab-label-token constants
-/// for the [AuthenticatedShell] bottom-nav.
+/// for the authenticated shell's bottom-nav.
 ///
 /// One event ships with this surface: `bottom_nav_tab_selected`. It
 /// fires on every user-initiated tab tap (NOT on programmatic switches
@@ -19,7 +19,7 @@ library;
 // Event name.
 // ---------------------------------------------------------------------------
 
-/// User tapped a tab in [OBTBottomNav]. Single client event for the
+/// User tapped a tab in the bottom nav. Single client event for the
 /// shell surface.
 const String bottomNavTabSelectedEvent = 'bottom_nav_tab_selected';
 

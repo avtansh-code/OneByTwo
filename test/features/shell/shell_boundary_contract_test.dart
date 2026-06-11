@@ -133,28 +133,24 @@ void main() {
     );
   });
 
-  group(
-    'shell boundary contract — temporary HomePlaceholderScreen deletion (AC-14)',
-    () {
-      test(
-        'lib/features/auth/presentation/home_placeholder_screen.dart is deleted',
-        () {
-          const path =
-              'lib/features/auth/presentation/home_placeholder_screen.dart';
-          expect(
-            File(path).existsSync(),
-            isFalse,
-            reason:
-                'Per architect §2.4 and AC-14, the temporary '
-                'HomePlaceholderScreen must be deleted in PR #56. Its body '
-                'content is extracted to HomeDashboardPlaceholder; the '
-                'in-AppBar Activity/Profile shortcut buttons are obsoleted '
-                'by the OBTBottomNav.',
-          );
-        },
+  group('shell boundary contract — temporary HomePlaceholderScreen '
+      'deletion (AC-14)', () {
+    test('lib/features/auth/presentation/home_placeholder_screen.dart '
+        'is deleted', () {
+      const path =
+          'lib/features/auth/presentation/home_placeholder_screen.dart';
+      expect(
+        File(path).existsSync(),
+        isFalse,
+        reason:
+            'Per architect §2.4 and AC-14, the temporary '
+            'HomePlaceholderScreen must be deleted in PR #56. Its body '
+            'content is extracted to HomeDashboardPlaceholder; the '
+            'in-AppBar Activity/Profile shortcut buttons are obsoleted '
+            'by the OBTBottomNav.',
       );
-    },
-  );
+    });
+  });
 }
 
 void _assertNewFilesExist() {

@@ -14,6 +14,8 @@
 
 // ignore_for_file: cascade_invocations
 
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -228,24 +230,24 @@ void main() {
       await tester.pumpWidget(_host(currentIndex: 2, onTabSelected: (_) {}));
 
       // BottomNavigationBar wraps each item in a Semantics node with
-      // SemanticsFlag.isSelected toggled for the active tab. We assert
-      // by walking from the Groups label up the semantics tree until we
-      // find a node that carries the flag.
+      // isSelected toggled for the active tab. Walk up from the Groups
+      // label until we find a node that carries the flag.
       final groupsSemantics = tester.getSemantics(find.text('Groups'));
-      // The label node itself, or a parent up to BottomNavigationBar,
-      // must carry isSelected: true.
-      var node = groupsSemantics;
-      var selected = node.hasFlag(SemanticsFlag.isSelected);
-      while (!selected && node.parent != null) {
-        node = node.parent!;
-        selected = node.hasFlag(SemanticsFlag.isSelected);
+      SemanticsNode? node = groupsSemantics;
+      var selected = false;
+      while (node != null) {
+        if (node.flagsCollection.isSelected == Tristate.isTrue) {
+          selected = true;
+          break;
+        }
+        node = node.parent;
       }
       expect(
         selected,
         isTrue,
         reason:
-            'Active tab must carry SemanticsFlag.isSelected for '
-            'accessibility frameworks to announce "Selected".',
+            'Active tab must carry isSelected: true for accessibility '
+            'frameworks to announce "Selected".',
       );
     });
   });

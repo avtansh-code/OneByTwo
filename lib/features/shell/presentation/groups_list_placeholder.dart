@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Placeholder content for the Groups tab (index 2 of
-/// [AuthenticatedShell]).
+/// Placeholder content for the Groups tab (index 2 of the authenticated
+/// shell).
 ///
 /// `lib/features/groups/` is greenfield (no real screens ship before
 /// the Sprint 3 Groups epic). This placeholder is the shell's

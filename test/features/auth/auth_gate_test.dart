@@ -17,6 +17,7 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
+import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 import 'package:onebytwo/main.dart';
 
 // -- Fakes -------------------------------------------------------
@@ -164,7 +165,7 @@ void main() {
       expect(find.text('Set up your profile'), findsOneWidget);
     });
 
-    testWidgets('AuthenticatedWithProfile renders HomePlaceholderScreen', (
+    testWidgets('AuthenticatedWithProfile renders AuthenticatedShell', (
       tester,
     ) async {
       final user = UserModel(
@@ -186,6 +187,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Shell mounts with Home tab active. AppBar title + the
+      // HomeDashboardPlaceholder headline both contain "Home".
+      expect(find.byType(AuthenticatedShell), findsOneWidget);
       expect(find.text('Home'), findsWidgets);
     });
 

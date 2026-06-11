@@ -45,8 +45,8 @@ class OBTBottomNav extends StatelessWidget {
   final ValueChanged<int> onTabSelected;
 
   /// The canonical tab definitions — single source of truth for labels,
-  /// icons, and telemetry tokens. Consumed by [AuthenticatedShell] when
-  /// firing the `bottom_nav_tab_selected` telemetry event.
+  /// icons, and telemetry tokens. Consumed by the authenticated shell
+  /// when firing the `bottom_nav_tab_selected` telemetry event.
   static const List<OBTBottomNavTab> tabs = <OBTBottomNavTab>[
     OBTBottomNavTab(
       label: 'Home',

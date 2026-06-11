@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Placeholder content for the Home tab (index 0 of [AuthenticatedShell]).
+/// Placeholder content for the Home tab (index 0 of the authenticated
+/// shell).
 ///
 /// The real `HomeDashboardScreen` lands in a focused FR-HD-01..04 PR
 /// under `lib/features/home/presentation/`; until then, this widget
@@ -9,7 +10,7 @@ import 'package:flutter/material.dart';
 /// The body copy is the exact text extracted from the temporary
 /// `HomePlaceholderScreen` (deleted in this PR) — preserved so the
 /// visual experience is unchanged. The AppBar drops the temporary
-/// Activity / Profile shortcut buttons because [OBTBottomNav] now owns
+/// Activity / Profile shortcut buttons because the bottom nav now owns
 /// navigation to those surfaces.
 class HomeDashboardPlaceholder extends StatelessWidget {
   /// Creates the Home tab placeholder.

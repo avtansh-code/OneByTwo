@@ -22,6 +22,8 @@
 
 // ignore_for_file: cascade_invocations
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,7 +53,7 @@ class _FakeAnalyticsService implements AnalyticsService {
 /// A tab-content stub that mounts a Scaffold with a unique title so the
 /// test can assert which tab is currently visible.
 class _TabStub extends StatefulWidget {
-  const _TabStub({required this.label});
+  const _TabStub({required this.label, super.key});
   final String label;
 
   @override
@@ -59,11 +61,8 @@ class _TabStub extends StatefulWidget {
 }
 
 class _TabStubState extends State<_TabStub> {
-  int _buildCount = 0;
-
   @override
   Widget build(BuildContext context) {
-    _buildCount++;
     return Scaffold(
       appBar: AppBar(title: Text('Tab: ${widget.label}')),
       body: Center(child: Text('content of ${widget.label}')),
@@ -85,10 +84,10 @@ Widget _buildShell({
   _FakeAnalyticsService? analytics,
   List<Widget>? tabContentOverride,
 }) {
+  final fakeAnalytics = analytics ?? _FakeAnalyticsService();
   return ProviderScope(
     overrides: <Override>[
-      if (analytics != null)
-        analyticsServiceProvider.overrideWithValue(analytics),
+      analyticsServiceProvider.overrideWithValue(fakeAnalytics),
     ],
     child: MaterialApp(
       home: AuthenticatedShell(tabContentOverride: tabContentOverride),
@@ -172,8 +171,13 @@ void main() {
       await tester.pumpWidget(_buildShell(tabContentOverride: _stubTabs()));
       await tester.pump();
 
-      // Capture the friends-tab State after first mount.
-      final friendsBeforeFinder = find.byKey(const ValueKey('tab-1'));
+      // IndexedStack wraps inactive children in Visibility.maintain
+      // (Offstage internally) so finders must pass skipOffstage: false
+      // to reach the inactive Friends tab from the active Home tab.
+      final friendsBeforeFinder = find.byKey(
+        const ValueKey('tab-1'),
+        skipOffstage: false,
+      );
       final friendsStateBefore = tester.state<_TabStubState>(
         friendsBeforeFinder,
       );
@@ -189,7 +193,7 @@ void main() {
 
       // Same State instance — IndexedStack did not dispose it.
       final friendsAfter = tester.state<_TabStubState>(
-        find.byKey(const ValueKey('tab-1')),
+        find.byKey(const ValueKey('tab-1'), skipOffstage: false),
       );
       expect(identityHashCode(friendsAfter), identityBefore);
     });
@@ -358,10 +362,12 @@ void main() {
       // Push a new route programmatically — mirror of the SCR-26 ->
       // SCR-27 push pattern.
       final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-      navigator.push(
-        MaterialPageRoute<void>(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('pushed route'))),
+      unawaited(
+        navigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                const Scaffold(body: Center(child: Text('pushed route'))),
+          ),
         ),
       );
       await tester.pumpAndSettle();

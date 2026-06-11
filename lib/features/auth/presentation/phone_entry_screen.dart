@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
-import 'package:onebytwo/features/auth/presentation/home_placeholder_screen.dart';
 import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
+import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 
 /// Phone number entry screen for FR-AU-01.
 ///
@@ -216,9 +216,7 @@ class PhoneEntryScreen extends ConsumerWidget {
       if (user != null && user.displayName.trim().isNotEmpty) {
         unawaited(
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute<void>(
-              builder: (_) => const HomePlaceholderScreen(),
-            ),
+            MaterialPageRoute<void>(builder: (_) => const AuthenticatedShell()),
             (_) => false,
           ),
         );
