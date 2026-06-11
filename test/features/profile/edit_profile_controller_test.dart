@@ -96,6 +96,12 @@ class FakeUserRepository implements UserRepository {
       throw Exception('Storage delete failed');
     }
   }
+
+  @override
+  Future<void> updateNotificationPrefs({
+    required String uid,
+    required Map<String, bool> prefs,
+  }) async {}
 }
 
 /// Fake [ImagePickerService] with configurable behaviour.

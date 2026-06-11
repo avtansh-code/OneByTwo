@@ -240,3 +240,79 @@ describe("users/{userId} — access control", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// notificationPrefs updates (FR-PR-03)
+//
+// Defence-in-depth coverage for the partial-map dot-path update path used by
+// the SCR-27 notification preferences screen. The existing
+// `isValidUserUpdate` + `isValidNotificationPrefs` rule functions (lines
+// 72-99 of firestore.rules) already cover this path because Firestore
+// evaluates rules against the POST-MERGE `request.resource.data` snapshot:
+// the merge preserves untouched keys, so the rules re-validate the full
+// `notificationPrefs` map shape on every write. These three tests pin that
+// behaviour to the AC-17 / AC-18 / AC-19 contracts in the story.
+// ---------------------------------------------------------------------------
+
+describe("users/{userId} — notificationPrefs updates", () => {
+  beforeEach(async () => {
+    // Seeds the baseline user doc with the full
+    // `{newExpense: true, settlement: true, reminder: true}` prefs map via
+    // `validUserDoc()`.
+    await seedUserDoc();
+  });
+
+  it("allows a partial-map dot-path flip of notificationPrefs.reminder to false",
+    async () => {
+      // AC-17: partial-map dot-path update succeeds. The post-merge
+      // notificationPrefs map is {newExpense: true, settlement: true,
+      // reminder: false} — still satisfies `isValidNotificationPrefs`
+      // (hasAll + each key `is bool`).
+      const ctx = testEnv.authenticatedContext(uid, {
+        phone_number: "+919876543210",
+      });
+      const userDoc = doc(ctx.firestore(), `users/${uid}`);
+      await assertSucceeds(
+        updateDoc(userDoc, {
+          "notificationPrefs.reminder": false,
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+  it("rejects a partial-map dot-path update with a non-bool value",
+    async () => {
+      // AC-18: partial-map dot-path update with a string value fails the
+      // `prefs.reminder is bool` clause of `isValidNotificationPrefs`. The
+      // post-merge notificationPrefs.reminder is the string "yes", not a
+      // bool, so the rule rejects.
+      const ctx = testEnv.authenticatedContext(uid, {
+        phone_number: "+919876543210",
+      });
+      const userDoc = doc(ctx.firestore(), `users/${uid}`);
+      await assertFails(
+        updateDoc(userDoc, {
+          "notificationPrefs.reminder": "yes",
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+  it("rejects a full-replace that drops a required notificationPrefs key",
+    async () => {
+      // AC-19: full-replace (no dot in the key) that omits `reminder` fails
+      // the `hasAll(['newExpense', 'settlement', 'reminder'])` clause of
+      // `isValidNotificationPrefs`. The post-merge notificationPrefs map
+      // only has two keys, so the rule rejects.
+      const ctx = testEnv.authenticatedContext(uid, {
+        phone_number: "+919876543210",
+      });
+      const userDoc = doc(ctx.firestore(), `users/${uid}`);
+      await assertFails(
+        updateDoc(userDoc, {
+          notificationPrefs: {newExpense: true, settlement: true},
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+});

@@ -1,6 +1,6 @@
 # Sprint 2 Plan
 
-> Last updated: PR #54 (FR-SE-09 — Send Reminder + per-friend 24-hour rate limit) — 18th merged PR.
+> Last updated: PR #55 (FR-PR-03 + FR-AC-04 — Notification Preferences UI + production `cloud_functions` adapter wiring) — 19th merged PR.
 
 ---
 
@@ -165,6 +165,7 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #52 | FR-AC-01 / FR-AC-02 | Activity feed read-side — SCR-25 ActivityFeedScreen + OBTActivityRow widget + activity feature folder + 4 telemetry events + settlement-trigger activity-emission extension (closes the on-settlement-write TODO) | 8 | Merged |
 | #53 | FR-AC-03 / FR-AC-05 | FCM push notifications + cold-start deep-link — Functions notifications module (fcm-send + payload-renderer + prefs-filter + Functions-side INR formatter) + expense + settlement trigger FCM emission + client FCM token lifecycle + pre-permission dialog + in-app banner + cold-start handler + shared notification_deep_links routing helper consumed by both the activity feed and notifications | 10 | Merged |
 | #54 | FR-SE-09 | Send Reminder — sendReminderNotification callable (auth + simplifiedBalances precondition + 5-segment `_rateLimits/{senderUid}/sends/{recipientUid}` 24-hour rate-limit + prefs filter + FCM dispatch + recipient-only activity emission) + notifications/send-reminder-notification.ts FCM helper + activity-validator 'reminder' event-type extension + lib/features/reminders/ feature folder (repository + sealed result hierarchy + send controller + cooldown provider + telemetry) + OBTSettleUpCard receiving-direction variant + FriendDetailScreen owed-branch wiring | 6 | Merged |
+| #55 | FR-PR-03 + FR-AC-04 | Notification preferences UI (SCR-27) — `/profile/notifications` route with three per-event toggles (`newExpense` / `settlement` / `reminder`) + per-toggle 500 ms debounced auto-save controller + `UserRepository.updateNotificationPrefs` Firestore dot-path partial-map writer (avoids the read-modify-write race the full-map form would inherit) + production `cloud_functions` adapter wiring for `reminderRepositoryProvider` + `matchingRepositoryProvider` (closes the throw-until-overridden gap surfaced by PR #54; FR-SE-09 Send Reminder callable now reaches its production handler from the app shell) + OS-permission banner with graceful "Open Settings" degradation per architect §2.4 (`firebase_messaging: ^16.2.0` Dart API does not expose `openAppNotificationSettings()` on either platform; CTA deferred to a future `app_settings` / `permission_handler` follow-up chore) + 3 new partial-map `users-update.test.ts` rules tests | 5 | Merged |
 
 ---
 
@@ -190,7 +191,8 @@ If ANY gate is red, file a dedicated DevOps chore PR (estimated
 | #52 | 8 | Merged |
 | #53 | 10 | Merged |
 | #54 | 6 | Merged |
-| **Total** | **79** | **18 PRs so far** |
+| #55 | 5 | Merged |
+| **Total** | **84** | **19 PRs so far** |
 
 Sprint 1 reference:
 

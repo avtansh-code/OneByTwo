@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #54 merged (FR-SE-09 — Send Reminder + per-friend 24-hour rate limit).
+> Last updated: PR #55 merged (FR-PR-03 + FR-AC-04 — Notification Preferences UI + production `cloud_functions` adapter wiring).
 
 ---
 
@@ -21,69 +21,161 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #52 | PR | FR-AC-01 activity feed read-side + settlement-trigger activity emission (merged 2026-06-08) |
 | #53 | PR | FR-AC-03 FCM push notifications + FR-AC-05 cold-start deep-link (merged 2026-06-08) |
 | #54 | PR | FR-SE-09 Send Reminder + per-friend 24-hour rate limit (merged 2026-06-09) |
-| **#55** | **PR** | **Next feature PR — see below** |
+| #55 | PR | FR-PR-03 + FR-AC-04 Notification Preferences UI (SCR-27) + production `cloud_functions` adapter wiring for `reminderRepositoryProvider` + `matchingRepositoryProvider` (merged 2026-06-11) |
+| **#56** | **PR** | **Next feature PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #55, PR #56, PR #57. Their issue-number
+**pull requests** — i.e. PR #56, PR #57, PR #58. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #55 = number 55 on GitHub.
+orchestrator should not assume PR #56 = number 56 on GitHub.
 
 ---
 
-## PR #55 — TBD
+## PR #55 — Merged
 
-**Status:** Next up. Architect picks at PR #55 kickoff per Sprint 2 velocity.
+**Status:** Merged 2026-06-11. FR-PR-03 + FR-AC-04 shipped.
 
-PR #54 shipped FR-SE-09 — the `sendReminderNotification` callable is
-live (auth + simplifiedBalances precondition + per-friend 24h rate
-limit via the 5-segment `_rateLimits/{senderUid}/sends/{recipientUid}`
-extension + prefs filter + FCM dispatch + recipient-only activity
-emission), the `lib/features/reminders/` feature folder is in place
-(repository + sealed result hierarchy + send controller + in-memory
-cooldown provider + telemetry constants), the `OBTSettleUpCard`
-gained the receiving-direction variant in place, and the
-`FriendDetailScreen.BalanceState.owed` branch wires the card +
-surfaces per-error-code snackbars.
+PR #55 closed two paired stories plus the deferred client-side
+`cloud_functions` wiring chore in a single 5-SP bundle:
 
-Candidates (in rough priority order):
+- **FR-PR-03 (Notification Preferences UI).** The Profile screen
+  gained a `/profile/notifications` route (SCR-27) backed by the
+  existing `users/{uid}.notificationPrefs` map. Three toggles
+  (`newExpense`, `settlement`, `reminder`) each auto-save via a
+  per-toggle 500 ms debounce; the new `NotificationPreferencesController`
+  follows the `edit_profile_controller.dart` blueprint with a
+  sealed `Ready` state carrying `savingKeys: Set<String>` for
+  in-flight per-toggle spinners (rather than a separate hierarchy
+  state — architect §2.1 ratification). The writer
+  (`UserRepository.updateNotificationPrefs`) uses Firestore
+  dot-path partial-map updates (`'notificationPrefs.reminder': false`)
+  to avoid the read-modify-write race the full-map form would
+  inherit (architect §2.2 ratification).
+- **FR-AC-04 (server-side prefs gate, user-controllable).** The
+  prefs-filter shipped in PR #53 is already the gate for every
+  FCM fan-out path (expense triggers, settlement triggers,
+  FR-SE-09 reminder callable); PR #55 makes that gate
+  user-controllable from the client. No server-side change was
+  needed — the gate inherits whatever flag the user flips. End-
+  to-end coverage: 3 new `users-update.test.ts` rules tests
+  validate the partial-map shape (positive partial-map; rejection
+  on invalid value type; rejection on full-replace shape dropping
+  the required `reminder` key). The separate fourth-key
+  reconciliation remains tracked in architect §2.10 and is not
+  conflated with AC-19's required-key contract.
+- **Production `cloud_functions` adapter wiring (deferred chore
+  closed in this PR).** `cloud_functions` was added to
+  `pubspec.yaml` and both `reminderRepositoryProvider` and
+  `matchingRepositoryProvider` gained production overrides in
+  `main.dart` — closing the throw-until-overridden gap that
+  PR #54 left as the top candidate for PR #55. The FR-SE-09
+  Send Reminder callable now reaches its production handler
+  from the app shell.
 
-- **FR-AC-04 + FR-PR-03 — notification preferences UI.** Now the
-  **highest unplaced P1** and the natural pair with FR-SE-09. The
-  Profile screen gains a `/profile/notifications` route with three
-  toggles (`newExpense`, `settlement`, `reminder`) backed by the
-  existing `users/{uid}.notificationPrefs` map. The server-side
-  prefs-filter already shipped in PR #53 and is the gate for
-  FR-SE-09 — this PR makes the gate user-controllable. 3-4 SP. A
-  natural place to ALSO add the `shared_preferences` adoption
-  (PR #53 §2.6 + FR-SE-09 §2.6 cross-launch persistence).
-- **`reminderRepositoryProvider` + `matchingRepositoryProvider`
-  production wiring** (chore; ~1 SP). Both providers are
-  throw-until-overridden today; the production override via
-  `cloud_functions` is a known gap. Add `cloud_functions` to pubspec
-  and override both providers in main.dart. Naturally bundleable
-  with FR-AC-04/FR-PR-03 since that PR will also touch profile
-  data wiring.
-- **`OBTBottomNav` shell.** UX foundation deferred from PR #52 per
-  architect §2.1. Becomes the canonical entry point for the
-  Friends / Groups / Activity / Profile tab cluster — needed before
-  the Sprint 3 groups epic ships.
+**Architect §2.4 fallback realised (in-spec deviation).** At
+kickoff the Flutter-dev verified that `firebase_messaging: ^16.2.0`
+does NOT expose `openAppNotificationSettings()` on the Dart API
+(neither Android nor iOS). Per architect §2.4 the graceful-
+degradation path shipped: the OS-permission banner renders on both
+platforms WITHOUT the "Open Settings" CTA button. A follow-up
+`app_settings` / `permission_handler` chore PR is now tracked in
+this file (see PR #56 candidate list below) to surface AC-11 on a
+later iteration. The deviation was greenlit by QA because the
+banner copy itself already conveys the required user action
+("Enable them in your device settings to receive alerts.").
+
+**Other in-spec bundled change.** `fake_async` was promoted from
+transitive to a direct dev_dep (deterministic per-toggle debounce
+testing) and 9 pre-existing repository test stubs were updated to
+match the extended `UserRepository` interface (single
+trivial method addition; no behavioural change).
+
+**Velocity:** 5 SP (PR #55) → cumulative **84 SP across 19 PRs**.
+
+**Test deltas:** +43 Flutter tests (screen widget tests +
+controller unit tests + 2 adapter unit tests + repository-
+extension tests + boundary-contract test) + 3 Firestore rules
+tests; functions unit suite unchanged at 319 tests. All gates
+green: 1160 Flutter tests pass; 191 rules tests; `dart analyze`
++ `dart format` + lefthook clean; Inv-1 / Inv-2 / Inv-4 / PII-leak
+greps clean.
+
+**Manual smoke matrix:** deferred to post-merge canary per the
+v1.0 single-Firebase-project convention.
+
+---
+
+## PR #56 — TBD
+
+**Status:** Next up. Architect picks at PR #56 kickoff per Sprint 2 velocity.
+
+PR #55 shipped FR-PR-03 + FR-AC-04 (notification preferences UI,
+`cloud_functions` production wiring for the reminder + matching
+adapters, OS-permission banner with graceful "Open Settings"
+degradation). The `notificationPrefs.{newExpense, settlement,
+reminder}` map is now user-controllable end-to-end; the prefs-
+filter shipped in PR #53 is the gate. The FR-SE-09 Send Reminder
+callable reaches its production handler from the app shell.
+
+Candidates (in rough priority order — orchestrator's call at kickoff):
+
+- **`OBTBottomNav` shell.** UX foundation deferred from PR #52
+  §2.1. Canonical entry point for the Friends / Groups / Activity
+  / Profile tab cluster — **needed before the Sprint 3 groups epic
+  ships.** Now the **highest-priority UX foundation** with no
+  remaining feature dependency: Profile (the last feature owning
+  its own navigation entry) shipped in PR #55. ~3 SP.
 - **FR-SE-08 dedicated full-history screen** at
   `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
-  v1.0 but the dedicated screen is still a backlog item).
+  v1.0 functionally but the dedicated screen is still a v1.0
+  commitment). Natural pairing with `OBTBottomNav` because the
+  shared nav shell makes the "All settlements" deep-link target
+  obvious. ~3-5 SP.
+- **FR-PR-05 Contact Support `mailto:` flow** (P0; depends on
+  Remote Config wiring for the support email address; small
+  standalone PR ~2 SP). Closes the last P0 line item on the
+  Profile screen.
+- **FR-PR-02 phone-number-change flow** (P1; depends on the
+  existing OTP re-verification flow; medium PR ~5 SP).
+- **FR-AU-09 account-deletion flow** (P1; depends on a new
+  Cloud Function for cascade-delete fan-out; medium PR ~5-8 SP).
 - **Bucket-B chore close-out** (single ~3 SP PR closing #20 CV3,
-  #21 R1-R4, #23 PY3 partial with comments).
+  #21 R1-R4, #23 PY3 partial with comments — see
+  `docs/sprint-zero/sprint-2-plan.md` §"Issue closure candidates").
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
   documented.
+- **`shared_preferences` adoption** for cross-launch persistence
+  (PR #53 §2.6 `wasPermanentlyDenied` flag + FR-SE-09 §2.6
+  cooldown persistence). Could naturally bundle the **NEW
+  QA-recommended `app_settings` / `permission_handler` dependency**
+  (next item) since both are pubspec-adoption chores touching the
+  same notification-permission surface. ~2-3 SP combined.
+- **NEW: `app_settings` / `permission_handler` dependency +
+  AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
+  PR #55 shipped the OS-permission banner without the CTA button
+  because `firebase_messaging: ^16.2.0` doesn't expose
+  `openAppNotificationSettings()` on the Dart API on either
+  platform (architect §2.4 graceful-degradation path). A follow-up
+  chore PR adds `app_settings` (or `permission_handler`) as a
+  pubspec dep + wires the CTA button on both platforms. The
+  story file §2.4 (lines 815-819) explicitly REJECTED bundling
+  this inside PR #55 to stay within the 5 SP envelope. ~1-2 SP.
+  **Natural pair with `shared_preferences` adoption above** —
+  both grow the notification-feature pubspec surface in one
+  focused PR.
 - **FR-SE-09 message-compose dialog follow-up** (the deferred UX
-  PR per architect §2.5). 1-2 SP. Adds a bottom sheet that prompts
-  for the optional 500-char reminder message; updates the callable
-  invocation to pass it. Tracking issue to be filed.
-- **`OBTRupeeText` primitive** (UX foundation; small PR ~1 SP).
-  Deferred from PR #52 per architect §2.6. The component catalogue
-  declares it; a future PR adds the 5-line wrapper around
-  `Text(formatInrFromPaise(...))` once a second use site needs it.
+  PR per FR-SE-09 architect §2.5). 1-2 SP. Adds a bottom sheet
+  that prompts for the optional 500-char reminder message;
+  updates the callable invocation to pass it. Tracking issue
+  to be filed.
+- **`cloud-functions-catalogue.md §7` docs roll-up** (cosmetic
+  chore; ~1 SP). The catalogue's `reminders/{senderUid}_{toUserId}`
+  storage path and `RECIPIENT_NO_TOKENS → success: true` shape are
+  SUPERSEDED by the FR-SE-09 architect ratifications (§2.1 + §2.10
+  reconciliation 2). A docs roll-up PR can bring the catalogue in
+  line with the actual implementation.
 - **Activity-writer rename cleanup** (cosmetic; small chore PR
   ~1-2 SP). Per FR-AC-01 architect §2.3 the rename of
   `writeExpenseActivity` → `writeContextActivity` (+ `friendshipId`
@@ -91,17 +183,17 @@ Candidates (in rough priority order):
   `entityIdHash`) was DEFERRED to minimise blast radius. A future
   cleanup PR can do the full rename + Cloud Logging dashboard
   migration as one focused change.
-- **`cloud-functions-catalogue.md §7` docs roll-up** (cosmetic
-  chore; ~1 SP). The catalogue's `reminders/{senderUid}_{toUserId}`
-  storage path and `RECIPIENT_NO_TOKENS → success: true` shape are
-  SUPERSEDED by the FR-SE-09 architect ratifications (§2.1 + §2.10
-  reconciliation 2). A docs roll-up PR can bring the catalogue in
-  line with the actual implementation.
-- **FCM emulator-side integration test infrastructure** (per PR #53
-  functions-dev §1 deviation). The Cloud Functions emulator-side
-  integration tests under `functions/test/integration/on-*.integration.test.ts`
-  do not exercise the FCM emission path because `jest.mock()` does
-  not survive the emulator process boundary. Future work: add a
+- **`OBTRupeeText` primitive** (UX foundation; small PR ~1 SP).
+  Deferred from PR #52 per architect §2.6. The component
+  catalogue declares it; a future PR adds the 5-line wrapper
+  around `Text(formatInrFromPaise(...))` once a second use site
+  needs it.
+- **FCM emulator-side integration test infrastructure** (per
+  PR #53 functions-dev §1 deviation). The Cloud Functions
+  emulator-side integration tests under
+  `functions/test/integration/on-*.integration.test.ts` do not
+  exercise the FCM emission path because `jest.mock()` does not
+  survive the emulator process boundary. Future work: add a
   flag-gated production-config swap that injects a `MockMessaging`
   in the emulator process so the full create → trigger → FCM round
   trip is asserted in CI. 2-3 SP.
@@ -119,21 +211,14 @@ Candidates (in rough priority order):
   small standalone PR). Deferred from PR #45 per chore-story
   Architect Notes §2.2. The FR-SE-09 rate-limit doc shape
   inherits the same read-modify-write race vector.
-- **`emitExpenseActivity` memberIds re-read cleanup** (operational
-  cleanup; small standalone PR ~1 SP). Per the PR #51 review
-  recommendation #1: the trigger handler currently re-reads the
-  friendship doc to resolve `memberIds` for the activity fan-out
-  (one extra Firestore read per invocation). A future refactor
-  could thread `memberIds` through `RecomputeResult` to eliminate
-  the second read; track as a Sprint-3 cleanup item.
-
----
-
-## PR #56 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #55 kickoff.
-
-Candidates: whatever doesn't land in PR #55 from the list above.
+- **`emitExpenseActivity` memberIds re-read cleanup**
+  (operational cleanup; small standalone PR ~1 SP). Per the
+  PR #51 review recommendation #1: the trigger handler currently
+  re-reads the friendship doc to resolve `memberIds` for the
+  activity fan-out (one extra Firestore read per invocation).
+  A future refactor could thread `memberIds` through
+  `RecomputeResult` to eliminate the second read; track as a
+  Sprint-3 cleanup item.
 
 ---
 
@@ -141,7 +226,15 @@ Candidates: whatever doesn't land in PR #55 from the list above.
 
 **Status:** Slot reserved. Architect picks at PR #56 kickoff.
 
-Candidates: whatever doesn't land in PR #55 / PR #56 from the lists above.
+Candidates: whatever doesn't land in PR #56 from the list above.
+
+---
+
+## PR #58 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #57 kickoff.
+
+Candidates: whatever doesn't land in PR #56 / PR #57 from the list above.
 
 ---
 

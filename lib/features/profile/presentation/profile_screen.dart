@@ -7,6 +7,7 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/notifications/application/sign_out_with_fcm_cleanup.dart';
 import 'package:onebytwo/features/profile/presentation/edit_profile_screen.dart';
+import 'package:onebytwo/features/profile/presentation/notification_preferences_screen.dart';
 
 /// Profile view screen for FR-PR-01 (SCR-26).
 ///
@@ -325,9 +326,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Coming soon')));
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NotificationPreferencesScreen(),
+                  ),
+                );
               },
             ),
           ),

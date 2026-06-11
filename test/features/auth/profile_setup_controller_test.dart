@@ -75,6 +75,12 @@ class FakeUserRepository implements UserRepository {
 
   @override
   Future<void> deleteAvatar(String uid) async {}
+
+  @override
+  Future<void> updateNotificationPrefs({
+    required String uid,
+    required Map<String, bool> prefs,
+  }) async {}
 }
 
 /// Fake [ImagePickerService] with configurable
