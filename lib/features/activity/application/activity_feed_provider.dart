@@ -39,4 +39,4 @@ final activityFeedProvider = StreamProvider<List<ActivityFeedItem>>((ref) {
   final currentUserId = ref.watch(currentUserIdProvider);
   final repository = ref.watch(activityFeedRepositoryProvider);
   return repository.watchItems(currentUserId);
-});
+}, dependencies: [currentUserIdProvider]);
