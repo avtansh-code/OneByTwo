@@ -397,3 +397,243 @@ DELETE (1 file):
 - **Indicator-pill behind active icon** (the design spec's pill is a
   `NavigationBar` feature, not `BottomNavigationBar`; ship without
   for v1.0 per architect §2.10 reconciliation 4).
+
+---
+
+## Architect Notes
+
+> These notes ratify the design decisions called out as "Architect's
+> call" in the brief at `docs/copilot_prompts/sprint_2/19.md`. Every
+> §2.x below corresponds to a numbered decision in the brief; the
+> wording records what was ratified, why, and what the implementation
+> must do.
+
+### 2.1 Shell mechanism: `IndexedStack` vs `go_router ShellRoute`
+
+**RATIFY:** `IndexedStack` for PR #56.
+
+`docs/design/01-information-architecture/navigation-flow.md §4.4`
+ratifies `GoRouter ShellRoute` as the long-term mechanism, but
+adopting `go_router` requires migrating every existing
+`Navigator.push(MaterialPageRoute(...))` call site (currently 20+ across
+friends, profile, activity, expenses, settlements). That migration is
+a Sprint 3 standalone chore PR (~3-5 SP); bundling it with this PR
+would inflate scope from 3 SP to 8+ SP and conflate two orthogonal
+changes.
+
+The `IndexedStack` interim is correct for PR #56 because:
+
+1. **Tab state preservation works out of the box.** `IndexedStack`
+   keeps every child mounted; inactive children retain their `State`
+   instances. Scroll positions, form input state, and active stream
+   subscriptions all survive a tab switch.
+2. **No per-tab `Navigator` keys needed.** Each tab uses the root
+   `Navigator`. A `Navigator.push` from `ProfileScreen` (tab 4) stacks
+   ON TOP of the shell — the pushed route paints over the entire
+   screen, hiding the bottom nav. This is the canonical
+   "EditProfileScreen pushes over the profile tab" precedent that PR
+   #29 established and PR #55 inherited for the SCR-27 push.
+3. **Migration path stays open.** When `go_router` lands in Sprint 3,
+   the shell refactors to a `StatefulShellRoute.indexedStack` (the
+   canonical go_router replacement); the per-tab scroll-position
+   preservation guarantee carries through because the canonical
+   pattern is `IndexedStack` under the hood.
+
+### 2.2 Shell navigation controller adoption
+
+**RATIFY:** in-shell `setState` for PR #56. No Riverpod
+`Notifier<int>`.
+
+The only entry point for tab switching today is a user tap on
+`OBTBottomNav`. Programmatic switches (e.g. FCM cold-start payload
+landing on a specific tab) are deferred to the FR-AC-05 cold-start
+deep-link EXPANSION — a separate follow-up PR. That follow-up will
+introduce a `shellNavigationControllerProvider` Riverpod `Notifier<int>`
+because the FCM handler runs OUTSIDE the widget tree and must be able
+to call `controller.switchTo(tabIndex)` without a `BuildContext`.
+
+Keeping PR #56 simple avoids inventing a controller with only one
+caller (the shell itself). The `setState` approach is fully testable
+via widget tests (`tester.tap(find.text('Friends'))`) without needing
+to override a Riverpod provider in test setup.
+
+### 2.3 FAB inclusion (FR-HD-04)
+
+**RATIFY:** OUT OF SCOPE for PR #56.
+
+FR-HD-04 ("A persistent floating action button shall allow adding a
+new expense from any primary tab") is a P0 story but requires:
+
+1. A context-picker bottom sheet (Friend or Group). The Friend path is
+   wired today; the Group path depends on the Sprint 3 Groups epic.
+2. A telemetry event (`fab_tapped` already pre-declared in
+   `telemetry-plan.md §1.3`).
+3. A new design-system primitive `OBTFloatingActionButton` per
+   `components.md §3`.
+
+Bundling all of that pushes PR #56 from 3 SP to 5-6 SP without
+buying meaningful coverage (the FAB without the Group path is
+half-shipped). The recommended path is a focused FR-HD-04 follow-up
+that stubs the Group path with "Coming soon" snackbar (~2 SP, can
+land before the Groups epic).
+
+### 2.4 `HomePlaceholderScreen` deletion
+
+**RATIFY:** DELETE in this PR.
+
+The file's sole purpose was the placeholder body + the temporary
+AppBar shortcut buttons (Activity, Profile). Both are superseded:
+
+- The body content (Icon + "Home" headline + "The real dashboard is
+  coming soon." sub-copy) is extracted verbatim into
+  `lib/features/shell/presentation/home_dashboard_placeholder.dart`
+  (the tab-0 content widget).
+- The AppBar shortcut buttons (Activity, Profile) are obsoleted — the
+  bottom nav exposes those surfaces as canonical tabs 3 and 4. The
+  shortcut buttons existed only because there was no shell.
+
+Phase 0 verified that NO `test/features/auth/home_placeholder_screen_test.dart`
+exists; the AC-14 second clause ("test deletion") is vacuously
+satisfied. No test cleanup needed.
+
+### 2.5 Placeholder file locations
+
+**RATIFY:**
+
+- `lib/features/shell/presentation/home_dashboard_placeholder.dart` —
+  colocated with the shell because the placeholder is a SHELL
+  artefact (the real `HomeDashboardScreen` lands in the FR-HD-01..04
+  PR under a NEW `lib/features/home/presentation/` folder).
+- `lib/features/shell/presentation/groups_list_placeholder.dart` —
+  colocated with the shell because `lib/features/groups/` is empty
+  greenfield (just `README.md` + `.gitkeep`). The placeholder is
+  DELETED when the Sprint 3 Groups epic ships the real
+  `GroupsListScreen` under `lib/features/groups/presentation/`.
+
+Rationale: placing both placeholders under `lib/features/shell/presentation/`
+keeps every PR #56 placeholder colocated, so the Sprint 3 cleanup is
+a single grep-and-delete operation per placeholder. Placing them
+under the natural feature folders (`lib/features/home/presentation/`
++ `lib/features/groups/presentation/`) would scatter cleanup across
+two future PRs.
+
+### 2.6 `PopScope` Android back-button handling
+
+**RATIFY:** snap to tab 0 on back-button-from-non-zero-tab.
+
+Implementation:
+
+```dart
+PopScope(
+  canPop: _currentIndex == 0,
+  onPopInvokedWithResult: (didPop, _) {
+    if (!didPop) {
+      setState(() => _currentIndex = 0);
+    }
+  },
+  child: Scaffold(...),
+)
+```
+
+Without this, the Android back-button on tab 3 (Activity) closes the
+app, which is jarring — the user's mental model is "back goes to
+Home". The snap-to-zero pattern is the Material 3 canonical bottom-nav
+behaviour.
+
+The back-driven switch does NOT fire `bottom_nav_tab_selected`
+telemetry — that event is reserved for user-initiated TAB TAPS. Mixing
+back-driven switches into the same event would muddy the funnel
+analysis (taps measure user navigation intent; back is a different
+intent).
+
+Note: Flutter 3.x deprecated `PopScope.onPopInvoked` in favour of
+`onPopInvokedWithResult` in 3.22. We use the new signature for forward
+compatibility.
+
+### 2.7 `OBTBottomNav` location
+
+**RATIFY:** `lib/core/widgets/nav/obt_bottom_nav.dart` (NEW `nav/`
+sub-folder under `lib/core/widgets/`).
+
+The existing convention is sub-folders by category:
+
+- `lib/core/widgets/inputs/obt_amount_input.dart`
+- `lib/core/widgets/dialogs/obt_confirmation_dialog.dart`
+- `lib/core/widgets/lists/obt_activity_row.dart`
+
+`nav/` is the natural sub-folder for navigation primitives.
+`OBTBottomNav` is the first; a future `OBTAppBar` (currently NOT
+implemented — every screen uses a plain `AppBar`) would land in the
+same folder when extracted.
+
+Test mirror: `test/core/widgets/nav/obt_bottom_nav_test.dart`.
+
+### 2.8 Files to touch (exhaustive)
+
+See the **Files Touched** section above. Anything outside that set is
+scope creep and should be refused at the orchestrator level.
+
+### 2.9 Files explicitly NOT to touch (negative scope guardrails)
+
+- `firestore.rules`, `firestore.indexes.json`, `storage.rules` —
+  UNCHANGED.
+- `functions/package.json`, all of `functions/src/**`, all of
+  `functions/test/**` — UNCHANGED.
+- `lib/features/expenses/**`, `lib/features/settlements/**`,
+  `lib/features/activity/**`, `lib/features/notifications/**`,
+  `lib/features/reminders/**`, `lib/features/friends/**`,
+  `lib/features/profile/**` (tab content surfaces stay stable; the
+  shell merely mounts them) — UNCHANGED.
+- `lib/features/auth/**` except `home_placeholder_screen.dart`
+  (DELETED per §2.4) — UNCHANGED.
+- `lib/core/connectivity/**`, `lib/core/balances/**`,
+  `lib/core/formatters/**`, `lib/core/routing/**`,
+  `lib/core/services/**`, `lib/core/telemetry/**` — UNCHANGED.
+- `pubspec.yaml`, `pubspec.lock`, `ios/Podfile.lock` — UNCHANGED (no
+  new dependencies; the shell uses only `flutter/material.dart` +
+  `flutter_riverpod`).
+- `.github/workflows/*.yml` — UNCHANGED.
+- `docs/design/**` except `telemetry-plan.md` (append one row per
+  §2.10 reconciliation 3) — UNCHANGED.
+
+### 2.10 Anticipated reconciliations
+
+1. **`lib/features/profile/presentation/profile_placeholder_screen.dart`
+   dead code.** Exists alongside the real `profile_screen.dart` (noted
+   in PR #55 §2.10 reconciliation 1). Still dead code; still NOT
+   touched by this PR. Separate cleanup chore.
+2. **Per-tab AppBar precedent.** Each tab content widget owns its own
+   AppBar; the shell does NOT inject an outer AppBar. If a future PR
+   adds a global app-level AppBar (e.g. a notification badge or
+   search), it ships above the shell or under the shell's Scaffold —
+   that is a Sprint 3 design call.
+3. **`bottom_nav_tab_selected` telemetry pre-declaration.** Phase 0
+   verified the event is NOT pre-declared anywhere in
+   `docs/design/07-technical/telemetry-plan.md`. This PR APPENDS one
+   row under §1.8 Cross-Cutting Events (genuinely cross-cutting —
+   visible on all 5 primary surfaces). The event-name + parameter
+   contract in the appended row MUST match the constants in
+   `lib/features/shell/application/shell_telemetry.dart` exactly; the
+   telemetry test enforces.
+4. **`BottomNavigationBar` does not render an indicator pill.**
+   `components.md §2` ratifies "indicator pill behind icon" for the
+   active tab. Material's `BottomNavigationBar` widget does NOT
+   support this (the pill is a Material 3 `NavigationBar` feature).
+   RATIFY: ship without the pill for v1.0; the icon-fill-on-select +
+   colour-tint-on-select pattern is correct out of the box and the
+   pill is purely cosmetic. A future Material 3 `NavigationBar`
+   migration would deliver the pill; that is a separate design call.
+5. **Future `go_router` migration parity.** When `go_router` lands in
+   Sprint 3, the shell refactors to
+   `StatefulShellRoute.indexedStack`. The per-tab scroll-position +
+   form-state preservation guarantees carry through because the
+   canonical pattern uses `IndexedStack` under the hood.
+6. **`ProfileScreen.automaticallyImplyLeading: false`.** ProfileScreen
+   already sets this on its AppBar (line 47), so it renders without a
+   back arrow at the root of the shell's IndexedStack. The other two
+   tab content widgets (`FriendsListScreen`, `ActivityFeedScreen`)
+   are rendered at the root and have NO parent route to pop, so
+   `Navigator.canPop` returns false and Flutter does NOT render a
+   back arrow — the omission of `automaticallyImplyLeading: false` is
+   benign on these widgets. (Verified Phase 0.)
+
