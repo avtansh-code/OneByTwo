@@ -88,15 +88,21 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          if ! command -v lcov >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y lcov
-          fi
-          TOTAL=$(lcov --summary coverage/lcov.info 2>&1 | grep 'lines' | grep -oE '[0-9]+\.[0-9]+%' | head -1 | tr -d '%')
-          echo "Total coverage: ${TOTAL}%"
-          if [ "$(echo "$TOTAL < 50.0" | bc -l)" -eq 1 ]; then
-            echo "::error::Overall coverage ${TOTAL}% is below the 50% threshold (SRS section 5.7)."
-            exit 1
-          fi
+          python3 - <<'PY'
+          import sys
+          lh = lf = 0
+          with open("coverage/lcov.info") as f:
+              for line in f:
+                  if line.startswith("LH:"):
+                      lh += int(line.split(":")[1])
+                  elif line.startswith("LF:"):
+                      lf += int(line.split(":")[1])
+          pct = (lh * 100.0 / lf) if lf else 0.0
+          print(f"Total coverage: {pct:.1f}%")
+          if pct < 50.0:
+              print(f"::error::Overall coverage {pct:.1f}% is below the 50% threshold (SRS section 5.7).")
+              sys.exit(1)
+          PY
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -223,10 +229,14 @@ jobs:
           fi
 
   # ── Build (unsigned) — catch build errors early ─────────────────────────────
+  # The build jobs intentionally do NOT depend on flutter-checks: they run in
+  # parallel with lint/test from the start of the pipeline to minimise
+  # wall-clock time. The trade-off is that a build may run even when
+  # flutter-checks fails; concurrency.cancel-in-progress cancels superseded runs
+  # when a new commit is pushed.
   build-android:
     name: Build Android (debug)
     runs-on: ubuntu-latest
-    needs: [flutter-checks]
     steps:
       - uses: actions/checkout@v4
 
@@ -268,8 +278,12 @@ jobs:
 
   build-ios:
     name: Build iOS (no signing)
-    runs-on: macos-15
-    needs: [flutter-checks]
+    # Larger Apple-silicon runner (M2 Pro, 5 vCPU) vs the standard macos-15
+    # (M1, 3 vCPU) to speed up the Xcode compile of the ~270 Firebase pods,
+    # which is the pipeline's wall-clock bottleneck. NOTE: larger runners are
+    # billed (~$0.16/min) even on public repos, where the standard macos-15
+    # runner is free — revert to `macos-15` to eliminate that cost.
+    runs-on: macos-15-xlarge
     env:
       # Pinned so the version-checked guard on the activation step below can
       # detect a cache hit (flutterfire_cli restored via subosito's pub cache)
