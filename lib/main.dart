@@ -3,10 +3,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
@@ -79,6 +81,16 @@ void main() async {
     functions.httpsCallable('lookupUserByPhoneNumber'),
   );
 
+  // FR-PR-05: initialise Firebase Remote Config (the app's first
+  // consumer, ADR-0006). `initialise()` awaits the fast local
+  // `setDefaults`; the network fetch is fire-and-forget so the first
+  // frame is never gated on it. The Contact Support address resolves to
+  // the compiled-in default until the background fetch activates.
+  final remoteConfig = FirebaseRemoteConfigService(
+    FirebaseRemoteConfig.instance,
+  );
+  await remoteConfig.initialise();
+
   runApp(
     ProviderScope(
       overrides: [
@@ -88,6 +100,7 @@ void main() async {
         matchingRepositoryProvider.overrideWithValue(
           MatchingRepository(lookupCallable: matchingAdapter.asCallable),
         ),
+        remoteConfigServiceProvider.overrideWithValue(remoteConfig),
       ],
       child: const OneBytwoApp(),
     ),

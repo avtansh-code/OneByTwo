@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
+import 'package:onebytwo/core/services/url_launcher_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -13,6 +15,9 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
+import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
+import 'package:onebytwo/features/profile/data/device_diagnostics_service.dart';
+import 'package:onebytwo/features/profile/domain/support_diagnostics.dart';
 import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
 
 // -- Fakes -------------------------------------------------------
@@ -106,6 +111,40 @@ class _FakeImagePickerService implements ImagePickerService {
   }) async => null;
 }
 
+class _FakeRemoteConfigService implements RemoteConfigService {
+  @override
+  Future<void> initialise() async {}
+
+  @override
+  String getString(String key) => 'support@onebytwo.app';
+}
+
+class _FakeDeviceDiagnosticsService implements DeviceDiagnosticsService {
+  @override
+  Future<SupportDiagnostics> load() async => const SupportDiagnostics(
+    appVersion: '1.0.0',
+    buildNumber: '1',
+    osName: 'Android',
+    osVersion: '14',
+    deviceModel: 'Pixel 6',
+  );
+}
+
+class _FakeUrlLauncherService implements UrlLauncherService {
+  bool canLaunchResult = true;
+  bool launchResult = true;
+  Uri? lastLaunchedUri;
+
+  @override
+  Future<bool> canLaunch(Uri uri) async => canLaunchResult;
+
+  @override
+  Future<bool> launchExternal(Uri uri) async {
+    lastLaunchedUri = uri;
+    return launchResult;
+  }
+}
+
 // -- Helpers -----------------------------------------------------
 
 final _testUser = UserModel(
@@ -129,13 +168,26 @@ void main() {
   late _FakePhoneAuthRepository fakeAuthRepo;
   late _FakeUserRepository fakeUserRepo;
   late _FakeImagePickerService fakeImagePicker;
+  late _FakeRemoteConfigService fakeRemoteConfig;
+  late _FakeDeviceDiagnosticsService fakeDiagnostics;
+  late _FakeUrlLauncherService fakeLauncher;
 
   setUp(() {
     fakeAnalytics = _FakeAnalyticsService();
     fakeAuthRepo = _FakePhoneAuthRepository();
     fakeUserRepo = _FakeUserRepository();
     fakeImagePicker = _FakeImagePickerService();
+    fakeRemoteConfig = _FakeRemoteConfigService();
+    fakeDiagnostics = _FakeDeviceDiagnosticsService();
+    fakeLauncher = _FakeUrlLauncherService();
   });
+
+  List<Override> contactSupportOverrides() => [
+    currentUserIdProvider.overrideWithValue('uid-123'),
+    remoteConfigServiceProvider.overrideWithValue(fakeRemoteConfig),
+    deviceDiagnosticsServiceProvider.overrideWithValue(fakeDiagnostics),
+    urlLauncherServiceProvider.overrideWithValue(fakeLauncher),
+  ];
 
   Widget buildSubject({UserModel? user}) {
     final effectiveUser = user ?? _testUser;
@@ -145,6 +197,7 @@ void main() {
         phoneAuthRepositoryProvider.overrideWithValue(fakeAuthRepo),
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
+        ...contactSupportOverrides(),
         authStateNotifierProvider.overrideWith(
           (ref) => Stream.value(
             AuthenticatedWithProfile(uid: 'uid-123', user: effectiveUser),
@@ -178,6 +231,7 @@ void main() {
         phoneAuthRepositoryProvider.overrideWithValue(fakeAuthRepo),
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
+        ...contactSupportOverrides(),
         authStateNotifierProvider.overrideWith(
           (ref) => Stream<AuthState>.error(Exception('Network error')),
         ),
@@ -283,6 +337,81 @@ void main() {
       expect(find.text('Something went wrong'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
       expect(find.text('Still stuck? Contact Support'), findsOneWidget);
+    });
+
+    testWidgets('Contact Support row preserves its semantics label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics && w.properties.label == 'Contact Support, button',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('tapping Contact Support launches a mailto: URI', (
+      tester,
+    ) async {
+      fakeLauncher
+        ..canLaunchResult = true
+        ..launchResult = true;
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Contact Support'));
+      await tester.pumpAndSettle();
+
+      expect(fakeLauncher.lastLaunchedUri?.scheme, 'mailto');
+      expect(fakeLauncher.lastLaunchedUri?.path, 'support@onebytwo.app');
+      expect(find.text('No Mail App Found'), findsNothing);
+      expect(
+        fakeAnalytics.loggedEvents.any(
+          (e) =>
+              e.name == 'support_email_opened' &&
+              e.parameters?['method'] == 'mailto',
+        ),
+        isTrue,
+      );
+    });
+
+    testWidgets('tapping Contact Support with no mail client shows '
+        'the fallback dialog', (tester) async {
+      fakeLauncher.canLaunchResult = false;
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Contact Support'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No Mail App Found'), findsOneWidget);
+      expect(
+        fakeAnalytics.loggedEvents.any(
+          (e) =>
+              e.name == 'support_email_opened' &&
+              e.parameters?['method'] == 'fallback_dialog',
+        ),
+        isTrue,
+      );
+    });
+
+    testWidgets('error-state Contact Support link runs the support flow', (
+      tester,
+    ) async {
+      fakeLauncher
+        ..canLaunchResult = true
+        ..launchResult = true;
+      await tester.pumpWidget(buildSubjectWithError());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Still stuck? Contact Support'));
+      await tester.pumpAndSettle();
+
+      expect(fakeLauncher.lastLaunchedUri?.scheme, 'mailto');
     });
   });
 }

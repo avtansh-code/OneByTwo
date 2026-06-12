@@ -42,5 +42,13 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- FR-PR-05 Contact Support: lets canLaunchUrl(mailto:) resolve a
+             mail app under Android 11+ package-visibility rules. Without
+             it the happy path never fires and every user is wrongly sent
+             to the no-mail-client fallback dialog. -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="mailto"/>
+        </intent>
     </queries>
 </manifest>
