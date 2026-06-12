@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #59 merged (documentation reconciliation, `093fce7`). FR-PR-05 Contact Support `mailto:` flow now in flight (roadmap "PR #59" slot; GitHub number is the next available, >= #60).
+> Last updated: PR #59 merged (documentation reconciliation, `093fce7`). FR-PR-05 Contact Support `mailto:` flow opened as PR #60 (roadmap "PR #59" slot).
 
 ---
 
@@ -26,7 +26,7 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #57 | PR | FR-HD-04 persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive + `AuthenticatedShell` FAB slot + context picker bottom sheet (Friend / Group target with Group path stubbed for Sprint 3) + bundled `currentUserIdProvider` production wiring in `AuthenticatedWithProfile` arm of `lib/main.dart` (closes FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing in production) (merged 2026-06-11) |
 | #58 | PR | FR-SE-08 dedicated settlement-history screen (SCR-24) — `SettlementHistoryScreen` at `/settle/history` + `settlementHistoryProvider` (`StreamProvider.family`, 50-item cap) + `settlement_history_telemetry.dart` (2 pre-declared events) + "View Settlement History" link on `FriendDetailScreen` (friendship axis; group axis stubbed) (merged 2026-06-12) |
 | **#59** | **PR** | Documentation reconciliation — docs/skills/agents synced to current code + two code fixes (Firestore emulator debug-log port `8080`->`8181` in `lib/main.dart`; missing `test:canonical` script in `functions/package.json`) + fvm pin + lefthook repair (merged 2026-06-12, `093fce7`) |
-| **#60** | **PR** | **FR-PR-05 Contact Support `mailto:` flow — this PR (roadmap "PR #59" slot). GitHub number is the next available (>= #60); confirm at open.** |
+| **#60** | **PR** | **FR-PR-05 Contact Support `mailto:` flow (open; roadmap "PR #59" slot).** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests** — i.e. PR #59, PR #60, PR #61. Their issue-number
@@ -281,7 +281,7 @@ shipped.
 Candidates (in rough priority order — architect's call at kickoff):
 
 - **FR-PR-05 Contact Support `mailto:` flow** (P0) — **IN FLIGHT (this
-  PR; roadmap "PR #59" slot, GitHub number >= #60).** Bundles FR-SH-03
+  PR; #60; roadmap "PR #59" slot).** Bundles FR-SH-03
   and the FR-SH-04 no-mail-client fallback dialog; 3 SP (was estimated
   ~2 before bundling FR-SH-04). First Firebase Remote Config consumer
   (`support_email_address`, in-app default `support@onebytwo.app`,
