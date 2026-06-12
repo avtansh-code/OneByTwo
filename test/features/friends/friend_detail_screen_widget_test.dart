@@ -36,6 +36,7 @@ import 'package:onebytwo/features/settlements/application/settle_up_telemetry.da
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
+import 'package:onebytwo/features/settlements/presentation/settlement_history_screen.dart';
 
 import '../expenses/helpers/fake_services.dart';
 
@@ -944,6 +945,64 @@ void main() {
         find.byType(OBTFloatingActionButton),
       );
       expect(fab.heroTag, 'friendDetailFab');
+    });
+  });
+
+  group('View Settlement History link (FR-SE-08 AC-16/17/18)', () {
+    final populated = FriendDetailStatePopulated(
+      header: _header(),
+      timeline: [
+        TimelineSettlement(
+          doc: _settlement(id: 'sid-1', date: DateTime(2026, 6, 3)),
+        ),
+      ],
+    );
+
+    testWidgets('AC-16 link is visible in the Populated state', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(populated), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('View Settlement History'), findsOneWidget);
+    });
+
+    testWidgets('AC-17 link is hidden in the Empty state', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(FriendDetailStateEmpty(header: _header())),
+          analytics: analytics,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('View Settlement History'), findsNothing);
+    });
+
+    testWidgets('AC-18 tapping the link pushes SettlementHistoryScreen with '
+        'the correct args', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(populated),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('View Settlement History'));
+      await tester.tap(find.text('View Settlement History'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      final screen = tester.widget<SettlementHistoryScreen>(
+        find.byType(SettlementHistoryScreen),
+      );
+      expect(screen.contextType, 'friendship');
+      expect(screen.contextId, 'uid-friend_uid-me');
+      expect(screen.currentUserUid, 'uid-me');
+      expect(screen.otherUserUid, 'uid-friend');
+      expect(screen.otherDisplayName, 'Bina');
     });
   });
 }
