@@ -23,38 +23,53 @@ new fields on an existing document, or new composite indexes.
 1. **Feature or requirement** — the user story or SRS requirement driving the change.
 2. **Data relationships** — which entities are involved and how they relate.
 3. **Access patterns** — how the client and Cloud Functions read/write this data.
-4. **Existing schema** — current state from `docs/OneByTwo_Requirements_Spec.md`
-   section 7.2.
+4. **Existing schema** — current state from `firestore.rules` (canonical, enforced)
+   and the companion `docs/design/07-technical/firestore-schema.md`, cross-checked
+   against the Dart domain models under `lib/features/*/domain/` and
+   `docs/OneByTwo_Requirements_Spec.md` section 7.2.
 
 ## Procedure
 
 1. Read SRS section 7.2 (Firestore Data Model) and section 7.3 (Key Architectural
-   Decisions).
+   Decisions), then `firestore.rules` and `docs/design/07-technical/firestore-schema.md`
+   for the enforced shape.
 2. Read `.github/shared/invariants.md`.
 3. Design the collection/document structure following these rules:
    a. **Money fields** must be named with a `Paise` suffix (e.g., `amountPaise`,
       `sharePaise`) and typed as integer.
    b. **`simplifiedBalances`** is only present on `friendships` and `groups`
-      documents. It is server-maintained. Do not add it to any other collection.
+      documents. It is server-maintained by the recompute core
+      (`functions/src/simplified-debts/function.ts`) and must be **absent at create
+      time** (rules reject any create that includes it). Do not add it to any other
+      collection (Invariant 2).
    c. **No hot documents.** Avoid designs where a single document receives writes
       from multiple users simultaneously. Use subcollections for high-write data.
    d. **Participant-scoped access.** Every document must have a field (e.g.,
       `memberIds`, `participantIds`) that security rules can use to scope access.
-   e. **Timestamps.** Include `createdAt` and `updatedAt` on every document.
-   f. **Soft delete.** Use a `deleted: boolean` field rather than physical deletion
-      for audit-trail purposes.
+   e. **Timestamps.** Include a creation timestamp and a last-change timestamp
+      appropriate to the collection — e.g. `createdAt` + `updatedAt` (groups,
+      expenses), `createdAt` + `lastActivityAt` (friendships), or `createdAt` alone
+      (settlements). Pin them to `request.time` in the create rule where determinism
+      matters.
+   f. **No client hard-delete.** Set `allow delete: if false` on every collection.
+      High-churn records (expenses, settlements) additionally carry a
+      `deleted: boolean` flag for soft-delete; the recompute core ignores
+      soft-deleted records.
 4. Define composite indexes needed in `firestore.indexes.json`.
 5. Document the schema as a subsection in the design comment or ADR.
 
 ## Output format
 
-A schema definition in the same format as SRS section 7.2, with field names, types,
-and descriptions. Plus an index definition block for `firestore.indexes.json`.
+A schema definition in the same format as
+`docs/design/07-technical/firestore-schema.md` (and SRS section 7.2), with field
+names, types, and descriptions. Plus an index definition block for
+`firestore.indexes.json`.
 
 ## Validation checks
 
 - [ ] All money fields are integer paise with `Paise` suffix.
-- [ ] `simplifiedBalances` is not introduced on a new collection.
+- [ ] `simplifiedBalances` is not introduced on a new collection, and is absent at
+      create time on `friendships`/`groups`.
 - [ ] No hot-document risk (write rate analysis included).
 - [ ] Participant-scoping field exists for security rules.
 - [ ] `createdAt` and `updatedAt` timestamps present.
@@ -69,14 +84,17 @@ and descriptions. Plus an index definition block for `firestore.indexes.json`.
 
 **Output:**
 Categories are predefined (SRS FR-EX-08) and do not need a separate collection.
-They are stored as an enum field `category` on expense documents:
+They are stored as an enum field `category` on expense documents (in v1.0 expenses
+live under friendships; the group path is Sprint 3):
 ```
-groups/{groupId}/expenses/{expenseId}
+friendships/{friendshipId}/expenses/{expenseId}
   category: 'food' | 'travel' | 'rent' | 'utilities' | 'groceries' |
             'entertainment' | 'shopping' | 'other'
 ```
-No new indexes required — category filtering uses the existing
-`(groupId, date desc)` composite index with a client-side filter.
+This matches the `ExpenseCategory` enum in
+`lib/features/expenses/domain/expense_category.dart` (eight values). No new indexes
+required — category filtering reuses the existing `expenses` index
+(`deleted asc, date desc`) with a client-side filter.
 
 ### Negative example (should refuse)
 

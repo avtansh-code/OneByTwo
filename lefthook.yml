@@ -127,22 +127,22 @@ pre-push:
 
           # Parse lcov.info: extract hit/total lines for files under lib/features/<feature>/
           COVERAGE_PCT=$(python3 -c "
-import re, sys
-hit = 0; total = 0; in_scope = False
-with open('coverage/lcov.info') as f:
-    for line in f:
-        line = line.strip()
-        if line.startswith('SF:'):
-            in_scope = 'lib/features/${FEATURE_NAME}/' in line
-        elif in_scope and line.startswith('LH:'):
-            hit += int(line.split(':')[1])
-        elif in_scope and line.startswith('LF:'):
-            total += int(line.split(':')[1])
-if total == 0:
-    print('N/A')
-else:
-    print(f'{hit * 100.0 / total:.1f}')
-" 2>/dev/null || echo "N/A")
+        import re, sys
+        hit = 0; total = 0; in_scope = False
+        with open('coverage/lcov.info') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('SF:'):
+                    in_scope = 'lib/features/${FEATURE_NAME}/' in line
+                elif in_scope and line.startswith('LH:'):
+                    hit += int(line.split(':')[1])
+                elif in_scope and line.startswith('LF:'):
+                    total += int(line.split(':')[1])
+        if total == 0:
+            print('N/A')
+        else:
+            print(f'{hit * 100.0 / total:.1f}')
+        " 2>/dev/null || echo "N/A")
 
           if [ "$COVERAGE_PCT" = "N/A" ]; then
             echo "WARN: Could not compute coverage for $FEATURE_NAME — no matching files in lcov."
@@ -168,23 +168,23 @@ else:
           # Parse Jest text coverage output for src/<module>/ lines.
           # Jest prints: src/module/file.ts | ...lines% |
           COVERAGE_PCT=$(echo "$JEST_OUTPUT" | python3 -c "
-import sys, re
-hit = 0; total = 0
-for line in sys.stdin:
-    # Match Jest coverage table rows for files under src/<module>/
-    if 'src/${MODULE_NAME}/' in line or re.match(r'\s*${MODULE_NAME}\s*\|', line):
-        nums = re.findall(r'[\d.]+', line)
-        # Jest table: Stmts | Branch | Funcs | Lines — Lines% is the 4th number
-        if len(nums) >= 4:
-            pct = float(nums[3])
-            # Weight equally per file row
-            hit += pct
-            total += 1
-if total == 0:
-    print('N/A')
-else:
-    print(f'{hit / total:.1f}')
-" 2>/dev/null || echo "N/A")
+        import sys, re
+        hit = 0; total = 0
+        for line in sys.stdin:
+            # Match Jest coverage table rows for files under src/<module>/
+            if 'src/${MODULE_NAME}/' in line or re.match(r'\s*${MODULE_NAME}\s*\|', line):
+                nums = re.findall(r'[\d.]+', line)
+                # Jest table: Stmts | Branch | Funcs | Lines — Lines% is the 4th number
+                if len(nums) >= 4:
+                    pct = float(nums[3])
+                    # Weight equally per file row
+                    hit += pct
+                    total += 1
+        if total == 0:
+            print('N/A')
+        else:
+            print(f'{hit / total:.1f}')
+        " 2>/dev/null || echo "N/A")
 
           if [ "$COVERAGE_PCT" = "N/A" ]; then
             echo "WARN: Could not compute coverage for $MODULE_NAME — skipping."

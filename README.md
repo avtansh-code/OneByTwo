@@ -11,11 +11,11 @@ Debts as the sole debt mechanism.
 
 | | |
 |---|---|
-| **Platform** | iOS and Android (Flutter) |
-| **Backend** | Google Firebase (single production project) |
+| **Platform** | iOS and Android (Flutter 3.44.2, `stable` channel via fvm) |
+| **Backend** | Google Firebase (single production project, `onebytwo-avtanshgupta`) |
 | **Target market** | India (INR only, +91 phone numbers) |
 | **State management** | Riverpod 2.x |
-| **Cloud Functions** | Node 20, TypeScript, region `asia-south1` |
+| **Cloud Functions** | Node 22, TypeScript, region `asia-south1` |
 | **CI/CD** | GitHub Actions |
 
 ## Invariants
@@ -32,7 +32,15 @@ These constraints are non-negotiable across the entire codebase:
 
 ```
 lib/                     Flutter application code (feature-first layout)
-functions/               Cloud Functions (TypeScript)
+  app/                   App-level wiring (theme)
+  core/                  Shared building blocks (formatters, connectivity,
+                         routing, services, telemetry, widgets)
+  features/              One folder per feature, each with application/, data/,
+                         domain/, presentation/ and a README.md:
+                           activity, auth, expenses, friends, notifications,
+                           profile, reminders, settlements, shell
+                         (groups exists server-side only — see below)
+functions/               Cloud Functions (TypeScript, Node 22)
 ios/, android/           Platform shells
 docs/                    SRS and project documentation
 .github/
@@ -48,20 +56,25 @@ docs/                    SRS and project documentation
 lefthook.yml             Local git hooks
 ```
 
+> **Groups:** the Firestore `groups` collection schema and security rules exist
+> server-side, but there is no Flutter client feature for groups yet.
+> `lib/features/groups/` contains documentation only — see its README.
+
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter (latest stable channel) — pin via `fvm`
-- Node.js 20 LTS
+- [fvm](https://fvm.app/) (Flutter Version Management) — the repo pins Flutter
+  3.44.2 on the `stable` channel via `.fvmrc`; run `fvm install` to fetch it
+- Node.js 22 (matches the Cloud Functions runtime)
 - Firebase CLI (`npm install -g firebase-tools`)
 - Lefthook (`brew install lefthook` or `npm install -g lefthook`)
 
 ### Local Development
 
 ```sh
-# Install Flutter dependencies
-flutter pub get
+# Install Flutter dependencies (fvm-pinned SDK)
+fvm flutter pub get
 
 # Install Cloud Functions dependencies
 cd functions && npm ci && cd ..
@@ -70,7 +83,7 @@ cd functions && npm ci && cd ..
 ./scripts/dev/start-emulators.sh
 
 # Run the app (pointing to emulators in debug mode)
-flutter run
+fvm flutter run
 
 # Install git hooks
 lefthook install
@@ -83,14 +96,14 @@ lefthook install
 
 ```sh
 # Flutter unit and widget tests
-flutter test
+fvm flutter test
 
 # Cloud Functions tests
 cd functions && npm test
 
-# Integration tests against emulators
+# Integration tests against emulators (tests live under test/integration/)
 firebase emulators:exec --only auth,firestore,functions,storage \
-  "flutter test integration_test/"
+  "fvm flutter test test/integration/"
 ```
 
 ## Documentation

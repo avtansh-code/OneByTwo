@@ -8,6 +8,8 @@
 
 This document provides screen-by-screen wireframe specifications for the One By Two authentication and onboarding flow. Each screen includes an ASCII layout diagram, all interactive states, the component catalogue entries consumed, and the SRS requirements satisfied.
 
+> **Status.** Splash, Phone Entry, OTP, Profile Setup are implemented (`lib/features/auth/presentation/`). **Onboarding is not implemented** (Splash routes straight to Phone Entry). Routes shown are illustrative — there is no GoRouter; navigation is auth-state-switched + `Navigator.push`.
+
 ---
 
 ## 1. Splash Screen

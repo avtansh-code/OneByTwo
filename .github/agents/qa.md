@@ -66,16 +66,54 @@ Also reference:
   back to Developers (review feedback).
 - Cross-reference: `.github/shared/handoffs.md` (Dev to QA, QA to DevOps edges).
 
+## Repository Test Surfaces, Commands, and Paths
+
+- Flutter tests: `flutter test` / `flutter test --coverage` using FVM Flutter
+  3.44.2. Tests live under `test/**` mirroring `lib/**`; use `flutter_test`,
+  `flutter_riverpod` `ProviderScope` overrides, hand-written fakes, and
+  `fake_async` for timer logic. Do not require `mocktail`, `mockito`, or
+  `golden_toolkit`.
+- Flutter flow stubs: `test/integration/<feature>/`, tagged
+  `@Tags(['integration'])` where present and currently skipped. There is no
+  top-level `integration_test/` package directory.
+- Functions tests:
+  - `cd functions && npm test` — Jest + `ts-jest`, DI mock Firestore/logger,
+    22 suites / 319 tests.
+  - `cd functions && npm run test:rules` — `@firebase/rules-unit-testing`
+    against `functions/test/{firestore-rules,storage-rules}/`, with
+    `jest.rules.config.js` and `maxWorkers: 1`.
+  - `cd functions && npm run test:integration` — Firebase Admin SDK tests in
+    `functions/test/integration/*.integration.test.ts`.
+- Emulator wrapper: `scripts/dev/start-emulators.sh`; CI uses
+  `firebase emulators:exec ... --project demo-onebytwo`. Ports are Auth 9099,
+  Firestore 8181, Functions 5001, Storage 9199, UI 4000.
+- Boundary/property coverage: Flutter boundary contracts live at
+  `test/features/<name>/*_boundary_contract_test.dart`; Functions invariant 1
+  grep coverage lives at
+  `functions/test/boundary-contracts/no-double-on-money-fields.test.ts`;
+  simplified-debts property tests use `fast-check` in
+  `functions/test/simplified-debts/algorithm.property.test.ts`.
+- Coverage gates: per Flutter feature and per Functions module >= 70%; overall
+  Flutter and Functions >= 50%. Simplified-debts branch coverage is advisory.
+- `test:canonical` is referenced by workflows/docs but is not defined in
+  `functions/package.json`; flag it as a known gap, do not claim it runs.
+- Current client features are activity, auth, expenses, friends, notifications,
+  profile, reminders, settlements, and shell. Groups are not built client-side:
+  `lib/features/groups/` is README/.gitkeep and shell contains the placeholder.
+
 ## Key Review Checks
 
 When reviewing any pull request, verify:
 
 1. Splits sum to expense total in paise (invariant 1).
-2. No client-side writes to `simplifiedBalances` (invariant 2).
+2. No client-side writes to `simplifiedBalances` (invariant 2). The server
+   writers are `recomputeSimplifiedBalances`, `onExpenseWriteFriendship`, and
+   `onSettlementWrite`; client reads/named arguments for display are not writes.
 3. No platform-specific share target imports (invariant 3).
-4. No second Firebase project ID introduced (invariant 4).
+4. No second Firebase project ID introduced (invariant 4), including the
+   `.firebaserc` single-project guard.
 5. Tests are present and cover at least one negative case.
-6. Coverage thresholds are not regressed (70% non-UI, 50% overall).
+6. Coverage thresholds are not regressed (per-feature/module 70%, overall 50%).
 
 ## Refusal Protocol
 

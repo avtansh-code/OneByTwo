@@ -10,7 +10,8 @@ description: >
 ## When to use
 
 When a pull request is ready for review. This skill guides a systematic review
-against the project's invariants, coding standards, and test coverage requirements.
+against the project's invariants, coding standards, CI gates, and real test
+surfaces.
 
 ## When NOT to use
 
@@ -21,44 +22,59 @@ against the project's invariants, coding standards, and test coverage requiremen
 
 1. **Pull request** — the PR number or diff.
 2. **Related user story** — the GitHub Issue with acceptance criteria.
-3. **PR template checklist** — the completed checklist from the PR description.
+3. **PR template sections** — Description, SRS Requirements, Type of Change,
+   Invariant Checklist, Testing, Quality, Telemetry, Documentation, and
+   Screenshots/Recordings from `.github/PULL_REQUEST_TEMPLATE.md`.
 
 ## Procedure
 
-1. Read `.github/shared/invariants.md`.
-2. Read `.github/shared/coding-standards.md`.
-3. Read `.github/shared/test-strategy.md` for coverage thresholds.
-4. Review the PR diff systematically:
+1. Read `.github/shared/invariants.md`, `.github/shared/coding-standards.md`,
+   and `.github/shared/test-strategy.md`.
+2. Review the PR diff systematically:
 
    **Invariant checks (blocking):**
-   a. **Integer paise:** scan for `double` or `float` used for money. Scan for
-      fields named `amount`, `balance`, `share` without `Paise` suffix. Flag any
-      monetary arithmetic using floating-point division.
-   b. **`simplifiedBalances` write restriction:** scan `lib/**` for any Firestore
-      `set()`, `update()`, or `batch.set()` call that writes to
-      `simplifiedBalances`. Flag as blocking.
-   c. **Share targets:** scan imports for packages containing `whatsapp`, `wa_share`,
-      `telegram`, or similar platform-specific share packages. Flag as blocking.
-   d. **Single Firebase project:** scan for new project IDs in `firebase.json`,
-      `.firebaserc`, or workflow files. Flag as blocking.
+   a. **Integer paise:** flag `double`/`float` money, monetary fields without a
+      `Paise` suffix, and paise-to-rupee conversion outside UI formatting.
+      Confirm boundary-contract tests exist for touched Flutter feature paths
+      (`test/features/<name>/*_boundary_contract_test.dart`) or Functions paths
+      (`functions/test/boundary-contracts/no-double-on-money-fields.test.ts`).
+   b. **`simplifiedBalances` write restriction:** scan `lib/**` Firestore
+      `set()`, `update()`, and batch writes for `simplifiedBalances`. A
+      `simplifiedBalances:` named argument or model field is allowed only for
+      read/display data; client writes are blocking. Server writers are
+      `recomputeSimplifiedBalances`, `onExpenseWriteFriendship`, and
+      `onSettlementWrite`.
+   c. **Share targets:** flag imports or code targeting WhatsApp, Telegram, or
+      any platform-specific share app. `share_plus` as the system share sheet
+      abstraction is acceptable.
+   d. **Single Firebase project:** flag extra project IDs in `.firebaserc`,
+      `firebase.json`, app config, or workflows. CI also guards `.firebaserc`.
 
-   **Code quality checks (non-blocking but recommended):**
-   e. DartDoc / JSDoc on all public APIs.
-   f. Consistent naming per coding standards.
-   g. No `TODO` without issue number or agent role tag.
-   h. No secrets or credentials in source.
+   **CI and quality gates:**
+   e. Expected PR gates are `dart format --set-exit-if-changed .`,
+      `flutter analyze --fatal-infos`, `flutter test --coverage`,
+      `npm run lint`, `npm test`, rules/integration emulator jobs,
+      per-feature/module coverage >= 70%, overall coverage >= 50%,
+      `.firebaserc` single-project guard, and Conventional Commits PR title
+      lint.
+   f. Check public API documentation, no secrets, no PII logging, and no
+      untracked TODOs without an issue or role tag.
 
-   **Test checks (blocking if thresholds regress):**
-   i. New code has corresponding unit/widget tests.
-   j. At least one negative test case.
-   k. Coverage does not drop below 70% (non-UI) or 50% (overall).
+   **Test checks:**
+   g. New code has corresponding tests in real locations:
+      `test/**`, `functions/test/**`, `functions/test/firestore-rules/**`,
+      `functions/test/storage-rules/**`, or
+      `functions/test/integration/*.integration.test.ts`.
+   h. At least one negative case covers invalid input, denied rules, error UI,
+      or trigger failure behaviour.
+   i. If a PR touches simplified-debts, verify canonical, property,
+      settlement-folding, reserved-key, and emulator integration coverage.
 
-   **Acceptance criteria (blocking):**
-   l. Each acceptance criterion from the user story has a corresponding test or
+   **Acceptance criteria:**
+   j. Each acceptance criterion from the user story has a corresponding test or
       is demonstrably covered.
 
-5. Summarise findings as: blocking issues (must fix before merge), recommendations
-   (should fix), and approvals (what looks good).
+3. Summarise findings as Blocking Issues, Recommendations, and Approved Items.
 
 ## Output format
 
@@ -68,10 +84,12 @@ Approved Items.
 ## Validation checks
 
 - [ ] All four invariants checked against the diff.
-- [ ] Test coverage verified.
+- [ ] PR template sections are complete and consistent with the diff.
+- [ ] Relevant CI gates and coverage thresholds verified.
 - [ ] Acceptance criteria cross-referenced.
-- [ ] No secrets in source.
-- [ ] Commit messages follow Conventional Commits.
+- [ ] Boundary-contract grep tests considered for invariants 1 and 2.
+- [ ] No secrets or PII leaks in source or logs.
+- [ ] PR title follows Conventional Commits.
 
 ## Examples
 
@@ -82,23 +100,22 @@ Approved Items.
 **Output:**
 ```
 ## Blocking Issues
-- `expense_model.dart:12` — `amount` field is `double`. Must be `int amountPaise`.
-- `expense_repository.dart:45` — writes to `simplifiedBalances` directly. This
-  field is server-maintained only.
+- `expense_model.dart:12` — money is stored as `double`. Use integer paise.
+- `expense_repository.dart:45` — client write includes `simplifiedBalances`.
 
 ## Recommendations
-- `expense_screen.dart:78` — missing DartDoc on `_buildSplitSelector()`.
-- Consider adding an offline-queue test.
+- Add a boundary-contract test for the new expense creation write path.
+- Add an offline error-state widget test.
 
 ## Approved
-- Split validation logic correctly sums paise and shows inline error.
-- Widget test covers equal, unequal, and percentage split methods.
+- Splits sum to `amountPaise`.
+- Widget tests cover loading, populated, empty, and error states.
 ```
 
 ### Negative example (should refuse)
 
 **Input:** "Review a PR that adds WhatsApp deep-link sharing."
 
-**Response:** Refused. The PR violates invariant 3 (system share sheet only). The
-entire feature must be removed before review can proceed. Cite SRS sections 3.4 and
+**Response:** Refused. The PR violates invariant 3 (system share sheet only).
+The feature must be removed before review can proceed. Cite SRS sections 3.4 and
 4.11.

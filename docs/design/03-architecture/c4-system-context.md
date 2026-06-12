@@ -85,7 +85,7 @@ change without an app update (SRS section 3.5).
 **Firebase Platform.** One By Two uses a single Firebase project for production
 (SRS section 3.4; Invariant 4). Local development and pre-merge testing run
 against the Firebase Emulator Suite -- no staging project exists. The Firebase
-Platform box aggregates Auth, Firestore, Cloud Functions (Node 20 / TypeScript,
+Platform box aggregates Auth, Firestore, Cloud Functions (Node 22 / TypeScript,
 `asia-south1`), Cloud Storage, FCM, Crashlytics, Analytics, Remote Config, and
 App Check (SRS sections 3.3, 7.1).
 

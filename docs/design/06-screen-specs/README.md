@@ -30,6 +30,8 @@ Screens are grouped by flow area in six files.
 | `19-22-expenses.md` | SCR-19 Add Expense (Amount), SCR-20 Add Expense (Split), SCR-21 Add Expense (Receipt/Confirm), SCR-22 Edit/Delete Expense | FR-EX-01 to FR-EX-09 |
 | `23-28-settle-activity-profile.md` | SCR-23 Settle Up, SCR-24 Settlement History, SCR-25 Activity Feed, SCR-26 Profile, SCR-27 Notification Prefs, SCR-28 Support/Deletion | FR-SE-05 to FR-SE-08, FR-AC-01, FR-AC-02, FR-PR-01 to FR-PR-05, FR-SH-03, FR-SH-04, FR-AU-08, FR-AU-09 |
 
+> **Status note.** **Implemented:** SCR-01, 03, 04, 05; SCR-08 (`AddExpenseContextPickerSheet` + 3-step sheet); SCR-09, 10, 11; SCR-19, 20, 21, 22; SCR-23, 24, 25, 26, 27. **Placeholder:** SCR-06 (Home — `HomeDashboardPlaceholder`). **Planned / not implemented:** SCR-02 (Onboarding), SCR-07 (Search), SCR-12 (Delete Friend), SCR-13–18 (all Groups), and SCR-28 Support/Deletion are "Coming soon" stubs.
+
 ---
 
 ## Cross-References

@@ -10,7 +10,7 @@ description: >
 ## When to use
 
 When a bug report has been filed and needs severity classification, root cause
-analysis, reproduction confirmation, and assignment to the correct developer.
+analysis, reproduction confirmation, regression-test guidance, and assignment.
 
 ## When NOT to use
 
@@ -19,72 +19,88 @@ analysis, reproduction confirmation, and assignment to the correct developer.
 
 ## Inputs
 
-1. **Bug report** — the GitHub Issue filed using the `bug_report` template.
+1. **Bug report** — the GitHub Issue filed using `.github/ISSUE_TEMPLATE/bug_report.md`.
 2. **Reproduction steps** — from the reporter.
 3. **Device and OS information** — from the bug report template.
 
 ## Procedure
 
-1. Read the bug report and reproduction steps.
-2. Classify severity per SRS section 10.5:
+1. Classify severity using the bug report template and SRS section 10.5:
 
    | Severity | Definition | SLA |
    |---|---|---|
-   | S1 — Critical | Crash on launch, core flow blocked, data loss, wrong simplified balances. | Same-day hotfix. |
-   | S2 — Major | Feature broken, no workaround, affects many users. | Within 3 business days. |
-   | S3 — Minor | Feature broken with workaround; cosmetic but visible. | Next sprint. |
-   | S4 — Trivial | Polish, copy, edge-case visual. | Backlog. |
+   | S1 — Critical | Crash on launch, data loss, core flow blocked, or wrong simplified balances. | Same-day hotfix. |
+   | S2 — Major | Feature broken with no workaround. | Within 3 business days. |
+   | S3 — Minor | Feature broken with a workaround or visible cosmetic issue. | Next sprint. |
+   | S4 — Trivial | Polish or low-risk edge-case visual issue. | Backlog. |
 
-3. Identify the root cause area:
-   a. **Client UI** — routing, widget rendering, state management → Flutter Dev.
-   b. **Client data** — Firestore reads, offline cache, models → Flutter Dev.
-   c. **Cloud Functions** — simplified-debts computation, triggers → Functions Dev.
-   d. **Security rules** — access denied errors, validation failures → Architect.
-   e. **CI/CD** — build failures, deployment issues → DevOps.
-   f. **Schema** — missing fields, wrong types → Architect.
-4. Check if the bug involves an invariant violation:
-   a. Wrong balance due to floating-point money? → invariant 1.
-   b. Client writing simplifiedBalances? → invariant 2.
-   c. Platform-specific share? → invariant 3.
-   d. Wrong Firebase project? → invariant 4.
-5. Assign to the appropriate agent and label with severity.
-6. If S1, flag for immediate hotfix and notify DevOps.
+2. Identify the root-cause area and route to the correct agent:
+
+   | Root cause area | Examples | Agent |
+   |---|---|---|
+   | Flutter feature/UI | activity, auth, expenses, friends, notifications, profile, reminders, settlements, shell | Flutter Dev |
+   | Groups client UI | A report expects real group screens | PM/Orchestrator: groups is not a built client feature; `lib/features/groups/` is README/.gitkeep and shell has a placeholder |
+   | Cloud Functions | `recomputeSimplifiedBalances`, `onExpenseWriteFriendship`, `onSettlementWrite`, `lookupUserByPhoneNumber`, `sendReminderNotification` | Functions Dev |
+   | Security rules/schema | Firestore/Storage allow/deny failures, `simplifiedBalances` write restriction, group/friendship schema | Architect |
+   | CI/CD/emulators | GitHub Actions, Firebase Emulator Suite, `.firebaserc` single-project guard | DevOps |
+   | Test gap only | Missing regression coverage with no product code defect | QA |
+
+3. Check invariant implications:
+   a. Wrong money, fractional money, or paise/rupee conversion outside UI →
+      invariant 1.
+   b. Client writing `simplifiedBalances` → invariant 2.
+   c. Platform-specific sharing → invariant 3.
+   d. Wrong or extra Firebase project → invariant 4.
+4. Recommend the regression test location:
+   a. Flutter widget/unit bug → `test/features/<feature>/..._test.dart`.
+   b. Flutter invariant 1/2 contract → `test/features/<feature>/*_boundary_contract_test.dart`.
+   c. Functions unit/trigger bug → `functions/test/<module>/*.test.ts`.
+   d. Simplified-debts bug → `functions/test/simplified-debts/*.test.ts` and,
+      if persistence is involved, `functions/test/integration/*.integration.test.ts`.
+   e. Rules bug → `functions/test/firestore-rules/` or
+      `functions/test/storage-rules/`.
+   f. Emulator journey bug → `functions/test/integration/*.integration.test.ts`;
+      Flutter flow stubs live under `test/integration/<feature>/`.
+5. Assign to the appropriate agent and label with severity. If S1, flag for
+   immediate hotfix and notify DevOps.
 
 ## Output format
 
 A triage comment on the GitHub Issue with: severity, root cause area, assigned
-agent, invariant implications (if any), and recommended fix approach.
+agent, invariant implications, regression-test location, and recommended fix
+approach.
 
 ## Validation checks
 
-- [ ] Severity is assigned per SRS section 10.5 definitions.
-- [ ] Root cause area is identified.
+- [ ] Severity matches the bug report template definitions.
+- [ ] Root cause area maps to the real feature/function set.
+- [ ] Groups status is handled correctly when relevant.
 - [ ] Assigned to the correct agent.
 - [ ] Invariant implications are noted.
+- [ ] Regression-test location is specified.
 - [ ] S1 bugs are flagged for immediate action.
 
 ## Examples
 
 ### Positive example
 
-**Input:** Bug report: "Group balance shows 150.5 instead of 150.50 after adding
-an expense of 301 rupees split among 2 people."
+**Input:** Bug report: "Friend balance shows 150.5 instead of 150.50 after adding
+an expense of 301 rupees split between two people."
 
 **Triage output:**
-- Severity: S1 (wrong balance display — potential data integrity issue).
-- Root cause: likely floating-point division in the UI formatter or the split
-  calculation is using `double` instead of integer paise.
-- Invariant: potential violation of invariant 1 (money as integer paise).
-- Assigned to: Flutter Dev (if UI formatter) or Functions Dev (if backend
-  computation).
-- Recommended fix: verify `amountPaise` is stored as 30100 (integer), verify
-  split is [15050, 15050], verify formatter divides by 100 and formats with 2
-  decimal places.
+- Severity: S1 if persisted/displayed balance is wrong; otherwise S3 if only
+  cosmetic formatting with correct paise storage.
+- Root cause: Flutter formatter or split calculation.
+- Invariant: potential invariant 1 issue.
+- Assigned to: Flutter Dev.
+- Regression test: `test/features/expenses/..._test.dart` plus a boundary
+  contract if a write path changed.
 
 ### Negative example (should refuse)
 
-**Input:** "Triage: the app does not support Hindi language."
+**Input:** "Triage: the app does not have group creation screens."
 
-**Response:** Refused. Hindi localisation is listed in SRS section 12.3 as out of
-scope for v1.0. This is a feature request, not a bug. File as a post-v1.0
-enhancement.
+**Response:** This is not a bug against the current client feature set. Groups
+are not built as a client feature; `lib/features/groups/` contains only
+README/.gitkeep and the shell has a placeholder. Route as a feature request or
+backlog item, not a defect.

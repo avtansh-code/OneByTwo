@@ -15,6 +15,8 @@ This document is the design-system counterpart to the Information Architecture e
 
 All features referenced below are explicitly out of scope for v1.0 (SRS section 12.3). No design or implementation work for these features shall occur in v1.0. This catalogue exists solely to ensure the v1.0 design system is structured so that these additions can be made without refactoring existing tokens, components, or motion definitions.
 
+Note: design tokens currently live in `lib/app/theme.dart` as a plain `AppTheme` (semantic `ColorScheme`/`TextTheme`), **not** a token map / `ThemeExtension`. DS-EXT-01's 'reference fonts by semantic name via a token map' therefore remains a v1.1 prerequisite not yet in place.
+
 ---
 
 ## Extension Points

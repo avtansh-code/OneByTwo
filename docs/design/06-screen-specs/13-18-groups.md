@@ -18,6 +18,8 @@ formatting occurs exclusively at the UI layer (Invariant 1). The
 `simplifiedBalances` field is server-maintained and client-read-only (Invariant 2).
 All outbound sharing uses the system share sheet (Invariant 3).
 
+> **Status: planned — not implemented in the client.** No Flutter UI exists under `lib/features/groups/`; the tab is `GroupsListPlaceholder`. Spec retained as the build target.
+
 ---
 
 ## SCR-13: Groups List

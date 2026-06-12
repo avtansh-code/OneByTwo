@@ -78,6 +78,23 @@ selectedContact: { displayName: String, phoneNumbers: List<String> }
 Phone numbers are E.164 normalised (e.g. `+91XXXXXXXXXX`). The full contact
 list never crosses the picker boundary.
 
+### 2.6 Identifier hashing helpers
+
+PII-adjacent identifiers (e.g. `friendshipId`, which concatenates two user UIDs) are
+**hashed before they are emitted** to telemetry or structured logs — they are not
+excluded outright. Two parallel helpers implement the same contract, SHA-256 truncated
+to the **first 16 hex characters (64 bits)**:
+
+- **Client:** `lib/core/telemetry/event_id_hash.dart` — `hashId(id)` and
+  `hashFriendshipId(id)` (the latter delegates to the former).
+- **Server:** `functions/src/utils/id-hash.ts` — `hashId(id)` =
+  `createHash('sha256').update(id).digest('hex').slice(0, 16)`.
+
+Per ADR-0013 the emitted parameter name appends a `_hash` suffix to signal the value is
+hashed rather than raw — e.g. `friendship_id_hash`, `expense_id_hash`,
+`settlement_id_hash`. This 16-hex truncation is distinct from the **full** SHA-256 used
+in the phone-number audit log (Section 5), which is not truncated.
+
 ---
 
 ## 3. Enforcement
@@ -103,13 +120,17 @@ invariant is considered. See ADR-0013 for the full rationale.
 
 ## 5. Audit Log Retention
 
-The `lookupUserByPhoneNumber` Cloud Function logs each invocation with the
-following structured fields:
+The `lookupUserByPhoneNumber` Cloud Function logs each invocation as structured
+events (`lookup_user_by_phone_number_started`, `..._completed`, `..._failed`) with the
+following fields (`functions/src/lookup-user-by-phone-number/function.ts`):
 
-- **Hashed phone number:** SHA-256 hash of the queried phone number. Raw phone
-  numbers are NEVER stored in logs.
-- **Caller userId:** The authenticated user who invoked the function.
-- **Result:** Whether the lookup matched or did not match a registered user.
+- **`phoneNumberHash`:** the **full** SHA-256 hex digest of the queried phone number
+  (not the 16-hex truncation used elsewhere). Raw phone numbers are NEVER logged.
+- **`callerUidHash`:** the **full** SHA-256 hex digest of the authenticated caller's
+  UID. The raw UID is not logged.
+- **`matched`:** whether the lookup matched a registered user (on the completed event).
+  Failures log a structured `errorCode` (e.g. `INVALID_INPUT`, `RATE_LIMITED`,
+  `INTERNAL`) instead.
 
 ### Retention policy
 
@@ -137,3 +158,4 @@ document:
 |---------|------------|---------------------------------------|
 | 1.0     | 2025-06-26 | Initial version (PR #31, ADR-0013).   |
 | 1.1     | 2025-06-28 | Add audit log retention section for lookupUserByPhoneNumber (PR #32, ADR-0014). |
+| 1.2     | 2025-02-XX | Reconcile with implemented hashing helpers: document `id-hash.ts` / `event_id_hash.dart` (SHA-256 truncated to 16 hex) and the `_hash` suffix convention; correct the phone-lookup audit log to note `phoneNumberHash` and `callerUidHash` use full SHA-256. |

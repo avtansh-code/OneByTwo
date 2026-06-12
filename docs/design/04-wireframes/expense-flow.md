@@ -6,7 +6,7 @@
 > **Audience:** Flutter Developer, Solution Architect, QA Engineer
 > **SRS baseline:** v1.1, sections 4.5 (FR-EX-01 through FR-EX-09), 6.3 (Core Screen 8), 6.4
 
-This document specifies the Add/Edit/Delete Expense flow -- the most complex interaction in One By Two v1.0. The flow is implemented as a multi-step modal bottom sheet (SRS section 6.3, item 8) with four creation steps, plus edit and delete variants.
+This document specifies the Add/Edit/Delete Expense flow -- the most complex interaction in One By Two v1.0. The flow is implemented as a multi-step modal bottom sheet (SRS section 6.3, item 8) with **three** creation steps (Step 1 amount/details, Step 2 split/payer, Step 3 receipt/confirm — see `lib/features/expenses/presentation/steps/`), plus edit (pre-filled sheet) and delete (from Expense Detail). **Implemented.**
 
 All monetary values arriving as props are **integer paise** (Invariant 1). Conversion to rupees with Indian numbering formatting is the responsibility of the UI layer. Currency symbol is always `₹` and amounts use the Indian numbering system (FR-EX-09).
 

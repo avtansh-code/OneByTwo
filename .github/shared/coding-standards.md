@@ -33,13 +33,14 @@ skill must follow them. Reference: SRS section 5.7.
 
 - All monetary values are `int` representing paise. Never use `double` for money.
 - Conversion to display rupees (two decimal places, Indian numbering system) happens
-  exclusively in the UI layer via a shared formatter in `lib/core/`.
+  exclusively in the UI layer via `formatInrFromPaise` in
+  `lib/core/formatters/inr_formatter.dart`.
 
 ### State management
 
-- Riverpod 2.x is the default state management solution (ADR-0004, pending architect
-  confirmation).
-- Providers live in the feature folder they serve (`lib/features/<feature>/`).
+- Riverpod 2.x is the state management solution (ADR-0004).
+- Providers live in the feature folder they serve
+  (`lib/features/<feature>/application/`).
 
 ### Imports
 
@@ -62,7 +63,8 @@ skill must follow them. Reference: SRS section 5.7.
 - Interfaces and types: `UpperCamelCase`.
 - Functions and variables: `camelCase`.
 - Constants: `UPPER_SNAKE_CASE` for true compile-time constants only.
-- File names: `camelCase.ts`.
+- File names: `kebab-case.ts` or lowercase single words (e.g., `function.ts`,
+  `algorithm.ts`, `id-hash.ts`, `send-reminder-notification.ts`).
 
 ### Documentation
 
@@ -73,8 +75,10 @@ skill must follow them. Reference: SRS section 5.7.
 ### Money
 
 - All monetary values are `number` representing integer paise. Never use floats.
-- The `simplifiedDebts` module is a pure function with no side effects beyond its
-  return value; the calling trigger writes the result.
+- The simplified-debts algorithm (`functions/src/simplified-debts/algorithm.ts`) is a
+  pure function with no side effects; only `recomputeAndWrite` in
+  `functions/src/simplified-debts/function.ts` writes the result to
+  `simplifiedBalances`.
 
 ### Region
 

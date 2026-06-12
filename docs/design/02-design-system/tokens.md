@@ -75,7 +75,7 @@ Surface shifts to `#121212` per SRS section 6.2. All pairings verified for WCAG 
 
 ## 2. Typography Scale
 
-Font family: **Plus Jakarta Sans** (primary) with **Inter** as first fallback and platform system font as final fallback, per SRS section 6.2. All sizes in `sp` to support OS-level dynamic font scaling (SRS section 5.6).
+Font families (via `google_fonts`, per `lib/app/theme.dart` `_buildTextTheme`): **Plus Jakarta Sans** for display/headline/title styles and **Inter** for body/label styles — a dual-role pairing, not a single fallback chain. The per-style table below matches the implemented `TextTheme`. All sizes in `sp` to support OS-level dynamic font scaling (SRS section 5.6).
 
 | Style Name | Font Family | Weight | Size (sp) | Line Height | Letter Spacing (sp) | Usage |
 |---|---|---|---|---|---|---|
@@ -122,6 +122,8 @@ A strict 4-point grid ensures consistent rhythm across all screens. All values i
 
 Per SRS section 6.2: 16 dp and 24 dp on cards and sheets for a "soft, modern feel".
 
+> **Implementation note.** Implemented in `AppTheme` as `radiusMedium` (12), `radiusLarge` (16), `radiusXL` (24) only; `radiusSmall` and `radiusFull` are not yet defined as constants.
+
 | Token | Value (dp) | Usage |
 |---|---|---|
 | `radiusSmall` | 8 | Chips, badges, small input fields, avatar clipping |
@@ -135,6 +137,8 @@ Per SRS section 6.2: 16 dp and 24 dp on cards and sheets for a "soft, modern fee
 ## 5. Elevation
 
 Following Material 3 elevation levels with the SRS 6.2 guideline of "subtle shadows, layered surfaces — depth without heaviness". In dark mode, elevation is expressed through surface tint overlay (lighter `surface` shades) rather than drop shadows.
+
+> **Implementation note.** Specified for design intent; not yet codified as named tokens in `AppTheme`. Per the FAB widget, spring physics on the FAB is **deferred** (default Material ink response in v1.0).
 
 | Token | Light Mode Shadow | Dark Mode Surface Tint Overlay | Usage |
 |---|---|---|---|
@@ -150,6 +154,8 @@ Following Material 3 elevation levels with the SRS 6.2 guideline of "subtle shad
 ## 6. Motion
 
 Per SRS section 6.2: "200-300 ms ease-in-out transitions; spring physics on FAB." Motion must be "delightful but quiet". All animations must respect the platform `reduceMotion` / `disableAnimations` accessibility setting (SRS 5.6) — when enabled, durations collapse to 0 ms.
+
+> **Implementation note.** Specified for design intent; not yet codified as named tokens in `AppTheme`. Per the FAB widget, spring physics on the FAB is **deferred** (default Material ink response in v1.0).
 
 | Token | Duration (ms) | Curve | Usage |
 |---|---|---|---|
@@ -168,6 +174,8 @@ Per SRS section 6.2: "200-300 ms ease-in-out transitions; spring physics on FAB.
 ### 7.1 Icon Set and Sizing
 
 Icon set: **Material Symbols Rounded** (variable font variant), consistent with the "soft, modern feel" directive in SRS section 6.2.
+
+> **Implementation note.** Specified for design intent; not yet codified as named tokens in `AppTheme`. Per the FAB widget, spring physics on the FAB is **deferred** (default Material ink response in v1.0).
 
 | Size Token | Value (dp) | Usage |
 |---|---|---|
@@ -216,4 +224,4 @@ Key pairings verified against WCAG 2.1 AA (SRS section 5.6):
 
 ---
 
-*Document prepared by the UX/UI Designer agent. All tokens trace to SRS section 6.2 (Visual System), section 6.1 (Design Philosophy), and section 5.6 (Usability and Accessibility). For implementation, the Flutter Developer should consume these tokens via a centralised `AppTheme` class using `ThemeExtension` in the `common/theme/` feature module.*
+*Document prepared by the UX/UI Designer agent. All tokens trace to SRS section 6.2 (Visual System), section 6.1 (Design Philosophy), and section 5.6 (Usability and Accessibility). For implementation, these tokens are implemented in `lib/app/theme.dart` as a centralised `AppTheme` exposing `AppTheme.light` / `AppTheme.dark` `ThemeData` (Material 3) built from a semantic `ColorScheme` + `TextTheme`. Tokens are **not** yet surfaced via `ThemeExtension`.*

@@ -30,8 +30,6 @@ lib/generated_plugin_registrant.dart
 *.router.dart
 
 # Flutter version manager
-.fvm/flutter_sdk
-.fvm/fvm_config.json
 
 # Coverage
 coverage/
@@ -121,6 +119,8 @@ fastlane/test_output/
 # ── Lefthook ────────────────────────────
 lefthook-local.yml
 
-
 # ── Secrets / credentials ─────────────────────────────
 secrets/
+
+# FVM Version Cache
+.fvm/

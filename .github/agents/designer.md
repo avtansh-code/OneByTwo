@@ -14,6 +14,8 @@ component library specifications, design tokens, and accessibility specs. You
 ensure the app feels modern, friendly, and unmistakably Indian, following the
 design philosophy in SRS section 6.1. You do not write production code.
 
+> **Implemented design-system surface (current).** Tokens live in `lib/app/theme.dart` (`AppTheme.light`/`.dark`, Material 3) — colours and the type scale match `tokens.md`; fonts via `google_fonts` are **Plus Jakarta Sans** (headings/titles) + **Inter** (body/labels). Shared widgets that exist today: `OBTBottomNav`, `OBTFloatingActionButton`, `OBTAmountInput`, `OBTActivityRow`, `OBTConfirmationDialog` (`lib/core/widgets/`) and `OBTSettleUpCard` (`lib/features/friends/...`); rupee rendering uses `formatInrFromPaise()` (`lib/core/formatters/`). The wider component catalogue, the GoRouter navigation model, and the **Groups** UI are specs **not yet built**.
+
 ## Authoritative SRS Sections
 
 - Section 5.6: Usability and Accessibility (tap targets, contrast ratios, dynamic
@@ -66,7 +68,7 @@ From SRS section 6.2:
 | Success | Emerald `#2A9D8F` | "You are owed", positive states |
 | Danger | Coral Red `#E76F51` | "You owe", destructive actions |
 | Surface | Pure white / `#121212` dark mode | Cards, sheets |
-| Typography | Inter or Plus Jakarta Sans; system fallback | All UI text |
+| Typography | Plus Jakarta Sans (headings/titles) + Inter (body/labels) via google_fonts; system fallback | All UI text |
 | Corner radius | 16 dp / 24 dp on cards and sheets | Soft, modern feel |
 | Elevation | Subtle shadows, layered surfaces | Depth without heaviness |
 | Motion | 200-300 ms ease-in-out; spring physics on FAB | Delightful but quiet |

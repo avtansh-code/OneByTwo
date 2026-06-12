@@ -32,27 +32,37 @@ needs to be added, or when CI needs emulator setup for integration tests.
    Reality: single production project, emulators for everything else).
 2. Read `.github/shared/invariants.md` (especially invariant 4: single Firebase
    project).
-3. Configure `firebase.json` with the emulator block:
+3. Configure `firebase.json` with the emulator block (these are the values
+   currently committed):
    ```json
    {
      "emulators": {
        "auth": { "port": 9099 },
-       "firestore": { "port": 8080 },
+       "firestore": { "port": 8181 },
        "functions": { "port": 5001 },
        "storage": { "port": 9199 },
-       "ui": { "enabled": true, "port": 4000 }
+       "ui": { "enabled": true, "port": 4000 },
+       "singleProjectMode": true
      }
    }
    ```
+   The Cloud Functions codebase uses the `nodejs22` runtime (set in the
+   `firebase.json` `functions` block) and deploys to region `asia-south1`.
 4. Ensure the Flutter app has a debug-mode flag that points Firebase SDKs to
    emulator hosts:
    - iOS Simulator: `localhost`
    - Android Emulator: `10.0.2.2`
-5. For CI, add a step that installs the Firebase CLI, runs
-   `firebase emulators:exec --only auth,firestore,functions,storage "<test command>"`,
-   and tears down automatically.
+5. For local development, start the suite via the **required** wrapper
+   `scripts/dev/start-emulators.sh` — never raw `firebase emulators:start`. It reads
+   the project ID from `.firebaserc` via `jq`, builds the functions, and starts
+   `auth,firestore,functions,storage`. For CI, install `firebase-tools` and run
+   `firebase emulators:exec --only auth,firestore,functions,storage "<test command>" --project demo-onebytwo`
+   so the run is fully offline and tears down automatically. The `--project` flag is
+   mandatory (the `block-second-firebase-project` hook rejects firebase CLI calls
+   without it).
 6. Verify that no production project credentials are needed for emulator-only runs.
-7. Add seed data scripts if needed under `functions/src/__tests__/seed/`.
+7. Add or extend the seed script at `scripts/dev/seed-emulator.ts` if needed
+   (currently a placeholder; run with `npx ts-node scripts/dev/seed-emulator.ts`).
 
 ## Output format
 
@@ -62,9 +72,11 @@ workflow step YAML.
 ## Validation checks
 
 - [ ] All required emulators are enabled.
+- [ ] Firestore emulator port is `8181` and `singleProjectMode` is `true` (matches `firebase.json`).
 - [ ] Ports do not conflict with common development services.
 - [ ] Flutter debug-mode emulator host configuration is documented.
-- [ ] CI step uses `firebase emulators:exec` (not long-running `emulators:start`).
+- [ ] Local dev uses `scripts/dev/start-emulators.sh`; CI uses `firebase emulators:exec` (not long-running `emulators:start`).
+- [ ] Every `firebase` CLI call passes `--project` (`demo-onebytwo` for emulator-only runs).
 - [ ] No production credentials are required for emulator runs.
 - [ ] No second Firebase project ID is introduced (invariant 4).
 
@@ -75,9 +87,9 @@ workflow step YAML.
 **Input:** "Set up emulators for local development with Auth, Firestore, and
 Functions."
 
-**Output:** Updated `firebase.json` with emulator ports, added a
-`scripts/start-emulators.sh` convenience script, documented the Flutter
-`useEmulator()` calls for debug mode.
+**Output:** Updated `firebase.json` with the emulator ports above, confirmed the
+`scripts/dev/start-emulators.sh` wrapper as the local entry point, documented the
+Flutter `useEmulator()` calls for debug mode.
 
 ### Negative example (should refuse)
 

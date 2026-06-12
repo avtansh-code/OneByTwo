@@ -22,6 +22,8 @@ for v1.0 (SRS section 12.3). No implementation work for these features shall
 occur in v1.0 sprints. This table exists solely to inform architectural
 decisions that preserve extensibility.
 
+Note: the *What exists in v1.0* column states the v1.0 design target. As of this pass, the client has **not** yet built the Contact-Support mailto flow (IA-EXT-05 — currently a 'Coming soon' stub), the Universal/App-Link deep-link infra (IA-EXT-04 — only the in-app `NotificationDeepLinks` FCM resolver exists), or any Groups surface.
+
 ---
 
 ## Extension Points

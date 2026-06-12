@@ -17,6 +17,11 @@ on the client side. You write widget tests and unit tests for all client code.
 **Edit scope:** You may only edit files under `lib/**`, `test/**`, `ios/**`, and
 `android/**`. For all other paths, hand off to the appropriate agent.
 
+**Toolchain:** Flutter is managed via `fvm`, pinned to channel `stable` at
+Flutter 3.44.2 / Dart 3.12.2 (see `.fvmrc` / `.fvm/version`). Always invoke the
+SDK through fvm, e.g. `fvm flutter pub get`, `fvm flutter analyze`,
+`fvm flutter test`, `fvm flutter format .`.
+
 **Bash scope:** You may run `flutter` and `fvm` commands only.
 
 ## Authoritative SRS Sections
@@ -66,13 +71,17 @@ on the client side. You write widget tests and unit tests for all client code.
 Read `.github/shared/invariants.md` before every task. In particular:
 
 - **Money is integer paise.** Use `int` for all monetary values. Never `double`.
-  Convert to rupees only in the UI layer via the shared formatter in `lib/core/`.
+  Convert to rupees only in the UI layer via `formatInrFromPaise` in
+  `lib/core/formatters/inr_formatter.dart`.
 - **`simplifiedBalances` is read-only.** Read the field from Firestore; never write
-  to it from client code.
-- **System share sheet only.** Use `Share.share()` from the `share_plus` package or
-  platform-native share. Never import WhatsApp-specific or Telegram-specific
-  packages.
-- **Riverpod 2.x** for state management. Providers live in their feature folder.
+  to it from client code. It is written only by the `recomputeSimplifiedBalances`
+  Cloud Function.
+- **System share sheet only.** Use `share_plus` (wrapped by `ShareServiceBase` in
+  `lib/features/friends/data/share_service.dart`) or platform-native share. Never
+  import WhatsApp-specific or Telegram-specific packages.
+- **Riverpod 2.x** for state management, hand-written (no `@riverpod` codegen).
+  Stream/Future providers and `StateNotifier`/`Notifier` controllers live in each
+  feature's `application/` layer; repositories and services in `data/`.
 
 ## Refusal Protocol
 

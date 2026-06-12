@@ -54,6 +54,8 @@ All mockups use the following tokens from `docs/design/02-design-system/tokens.m
 | Corner radius (cards) | 16dp | 16dp |
 | Corner radius (sheets) | 24dp | 24dp |
 
+**Note.** These static HTML mockups use **Inter only**; the production app pairs **Plus Jakarta Sans** (headings/titles) with **Inter** (body/labels) per `lib/app/theme.dart`. Mockup #5 (`05-group-detail.html`) previews the **not-yet-implemented** Groups feature. Where mockup hexes drift (e.g. text-primary `#1A1A2E`, background `#F8F9FA`), `tokens.md`/`theme.dart` are canonical (`#1A1A1A`, `#F8F9FB`).
+
 ---
 
 ## Viewing Instructions

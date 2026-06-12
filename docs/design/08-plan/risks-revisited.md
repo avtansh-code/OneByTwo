@@ -140,8 +140,9 @@ amplifying the write load per expense event.
 ### R-05: Account deletion and DPDP compliance miss
 
 **Has the design phase strengthened or weakened the mitigation?**
-Strengthened. The cloud functions catalogue specifies the `onUserDelete` function
-(function 4) which handles data anonymisation and cleanup. The Firestore schema
+Strengthened in design, pending in implementation. The cloud functions catalogue
+specifies the `onUserDelete` function in its Deferred functions table (not yet
+implemented in v1.0) which is intended to handle data anonymisation and cleanup. The Firestore schema
 confirms that user documents are scoped to `users/{userId}` with a strict
 owner-only security rule, making the deletion surface area well defined. The test
 design includes CUJ-10, a full end-to-end integration test for account deletion
@@ -157,7 +158,7 @@ must also be considered during data purge. These increase the scope of the delet
 function beyond the original estimate.
 
 **Specific design artefacts that address the risk:**
-- `docs/design/07-technical/cloud-functions-catalogue.md` -- section 4 (onUserDelete).
+- `docs/design/07-technical/cloud-functions-catalogue.md` -- Deferred functions (onUserDelete, not yet implemented).
 - `docs/design/07-technical/firestore-schema.md` -- `activity/{userId}/items/{itemId}` collection.
 - `docs/design/07-technical/firestore-security-rules.md` -- user document delete denied to clients.
 - `docs/design/07-technical/test-design.md` -- section 4.10 (CUJ-10: account deletion integration test).
@@ -373,7 +374,7 @@ significant surface area for race conditions and state management errors.
 deep-links including the cold-start path and the entity-not-found negative case.
 The entity-not-found fallback table in the notifications design provides six
 explicit fallback routes. However, the interaction between deep-link replay and the
-GoRouter auth guard is a complex stateful sequence that warrants additional negative
+auth-state-driven navigation guard is a complex stateful sequence that warrants additional negative
 test cases (e.g., deep-link with expired auth session, deep-link during active
 sign-in flow, deep-link with malformed payload).
 

@@ -7,9 +7,10 @@
 > Invariant 1 (integer paise), Invariant 2 (simplifiedBalances is
 > client-read-only), ADR-0001, ADR-0002.
 
-This document describes the intended Firestore Security Rules in plain English.
-It is **not** final rules code. It serves as the specification from which the
-actual `firestore.rules` file shall be implemented and tested.
+This document describes the Firestore Security Rules in plain English. It is a
+companion to the implemented `firestore.rules` file and has been **reconciled with
+that implementation**; where the rules and this prose differ, `firestore.rules` is
+authoritative. Storage rules are summarised at the end (`storage.rules`).
 
 All rules assume that `request.auth != null` unless stated otherwise. No
 collection permits unauthenticated access (SRS section 7.5: "Public collections
@@ -31,34 +32,47 @@ do not exist; everything is participant-scoped").
 ### Read
 
 - Allowed when `request.auth.uid == userId` (own document).
-- Allowed when `request.auth.uid` is present in a `friendships` document's
-  `memberIds` AND the target `userId` is also in that friendship's `memberIds` —
-  i.e., you can read the profile of someone you are friends with.
+- Allowed when the caller shares a friendship with the target user. This is checked
+  by the `isInFriendshipWith` helper, which derives the deterministic friendship ID
+  (sorted UIDs joined with `_`) and calls `exists()` on it — it does not scan
+  `memberIds`.
+- Allowed when the caller shares a group with the target user (`isInGroupWith`). This
+  helper is a **v1.0 placeholder that returns `false`** (groups are Sprint 3), so in
+  practice reads resolve to owner-or-friend.
 - Note: phone-number queries are NOT permitted from clients. The Cloud Function
   `lookupUserByPhoneNumber` performs phone-number lookups server-side with
   elevated permissions (Admin SDK). See ADR-0014.
 
 ### Create
 
-- Allowed only when `request.auth.uid == userId`.
-- Required fields: `phoneNumber` (string, must match `+91` followed by exactly
-  10 digits), `displayName` (string, 1-50 characters), `createdAt` (timestamp),
-  `updatedAt` (timestamp).
-- `fcmTokens` must be a list with at most 10 entries.
+- Allowed only when `request.auth.uid == userId` (`isValidUserCreate`).
+- The key set is locked: the document must contain exactly `phoneNumber`,
+  `displayName`, `fcmTokens`, `createdAt`, `updatedAt`, `notificationPrefs`, `locale`
+  (and optionally `photoUrl`).
+- `phoneNumber` must equal `request.auth.token.phone_number` (not merely match a `+91`
+  pattern — it is bound to the verified token claim).
+- `displayName` is a string of 1–50 characters.
+- `photoUrl`, if present, is `null` or a string.
+- `fcmTokens` must be a list. **No size cap is enforced.**
+- `createdAt` and `updatedAt` must both equal `request.time`.
+- `notificationPrefs` must be a map with exactly the boolean keys `newExpense`,
+  `settlement`, and `reminder`.
+- `locale` must equal `'en-IN'`.
 
 ### Update
 
-- Allowed only when `request.auth.uid == userId`.
-- The `phoneNumber` field is **immutable after creation**. An update request that
-  changes `phoneNumber` from its current value must be denied. (Re-verification
-  is handled by a Cloud Function, not a client write.)
-- The `fcmTokens` array must not exceed 10 entries after the write.
-- `createdAt` is immutable; updates must not change it.
+- Allowed only when `request.auth.uid == userId` (`isValidUserUpdate`), with the same
+  locked key set as create.
+- `phoneNumber` and `createdAt` are **immutable**; an update that changes either is
+  denied.
+- `displayName` (1–50), `photoUrl` (null or string), `fcmTokens` (a list, **no cap**),
+  `notificationPrefs` (the three boolean flags), and `locale == 'en-IN'` must remain
+  valid. `updatedAt` must equal `request.time`.
 
 ### Delete
 
-- Denied to all clients. Account deletion is handled by a Cloud Function
-  (SRS section 7.3).
+- Denied to all clients (`allow delete: if false`). There is **no account-deletion
+  Cloud Function** in v1.0, so no server path deletes user documents either.
 
 ---
 
@@ -72,39 +86,41 @@ do not exist; everything is participant-scoped").
 ### Create
 
 - Allowed only when `request.auth.uid` is present in the incoming `memberIds`
-  array.
+  array (`isValidFriendshipCreate`).
 - `memberIds` must be a list of exactly 2 strings.
-- `memberIds` must be sorted in ascending lexicographic order (deterministic ID
-  derivation; SRS section 7.2).
-- The `simplifiedBalances` field must not be present in the incoming data (it is
-  initialised by the Cloud Function).
+- `memberIds` must be sorted in ascending order — the rule asserts
+  `memberIds[0] < memberIds[1]`.
+- The `simplifiedBalances` field must **not** be present in the incoming data (it is
+  initialised later by the server-side recompute core).
 - `createdBy` must equal `request.auth.uid`.
-- The friendship document ID must be the deterministic composite of the two
-  sorted `memberIds` joined with an underscore (e.g., if `memberIds` is
-  `['aaa', 'bbb']`, the document ID must be `aaa_bbb`). This is validated as
-  `request.resource.id == memberIds[0] + '_' + memberIds[1]`.
+- `lastActivityAt` must equal `request.time`.
+- There is **no rule that ties the document ID to the sorted-UID composite**. The
+  ordering guarantee comes from the `memberIds[0] < memberIds[1]` check plus the
+  client's deterministic ID construction, not from a `request.resource.id` assertion.
 
 ### Update
 
 - Allowed only when `request.auth.uid` is present in the existing document's
-  `memberIds` array.
-- **The `simplifiedBalances` field must not be modified by the client.** If the
-  incoming data changes `simplifiedBalances` from the existing value, the write
-  must be denied. Only the Cloud Functions service account may write this field
-  (Invariant 2; SRS sections 4.6, 7.3, 7.5; ADR-0001).
-- `memberIds` is immutable after creation.
+  `memberIds` array (`isValidFriendshipUpdate`).
+- **The `simplifiedBalances` field must not be modified by the client.** Enforced by
+  `request.resource.data.diff(resource.data).affectedKeys().hasAny(['simplifiedBalances'])`
+  — any client write that touches the key is denied. Only the server-side recompute
+  core may write it (Invariant 2; ADR-0001).
+- `memberIds` and `createdBy` are immutable after creation (same `affectedKeys` guard).
 
 ### Delete
 
-- Allowed only when `request.auth.uid` is present in the existing `memberIds`
-  array **and** the existing `simplifiedBalances` map is either absent, empty, or
-  contains only zero-value entries for all pairs.
-- Rationale: preventing deletion whilst debts are outstanding protects both
-  parties from data loss.
+- Denied to all clients (`allow delete: if false`). There is **no** balance-conditional
+  delete path — the earlier "delete only at zero balance" design was not implemented.
+  Friendships are never hard-deleted from the client.
 
 ---
 
 ## groups/{groupId}
+
+> **Implementation status (v1.0):** Group rules exist but there is **no client UI or
+> client data layer** for groups (Sprint 3). The rules below are live in
+> `firestore.rules` for forward-compatibility but are not exercised by the v1.0 app.
 
 ### Read
 
@@ -113,30 +129,31 @@ do not exist; everything is participant-scoped").
 
 ### Create
 
-- Allowed only when `request.auth.uid` is present in the incoming `memberIds`
-  array.
-- The `adminId` field must equal `request.auth.uid` (the creator becomes the
-  admin).
-- Required fields: `name` (string, 1-100 characters), `type` (one of `trip`,
-  `home`, `couple`, `other`), `memberIds` (list of strings, at least 1 entry),
-  `adminId`, `createdAt`, `updatedAt`.
-- The `simplifiedBalances` field must not be present in the incoming data.
+- Allowed only when `request.auth.uid` is present in the incoming `memberIds` array
+  **and** `adminId == request.auth.uid` (the creator becomes the admin).
+- `isValidGroupCreate` requires: `simplifiedBalances` absent, `name` a string of
+  1–100 characters, `type` in `['trip', 'home', 'couple', 'other']`, `memberIds`
+  a list (size **not** constrained beyond "is a list"), and
+  `createdAt == updatedAt == request.time`.
+- Unlike friendships and expenses, the group create rule does **not** lock the key
+  set (no `hasOnly`/`hasAll`), so additional fields such as `coverPhotoUrl` are
+  permitted without further validation.
 
 ### Update
 
 - Allowed only when `request.auth.uid` is present in the existing document's
-  `memberIds` array.
-- **The `simplifiedBalances` field must not be modified by the client.** Same
-  enforcement as friendships (Invariant 2).
-- The `adminId` field may only be changed if `request.auth.uid == resource.data.adminId`
-  (i.e., only the current admin can transfer admin rights).
+  `memberIds` array (`isValidGroupUpdate`).
+- **The `simplifiedBalances` field must not be modified by the client** (same
+  `affectedKeys().hasAny([...])` guard as friendships; Invariant 2).
 - `createdAt` is immutable.
+- `adminId` may change only if `request.auth.uid == resource.data.adminId` (only the
+  current admin can transfer admin rights). Note `memberIds` is **not** locked on
+  group update.
 
 ### Delete
 
-- Allowed only when `request.auth.uid == resource.data.adminId` **and** the
-  existing `simplifiedBalances` map is either absent, empty, or contains only
-  zero-value entries for all pairs.
+- Denied to all clients (`allow delete: if false`). There is no admin-only or
+  zero-balance delete path; the earlier conditional-delete design was not implemented.
 
 ---
 
@@ -149,67 +166,52 @@ do not exist; everything is participant-scoped").
 
 ### Create
 
-- Allowed only when `request.auth.uid` is present in the parent friendship
-  document's `memberIds` array.
-- **Monetary validation (Invariant 1; ADR-0002):**
-  - `amountPaise` must be an integer greater than 0.
-  - Each element in the `splits` array must have a `sharePaise` field that is an
-    integer greater than or equal to 0.
-  - The sum of all `sharePaise` values across `splits` must equal `amountPaise`
-    exactly (SRS section 7.5).
-- `payerId` must be a string present in the parent friendship's `memberIds`.
-- `splitMethod` must be one of: `equal`, `unequal`, `percentage`, `shares`,
-  `exact`.
-- `deleted` must be `false` on creation.
-- `createdBy` must equal `request.auth.uid`.
+- Allowed only when `request.auth.uid` is present in the parent friendship document's
+  `memberIds` array (`isCallerFriendshipMember`, resolved via `get()`).
+- The key set is locked: `hasOnlyKnownKeys` + `hasAllRequiredKeys` permit
+  `amountPaise`, `description`, `category`, `date`, `payerId`, `splits`,
+  `splitMethod`, `receiptUrl`, `createdBy`, `createdAt`, `updatedAt`, `deleted`,
+  `source`, `currency`, `recurringRule` (the last three being extension fields;
+  `receiptUrl` and `recurringRule` are optional).
+- **Shape (`isValidShape`):** `amountPaise` is an integer > 0; `description` a string
+  ≤ 200 chars; `category` a string; `date` a timestamp; `payerId` a string; `splits`
+  a list of **1–2** elements; `splitMethod` in `['equal','unequal','percentage','shares','exact']`;
+  `receiptUrl` absent/null/string; `createdBy` a string; `createdAt`/`updatedAt`
+  timestamps; `deleted` a bool.
+- **Monetary validation (Invariant 1; ADR-0002)** via **bounded enumeration**, not a
+  loop: each present split (indices 0 and 1 only) must have a string `userId` that is
+  in the friendship `memberIds` and an integer `sharePaise ≥ 0`, and
+  `shareAt(splits,0) + shareAt(splits,1) == amountPaise`, where `shareAt` yields 0 for
+  an out-of-range index. The 1–2 cap is deliberate: a friendship has exactly two
+  members, so splits beyond index 1 cannot add value.
+- `payerId` must be present in the parent friendship's `memberIds`.
+- Extension-point locks: `currency == 'INR'`, `source == 'manual'`, and `recurringRule`
+  absent **or** `null` (ARCH-EXT-02/07/03).
+- `deleted` must be `false`; `createdBy` must equal `request.auth.uid`; `createdAt` and
+  `updatedAt` must equal `request.time`.
 
 ### Update
 
-- Allowed only when `request.auth.uid == resource.data.createdBy` (only the
-  original creator may edit).
-- The same monetary validation rules as create apply to the updated data.
-- `createdBy` and `createdAt` are immutable.
+- Allowed when `request.auth.uid` is present in the parent friendship's `memberIds` —
+  i.e., by **any** friendship member, **not** only the original creator.
+- The same shape and sum-of-splits validation as create is re-applied to the new data.
+- `createdBy` and `createdAt` are immutable; `updatedAt` must equal `request.time`.
 
 ### Delete (soft)
 
-- Hard deletes are denied.
-- A soft delete is an update that sets `deleted = true`. This is allowed only
-  when `request.auth.uid == resource.data.createdBy`.
+- Hard deletes are denied (`allow delete: if false`).
+- A soft delete is an update that sets `deleted = true`, flowing through the update
+  rule above. It is therefore allowed for **any** friendship member, not only the
+  creator.
 
 ---
 
 ## groups/{groupId}/expenses/{expenseId}
 
-### Read
-
-- Allowed only when `request.auth.uid` is present in the parent group document's
-  `memberIds` array.
-
-### Create
-
-- Allowed only when `request.auth.uid` is present in the parent group document's
-  `memberIds` array.
-- Same monetary validation as friendship expenses (Invariant 1; ADR-0002):
-  - `amountPaise` must be an integer greater than 0.
-  - Each `sharePaise` must be an integer greater than or equal to 0.
-  - `sum(sharePaise) == amountPaise` exactly.
-- `payerId` must be present in the parent group's `memberIds`.
-- `splitMethod` must be one of: `equal`, `unequal`, `percentage`, `shares`,
-  `exact`.
-- `deleted` must be `false` on creation.
-- `createdBy` must equal `request.auth.uid`.
-
-### Update
-
-- Allowed only when `request.auth.uid == resource.data.createdBy`.
-- Same monetary validation as create.
-- `createdBy` and `createdAt` are immutable.
-
-### Delete (soft)
-
-- Hard deletes are denied.
-- Soft delete (setting `deleted = true`) is allowed only when
-  `request.auth.uid == resource.data.createdBy`.
+**Not implemented in v1.0.** `firestore.rules` defines **no `match` block** for this
+subcollection, so under the top-of-file default-deny all client access is rejected.
+The friendship-expense rules above are the implemented model; the equivalent group
+rules (with a bounded enumeration sized to the group-member cap) are a Sprint 3 task.
 
 ---
 
@@ -276,17 +278,14 @@ do not exist; everything is participant-scoped").
 
 ---
 
-## _rateLimits/{userId}/{document}
+## _rateLimits/{document=**}
 
-### Read
+### Read / Write (all operations)
 
-- Denied to all clients. This collection is internal infrastructure managed
-  exclusively by Cloud Functions.
-
-### Write (create, update, delete)
-
-- Denied to all clients. Only Cloud Functions (via the Admin SDK) may read or
-  write rate-limit counters.
+- Denied to all clients: `match /_rateLimits/{document=**} { allow read, write: if false; }`.
+  This collection is internal infrastructure managed exclusively by Cloud Functions via
+  the Admin SDK (which bypasses rules). The path is a recursive wildcard, so every
+  document at any depth under `_rateLimits/` is locked.
 
 ---
 
@@ -321,19 +320,25 @@ that a disallowed operation is rejected.
 > **Expected:** Read is denied.
 > **SRS:** section 7.5 ("everything is participant-scoped").
 
-### 4. Non-creator attempts to edit expense — DENIED
+### 4. Member attempts to mutate `createdBy`/`createdAt` on an expense — DENIED
 
-> **Setup:** Authenticated user who is a member of the parent friendship/group
-> but did not create the expense (i.e., `request.auth.uid != resource.data.createdBy`).
-> **Action:** Attempt to update any field on the expense document.
-> **Expected:** Write is denied.
+> **Setup:** Authenticated user who is a member of the parent friendship.
+> **Action:** Update an expense, changing `createdBy` or `createdAt`.
+> **Expected:** Write is denied (`isValidExpenseUpdate` pins both to their previous
+> values).
+> **Note (correction):** Being the original creator is **not** required to edit a
+> friendship expense — **any** member may update or soft-delete it. An earlier draft of
+> this document asserted a creator-only edit rule; the implemented rules do not enforce
+> one.
 
-### 5. User attempts to delete friendship with non-zero balance — DENIED
+### 5. User attempts to delete a friendship — DENIED
 
-> **Setup:** Authenticated user who is a member of a friendship. The friendship's
-> `simplifiedBalances` contains at least one non-zero amount.
+> **Setup:** Authenticated user who is a member of a friendship (with any balance,
+> zero or non-zero).
 > **Action:** Attempt to delete the friendship document.
-> **Expected:** Delete is denied.
+> **Expected:** Delete is denied unconditionally (`allow delete: if false`).
+> **Note (correction):** There is no balance-conditional delete; deletion is always
+> denied regardless of `simplifiedBalances`.
 
 ### 6. Client attempts to write activity item — DENIED
 
@@ -375,7 +380,8 @@ that a disallowed operation is rejected.
 ### 11. Client attempts to read or write `_rateLimits` — DENIED
 
 > **Setup:** Authenticated user.
-> **Action:** Attempt to read or write any document under `_rateLimits/{userId}/`.
+> **Action:** Attempt to read or write any document under `_rateLimits/` (the rule
+> uses the recursive wildcard `_rateLimits/{document=**}`).
 > **Expected:** Read and write are both denied.
 > **Rationale:** The `_rateLimits` collection is internal infrastructure managed
 > exclusively by Cloud Functions via the Admin SDK.
@@ -387,26 +393,57 @@ that a disallowed operation is rejected.
 > UID.
 > **Expected:** Write is denied.
 
-### 13. Friendship created with non-deterministic document ID — DENIED
+### 13. Friendship created with unsorted `memberIds` — DENIED
 
 > **Setup:** Authenticated user creating a friendship document.
-> **Action:** Create a friendship where the document ID does not match the
-> deterministic composite of the two sorted `memberIds` joined with underscore.
-> **Expected:** Write is denied.
+> **Action:** Create a friendship whose `memberIds` are not in ascending order
+> (`memberIds[0] >= memberIds[1]`).
+> **Expected:** Write is denied (`isValidFriendshipCreate` asserts
+> `memberIds[0] < memberIds[1]`).
+> **Note (correction):** The rules do **not** assert `request.resource.id ==
+> memberIds[0] + '_' + memberIds[1]`. There is no document-ID equality check; the
+> deterministic ID is a client convention, and ordering is enforced via `memberIds`.
 
 ---
 
 ## Implementation Notes
 
-- The `simplifiedBalances` write-guard (Invariant 2) can be implemented by
-  comparing `request.resource.data.simplifiedBalances` with
-  `resource.data.simplifiedBalances` on every client update and denying if they
-  differ. Cloud Functions bypass Security Rules when using the Admin SDK, so no
-  additional allow rule is needed for server writes.
-- Split-sum validation requires a helper function in the rules file. Firestore
-  rules support `list` operations but not arbitrary loops; the implementation may
-  need to enumerate split indices up to a reasonable maximum (e.g., 50
-  participants) or use `math.abs(sum - total) == 0` via a computed field. The
-  Functions Dev should confirm the feasible approach during implementation.
+- **`simplifiedBalances` write-guard (Invariant 2).** Implemented with
+  `request.resource.data.diff(resource.data).affectedKeys().hasAny(['simplifiedBalances'])`
+  on update — the write is denied if the key is *touched at all*, which is stricter and
+  cheaper than comparing values. The same `affectedKeys()` pattern enforces immutability
+  of `memberIds`/`createdBy` (friendships), `createdAt`/`adminId` (groups), and the
+  settlement soft-delete (`hasOnly(['deleted'])`). Cloud Functions bypass Security Rules
+  via the Admin SDK, so no server-side allow rule is needed.
+- **Split-sum validation is bounded enumeration, not a loop.** Firestore rules have no
+  loops, so the friendship-expense rules enumerate a **fixed, small** set of indices.
+  `shareAt(splits, i)` returns `splits.size() > i ? splits[i].sharePaise : 0`, and
+  `sumOfSharesEquals(splits, amount)` checks `shareAt(splits,0) + shareAt(splits,1) == amount`
+  — indices 0 and 1 only, matching the 1–2 split cap (`splits.size() <= 2`). Element
+  validity (`areValidSplitElements`) and membership (`areSplitMembers`) are guarded the
+  same way. There is **no** "enumerate up to 50 participants" and **no** `math.abs`
+  computed field; a future group subcollection would extend the enumeration to the
+  group-member cap.
+- **Helper decomposition.** Each collection composes small named predicates
+  (`hasOnlyKnownKeys`, `hasAllRequiredKeys`, `isValidShape`, `isValidExtensionPointLocks`,
+  `isValid…Create` / `isValid…Update`) for readability and reuse.
 - All rules should be tested using `@firebase/rules-unit-testing` against the
-  Emulator Suite (SRS section 8.2; Invariant 4).
+  Emulator Suite (SRS section 8.2; Invariant 4). The Cloud Functions Developer owns the
+  rules-test implementation; the Architect owns the rule definitions.
+
+---
+
+## Storage Rules (`storage.rules`)
+
+Cloud Storage uses a separate rules file with the same deny-by-default philosophy
+(`match /{allPaths=**} { allow read, write: if false; }`).
+
+- **`avatars/{userId}`** — read allowed to any authenticated user; write allowed only to
+  the owner (`request.auth.uid == userId`), capped at 5 MB and `image/(jpeg|png)`.
+- **`receipts/friendships/{friendshipId}/{expenseId}`** (FR-EX-05, shipped) — read and
+  write require the caller to be in the parent friendship's `memberIds`, evaluated via a
+  cross-service `firestore.get(...).data.memberIds` lookup; write additionally caps at
+  10 MB and `image/(jpeg|png)`.
+- **`receipts/groups/{groupId}/{expenseId}`** (defensive, no v1.0 UI) — same predicate
+  shape against `groups/{groupId}.memberIds`; included now for forward-compatibility with
+  the Sprint 3 groups epic.

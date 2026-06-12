@@ -53,6 +53,34 @@ Also reference:
   (`jest.rules.config.js` with `maxWorkers: 1`), integration tests use
   `jest.integration.config.js`.
 
+## Toolchain and Pipelines (current)
+
+- **Flutter:** `stable` channel pinned via fvm (`.fvmrc`); currently resolves to
+  3.44.2. CI uses `subosito/flutter-action@v2` (`channel: stable`, `cache: true`).
+- **Node.js 22:** the Cloud Functions runtime is `nodejs22` (`firebase.json` and
+  `functions/package.json` engines); CI uses `actions/setup-node@v4` with
+  `node-version: '22'`.
+- **JDK:** `actions/setup-java@v4` with `distribution: temurin` — Java 17 for
+  Android builds, Java 21 for the emulator integration job.
+- **Firebase project:** `onebytwo-avtanshgupta` (single project, Invariant 4).
+  Emulator-only CI runs use `--project demo-onebytwo` (fully offline).
+- **Emulator ports** (`firebase.json`, `singleProjectMode: true`): Auth 9099,
+  Firestore 8181, Functions 5001, Storage 9199, UI 4000. Cloud Functions deploy to
+  region `asia-south1`.
+- **Local emulators:** always start via `scripts/dev/start-emulators.sh` (reads the
+  project ID from `.firebaserc` via `jq`, builds functions, starts
+  `auth,firestore,functions,storage`). Never run raw `firebase emulators:start`.
+- **Workflows present:** `.github/workflows/pr.yml` (PR Pipeline, SRS 9.2.1) runs on
+  pull requests to `main` and `workflow_dispatch`. `.github/workflows/release.yml`
+  (Release Pipeline, SRS 9.2.2) currently runs on `workflow_dispatch` only — the
+  `push` tag (`v*.*.*`) trigger is commented out behind a `# TODO` until the app
+  code setup completes.
+- **Local git hooks:** `lefthook.yml` (`pre-commit`, `commit-msg`, `pre-push`,
+  `post-merge`). These are separate from the agentic lifecycle hooks under
+  `.github/hooks/`.
+- **Fastlane:** scoped to this role but not yet committed — `release.yml` carries
+  `# TODO(devops)` markers for `match`, `supply`, and `pilot` integration.
+
 ## Skills
 
 - `setup-emulator-suite`: configure the Firebase Emulator Suite for local
@@ -76,8 +104,10 @@ Also reference:
 - **GitHub Environments.** Production deployments require manual approval:
   `production-firebase` (architect approval), `production-ios` and
   `production-android` (QA approval).
-- **Coverage gates.** PR pipeline must fail if coverage drops below thresholds
-  (70% non-UI, 50% overall).
+- **Coverage gates.** The PR pipeline fails if coverage drops below the SRS 5.7
+  thresholds: >= 70% per feature/module (non-UI) and >= 50% overall. Enforced by the
+  `coverage-gate` job in `pr.yml` and, locally, by the scoped `coverage-check` in the
+  `pre-push` hook (`lefthook.yml`).
 
 ## Refusal Protocol
 

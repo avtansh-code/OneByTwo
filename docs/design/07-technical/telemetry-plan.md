@@ -13,6 +13,21 @@ All events are logged via Firebase Analytics. No event payload may contain
 personally identifiable information (PII). See [Privacy Rules](#3-privacy-rules)
 below.
 
+> **Implementation status.** This catalogue is a forward-looking plan. As of v1.0 the
+> events actually emitted by the client are the expense family
+> (`lib/features/expenses/application/expense_telemetry.dart`), the settle-up /
+> settlement / settlement-history family (`lib/features/settlements/application/`), the
+> reminder family (`lib/features/reminders/application/reminder_telemetry.dart`), the
+> app-shell navigation events (`lib/features/shell/application/shell_telemetry.dart`),
+> the notification-preferences events
+> (`lib/features/profile/application/notification_preferences_telemetry.dart`), and the
+> friends events (e.g. `friend_row_tapped`). Groups events (SCR-13–18) and
+> account-lifecycle events (SCR-28) have **no producer yet** — those features are not
+> built (groups is data-layer-only; account deletion is unimplemented). The
+> repositories also emit structured **parse-failure** diagnostics not listed in the
+> tables below: `friendship_parse_failure`, `settlement_parse_failure`, and
+> `activity_parse_failure`.
+
 ### 1.1 SRS Section 5.10 — Core Funnel Events
 
 These eight events are explicitly named in SRS section 5.10 as key funnel events.
@@ -257,15 +272,22 @@ This bucketing applies to all events that reference amounts: `expense_save_succe
 
 ### 2.2 Document Identifiers
 
-Screen specs reference `context_id`, `friendship_id`, `group_id`, `expense_id`,
-and similar identifiers. These are Firestore-generated opaque strings and are
-**not PII**. However, to minimise the analytics payload and avoid any risk of
-correlation attacks, document identifiers should be **excluded from analytics
-event parameters** in production builds. They are permitted in debug/emulator
-builds for development instrumentation only.
+Identifiers that derive from user UIDs — notably `friendshipId`, the sorted
+`{uidA}_{uidB}` composite — are PII-adjacent and must never be emitted raw. The
+implemented approach is to **hash and emit** them, **not** to exclude them. The client
+helper `lib/core/telemetry/event_id_hash.dart` (`hashId` / `hashFriendshipId`) and the
+server helper `functions/src/utils/id-hash.ts` (`hashId`) both apply SHA-256 truncated
+to the first **16 hex characters (64 bits)**.
 
-The catalogue tables above reflect the production-safe parameter set with
-identifiers omitted.
+Per ADR-0013 the emitted parameter name appends a `_hash` suffix so consumers know the
+value is hashed — e.g. `friendship_id_hash`, `expense_id_hash`, `settlement_id_hash`.
+These hashed parameters appear in events in **all** builds (debug and production); the
+raw identifier is never emitted in any build. There is no debug-only or
+production-stripped behaviour.
+
+The catalogue tables above already reflect this convention — see `friend_row_tapped`
+(`friendship_id_hash`) in section 1.4 and the expense and settlement event families,
+which carry `friendship_id_hash`, `expense_id_hash`, and `settlement_id_hash`.
 
 ---
 

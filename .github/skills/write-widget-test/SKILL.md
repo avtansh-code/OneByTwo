@@ -24,21 +24,24 @@ states, and accessibility.
 
 1. **Widget under test** — the Dart file path and class name.
 2. **Acceptance criteria** — the Given/When/Then scenarios from the user story.
-3. **Dependencies** — providers or repositories the widget depends on (to be mocked).
+3. **Dependencies** — providers or repositories the widget depends on (to be
+   replaced with hand-written fakes through Riverpod overrides).
 
 ## Procedure
 
 1. Read `.github/shared/invariants.md`.
 2. Read `.github/shared/coding-standards.md` for Dart test conventions.
-3. Create the test file under `test/` mirroring the source path.
+3. Create the test file under `test/features/<feature>/...`, mirroring the
+   source path under `lib/features/<feature>/...` where practical.
 4. Write tests following this structure:
-   a. **Arrange:** set up mocks using `mocktail`. Mock Riverpod providers using
-      `ProviderScope.overrides`.
+   a. **Arrange:** define small hand-written fakes in the test file. Override
+      Riverpod providers with `ProviderScope(overrides: [...])`.
    b. **Act:** pump the widget with `tester.pumpWidget(...)`, wrapped in
-      `MaterialApp` and `ProviderScope`.
+      `MaterialApp` and `ProviderScope`. Prefer a local `buildSubject()` or
+      `_buildSubject()` helper that accepts fakes and state inputs.
    c. **Assert:** verify widget rendering with `find.text()`, `find.byType()`,
       `find.byIcon()`, etc.
-5. Cover the following states:
+5. Cover at least these four states, plus interactions:
    a. **Happy path:** widget renders correctly with valid data.
    b. **Loading state:** skeleton or loading indicator is shown.
    c. **Empty state:** empty-state message is shown when data is empty.
@@ -49,19 +52,24 @@ states, and accessibility.
    a. Verify amounts are formatted in rupees with Indian numbering (e.g.,
       `1,23,456.00`) and the rupee symbol.
    b. Verify the underlying data uses integer paise.
-7. For share actions: verify the system share sheet is invoked (mock
-   `Share.share()`), not a platform-specific package.
+7. For share actions: verify the system share sheet path is invoked through the
+   existing abstraction. Do not target WhatsApp, Telegram, or any other
+   platform-specific app.
+8. Use `tester.pump()` for first-frame assertions and `tester.pumpAndSettle()`
+   for completed async UI/navigation/snackbar assertions.
 
 ## Output format
 
 A Dart test file with `group()` and `testWidgets()` blocks, each with descriptive
-names matching the acceptance criteria.
+names matching the acceptance criteria. The file should use `flutter_test`,
+`flutter_riverpod`, hand-written fakes, and a subject builder helper. Do not add
+`mocktail`, `mockito`, or `golden_toolkit`.
 
 ## Validation checks
 
 - [ ] All acceptance-criteria scenarios have corresponding tests.
 - [ ] At least one negative / error-state test.
-- [ ] Mocks use `mocktail`, not `mockito`.
+- [ ] Dependencies use hand-written fakes, not `mocktail` or `mockito`.
 - [ ] Riverpod providers are overridden, not bypassed.
 - [ ] Money formatting is verified against integer paise input.
 - [ ] No platform-specific share package imported.
@@ -77,19 +85,41 @@ simplified balance, when I tap Settle Up, then the amount is pre-filled."
 **Output:**
 ```dart
 testWidgets('pre-fills amount from simplified balance', (tester) async {
-  final mockProvider = MockSettlementsProvider();
-  when(() => mockProvider.suggestedAmountPaise).thenReturn(50000);
+  final repo = FakeSettlementRepository();
+  final analytics = FakeAnalyticsService();
 
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [settlementsProvider.overrideWith(() => mockProvider)],
-      child: const MaterialApp(home: SettleUpScreen()),
-    ),
-  );
+  Widget buildSubject() {
+    return ProviderScope(
+      overrides: [
+        settlementRepositoryProvider.overrideWithValue(repo),
+        analyticsServiceProvider.overrideWithValue(analytics),
+      ],
+      child: const MaterialApp(
+        home: SettleUpBottomSheet(
+          friendshipId: 'fid',
+          currentUserUid: 'u1',
+          otherUserUid: 'u2',
+          otherDisplayName: 'Bina',
+          suggestedAmountPaise: 50000,
+        ),
+      ),
+    );
+  }
+
+  await tester.pumpWidget(buildSubject());
+  await tester.pumpAndSettle();
 
   expect(find.text('500.00'), findsOneWidget);
 });
 ```
+
+Real examples to follow:
+
+- `test/features/friends/friends_list_screen_widget_test.dart` — `buildSubject()`,
+  `StreamController`, hand-written analytics/contact fakes, four-state coverage.
+- `test/features/settlements/settle_up_bottom_sheet_widget_test.dart` —
+  `_buildSubject()`, fake settlement repository, ProviderScope overrides,
+  validation, success, and error states.
 
 ### Negative example (should refuse)
 

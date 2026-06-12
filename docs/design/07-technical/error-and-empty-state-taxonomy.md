@@ -5,7 +5,7 @@
 > **SRS version:** 1.1
 > **Last updated:** 2025-01-27
 
-This document provides a comprehensive catalogue of every error, empty, and loading state across the One By Two application. It is the single reference for microcopy, telemetry event names, retry strategies, and component usage. All copy follows the friendly, concise, and lightly playful tone mandated by SRS section 6.5. All error states render using `OBTErrorState` and all empty states render using `OBTEmptyState`, as defined in `docs/design/02-design-system/components.md` (sections 18 and 19).
+This document provides a comprehensive catalogue of every error, empty, and loading state across the One By Two application. It is the single reference for microcopy, telemetry event names, retry strategies, and component usage. All copy follows the friendly, concise, and lightly playful tone mandated by SRS section 6.5. `OBTErrorState`/`OBTEmptyState` are a **planned shared component**; in v1.0 these states are implemented as **per-feature widgets** — e.g. `FriendDetailErrorState`/`FriendDetailEmptyState`, `EmptyContactsState`, `PermissionDeniedView`, `ActivityFeedSkeleton`, the Activity feed's `_EmptyState`/`_ErrorState`, the profile error state, and the Add-Expense picker's inline loading/empty/error sub-states. The copy/telemetry below remains the contract.
 
 **Cross-references:**
 - SRS section 6.4 -- Empty, Error and Loading States
@@ -14,11 +14,13 @@ This document provides a comprehensive catalogue of every error, empty, and load
 - SRS section 5.10 -- Observability (telemetry events)
 - Component spec: `OBTEmptyState` (component 18), `OBTErrorState` (component 19), `OBTSkeletonLoader` (component 20)
 
+> **Group status footnote.** Group-related rows in this taxonomy are **planned** because Groups UI is not implemented in the client.
+
 ---
 
 ## 1. Error States
 
-Every error state renders via `OBTErrorState`, which provides a non-alarming illustration, a title, a descriptive subtitle, a primary "Retry" button, and an optional "Contact Support" text link (per FR-PR-05, FR-SH-03, FR-SH-04). An optional `errorCode` is shown in small muted text for support triage.
+The planned shared `OBTErrorState` provides a non-alarming illustration, a title, a descriptive subtitle, a primary "Retry" button, and an optional "Contact Support" text link (per FR-PR-05, FR-SH-03, FR-SH-04). In v1.0, equivalent error states are implemented per feature. An optional `errorCode` is shown in small muted text for support triage where available.
 
 ### 1.1 Network Errors
 
@@ -67,6 +69,8 @@ All validation errors display as inline messages beneath the relevant field, not
 | Group Detail | Admin attempts to delete group with non-zero balances (FR-GR-07) | Snackbar: "All balances must be settled before deleting this group." | `error_permission_unsettled_group_delete` | N/A (action blocked) | N/A |
 | Contact Picker | Device contact permission denied | "Contact access is needed to add friends. You can grant permission in Settings." (per component spec) | `error_permission_contacts_denied` | CTA: "Open Settings" to device settings | Manual phone entry fallback always available |
 
+> **Group status footnote.** Group-related rows in this taxonomy are **planned** because Groups UI is not implemented in the client.
+
 ### 1.5 Server Errors (Cloud Function Failures)
 
 | Screen | Error Condition | User-Visible Copy (Title / Subtitle) | Telemetry Event | Retry Strategy | Escalation |
@@ -91,7 +95,7 @@ All validation errors display as inline messages beneath the relevant field, not
 
 ## 2. Empty States
 
-Every empty state renders via `OBTEmptyState`, which provides a centred SVG illustration, a bold title, a descriptive subtitle, and an optional primary CTA button. All copy follows the friendly and lightly playful tone per SRS section 6.5.
+The planned shared `OBTEmptyState` provides a centred SVG illustration, a bold title, a descriptive subtitle, and an optional primary CTA button. In v1.0, equivalent empty states are implemented per feature. All copy follows the friendly and lightly playful tone per SRS section 6.5.
 
 | Screen | Empty Condition | Headline | Subtitle | CTA Text | CTA Action |
 |---|---|---|---|---|---|
@@ -107,6 +111,8 @@ Every empty state renders via `OBTEmptyState`, which provides a centred SVG illu
 | Search Results | Query returns no matching expenses (FR-SR-01) | "No results found" | "Try a different search term or adjust your filters." | "Clear filters" | Reset all active filters |
 | Contact Picker | No contacts match search / no contacts on device | "No contacts found" | "You can enter a number manually." | "Enter number" | Switch to manual phone number entry field |
 | Group Members List | Group has only the creator (edge case after creation) | "Just you so far" | "Invite friends to join this group." | "Invite members" | Open invite flow (system share sheet per FR-SH-01) |
+
+> **Group status footnote.** Group-related rows in this taxonomy are **planned** because Groups UI is not implemented in the client.
 
 ---
 
@@ -132,6 +138,8 @@ These screens display skeleton placeholders immediately on load, transitioning t
 | Settlement History | `listTile` | 5 | Matches settlement row layout |
 | Search Results | `listTile` | 5 | Shown after query submitted, before results arrive |
 | Profile and Settings | `profileHeader` | 1 | Centred avatar circle + name line; settings items render statically |
+
+> **Group status footnote.** Group-related rows in this taxonomy are **planned** because Groups UI is not implemented in the client.
 
 ### 3.2 Spinner Usage
 

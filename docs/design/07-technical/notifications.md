@@ -103,20 +103,25 @@ numeric fields after receipt.
 
 ### 2.2 Per-Type Definitions
 
-The `title` and `body` fields are rendered server-side by the sending Cloud
-Function using the templates below. Amounts are converted from integer paise to
-rupee display format (e.g., 120000 paise becomes "1,200") at the Cloud Function
-layer before insertion into the template. This keeps the client presentation
+The `title` and `body` fields are rendered server-side by `renderPayload`
+(`functions/src/notifications/payload-renderer.ts`) using the templates below.
+Amounts are converted from integer paise to a rupee display string by
+`formatInrFromPaise` (`functions/src/utils/format-inr.ts`) — integer rupees only,
+with the `₹` symbol and Indian-numbering grouping (e.g. 120000 paise becomes
+`₹1,200`) — before insertion into the template. This keeps the client presentation
 layer thin.
 
 | Notification Type (`type` value) | Title Template | Body Template | Required Data Fields | Priority |
 |---|---|---|---|---|
-| `expense_added` | "{senderName} added an expense" | "{description} -- Rs.{amount}. {youOweOrAreOwed}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
-| `expense_edited` | "{senderName} edited an expense" | "{description} was updated to Rs.{amount}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
-| `expense_deleted` | "{senderName} deleted an expense" | "{description} (Rs.{amount}) was removed." | `contextType`, `contextId`, `senderName`, `amountPaise` | High |
-| `settlement_received` | "{senderName} settled up" | "You received Rs.{amount}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
-| `reminder` | "Reminder from {senderName}" | "{senderName} is nudging you about Rs.{amount}." | `contextType: "friendship"`, `contextId`, `senderName`, `amountPaise` | High |
-| `group_invite` | "{senderName} invited you to a group" | "Join \"{groupName}\" to start splitting." | `contextId`, `inviteToken`, `senderName` | High |
+| `expense_added` | "{senderName} added an expense" | "{description} -- {₹amount}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
+| `expense_edited` | "{senderName} edited an expense" | "{description} was updated to {₹amount}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
+| `expense_deleted` | "{senderName} deleted an expense" | "{description} ({₹amount}) was removed." | `contextType`, `contextId`, `senderName`, `amountPaise` (`itemId` optional) | High |
+| `settlement_received` | "{senderName} settled up" | "You received {₹amount}." | `contextType`, `contextId`, `itemId`, `senderName`, `amountPaise` | High |
+| `reminder` | "Reminder from {senderName}" | "{senderName} is nudging you about {₹amount}." | `contextType`, `contextId`, `senderName`, `amountPaise` | High |
+| `group_invite` | "{senderName} invited you to a group" | "Join \"{groupName}\" to start splitting." | `contextId`, `inviteToken`, `senderName`, `groupName` | High |
+
+`{₹amount}` denotes the output of `formatInrFromPaise(amountPaise)`. The
+`group_invite` template carries no monetary value and omits `amountPaise`.
 
 All six types use **high priority** because they are user-visible and
 time-sensitive (SRS section 4.7, FR-AC-03).
@@ -137,6 +142,39 @@ notificationPrefs: {
 If the relevant flag is `false`, the notification is suppressed. Group invite
 notifications are not subject to preference filtering -- they are always
 delivered (FR-GR-02). This satisfies FR-AC-04 (SRS section 4.7).
+
+The filter is implemented by `isNotificationAllowed(type, prefs)` in
+`functions/src/notifications/prefs-filter.ts`. A missing `notificationPrefs` map, or
+a missing individual flag, defaults to **allowed** (the function tests `flag !==
+false`), mirroring the FR-AU-06 schema default.
+
+### 2.4 Server-Side Module (`functions/src/notifications/`)
+
+The notification logic is a **shared module, not a deployed Cloud Function**. It is
+consumed by the `sendReminderNotification` callable and by the
+`onExpenseWriteFriendship` and `onSettlementWrite` triggers, which inject it as the
+optional `notificationsApi` dependency.
+
+Public surface (`functions/src/notifications/index.ts`, the `NotificationsApi`):
+
+- `sendExpenseNotification` — fans out to all non-author members of a friendship.
+- `sendSettlementNotification` — notifies only the payee (`toUserId`).
+- `sendReminderNotification` — notifies the friend who owes the sender.
+
+Each high-level dispatcher reads the recipient `users/{uid}` document, applies
+`isNotificationAllowed`, renders the payload via `renderPayload`, and dispatches via
+the low-level leaf:
+
+- `sendFcmToTokens` (`fcm-send.ts`) sends **one `messaging.send(...)` call per
+  token** in parallel via `Promise.allSettled` (the deprecated `sendMulticast` is
+  not used). A token rejected with `messaging/registration-token-not-registered`
+  (HTTP 410) is pruned from the user's `fcmTokens` array via
+  `FieldValue.arrayRemove`. The constructed message is data-only with
+  `android.priority: "high"` and `apns` `apns-priority: 10` / `content-available: 1`
+  (matching section 2.1).
+- PII in logs: the recipient `userId` is hashed via `hashId` (16 hex), and raw FCM
+  tokens are never logged — only an 8-hex `fingerprintToken` value is logged for
+  correlation.
 
 ---
 
@@ -289,20 +327,32 @@ If the user denies the OS-level permission prompt:
 
 Reminder notifications are rate-limited to **one reminder per friend per 24
 hours** (FR-SE-09, SRS section 4.6). This limit is enforced entirely
-server-side in the Cloud Function that handles reminder dispatch.
+server-side in the `sendReminderNotification` callable
+(`functions/src/send-reminder-notification/function.ts`).
 
 **Enforcement mechanism:**
 
-1. When a user requests to send a reminder, the Cloud Function checks for an
-   existing reminder document in a `reminders` sub-collection or equivalent
-   server-side record, filtered by `(senderId, recipientId)` with a
-   `createdAt` timestamp within the last 24 hours.
-2. If a qualifying record exists, the function rejects the request with an
-   appropriate error code (e.g., `functions/resource-exhausted`) and a
-   user-facing message: "You can send another reminder to {name} in {hours}h
-   {minutes}m."
-3. If no qualifying record exists, the function creates the reminder record,
-   dispatches the FCM notification, and returns success.
+1. The rate-limit state is stored at `_rateLimits/{senderUid}/sends/{recipientUid}`
+   (one document per sender/recipient pair), holding `lastSentAt`, `windowStart`,
+   and `count`. The window length is `REMINDER_WINDOW_MS` (24 hours).
+2. Before dispatching, the function reads this document. If `lastSentAt` is within
+   the last 24 hours, it throws `HttpsError('resource-exhausted', …, { errorCode:
+   'RATE_LIMITED', nextAllowedAtIso })`, where `nextAllowedAtIso` is the ISO 8601
+   instant after which the next reminder is allowed. The client surfaces a
+   user-facing message derived from this.
+3. Otherwise the function dispatches the FCM notification, then writes the rate-limit
+   record, writes a recipient-only activity-feed item at
+   `activity/{recipientUid}/items/{auto-id}` (fire-and-forget), and returns
+   `{ success: true, nextAllowedAtIso }`. If FCM dispatch fails for all of the
+   recipient's tokens, the function throws `FCM_DISPATCH_FAILED` (`unavailable`) and
+   the rate-limit record is **not** written, so the sender may retry.
+
+The reminder also enforces preconditions before the rate-limit check: the caller
+must be a member of the context (`NOT_A_MEMBER` otherwise), and the recipient must
+owe the caller per `simplifiedBalances[recipientUid][senderUid]`
+(`RECIPIENT_DOESNT_OWE` otherwise). Group contexts are rejected with
+`GROUP_CONTEXT_NOT_SUPPORTED`. See
+`docs/design/07-technical/cloud-functions-error-codes.md` for the full list.
 
 The client displays the server error message inline. The rate limit is not
 enforced client-side (the client may optimistically disable the "Send Reminder"

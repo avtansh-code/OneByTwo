@@ -315,7 +315,8 @@ branch coverage of the canonical test matrix.
 
 **Documentation.** All public Dart APIs use DartDoc comments. All Cloud Functions
 use JSDoc comments. The simplified-debts algorithm is isolated in a single module
-(`functions/src/simplifiedDebts.ts`) with its own dedicated test suite.
+(`functions/src/simplified-debts/algorithm.ts`, with the Firestore boundary in
+`function.ts`) with its own dedicated test suite.
 
 ### 7.2 Traceability
 
@@ -326,7 +327,7 @@ use JSDoc comments. The simplified-debts algorithm is isolated in a single modul
 | Riverpod 2.x state management | ADR-recorded decision; compile-time safe, testable |
 | ≥ 70% non-UI / ≥ 50% overall coverage | CI-enforced thresholds |
 | DartDoc / JSDoc on public APIs | Documentation standards in coding-standards.md |
-| Isolated simplified-debts module | Single-file pure function with canonical test matrix |
+| Isolated simplified-debts module | Pure-function module (`simplified-debts/algorithm.ts`) with canonical test matrix |
 
 ---
 

@@ -34,7 +34,7 @@ graph TD
     subgraph FirebaseProject ["Single Firebase Project (asia-south1)"]
         Auth["Firebase Auth\n[Identity Provider]\nPhone OTP (+91 only)"]
         Firestore["Cloud Firestore\n[Document Database]\nasia-south1"]
-        Functions["Cloud Functions for Firebase\n[Serverless Compute]\nNode 20, TypeScript, asia-south1"]
+        Functions["Cloud Functions for Firebase\n[Serverless Compute]\nNode 22, TypeScript, asia-south1"]
         Storage["Cloud Storage\n[Object Store]\nReceipts and Avatars"]
         FCM["Firebase Cloud Messaging\n[Push Notification Service]"]
         Crashlytics["Firebase Crashlytics\n[Crash Reporting]"]
@@ -119,7 +119,7 @@ for development and CI, removing the need for a separate environment (SRS 8.1,
 | Money as integer paise | SRS 7.3; Invariant 1 | All `amountPaise` fields crossing container boundaries are integers. |
 | System share sheet only | SRS 3.4; Invariant 3 | No external messaging-app containers appear; sharing is OS-level. |
 | Cloud Functions region: asia-south1 | SRS 7.1 | Co-located with Firestore for low latency. |
-| Node 20, TypeScript | SRS 7.1 | Cloud Functions runtime constraint. |
+| Node 22, TypeScript | SRS 7.1 | Cloud Functions runtime constraint. |
 | +91 phone numbers only | SRS 3.4 | Auth container configured for Indian mobile numbers exclusively. |
 
 ---

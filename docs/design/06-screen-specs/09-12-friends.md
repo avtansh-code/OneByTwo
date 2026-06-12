@@ -11,6 +11,8 @@
 | SRS baseline | v1.1 |
 | Last updated | 2025-07-12 |
 
+> **Implementation status (verified against `lib/`, this pass).** SCR-09 List, SCR-10 Add Friend (incl. Match-and-Invite via `share_plus`), SCR-11 Detail implemented. **SCR-12 Delete Friend not implemented.**
+
 ---
 
 ## Table of Contents

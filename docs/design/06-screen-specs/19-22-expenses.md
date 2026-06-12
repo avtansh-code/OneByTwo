@@ -10,6 +10,8 @@
 
 This document specifies the four expense-flow screens for One By Two v1.0. Each screen is defined with its identifier, purpose, routing, requirements traceability, component usage, all six states, input validation, telemetry, accessibility, edge cases, and open questions.
 
+> **Implementation status (verified against `lib/`, this pass).** Implemented. SCR-19/20/21 map to the **3** steps `Step1AmountDetails` / `Step2SplitAndPayer` / `Step3ReceiptAndConfirm`; SCR-22 edit/delete via `ExpenseDetailScreen` + pre-filled `AddExpenseBottomSheet`.
+
 All monetary values are **integer paise** (Invariant 1; SRS section 7.3). Conversion to rupees with the Indian numbering system occurs exclusively at the UI layer. Currency symbol is always `₹` (FR-EX-09; SRS section 5.9).
 
 ---
