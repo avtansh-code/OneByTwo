@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #58 merged (FR-SE-08 dedicated settlement-history screen, SCR-24 — friendship axis; group axis stubbed pending the Sprint 3 Groups epic).
+> Last updated: PR #59 merged (documentation reconciliation, `093fce7`). FR-PR-05 Contact Support `mailto:` flow now in flight (roadmap "PR #59" slot; GitHub number is the next available, >= #60).
 
 ---
 
@@ -25,7 +25,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #56 | PR | OBTBottomNav design-system primitive (`components.md §2`) + `AuthenticatedShell` IndexedStack host (5 primary tabs) + 2 placeholder screens + `bottom_nav_tab_selected` telemetry + PopScope snap-to-tab-0 + `lib/main.dart` wire-change + deletion of temporary `HomePlaceholderScreen` (merged 2026-06-11) |
 | #57 | PR | FR-HD-04 persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive + `AuthenticatedShell` FAB slot + context picker bottom sheet (Friend / Group target with Group path stubbed for Sprint 3) + bundled `currentUserIdProvider` production wiring in `AuthenticatedWithProfile` arm of `lib/main.dart` (closes FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing in production) (merged 2026-06-11) |
 | #58 | PR | FR-SE-08 dedicated settlement-history screen (SCR-24) — `SettlementHistoryScreen` at `/settle/history` + `settlementHistoryProvider` (`StreamProvider.family`, 50-item cap) + `settlement_history_telemetry.dart` (2 pre-declared events) + "View Settlement History" link on `FriendDetailScreen` (friendship axis; group axis stubbed) (merged 2026-06-12) |
-| **#59** | **PR** | **Next feature/chore PR — see below** |
+| **#59** | **PR** | Documentation reconciliation — docs/skills/agents synced to current code + two code fixes (Firestore emulator debug-log port `8080`->`8181` in `lib/main.dart`; missing `test:canonical` script in `functions/package.json`) + fvm pin + lefthook repair (merged 2026-06-12, `093fce7`) |
+| **#60** | **PR** | **FR-PR-05 Contact Support `mailto:` flow — this PR (roadmap "PR #59" slot). GitHub number is the next available (>= #60); confirm at open.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests** — i.e. PR #59, PR #60, PR #61. Their issue-number
@@ -279,12 +280,17 @@ shipped.
 
 Candidates (in rough priority order — architect's call at kickoff):
 
-- **FR-PR-05 Contact Support `mailto:` flow** (P0; depends on
-  Remote Config wiring for the support email address; small
-  standalone PR ~2 SP). Closes the last P0 line item on the
-  Profile screen. The `SettlementHistoryScreen` error state's Retry
-  button is the v1.0 fallback; the "Contact Support" link in SCR-24
-  §States row 4 lands with this PR.
+- **FR-PR-05 Contact Support `mailto:` flow** (P0) — **IN FLIGHT (this
+  PR; roadmap "PR #59" slot, GitHub number >= #60).** Bundles FR-SH-03
+  and the FR-SH-04 no-mail-client fallback dialog; 3 SP (was estimated
+  ~2 before bundling FR-SH-04). First Firebase Remote Config consumer
+  (`support_email_address`, in-app default `support@onebytwo.app`,
+  ADR-0006). Wires BOTH Profile entry points — the action row and the
+  error-state "Still stuck? Contact Support" link. The "Contact Support"
+  links on OTHER error surfaces (e.g. the `SettlementHistoryScreen`
+  SCR-24 state, and the Delete Account error snackbar) reuse the same
+  `ContactSupportController` but remain separate follow-ups (see the
+  FR-PR-05 story "Out of Scope").
 - **`app_settings` / `permission_handler` dependency +
   AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
   ~1-2 SP. Adds the dependency + wires the CTA on both platforms.

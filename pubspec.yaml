@@ -13,6 +13,7 @@ dependencies:
   cloud_functions: ^6.3.2
   connectivity_plus: ^6.1.5 # Network connectivity detection (FR-PR-03 AC-10) — pinned to 6.x because 7.x requires iOS 17+ (uses NWPath.isUltraConstrained); the project Podfile targets iOS 15
   crypto: ^3.0.6 # SHA-256 hashing for phone number privacy
+  device_info_plus: ^12.4.0 # OS version + device model for Contact Support body (FR-PR-05)
   firebase_analytics: ^12.3.0 # Usage analytics (SRS 5.10)
   firebase_app_check: ^0.4.3 # API abuse protection
   firebase_auth: ^6.4.0 # Phone auth (SRS 4.1)
@@ -30,8 +31,10 @@ dependencies:
   google_fonts: ^6.2.1 # Plus Jakarta Sans + Inter (tokens.md)
   image_picker: ^1.1.2 # Profile photo selection (FR-AU-06)
   intl: ^0.20.2 # Localisation (SRS 5.9)
+  package_info_plus: ^9.0.1 # App version + build for Contact Support body (FR-PR-05)
   riverpod_annotation: ^2.6.1 # Code-gen annotations
   share_plus: ^10.1.4 # System share sheet (Invariant 3)
+  url_launcher: ^6.3.2 # mailto: launch for Contact Support (FR-PR-05 / FR-SH-03)
 
 dev_dependencies:
   build_runner: ^2.4.14

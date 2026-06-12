@@ -88,7 +88,7 @@ These keys are seeded at setup time and available to the client from first launc
 
 | Key | Type | Default Value | Purpose | Reference |
 |---|---|---|---|---|
-| `support_email` | `string` | `support@onebytwo.app` | Contact Support feature reads this address. Can be changed without an app update. | SRS section 4.11; ADR-0006 |
+| `support_email_address` | `string` | `support@onebytwo.app` | Contact Support feature reads this address (FR-PR-05 / FR-SH-03). Can be changed without an app update. Key reconciled from the earlier `support_email` to match the wireframe, the dry-run, and the shipped client (ADR-0006). | SRS section 4.11; ADR-0006 |
 | `min_supported_app_version` | `string` | `1.0.0` | Force-upgrade threshold. Clients below this version see an "Update required" screen. | SRS section 9.4 |
 | `feature_flags.simplify_debts_recompute_v2` | `boolean` | `false` | Kill switch placeholder for the simplified-debts recomputation algorithm. When `true`, the Cloud Function uses a v2 algorithm path (not yet implemented). | SRS section 9.4 |
 

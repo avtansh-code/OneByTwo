@@ -1,9 +1,10 @@
 # Profile
 
 Feature-folder that owns the profile and settings surfaces: the profile
-view and edit (FR-PR-01, SCR-26) and the notification-preferences
-toggles (FR-PR-03, SCR-27). Sign-out is initiated here and delegated to
-the notifications feature for FCM-token cleanup.
+view and edit (FR-PR-01, SCR-26), the notification-preferences
+toggles (FR-PR-03, SCR-27), and the Contact Support `mailto:` flow
+(FR-PR-05 / FR-SH-03 / FR-SH-04). Sign-out is initiated here and
+delegated to the notifications feature for FCM-token cleanup.
 
 ## Implemented scope
 
@@ -44,6 +45,36 @@ the notifications feature for FCM-token cleanup.
   `newExpense` / `settlement` / `reminder`; error codes
   `firestore-error` / `network` / `unknown`.
 
+### FR-PR-05 / FR-SH-03 / FR-SH-04 — Contact Support (mailto)
+
+- `presentation/profile_screen.dart` — both Contact Support entry points
+  (the "Contact Support" action row and the error-state "Still stuck?
+  Contact Support" link) call `_contactSupport`, which invokes
+  `contactSupportControllerProvider` and, on a fallback result, shows the
+  FR-SH-04 dialog.
+- `application/contact_support_controller.dart` — the sealed
+  `ContactSupportResult` (`ContactSupportLaunched` /
+  `ContactSupportFallbackRequired`) and `ContactSupportController`
+  (`contactSupportControllerProvider`). Resolves the support address from
+  Remote Config, assembles the diagnostic `mailto:` URI (canonical
+  subject/body + `Uri.encodeComponent` encoding), launches the default
+  mail client, and fires `support_email_opened`. Declares
+  `dependencies: [currentUserIdProvider]` so the shell-scoped UID
+  resolves on the Profile screen.
+- `application/contact_support_telemetry.dart` — `support_email_opened`
+  event and its single PII-free `method` parameter (`mailto` /
+  `fallback_dialog`).
+- `presentation/contact_support_fallback_dialog.dart` —
+  `ContactSupportFallbackDialog` (FR-SH-04): selectable address, "Copy
+  Address" (clipboard + "Email address copied" snackbar) and "Close".
+- `data/device_diagnostics_service.dart` — `DeviceDiagnosticsService` +
+  the `package_info_plus` / `device_info_plus`-backed implementation.
+- `domain/support_diagnostics.dart` — the immutable `SupportDiagnostics`
+  value object (app version, build, OS name/version, device model).
+- Shared (core): `RemoteConfigService` (`lib/core/remote_config/`, the
+  app's first Remote Config consumer per ADR-0006) and
+  `UrlLauncherService` (`lib/core/services/`).
+
 ### Legacy stub
 
 - `presentation/profile_placeholder_screen.dart` —
@@ -58,10 +89,17 @@ application/
   edit_profile_controller.dart            # EditProfileController (autoDispose)
   notification_preferences_controller.dart # sealed state + StateNotifier (autoDispose)
   notification_preferences_telemetry.dart  # FR-PR-03 event/param/token constants
+  contact_support_controller.dart         # FR-PR-05 sealed result + controller
+  contact_support_telemetry.dart          # FR-PR-05 support_email_opened (no PII)
+data/
+  device_diagnostics_service.dart         # FR-PR-05 package_info_plus + device_info_plus
+domain/
+  support_diagnostics.dart                # FR-PR-05 immutable diagnostics value object
 presentation/
   profile_screen.dart                     # SCR-26 tab root
   edit_profile_screen.dart                # SCR-26 edit sub-screen
   notification_preferences_screen.dart    # SCR-27 toggles + banner + offline snackbar
+  contact_support_fallback_dialog.dart    # FR-SH-04 no-mail-client dialog
   profile_placeholder_screen.dart         # legacy sign-out stub (not on the live nav)
   widgets/
     photo_picker_sheet.dart               # PhotoPickerSheet + PhotoPickerAction
@@ -74,7 +112,11 @@ presentation/
 - **Invariant 2 (`simplifiedBalances` server-maintained):** the
   controllers read/write profile fields and `notificationPrefs` on
   `users/{uid}` only; they never touch `simplifiedBalances`.
-- **Invariant 3 (system share sheet only):** N/A.
+- **Invariant 3 (system share sheet only):** N/A to sharing, and the
+  Contact Support flow does NOT change that. A `mailto:` URI opens the
+  device's default mail client (FR-SH-03) and targets no specific app; it
+  must never route through `ShareService` / `share_plus`, which is the
+  FR-SH-01 invite/share path.
 - **Invariant 4 (single Firebase project):** all reads/writes go through
   the single production project; offline behaviour is detected via the
   one-shot `connectivityCheckProvider`, and the Firestore SDK queues the

@@ -6,6 +6,8 @@ import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/notifications/application/sign_out_with_fcm_cleanup.dart';
+import 'package:onebytwo/features/profile/application/contact_support_controller.dart';
+import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
 import 'package:onebytwo/features/profile/presentation/edit_profile_screen.dart';
 import 'package:onebytwo/features/profile/presentation/notification_preferences_screen.dart';
 
@@ -155,11 +157,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(
-                    ref.context,
-                  ).showSnackBar(const SnackBar(content: Text('Coming soon')));
-                },
+                onTap: _contactSupport,
                 child: Text(
                   'Still stuck? Contact Support',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -344,11 +342,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Icons.chevron_right,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
-              onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Coming soon')));
-              },
+              onTap: _contactSupport,
             ),
           ),
           const Divider(height: 1),
@@ -391,6 +385,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0][0].toUpperCase();
+  }
+
+  /// Runs the Contact Support flow (FR-PR-05 / FR-SH-03): launches the
+  /// device's default mail client via a pre-filled `mailto:` URI, or
+  /// shows the FR-SH-04 fallback dialog when no mail client is available.
+  Future<void> _contactSupport() async {
+    final result = await ref
+        .read(contactSupportControllerProvider)
+        .contactSupport();
+    if (!mounted) return;
+    if (result is ContactSupportFallbackRequired) {
+      await ContactSupportFallbackDialog.show(
+        context,
+        supportEmailAddress: result.supportEmailAddress,
+      );
+    }
   }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
