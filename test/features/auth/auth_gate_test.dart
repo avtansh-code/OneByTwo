@@ -187,8 +187,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Shell mounts with Home tab active. AppBar title + the
-      // HomeDashboardPlaceholder headline both contain "Home".
+      // Shell mounts with Home tab active. The HomeDashboardScreen
+      // AppBar title is "Home".
       expect(find.byType(AuthenticatedShell), findsOneWidget);
       expect(find.text('Home'), findsWidgets);
     });

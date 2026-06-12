@@ -6,11 +6,11 @@ import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/activity/presentation/activity_feed_screen.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friends_list_screen.dart';
+import 'package:onebytwo/features/home/presentation/home_dashboard_screen.dart';
 import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 import 'package:onebytwo/features/shell/presentation/groups_list_placeholder.dart';
-import 'package:onebytwo/features/shell/presentation/home_dashboard_placeholder.dart';
 
 /// Authenticated-area shell that hosts the five primary tabs
 /// (Home / Friends / Groups / Activity / Profile) via an
@@ -37,7 +37,7 @@ class AuthenticatedShell extends ConsumerStatefulWidget {
   /// Creates the authenticated shell.
   ///
   /// In production, the shell mounts the canonical tab content
-  /// widgets (Home placeholder, [FriendsListScreen],
+  /// widgets ([HomeDashboardScreen], [FriendsListScreen],
   /// [GroupsListPlaceholder], [ActivityFeedScreen], [ProfileScreen]).
   /// Tests may override via [tabContentOverride] to isolate shell
   /// behaviour from per-feature provider graphs.
@@ -68,7 +68,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
       return override;
     }
     return const <Widget>[
-      HomeDashboardPlaceholder(),
+      HomeDashboardScreen(),
       FriendsListScreen(),
       GroupsListPlaceholder(),
       ActivityFeedScreen(),
