@@ -17,6 +17,7 @@ import 'package:onebytwo/features/reminders/application/send_reminder_controller
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
+import 'package:onebytwo/features/settlements/presentation/settlement_history_screen.dart';
 
 /// Friend Detail screen (SCR-11 / FR-FR-04).
 ///
@@ -127,6 +128,18 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                       otherUserUid: widget.otherUserUid,
                       friendDisplayName: state.header.displayName,
                     ),
+                    // SCR-24 entry point: the dedicated full settlement
+                    // history surface. Shown unconditionally in the
+                    // populated state, hidden in the empty state. No
+                    // entry-point telemetry — the destination's
+                    // settlement_history_viewed captures the arrival.
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: TextButton(
+                        onPressed: () => _openSettlementHistory(context, state),
+                        child: const Text('View Settlement History'),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -195,6 +208,23 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
         friendshipId: widget.friendshipId,
         currentUserUid: widget.currentUserUid,
         otherUserUid: widget.otherUserUid,
+      ),
+    );
+  }
+
+  void _openSettlementHistory(
+    BuildContext context,
+    FriendDetailStatePopulated state,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SettlementHistoryScreen(
+          contextType: 'friendship',
+          contextId: widget.friendshipId,
+          currentUserUid: widget.currentUserUid,
+          otherUserUid: widget.otherUserUid,
+          otherDisplayName: state.header.displayName,
+        ),
       ),
     );
   }

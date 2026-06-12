@@ -1,9 +1,9 @@
 # Settlements
 
 Feature-folder that owns the "settle up" surfaces: settlement creation
-(FR-SE-05, PR #43), settlement history (FR-FR-04 timeline read path,
-PR #42; dedicated `/settlements/history` screen deferred), and payment
-reminders (FR-SE-09, separate later PR).
+(FR-SE-05, PR #43), settlement history (FR-FR-04 in-timeline read path,
+PR #42, plus the dedicated `/settle/history` screen for the friendship
+axis, FR-SE-08 / SCR-24), and payment reminders (FR-SE-09).
 
 ## Implemented scope
 
@@ -106,6 +106,41 @@ Per Architect Notes §2.5, the **receiving direction** (friend owes
 current user) ships **without** the card in PR #43; FR-SE-09 Send
 Reminder ships that branch.
 
+### Settlement history screen (FR-SE-08 / SCR-24)
+
+PR #58 closes the FR-SE-08 P0 commitment for the dedicated full-history
+surface (friendship axis; the group axis is wired by the Sprint 3 Group
+Detail screen). The screen reuses the PR #42 read path verbatim — zero
+changes to `settlement_repository.dart`, `firestore.rules`, or
+`firestore.indexes.json`.
+
+- `application/settlement_history_telemetry.dart` — event-name +
+  parameter-key constants for the two pre-declared events
+  (`settlement_history_viewed { context_type, item_count }`,
+  `settlement_history_error { error_code, context_type }`). NEITHER
+  event carries `context_id` (PII guard, ADR-0013).
+- `application/settlement_history_provider.dart` —
+  `settlementHistoryProvider`, a `StreamProvider.family` keyed by
+  `SettlementHistoryArgs { contextType, contextId }`. Reuses
+  `SettlementRepository.watchByContext` and applies a 50-item cap
+  (`settlementHistoryItemCap`) over the projected list.
+- `presentation/settlement_history_screen.dart` — the SCR-24
+  `ConsumerStatefulWidget`. Four states (loading / populated / empty /
+  error) via inline private widgets (no OBT* primitive extraction per
+  Architect Notes §2.3). Per-row layout: inline `dd MMM yyyy` date,
+  payer avatar → arrow → payee avatar, `formatInrFromPaise()` amount,
+  optional muted note. `settlement_history_viewed` fires exactly once
+  on the first resolved frame; `settlement_history_error` fires once on
+  the first error frame. Generic over `(contextType, contextId)` so the
+  Sprint 3 Group Detail surface can push it with `contextType: 'group'`.
+
+The entry point is the **"View Settlement History"** text link on
+`FriendDetailScreen`, shown unconditionally in the populated state and
+hidden in the empty state. The tap pushes the screen via
+`MaterialPageRoute` with `contextType: 'friendship'`. No entry-point
+telemetry — the destination's `settlement_history_viewed` captures the
+funnel arrival (Architect Notes §2.6).
+
 ## Layout
 
 ```
@@ -170,8 +205,6 @@ presentation/
 
 ## Out of scope for PR #43
 
-- Dedicated full-history screen at `/settlements/history` (FR-SE-08
-  P0 — separate later PR; PR #42's in-timeline rows satisfy v1.0).
 - Home Dashboard `OBTSettleUpCard` host (FR-HD-02 — Home Dashboard
   does not exist yet).
 - Group context Settle Up (FR-GR-04 — Sprint 3 groups epic).
@@ -181,6 +214,10 @@ presentation/
 - Settlement Confirmation animation sub-screen (UX-polish later PR).
 - Two-sided card orientation when the friend owes the current user
   (§2.5 default-omit; ships with FR-SE-09).
+
+> The dedicated full-history screen (FR-SE-08 P0) was deferred from
+> PR #43 and is now shipped by PR #58 — see "Settlement history screen
+> (FR-SE-08 / SCR-24)" above.
 
 ## Firestore composite index
 
