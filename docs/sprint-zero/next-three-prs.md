@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #59 merged (documentation reconciliation, `093fce7`). FR-PR-05 Contact Support `mailto:` flow opened as PR #60 (roadmap "PR #59" slot).
+> Last updated: PR #60 (FR-PR-05 Contact Support `mailto:`, `8f72514`) and PR #61 (CI pipeline speed-up, `d474507`) merged. FR-HD-01/02 Home dashboard (SCR-06) opened as the next feature PR (roadmap "PR #62" slot; lands as the next available GitHub number ≥ #62).
 
 ---
 
@@ -26,12 +26,56 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #57 | PR | FR-HD-04 persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive + `AuthenticatedShell` FAB slot + context picker bottom sheet (Friend / Group target with Group path stubbed for Sprint 3) + bundled `currentUserIdProvider` production wiring in `AuthenticatedWithProfile` arm of `lib/main.dart` (closes FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing in production) (merged 2026-06-11) |
 | #58 | PR | FR-SE-08 dedicated settlement-history screen (SCR-24) — `SettlementHistoryScreen` at `/settle/history` + `settlementHistoryProvider` (`StreamProvider.family`, 50-item cap) + `settlement_history_telemetry.dart` (2 pre-declared events) + "View Settlement History" link on `FriendDetailScreen` (friendship axis; group axis stubbed) (merged 2026-06-12) |
 | **#59** | **PR** | Documentation reconciliation — docs/skills/agents synced to current code + two code fixes (Firestore emulator debug-log port `8080`->`8181` in `lib/main.dart`; missing `test:canonical` script in `functions/package.json`) + fvm pin + lefthook repair (merged 2026-06-12, `093fce7`) |
-| **#60** | **PR** | **FR-PR-05 Contact Support `mailto:` flow (open; roadmap "PR #59" slot).** |
+| **#60** | **PR** | FR-PR-05 Contact Support `mailto:` flow + FR-SH-04 fallback dialog (merged 2026-06-12, `8f72514`). |
+| **#61** | **PR** | CI PR-pipeline speed-up — parallelise `build-ios`/`build-android` with `flutter-checks` (no `needs:` edge), cache CocoaPods, guard `flutterfire_cli` activation, de-duplicate coverage-gate via artifacts, pin `firebase-tools` (merged 2026-06-12, `d474507`). |
+| **#62** | **PR** | **FR-HD-01/02 Home dashboard (SCR-06) — open; roadmap "PR #62" slot; lands as the next available GitHub number ≥ #62.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #59, PR #60, PR #61. Their issue-number
-counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #59 = number 59 on GitHub.
+**pull requests**. Their issue-number counterparts (when filed) will
+consume intermediate numbers; the orchestrator should not assume the
+roadmap slot label equals the GitHub number. **GitHub PR #61 was
+consumed by the CI-pipeline PR (`d474507`), so the Home-dashboard work
+lands as the next available number ≥ #62** — reconcile the slot label at
+PR open.
+
+---
+
+## PR #62 — IN FLIGHT (FR-HD-01/02 Home dashboard)
+
+**Status:** Open. FR-HD-01 + FR-HD-02 confirmed as the next-slot pick at
+kickoff per Sprint 2 velocity — the last open P0 product surface on this
+candidate list after FR-PR-05 (#60) closed.
+
+Replaces `HomeDashboardPlaceholder` (shell tab 0, live since PR #56) with
+the real `lib/features/home/` feature:
+
+- **FR-HD-01** overall net-balance header card +
+  **FR-HD-02** top-5 friendships by absolute balance with per-row
+  "Settle Up" (`source: 'home_dashboard'`) and tile-tap → Friend Detail,
+  via two pure derived providers (`overallNetBalanceProvider` sum,
+  `topBalancesProvider` abs-sort / zero-exclude / cap-5 / stable
+  tie-break) composed over `friendsListProvider` — no new data layer.
+- Four inline states (loading / empty / populated / error). The error
+  state (`HD-FIRESTORE-READ`) is the **first reuse of the FR-PR-05
+  `ContactSupportController`** outside Profile.
+- **FR-HD-03** (P1) "Spending breakdown coming soon" placeholder card —
+  no chart, no charting plugin.
+- `home_telemetry.dart` (6 SCR-06 events; `context_id_hash` via
+  `hashFriendshipId`, PII-free) + a 1-line optional `source` param on
+  `SettleUpBottomSheet` (default `friend_detail`).
+- Shell tab-0 swap + `home_dashboard_placeholder.dart` deletion + shell
+  README update.
+
+**Stubs / defers.** Group axis stubbed (Sprint 3 Groups epic — no group
+tiles). FR-OF-01 offline banner deferred (needs a connectivity plugin →
+`ios/Podfile.lock` churn). Zero schema / rules / index / function change;
+no new Flutter plugin.
+
+**Next candidates** (architect's call at the post-#62 kickoff): the
+carry-forward list below — `app_settings`/`permission_handler` "Open
+Settings" CTA chore, FR-PR-02 phone-number-change, FR-AU-09
+account-deletion, Issue #47 rules-hardening, the FR-HD-03 real
+chart, and the Sprint 3 Groups epic.
 
 ---
 
@@ -270,27 +314,25 @@ share/export action.
 
 ---
 
-## PR #59 — TBD
+## Carry-forward candidate list (post-#62)
 
-**Status:** Next up. Architect picks at PR #59 kickoff per Sprint 2 velocity.
+**Status:** Rolling backlog. FR-HD-01/02 is in flight as #62 (see the
+section near the top). The architect picks the post-#62 slot from the
+list below per Sprint 2 velocity.
 
-The dedicated settlement-history surface is now live. The next slot is
-open; the candidate list below carries forward everything not yet
-shipped.
+The candidate list carries forward everything not yet shipped.
 
 Candidates (in rough priority order — architect's call at kickoff):
 
-- **FR-PR-05 Contact Support `mailto:` flow** (P0) — **IN FLIGHT (this
-  PR; #60; roadmap "PR #59" slot).** Bundles FR-SH-03
-  and the FR-SH-04 no-mail-client fallback dialog; 3 SP (was estimated
-  ~2 before bundling FR-SH-04). First Firebase Remote Config consumer
+- **FR-PR-05 Contact Support `mailto:` flow** (P0) — **MERGED (#60,
+  `8f72514`).** Bundled FR-SH-03 and the FR-SH-04 no-mail-client
+  fallback dialog; 3 SP. First Firebase Remote Config consumer
   (`support_email_address`, in-app default `support@onebytwo.app`,
-  ADR-0006). Wires BOTH Profile entry points — the action row and the
+  ADR-0006). Wired BOTH Profile entry points — the action row and the
   error-state "Still stuck? Contact Support" link. The "Contact Support"
-  links on OTHER error surfaces (e.g. the `SettlementHistoryScreen`
-  SCR-24 state, and the Delete Account error snackbar) reuse the same
-  `ContactSupportController` but remain separate follow-ups (see the
-  FR-PR-05 story "Out of Scope").
+  links on OTHER error surfaces reuse the same `ContactSupportController`
+  but remain separate follow-ups — **the FR-HD-01/02 dashboard error
+  state (#62) is the first such reuse.**
 - **`app_settings` / `permission_handler` dependency +
   AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
   ~1-2 SP. Adds the dependency + wires the CTA on both platforms.
@@ -310,11 +352,15 @@ Candidates (in rough priority order — architect's call at kickoff):
   (PR #53 §2.6 `wasPermanentlyDenied` flag + FR-SE-09 §2.6 cooldown
   persistence). ~2-3 SP. Natural pair with the `app_settings` /
   `permission_handler` chore above.
-- **FR-HD-01..04 home dashboard implementation** (P0; the
-  `HomeDashboardPlaceholder` shipped by PR #56 is replaced by the
-  real dashboard; FR-HD-04 persistent FAB shipped in PR #57 means
-  the dashboard inherits the FAB-context-picker pair for free).
-  ~5-8 SP.
+- **FR-HD-01..04 home dashboard implementation** (P0) — **IN FLIGHT
+  (this PR; FR-HD-01 + FR-HD-02 only; roadmap "PR #62" slot, ≥ #62).**
+  The `HomeDashboardPlaceholder` shipped by PR #56 is replaced by the
+  real `lib/features/home/` dashboard; the FR-HD-04 persistent FAB
+  (PR #57) is inherited for free. FR-HD-03 ships as a "coming soon"
+  placeholder card only (no chart, no charting plugin — the real
+  donut/bar chart + category-aggregation read path is a separate P1
+  PR). The FR-OF-01 offline banner is deferred (needs a connectivity
+  plugin → `ios/Podfile.lock` churn). 5 SP.
 - **FR-SE-09 message-compose dialog follow-up** (the deferred UX
   PR per FR-SE-09 architect §2.5). 1-2 SP.
 - **`shellNavigationControllerProvider` + FR-AC-05 deep-link
@@ -387,19 +433,12 @@ Candidates (in rough priority order — architect's call at kickoff):
 
 ---
 
-## PR #60 — TBD
+## PR #59 / #60 / #61 — Merged
 
-**Status:** Slot reserved. Architect picks at PR #59 kickoff.
-
-Candidates: whatever doesn't land in PR #59 from the list above.
-
----
-
-## PR #61 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #60 kickoff.
-
-Candidates: whatever doesn't land in PR #59 / PR #60 from the list above.
+**Status:** All merged. #59 documentation reconciliation (`093fce7`);
+#60 FR-PR-05 Contact Support `mailto:` flow (`8f72514`); #61 CI
+PR-pipeline speed-up (`d474507`). The next feature PR is #62
+(FR-HD-01/02 Home dashboard, in flight — see the section above).
 
 ---
 

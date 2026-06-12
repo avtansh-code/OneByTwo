@@ -13,10 +13,10 @@ content once a user reaches `AuthenticatedWithProfile`.
   (`ConsumerStatefulWidget`). Hosts the five primary tabs in an
   `IndexedStack` (for tab-state preservation) with `OBTBottomNav` and
   the persistent `OBTFloatingActionButton`. Tab content, in order:
-  `HomeDashboardPlaceholder`, `FriendsListScreen` (friends feature),
-  `GroupsListPlaceholder`, `ActivityFeedScreen` (activity feature),
-  `ProfileScreen` (profile feature). The current tab index is plain
-  in-shell `setState` (no Riverpod `Notifier<int>` until a second
+  `HomeDashboardScreen` (home feature), `FriendsListScreen` (friends
+  feature), `GroupsListPlaceholder`, `ActivityFeedScreen` (activity
+  feature), `ProfileScreen` (profile feature). The current tab index is
+  plain in-shell `setState` (no Riverpod `Notifier<int>` until a second
   consumer needs it). Android back on a non-zero tab snaps to tab 0 via
   `PopScope` (no telemetry on the back-driven switch). A
   `@visibleForTesting` `tabContentOverride` lets shell tests isolate
@@ -36,13 +36,14 @@ content once a user reaches `AuthenticatedWithProfile`.
 
 ### Placeholders
 
-- `presentation/home_dashboard_placeholder.dart` —
-  `HomeDashboardPlaceholder` for tab 0. The real Home dashboard
-  (FR-HD-01…04) will land under `lib/features/home/`.
 - `presentation/groups_list_placeholder.dart` — `GroupsListPlaceholder`
   for tab 2. `lib/features/groups/` is greenfield (Sprint 3 Groups
-  epic). Both placeholders are colocated with the shell so a later PR can
-  swap them for the real screens in one change.
+  epic). Colocated with the shell so a later PR can swap it for the real
+  Group list screen in one change.
+
+  Tab 0's `HomeDashboardScreen` (FR-HD-01/02) now lives under
+  `lib/features/home/`; the temporary `HomeDashboardPlaceholder` was
+  deleted when the real dashboard shipped.
 
 ### Telemetry
 
@@ -63,7 +64,6 @@ application/
 presentation/
   authenticated_shell.dart              # 5-tab IndexedStack + bottom nav + FAB
   add_expense_context_picker_sheet.dart # SCR-08 picker → AddExpenseBottomSheet
-  home_dashboard_placeholder.dart       # tab 0 placeholder (FR-HD pending)
   groups_list_placeholder.dart          # tab 2 placeholder (Sprint 3 groups)
 ```
 
@@ -87,9 +87,10 @@ presentation/
   `home` for the `AuthenticatedWithProfile` state, inside a per-arm
   `ProviderScope` that binds `currentUserIdProvider` to the signed-in
   UID.
-- **Out (tab content):** `FriendsListScreen`, `ActivityFeedScreen` and
-  `ProfileScreen` are owned by their respective feature folders; Home and
-  Groups are placeholders pending FR-HD and the Sprint 3 Groups epic.
+- **Out (tab content):** `HomeDashboardScreen`, `FriendsListScreen`,
+  `ActivityFeedScreen` and `ProfileScreen` are owned by their respective
+  feature folders; Groups is a placeholder pending the Sprint 3 Groups
+  epic.
 - **Out (add expense):** the context picker opens `AddExpenseBottomSheet`
   from the expenses feature; the picker owns only the context selection,
   not the expense write.

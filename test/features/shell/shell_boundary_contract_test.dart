@@ -23,7 +23,6 @@ import 'package:flutter_test/flutter_test.dart';
 const _newShellFiles = <String>[
   'lib/features/shell/application/shell_telemetry.dart',
   'lib/features/shell/presentation/authenticated_shell.dart',
-  'lib/features/shell/presentation/home_dashboard_placeholder.dart',
   'lib/features/shell/presentation/groups_list_placeholder.dart',
   'lib/core/widgets/nav/obt_bottom_nav.dart',
   // FR-HD-04 additions — the two new shell-owned files that ship the
@@ -152,9 +151,9 @@ void main() {
         reason:
             'Per architect §2.4 and AC-14, the temporary '
             'HomePlaceholderScreen must be deleted by the OBTBottomNav '
-            'shell change. Its body content is extracted to '
-            'HomeDashboardPlaceholder; the in-AppBar Activity/Profile '
-            'shortcut buttons are obsoleted by the OBTBottomNav.',
+            'shell change. Its body content was extracted to the Home '
+            'tab; the in-AppBar Activity/Profile shortcut buttons are '
+            'obsoleted by the OBTBottomNav.',
       );
     });
   });

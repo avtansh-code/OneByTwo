@@ -35,8 +35,17 @@ class SettleUpBottomSheet extends ConsumerStatefulWidget {
     required this.suggestedAmountPaise,
     this.currentUserPhotoUrl,
     this.otherUserPhotoUrl,
+    this.source = 'friend_detail',
     super.key,
   });
+
+  /// Telemetry source token for `settle_up_screen_viewed.source`
+  /// (`SettleUpTelemetry.paramSource`). Defaults to `'friend_detail'`
+  /// (the original PR #43 entry point); the Home dashboard passes
+  /// `'home_dashboard'` (the token pre-declared in
+  /// `settle_up_telemetry.dart`). A non-identifying enum token — no
+  /// hashing required.
+  final String source;
 
   /// Friendship document ID (`uid-a_uid-b`).
   final String friendshipId;
@@ -91,7 +100,7 @@ class _SettleUpBottomSheetState extends ConsumerState<SettleUpBottomSheet> {
             name: SettleUpTelemetry.screenViewed,
             parameters: <String, Object>{
               SettleUpTelemetry.paramContextType: 'friendship',
-              SettleUpTelemetry.paramSource: 'friend_detail',
+              SettleUpTelemetry.paramSource: widget.source,
               SettleUpTelemetry.paramFriendshipIdHash: hashFriendshipId(
                 widget.friendshipId,
               ),
