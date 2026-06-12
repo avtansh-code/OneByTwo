@@ -278,12 +278,10 @@ jobs:
 
   build-ios:
     name: Build iOS (no signing)
-    # Larger Apple-silicon runner (M2 Pro, 5 vCPU) vs the standard macos-15
-    # (M1, 3 vCPU) to speed up the Xcode compile of the ~270 Firebase pods,
-    # which is the pipeline's wall-clock bottleneck. NOTE: larger runners are
-    # billed (~$0.16/min) even on public repos, where the standard macos-15
-    # runner is free — revert to `macos-15` to eliminate that cost.
-    runs-on: macos-15-xlarge
+    # Standard (free) Apple-silicon runner. Do NOT switch to a larger runner
+    # (macos-15-large / -xlarge): those are billed even on public repos, where
+    # this standard runner is free.
+    runs-on: macos-15
     env:
       # Pinned so the version-checked guard on the activation step below can
       # detect a cache hit (flutterfire_cli restored via subosito's pub cache)
