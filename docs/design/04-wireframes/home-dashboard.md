@@ -4,6 +4,8 @@ This document specifies the wireframe layouts for the Home Dashboard screen (SRS
 
 All monetary values displayed are converted from integer paise at the UI layer (Invariant 1). Balance data is read from the `simplifiedBalances` field, which is server-maintained and client-read-only (Invariant 2).
 
+> **Status: planned.** The Home tab currently renders `HomeDashboardPlaceholder` ('The real dashboard is coming soon'). FR-HD-01/02 surfaces below are not yet built; the persistent FAB + context picker (FR-HD-04) **is** implemented in `AuthenticatedShell`.
+
 ---
 
 ## Design Token Quick Reference
@@ -72,7 +74,7 @@ Displayed when a new user has no expenses, no friends with balances, and no grou
 
 | Area | Component | Props |
 |---|---|---|
-| Top bar | `OBTAppBar` | `title: "Home"`, `showBackButton: false` |
+| Top bar | `OBTAppBar` | `title: "Home"`, `showBackButton: false`; implemented host currently uses Material `AppBar` in code |
 | Balance card | Custom card | `balancePaise: 0`, corner radius 24 dp, `elevationLow` |
 | Empty body | `OBTEmptyState` | `illustration: empty_wallet`, `title: "No expenses yet"`, `subtitle: "Add your first expense and start splitting!"`, `ctaLabel: "Add Expense"`, `onCtaTap: -> open Add Expense flow` |
 | FAB | `OBTFloatingActionButton` | `onPressed: -> open Add Expense flow` |

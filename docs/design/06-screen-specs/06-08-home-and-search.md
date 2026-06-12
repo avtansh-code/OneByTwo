@@ -9,6 +9,8 @@ This document specifies three interconnected screens for One By Two v1.0: the Ho
 
 All monetary values are integer paise (Invariant 1, SRS section 7.3). Balance data is read from the `simplifiedBalances` field, which is server-maintained and client-read-only (Invariant 2, SRS sections 4.6, 7.3, 7.5). All outbound sharing uses the platform system share sheet only (Invariant 3, SRS sections 3.4, 4.11, 12.2).
 
+> **Implementation status (verified against `lib/`, this pass).** **SCR-06 Home = placeholder** (`HomeDashboardPlaceholder`); **SCR-07 Search not implemented**; **SCR-08 Add-Expense entry implemented** (`AddExpenseContextPickerSheet` → `AddExpenseBottomSheet`).
+
 ---
 
 ## Table of Contents

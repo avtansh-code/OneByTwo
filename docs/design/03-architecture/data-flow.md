@@ -63,49 +63,54 @@ sequenceDiagram
 
 ---
 
-## Flow 2 — Add Expense in a Group
+## Flow 2 — Add Expense (Friendship)
 
 **Relevant requirements:** FR-EX-01 through FR-EX-07 (SRS section 4.5),
 FR-SE-03, FR-SE-04 (SRS section 4.6).
 **Relevant decisions:** ADR-0001 (simplified debts is the sole mechanism),
 ADR-0002 (money as integer paise).
 
+> **Scope note:** v1.0 implements this flow for **friendships**
+> (`friendships/{friendshipId}/expenses`) via the `onExpenseWriteFriendship` trigger.
+> The equivalent group flow is Sprint 3 — groups are data-layer-only and there is no
+> group-expense trigger yet.
+
 ```mermaid
 sequenceDiagram
     participant U as User
     participant App as Flutter App
     participant FS as Firestore
-    participant CF as Cloud Function<br/>(recomputeSimplifiedBalances)
+    participant CF as Cloud Function<br/>(onExpenseWriteFriendship)
     participant FCM as Firebase Cloud Messaging
 
     U->>App: Fill expense form (amount, payer, splits, category)
     Note over App: Validate splits sum to amountPaise exactly (FR-EX-04).<br/>All values are integer paise — Invariant 1 (ADR-0002).
 
-    App->>FS: CREATE groups/{groupId}/expenses/{expenseId}<br/>{ amountPaise, payerId, splits, splitMethod, ... }
-    Note over FS: Security Rules validate splits sum == amountPaise<br/>and that request.auth.uid is a group member (SRS section 7.5).
+    App->>FS: CREATE friendships/{friendshipId}/expenses/{expenseId}<br/>{ amountPaise, payerId, splits, splitMethod, ... }
+    Note over FS: Security Rules validate splits sum == amountPaise<br/>(bounded enumeration) and that request.auth.uid is a<br/>friendship member (SRS section 7.5).
 
-    FS-->>CF: onExpenseWrite trigger fires
+    FS-->>CF: onExpenseWriteFriendship trigger fires
     Note over CF: Runs in asia-south1 (Mumbai) — SRS section 3.4.
 
     CF->>FS: Transaction BEGIN
-    CF->>FS: READ all non-deleted expenses for groups/{groupId}
-    CF->>FS: READ all settlements for groups/{groupId}
+    CF->>FS: READ all non-deleted expenses for the friendship
+    CF->>FS: READ all settlements for the friendship context
 
-    Note over CF: Run simplified-debts algorithm (SRS section 7.4):<br/>1. Compute net paise per member.<br/>2. Partition into creditors and debtors.<br/>3. Greedy pairing largest-to-largest.<br/>4. Ties broken by ascending userId for determinism.
+    Note over CF: Run the shared simplified-debts core (SRS section 7.4):<br/>1. Compute net paise per member.<br/>2. Partition into creditors and debtors.<br/>3. Greedy pairing largest-to-largest.<br/>4. Ties broken by ascending userId for determinism.
 
-    CF->>FS: WRITE groups/{groupId}.simplifiedBalances<br/>(within same transaction)
-    Note over CF: Cloud Function writes simplifiedBalances,<br/>NOT the client — Invariant 2 (ADR-0001, SRS section 7.3).
+    CF->>FS: WRITE friendships/{friendshipId}.simplifiedBalances<br/>(within same transaction)
+    Note over CF: The recompute core writes simplifiedBalances,<br/>NOT the client — Invariant 2 (ADR-0001, SRS section 7.3).
 
     CF->>FS: Transaction COMMIT
     Note over CF: Atomic recomputation — FR-SE-04.
 
-    CF->>FS: WRITE activity/{userId}/items for each participant (FR-EX-07)
+    CF->>FS: WRITE activity/{userId}/items for each member (FR-EX-07)
 
-    CF->>FCM: Send push notifications to affected group members
+    CF->>FCM: Send push notification to the other friendship member
     FCM-->>U: Push notification received
 
     FS-->>App: Real-time listener receives updated simplifiedBalances
-    Note over App: All connected clients see new balances immediately (FR-SE-06).
+    Note over App: Connected clients see new balances immediately (FR-SE-06).
 ```
 
 ### Invariants enforced
@@ -115,9 +120,10 @@ sequenceDiagram
   Function (ADR-0002, SRS section 7.3).
 - **Invariant 2 (simplifiedBalances is server-maintained):** The client writes
   the expense document only. The `simplifiedBalances` field is written exclusively
-  by the `recomputeSimplifiedBalances` Cloud Function inside a Firestore
-  transaction. Security Rules block client writes to that field (SRS sections 4.6,
-  7.3, 7.5).
+  by the server-side recompute core (`simplified-debts/function.ts`), reached here via
+  the `onExpenseWriteFriendship` trigger and also via the `recomputeSimplifiedBalances`
+  callable and the `onSettlementWrite` trigger. Security Rules block client writes to
+  that field (SRS sections 4.6, 7.3, 7.5).
 - Split-sum validation is enforced at two layers: client-side before save
   (FR-EX-04) and server-side via Security Rules (SRS section 7.5).
 
@@ -134,7 +140,7 @@ sequenceDiagram
     participant U as User
     participant App as Flutter App
     participant FS as Firestore
-    participant CF as Cloud Function<br/>(recomputeSimplifiedBalances)
+    participant CF as Cloud Function<br/>(onSettlementWrite)
     participant FCM as Firebase Cloud Messaging
 
     U->>App: Tap "Settle Up" on a non-zero balance (FR-SE-07)
@@ -158,7 +164,7 @@ sequenceDiagram
     Note over CF: Run simplified-debts algorithm (SRS section 7.4).<br/>Settlement amounts reduce net balances.
 
     CF->>FS: WRITE simplifiedBalances on context document<br/>(within same transaction)
-    Note over CF: Cloud Function writes simplifiedBalances,<br/>NOT the client — Invariant 2 (ADR-0001).
+    Note over CF: The recompute core writes simplifiedBalances,<br/>NOT the client — Invariant 2 (ADR-0001).
 
     CF->>FS: Transaction COMMIT
 
@@ -189,6 +195,13 @@ sequenceDiagram
 **Relevant requirements:** FR-AU-09 (SRS section 4.1), SRS section 5.5
 (30-day SLA, DPDP compliance).
 **Relevant decisions:** ADR-0003 (single Firebase project).
+
+> **NOT IMPLEMENTED in v1.0.** There is no `onUserDelete` Cloud Function and no
+> account-deletion path in the shipped system (`users` documents are `delete: false`
+> in `firestore.rules`, and no deletion callable or trigger is deployed). The diagram
+> below is the intended future design, not current behaviour. Avatar cleanup and
+> cascade anonymisation are correspondingly marked deferred in the schema's
+> storage-lifecycle notes and in the PII-handling doc.
 
 ```mermaid
 sequenceDiagram

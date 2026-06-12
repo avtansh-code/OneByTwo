@@ -23,6 +23,32 @@ though documents exist. The wrapper script reads the project ID from `.firebaser
 via `jq` and enforces this constraint automatically, removing a class of
 "works on my machine" issues.
 
+### What it does
+
+1. Reads the project ID from `.firebaserc` (`.projects.default`) via `jq`.
+2. Rejects a `demo-*` ID found in `.firebaserc` (Invariant #4 expects the
+   production ID there). To run fully-offline emulators against a demo project,
+   pass `--project demo-*` explicitly and the script prints a warning instead of
+   failing.
+3. Auto-imports `firebase-export/` when that directory exists (override with
+   `--import=<path>`).
+4. Builds Cloud Functions (`cd functions && npm run build`) before launch so the
+   Functions emulator loads the compiled trigger bundle from `functions/lib/`.
+5. Starts the `auth,firestore,functions,storage` emulators. The Emulator UI is
+   enabled in `firebase.json` and comes up alongside them.
+
+### Emulator ports (from `firebase.json`)
+
+| Emulator | Port |
+|---|---|
+| Auth | 9099 |
+| Firestore | 8181 |
+| Functions | 5001 |
+| Storage | 9199 |
+| Emulator UI | 4000 |
+
+`singleProjectMode` is `true`, and the Cloud Functions runtime is `nodejs22`.
+
 ### Usage
 
 ```sh
@@ -45,7 +71,8 @@ via `jq` and enforces this constraint automatically, removing a class of
 - **jq** — required for reading `.firebaserc`. Install via
   `brew install jq` (macOS) or `apt-get install jq` (Linux).
 - **Firebase CLI** — `npm install -g firebase-tools`.
-- **Node.js 20 LTS** — for building and running Cloud Functions.
+- **Node.js 22** — matches the Cloud Functions runtime (`nodejs22` in
+  `firebase.json`); used to build and run functions under the emulator.
 
 ---
 

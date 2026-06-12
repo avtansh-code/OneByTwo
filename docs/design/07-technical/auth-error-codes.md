@@ -12,8 +12,19 @@ This document maps every relevant `FirebaseAuthException.code` to a domain-level
 telemetry parameter value. It is the single source of truth for error handling in
 the phone authentication flow.
 
+> **Scope:** This document covers **client-side Firebase Phone Authentication**
+> errors (`FirebaseAuthException`) only, as mapped in
+> `lib/features/auth/data/phone_auth_repository.dart` to the
+> `lib/features/auth/domain/auth_error.dart` enum. It does **not** cover
+> Cloud Functions error codes. In particular, the server-side
+> `lookupUserByPhoneNumber` callable returns its own typed codes
+> (`UNAUTHENTICATED`, `INVALID_INPUT`, `RATE_LIMITED`, `INTERNAL`) — those are
+> documented in `docs/design/07-technical/cloud-functions-error-codes.md`.
+
 **Cross-references:**
 
+- Cloud Functions error codes (server-side, including `lookupUserByPhoneNumber`):
+  `docs/design/07-technical/cloud-functions-error-codes.md`
 - SRS section 5.10 — Observability (telemetry events)
 - Telemetry plan: `docs/design/07-technical/telemetry-plan.md` (events
   `otp_send_failed`, `otp_verification_failed`)

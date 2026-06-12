@@ -57,9 +57,11 @@ the FR-FR-03 placeholder so PR #38 needed no change at swap-time).
 PR #43 inserts an `OBTSettleUpCard` between the header and the
 timeline on `FriendDetailScreen` when
 `header.balanceState == BalanceState.owes` (the current user owes the
-friend). Per Architect Notes §2.5 the receiving direction
-(`netBalancePaise > 0`) ships **without** the card; that branch
-depends on FR-SE-09 Send Reminder (separate later PR).
+friend). The **receiving direction** (`netBalancePaise > 0`, the friend
+owes the current user) now also renders an `OBTSettleUpCard` — its
+receiving-direction variant with a **Send Reminder** CTA — via the
+`_ReceivingDirectionCard` host, wired to the `reminders` feature folder
+(FR-SE-09). See `lib/features/reminders/README.md`.
 
 Tapping the card fires `settle_up_tapped { source: 'friend_detail',
 friendship_id_hash }` and opens `SettleUpBottomSheet` from the
@@ -71,8 +73,11 @@ flipping the header pill toward `Settled up` within NFR-PE-04's
 2.5 s P95 budget.
 
 - `widgets/obt_settle_up_card.dart` — reusable card with payer
-  avatar → arrow → payee avatar + suggested amount + Settle Up CTA.
-  Lives under `friends/` because the only PR #43 host is
+  avatar → arrow → payee avatar + suggested amount. The owes-direction
+  variant shows a Settle Up CTA (settlements); the receiving-direction
+  variant (`isReceivingDirection: true`, with `nextAllowedAt` +
+  `onSendReminder`) shows a Send Reminder CTA (reminders).
+  Lives under `friends/` because the host is
   `FriendDetailScreen`; future hosts (Home Dashboard FR-HD-02; Group
   Detail FR-GR-04) will lift the widget into a shared design-system
   folder per the `OBTAmountInput` extraction precedent from PR #38.
@@ -113,6 +118,7 @@ application/
 data/
   contact_service.dart
   friendship_repository.dart         # store / repo / fake; watchFriendship added in PR #42
+  matching_callable_adapter.dart     # cloud_functions bridge for lookup callable
   matching_repository.dart
   share_service.dart
 domain/
@@ -162,6 +168,9 @@ presentation/
 - **Out:** the FAB call site for adding an expense lives on
   `FriendDetailScreen`; the bottom sheet itself
   (`AddExpenseBottomSheet`) is owned by the `expenses` feature folder.
+- **Out:** the Settle Up CTA opens `SettleUpBottomSheet` from the
+  `settlements` feature folder; the receiving-direction Send Reminder
+  CTA is driven by the `reminders` feature folder (FR-SE-09).
 - **Out:** `simplifiedBalances` is written exclusively by the
   `recomputeSimplifiedBalances` Cloud Function in
   `functions/src/simplified-debts/`.

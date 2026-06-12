@@ -31,7 +31,7 @@ graph TD
     subgraph "Firebase Project: Production"
         AUTH[Firebase Auth<br/>Phone Auth +91]
         FS[Cloud Firestore<br/>asia-south1]
-        CF[Cloud Functions<br/>Node 20 / TypeScript<br/>asia-south1]
+        CF[Cloud Functions<br/>Node 22 / TypeScript<br/>asia-south1]
         CS[Cloud Storage<br/>asia-south1]
         FCM[Firebase Cloud Messaging]
         CRASH[Crashlytics]
@@ -206,7 +206,7 @@ flowchart LR
 **PR pipeline** (SRS section 9.2.1):
 
 1. Triggered on `pull_request` to `main`.
-2. Checkout, set up Flutter and Node 20.
+2. Checkout, set up Flutter and Node 22.
 3. `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test --coverage`.
 4. Cloud Functions: `npm ci`, `npm run lint`, `npm test`.
 5. Spin up Firebase Emulator Suite; run integration tests including

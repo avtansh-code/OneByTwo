@@ -9,6 +9,8 @@ paths, and deep-link URL scheme for One By Two v1.0. All content is derived from
 the authoritative SRS (sections 4, 6.3, 13.1) and the sprint-zero routing
 proposal (GoRouter with declarative routes and an auth-guard redirect layer).
 
+> **Implementation status.** This map describes the **target** GoRouter architecture; the current build does **not** use GoRouter (it is not a dependency). Navigation today = `MaterialApp` with an auth-state-switched `home` (`lib/main.dart`) → Splash / Phone Entry / Profile Setup / `AuthenticatedShell`; a 5-tab `IndexedStack` shell (`lib/features/shell/`); and imperative `Navigator.push(MaterialPageRoute)` for details and modal sheets. The declarative routes/URL paths, `ShellRoute`, and auth-guard `redirect` below are **planned** (architect §2.1, a Sprint 3 chore). **Not yet implemented:** Onboarding, Search, all Groups screens, Contact Support, Account Deletion; the **Home** tab renders a placeholder. Deep links are handled by `lib/core/routing/notification_deep_links.dart` (`NotificationDeepLinks` → sealed `DeepLinkTarget`, navigates via `MaterialPageRoute`, **no URL scheme**); `group_invite` → "Groups are coming soon" snackbar; deleted/malformed → "This item is no longer available" snackbar.
+
 ---
 
 ## 1. Hierarchical Screen Map
@@ -20,14 +22,14 @@ tab structure. Indentation denotes parent-child hierarchy.
 Root
 ├── Unauthenticated
 │   ├── Splash                                   /splash
-│   ├── Onboarding (3 illustrated slides)        /onboarding
+│   ├── Onboarding (3 illustrated slides)        /onboarding (planned — not implemented)
 │   ├── Phone Entry (locked +91 prefix)          /auth/phone
 │   ├── OTP Verification                         /auth/otp
 │   └── Profile Setup (name, optional photo)     /auth/profile-setup
 │
 └── Authenticated (Shell with Bottom Navigation + FAB)
     │
-    ├── [Tab] Home (Dashboard)                   /home
+    ├── [Tab] Home (Dashboard)                   /home (placeholder)
     │   └── (Inline) Monthly Spend Summary       — rendered within /home
     │
     ├── [Tab] Friends                            /friends
@@ -36,21 +38,21 @@ Root
     │   ├── Friend Detail                        /friends/:friendshipId
     │   └── Friend History                       /friends/:friendshipId/history
     │
-    ├── [Tab] Groups                             /groups
-    │   ├── Groups List                          /groups               (tab root)
-    │   ├── Create Group                         /groups/create
-    │   ├── Group Detail                         /groups/:groupId
-    │   ├── Group Invite                         /groups/:groupId/invite
-    │   ├── Group Members                        /groups/:groupId/members
-    │   └── Group History                        /groups/:groupId/history
+    ├── [Tab] Groups                             /groups (planned — not implemented)
+    │   ├── Groups List                          /groups               (tab root; planned — not implemented)
+    │   ├── Create Group                         /groups/create (planned — not implemented)
+    │   ├── Group Detail                         /groups/:groupId (planned — not implemented)
+    │   ├── Group Invite                         /groups/:groupId/invite (planned — not implemented)
+    │   ├── Group Members                        /groups/:groupId/members (planned — not implemented)
+    │   └── Group History                        /groups/:groupId/history (planned — not implemented)
     │
     ├── [Tab] Activity (Feed)                    /activity
     │
     ├── [Tab] Profile                            /profile
     │   ├── Profile View / Edit                  /profile              (tab root)
     │   ├── Notification Preferences             /profile/notifications
-    │   ├── Contact Support                      /profile/support
-    │   └── Account Deletion                     /profile/delete-account
+    │   ├── Contact Support                      /profile/support (planned — not implemented)
+    │   └── Account Deletion                     /profile/delete-account (planned — not implemented)
     │
     ├── Modals / Bottom Sheets (overlay, no dedicated route)
     │   ├── Add Expense (multi-step bottom sheet)
@@ -59,7 +61,7 @@ Root
     │   ├── Delete Confirmation Dialog (expense, friend, group)
     │   └── Sign-Out Confirmation Dialog
     │
-    └── Search (overlay or full-screen)          /search
+    └── Search (overlay or full-screen)          /search (planned)
 ```
 
 ### Sources
@@ -221,30 +223,30 @@ the GoRouter configuration, aligned with the feature-first folder structure
 | Route path                             | Screen name              | Feature module    | Auth required |
 | -------------------------------------- | ------------------------ | ----------------- | ------------- |
 | `/splash`                              | Splash                   | `auth`            | No            |
-| `/onboarding`                          | Onboarding               | `auth`            | No            |
+| `/onboarding`                          | Onboarding (planned — not implemented) | `auth`            | No            |
 | `/auth/phone`                          | Phone Entry              | `auth`            | No            |
 | `/auth/otp`                            | OTP Verification         | `auth`            | No            |
 | `/auth/profile-setup`                  | Profile Setup            | `auth`            | Yes (new user)|
-| `/home`                                | Home Dashboard           | `app` (shell)     | Yes           |
+| `/home`                                | Home Dashboard (placeholder) | `app` (shell)     | Yes           |
 | `/friends`                             | Friends List             | `friends`         | Yes           |
 | `/friends/add`                         | Add Friend               | `friends`         | Yes           |
 | `/friends/:friendshipId`               | Friend Detail            | `friends`         | Yes           |
 | `/friends/:friendshipId/history`       | Friend History           | `friends`         | Yes           |
-| `/groups`                              | Groups List              | `groups`          | Yes           |
-| `/groups/create`                       | Create Group             | `groups`          | Yes           |
-| `/groups/:groupId`                     | Group Detail             | `groups`          | Yes           |
-| `/groups/:groupId/invite`              | Group Invite             | `groups`          | Yes           |
-| `/groups/:groupId/members`             | Group Members            | `groups`          | Yes           |
-| `/groups/:groupId/history`             | Group History            | `groups`          | Yes           |
+| `/groups`                              | Groups List (planned — not implemented) | `groups`          | Yes           |
+| `/groups/create`                       | Create Group (planned — not implemented) | `groups`          | Yes           |
+| `/groups/:groupId`                     | Group Detail (planned — not implemented) | `groups`          | Yes           |
+| `/groups/:groupId/invite`              | Group Invite (planned — not implemented) | `groups`          | Yes           |
+| `/groups/:groupId/members`             | Group Members (planned — not implemented) | `groups`          | Yes           |
+| `/groups/:groupId/history`             | Group History (planned — not implemented) | `groups`          | Yes           |
 | `/activity`                            | Activity Feed            | `activity`        | Yes           |
 | `/profile`                             | Profile View / Edit      | `profile`         | Yes           |
 | `/profile/notifications`               | Notification Preferences | `profile`         | Yes           |
-| `/profile/support`                     | Contact Support          | `profile`         | Yes           |
-| `/profile/delete-account`              | Account Deletion         | `profile`         | Yes           |
-| `/search`                              | Search                   | `app` (shell)     | Yes           |
+| `/profile/support`                     | Contact Support (planned — not implemented) | `profile`         | Yes           |
+| `/profile/delete-account`              | Account Deletion (planned — not implemented) | `profile`         | Yes           |
+| `/search`                              | Search (planned — not implemented) | `app` (shell)     | Yes           |
 | `/expense/:expenseId`                  | Expense Detail           | `expenses`        | Yes           |
 | `/settle/:settlementId`               | Settlement Detail        | `settlements`     | Yes           |
-| `/invite/group/:inviteCode`            | Group Join               | `groups`          | Yes           |
+| `/invite/group/:inviteCode`            | Group Join (planned — not implemented) | `groups`          | Yes           |
 | `/invite/friend/:referralCode`         | Friend Add (pre-fill)    | `friends`         | Yes           |
 
 ---

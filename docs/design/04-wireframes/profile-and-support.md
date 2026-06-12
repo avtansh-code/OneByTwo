@@ -6,6 +6,8 @@
 > **Audience:** Flutter Developer, QA Engineer, Product Manager
 > **SRS references:** Sections 4.1 (FR-AU-08, FR-AU-09), 4.2 (FR-PR-01 through FR-PR-05), 4.11 (FR-SH-03, FR-SH-04), 5.5, 5.6, 6.2, 6.3 (Core Screen 11), 6.4, 6.5
 
+> **Status.** Profile, Edit Profile, Notification Preferences, and Sign-Out (with confirmation) are implemented. **Contact Support (FR-SH-03/04 mailto) and Delete Account (FR-AU-09) are 'Coming soon' snackbar stubs** in `profile_screen.dart` — their flows are planned.
+
 ---
 
 ## Design Token Quick Reference

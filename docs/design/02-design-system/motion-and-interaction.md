@@ -1,5 +1,7 @@
 # Motion and Interaction Specification -- One By Two v1.0
 
+> **Implementation status (verified against `lib/`, this pass).** Specifies target motion. In v1.0 the **FAB spring is deferred** (default Material ink response — see `obt_floating_action_button.dart`), and the custom curves/haptics here are largely not yet codified as shared tokens. Tab switching is an `IndexedStack` swap (no cross-fade).
+
 ---
 
 ## 1. Standard Transitions

@@ -148,6 +148,8 @@ application/
   settle_up_controller.dart       # StateNotifier + SettleUpArgs family
   settle_up_state.dart            # sealed SettleUpState hierarchy
   settle_up_telemetry.dart        # event / param constants + amountRangeFor
+  settlement_history_provider.dart  # StreamProvider.family (FR-SE-08) + 50-item cap
+  settlement_history_telemetry.dart # FR-SE-08 viewed / error event constants
 data/
   settlement_repository.dart      # store + Firestore impl + repo (R+W)
 domain/
@@ -156,6 +158,7 @@ domain/
   settlement_doc.dart             # strict-parsing value type + toCreateMap
 presentation/
   settle_up_bottom_sheet.dart     # root sheet host
+  settlement_history_screen.dart  # SCR-24 full-history screen (FR-SE-08)
   widgets/
     settle_up_header.dart         # payer → arrow → payee + amount echo
 ```
@@ -214,6 +217,12 @@ presentation/
 - Settlement Confirmation animation sub-screen (UX-polish later PR).
 - Two-sided card orientation when the friend owes the current user
   (§2.5 default-omit; ships with FR-SE-09).
+
+> **Update:** FR-SE-09 Send Reminder has since shipped in the
+> `reminders` feature folder. The receiving-direction variant of
+> `OBTSettleUpCard` (friend owes the current user) now renders a Send
+> Reminder CTA on `FriendDetailScreen`. The settlement write path
+> described here is unchanged.
 
 > The dedicated full-history screen (FR-SE-08 P0) was deferred from
 > PR #43 and is now shipped by PR #58 — see "Settlement history screen

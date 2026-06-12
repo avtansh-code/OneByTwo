@@ -12,6 +12,8 @@
 | SRS baseline | v1.1 |
 | Last updated | 2025-07-11 |
 
+> **Status.** Friends List, Friend Detail, Add Friend, and Match-and-Invite are implemented (invite via `share_plus`). **Delete Friend (FR-FR-05) is not yet implemented** — Friend Detail's app bar has no delete action.
+
 ---
 
 ## Navigation Flow

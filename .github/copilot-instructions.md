@@ -38,9 +38,9 @@ are blocking defects.
 
 | Layer | Technology | Constraint |
 |---|---|---|
-| Frontend | Flutter (latest stable), Dart, Riverpod 2.x | Feature-first folder layout (SRS section 13.1) |
+| Frontend | Flutter (latest stable, pinned via fvm), Dart, Riverpod 2.x | Feature-first folder layout (SRS section 13.1) |
 | Backend | Firebase (Auth, Firestore, Cloud Functions, Storage, FCM, Crashlytics, Analytics) | Single production project |
-| Cloud Functions | Node 20, TypeScript | Region: `asia-south1` (Mumbai) |
+| Cloud Functions | Node 22, TypeScript | Region: `asia-south1` (Mumbai) |
 | Auth | Firebase Phone Auth | +91 numbers only |
 | Currency | INR only | Stored as integer paise |
 | CI/CD | GitHub Actions | PR pipeline + release pipeline (SRS section 9.2) |

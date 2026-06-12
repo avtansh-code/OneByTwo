@@ -2,6 +2,8 @@
 
 *Document owner: UX/UI Designer. Traces to SRS sections 5.6 (Usability and Accessibility), 6.1--6.5 (User Experience and Design Requirements), and the component catalogue (`docs/design/02-design-system/components.md`).*
 
+> **Implementation status (verified against `lib/`, this pass).** This is the **target** accessibility contract; contrast tables match `tokens.md`/`theme.dart`. Components named here that are **not yet built as such** — `OBTAppBar`, `OBTOTPInput`, `OBTSearchBar`, `OBTCategoryChip` — are implemented under other names (`OtpInput`, `ExpenseCategoryGrid`) or pending (Search). Implemented widgets currently carrying these semantics: `OBTBottomNav`, `OBTFloatingActionButton`, `OBTAmountInput`, `OBTActivityRow`, `OBTConfirmationDialog`, `OBTSettleUpCard`, plus feature state widgets.
+
 ---
 
 ## 1. WCAG 2.1 AA Requirements
@@ -46,6 +48,8 @@ Per SRS section 5.6, tap targets shall be at least 44x44 pt on iOS and 48x48 dp 
 | Visual size may be smaller | If the visible element is smaller than 48 dp (e.g., an icon at 24 dp), invisible padding shall extend the hit area to 48x48 dp. |
 | Spacing between targets | Adjacent interactive elements shall have at least 8 dp of non-interactive space between their touch areas to prevent mis-taps. |
 | Verified components | `OBTAppBar` action icons, `OBTBottomNav` tabs, `OBTFloatingActionButton` (56x56 dp), `OBTOTPInput` cells (48x48 dp), all list tiles (minimum height 56--64 dp), all buttons, `OBTSearchBar`, `OBTCategoryChip`. |
+
+> **Implementation footnote.** Some verified component names above are planned or renamed in code: `OBTAppBar` is currently Material `AppBar`, `OBTOTPInput` is `OtpInput`, `OBTCategoryChip` is implemented via `ExpenseCategoryGrid`, and `OBTSearchBar` remains pending with Search.
 
 ### 1.3 Focus Indicators
 

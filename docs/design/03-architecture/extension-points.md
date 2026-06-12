@@ -22,6 +22,8 @@ All features referenced below are explicitly out of scope for v1.0 (SRS section 
 
 **Mandatory v1.0 rule:** For every extension point below, the v1.0 codebase MUST write the field or discriminator with its stated default value on every document at creation time, rather than omitting it. This ensures that v1.1 queries and composite indexes against these fields work immediately without backfill migrations across existing documents.
 
+**Exception (as implemented):** `recurringRule` (ARCH-EXT-03) is the one field the client does **not** write — it is omitted, and the security rules accept it absent **or** `null`. No v1.0 composite index references it, so the backfill risk does not apply. See ARCH-EXT-03.
+
 ---
 
 ## Extension Points
@@ -69,11 +71,16 @@ All features referenced below are explicitly out of scope for v1.0 (SRS section 
 | **Location** | `groups/{groupId}/expenses/{expenseId}` and `friendships/{id}/expenses/{id}`, optional field `recurringRule` |
 | **Corresponding IA extension** | IA-EXT-02 (Recurring expense toggle) |
 | **Corresponding DS extension** | DS-EXT-02 (RecurrenceChip component) |
-| **v1.0 value** | Always `null`. The field is written as `null` on every expense document at creation time. The v1.0 expense creation flow captures single-occurrence expenses only (SRS section 6.3, item 8; FR-EX-01). |
+| **v1.0 value** | **Absent.** Unlike the other extension fields, the client (`ExpenseDoc`) does **not** write `recurringRule` — it is omitted. The security rules tolerate this by accepting the field absent **or** `null` (`!('recurringRule' in data) || data.recurringRule == null`). The v1.0 expense creation flow captures single-occurrence expenses only (SRS section 6.3, item 8; FR-EX-01). |
 | **v1.1 change** | When non-null, contains a sub-document: `{ frequency: 'daily' \| 'weekly' \| 'fortnightly' \| 'monthly' \| 'yearly', interval: number, endDate: timestamp \| null, nextOccurrence: timestamp }`. A scheduled Cloud Function reads expenses where `recurringRule.nextOccurrence <= now`, creates a new expense document copying the template fields, and advances `nextOccurrence` by the specified interval. (SRS section 12.3, bullet 3.) |
 | **Migration impact** | None. The field is optional. Existing documents with `recurringRule: null` are single-occurrence expenses and require no update. Queries for recurring expenses (`recurringRule != null`) correctly exclude all v1.0 data. The scheduled Cloud Function only processes documents where `recurringRule.nextOccurrence` is a valid timestamp. |
 
-**v1.0 implementation mandate:** Every expense document created in v1.0 MUST include `recurringRule: null` as an explicit field value. This ensures v1.1 inequality queries on `recurringRule` do not require a backfill across existing documents.
+**v1.0 implementation mandate (revised to match implementation):** The client **omits**
+`recurringRule`; the security rules accept it absent or `null`. Because the field is
+optional and no v1.0 composite index references it, the absence on legacy documents is
+handled at query time (treat a missing rule as non-recurring) rather than by a
+strict create-time default. A v1.1 recurring-expense rollout writes the field going
+forward. This is the single documented exception to design principle 1.
 
 ---
 
@@ -100,14 +107,19 @@ All features referenced below are explicitly out of scope for v1.0 (SRS section 
 |---|---|
 | **ID** | ARCH-EXT-05 |
 | **Name** | Notification channel expansion |
-| **Location** | Cloud Functions notification module (`functions/src/triggers/` or equivalent) |
+| **Location** | Cloud Functions notification module (`functions/src/notifications/`) |
 | **Corresponding IA extension** | None (backend-only change) |
 | **Corresponding DS extension** | None |
-| **v1.0 value** | FCM push notifications only. The notification module implements a strategy pattern: a `NotificationChannel` interface (or equivalent TypeScript type) with a single implementation, `FcmChannel`, that sends push notifications via Firebase Cloud Messaging. Notifications are triggered by Cloud Function events: new expense (FR-AC-01), settlement recorded (FR-AC-02), group membership change (FR-AC-03), and payment reminder (FR-SE-09). |
+| **v1.0 value** | FCM push notifications only. The module is **function-based**, not a class strategy: it exposes a `NotificationsApi` (`sendExpenseNotification`, `sendSettlementNotification`, `sendReminderNotification`) over an FCM transport (`fcm-send.ts`), with shared `payload-renderer.ts` and `prefs-filter.ts`. There is **no** `NotificationChannel`/`FcmChannel` class today. Notifications are produced by the expense trigger (`onExpenseWriteFriendship`), the settlement trigger (`onSettlementWrite`), and the reminder callable (`sendReminderNotification`). There is **no** group-membership trigger in v1.0. |
 | **v1.1 change** | Additional channel implementations may be registered: `SmsChannel` (for users without the app installed, e.g., pre-registered friends added by phone number), `EmailChannel`, or `InAppInboxChannel` (persisted notifications readable within the app). The channel selector reads user preferences from the `notificationPrefs` sub-document on the user document (SRS section 7.2) and dispatches to the appropriate channel(s). |
 | **Migration impact** | None. The strategy pattern is a code-level concern; no schema changes are required for existing Firestore documents. The `notificationPrefs` sub-document (SRS section 7.2) already exists on user documents and can be extended with new boolean fields (e.g., `smsEnabled`, `emailEnabled`) without affecting existing preferences. New channel implementations are registered in the Cloud Function module; no client-side changes are needed beyond updating preference controls in the Profile screen. |
 
-**v1.0 implementation mandate:** The Cloud Functions notification module MUST use a strategy or dispatcher pattern rather than inlining FCM API calls at each trigger site. Each trigger (expense created, settlement recorded, etc.) calls a `sendNotification(userId, payload)` function that resolves the channel internally. This ensures that adding a new channel in v1.1 requires implementing a new channel class and updating the dispatcher, not modifying every trigger function.
+**v1.0 implementation note (as built):** The notification module isolates FCM behind a
+single transport (`fcm-send.ts`) and shared payload/preference helpers
+(`payload-renderer.ts`, `prefs-filter.ts`), so trigger sites do not inline raw FCM API
+calls. It is a function-based `NotificationsApi` (per-event send functions) rather than a
+class-based strategy/dispatcher; introducing a `NotificationChannel` abstraction and a
+dispatcher is the v1.1 step (principle 5), not a v1.0 deliverable.
 
 ---
 
@@ -169,7 +181,7 @@ The following table summarises every field that v1.0 must write with a default v
 | `settlements` | `currency` | string | `'INR'` | Client (on settlement creation) |
 | `settlements` | `verificationStatus` | string | `'unverified'` | Client (on settlement creation); thereafter Cloud Functions only |
 | `expenses` (group and friendship sub-collections) | `currency` | string | `'INR'` | Client (on expense creation) |
-| `expenses` (group and friendship sub-collections) | `recurringRule` | map or null | `null` | Client (on expense creation) |
+| `expenses` (friendship sub-collection; group is data-layer-only) | `recurringRule` | map or null | **absent** (client omits; rules accept absent or `null`) | Not written by the client |
 | `expenses` (group and friendship sub-collections) | `source` | string | `'manual'` | Client (on expense creation) |
 | `users` | `locale` | string | `'en-IN'` | Client (on user registration) |
 
@@ -177,7 +189,7 @@ The following table summarises every field that v1.0 must write with a default v
 
 ## Design Principles for Extension Points
 
-1. **Write defaults, never omit.** Every extension-point field listed in this document must be explicitly written with its v1.0 default value at document creation time. Firestore does not index absent fields in composite indexes; omitting a field today creates a backfill obligation tomorrow. This is the single most important principle in this document.
+1. **Write defaults, never omit.** Every extension-point field listed in this document must be explicitly written with its v1.0 default value at document creation time. Firestore does not index absent fields in composite indexes; omitting a field today creates a backfill obligation tomorrow. This is the single most important principle in this document. **Documented exception:** `recurringRule` (ARCH-EXT-03) is omitted by the client and the rules accept it absent or `null`; no v1.0 composite index references it, so the backfill risk does not apply.
 
 2. **Discriminator, not boolean.** Extension points that distinguish behaviour modes (settlement method, expense source) use string discriminators, not booleans. A boolean `isUpi` field would need to be replaced with a three-valued field if a third payment method is added. A string discriminator accommodates unbounded future values.
 
@@ -185,7 +197,7 @@ The following table summarises every field that v1.0 must write with a default v
 
 4. **Client-read-only for derived state.** Fields whose values are determined by external systems (UPI payment confirmation, OCR confidence) follow the same security pattern as `simplifiedBalances` (SRS section 7.5, Invariant 2): clients may read the field but only Cloud Functions may write to it. This is enforced by Firestore Security Rules.
 
-5. **Strategy pattern for backend extensibility.** Where the extension point is a code-level concern rather than a schema concern (ARCH-EXT-05: notification channels), the v1.0 implementation must use a strategy or dispatcher pattern so that new implementations can be registered without modifying existing trigger logic.
+5. **Isolate the transport for backend extensibility.** Where the extension point is a code-level concern rather than a schema concern (ARCH-EXT-05: notification channels), the v1.0 implementation isolates the FCM transport (`fcm-send.ts`) behind a function-based `NotificationsApi` so trigger sites do not inline FCM calls. The full strategy/dispatcher with pluggable channels is the v1.1 evolution, not a v1.0 deliverable.
 
 ---
 

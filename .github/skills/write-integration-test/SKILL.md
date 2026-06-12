@@ -9,9 +9,8 @@ description: >
 
 ## When to use
 
-When a critical user journey (see `.github/shared/test-strategy.md`) needs an
-integration test that spans multiple screens, interacts with Firebase services, or
-requires the Emulator Suite.
+When a critical journey or server side-effect needs an integration test against
+Firebase emulators.
 
 ## When NOT to use
 
@@ -20,65 +19,84 @@ requires the Emulator Suite.
 
 ## Inputs
 
-1. **User journey** — which of the 12 critical user journeys from the test strategy.
+1. **Journey or side-effect** — the critical journey, trigger, or callable to cover.
 2. **Acceptance criteria** — the Given/When/Then scenarios to cover.
 3. **Emulator requirements** — which Firebase emulators are needed (Auth, Firestore,
    Functions, Storage).
 
 ## Procedure
 
-1. Read `.github/shared/test-strategy.md` for the critical user journeys list.
-2. Read `.github/shared/invariants.md`.
-3. Determine which Firebase emulators are required.
-4. Specify the test outline:
-   a. **Setup:** emulator configuration, seed data, authenticated test user.
-   b. **Steps:** sequential user actions (tap, enter text, scroll, wait) mapped to
-      the acceptance criteria.
-   c. **Assertions:** verify UI state, Firestore document state, and Cloud Function
-      side effects after each significant action.
-   d. **Teardown:** clean up seed data.
-5. For journeys involving simplified balances:
-   a. Verify that after an expense or settlement, the `simplifiedBalances` field
-      on the relevant document is updated (read from Firestore via emulator).
-   b. Verify the client displays the updated balance without a manual refresh.
-6. For offline journeys:
-   a. Simulate network disconnection.
-   b. Perform the action.
-   c. Reconnect and verify sync and balance recomputation.
-7. Write the test using the `integration_test` package.
+1. Read `.github/shared/test-strategy.md` and `.github/shared/invariants.md`.
+2. Choose the real repository surface:
+   a. **Executable Functions integration:** create or update
+      `functions/test/integration/*.integration.test.ts`; run with
+      `cd functions && npm run test:integration`.
+   b. **Flutter flow stub/specification:** create or update
+      `test/integration/<feature>/*_flow_test.dart`, tagged
+      `@Tags(['integration'])` where present and skipped until the Flutter
+      emulator harness exists.
+3. Do not create or reference a top-level `integration_test/` package directory;
+   this repository does not have one.
+4. Start emulators with `scripts/dev/start-emulators.sh` locally or use
+   `firebase emulators:exec ... --project demo-onebytwo` in CI. Ports are Auth
+   9099, Firestore 8181, Functions 5001, Storage 9199, UI 4000.
+5. For Functions integration tests:
+   a. Set `FIRESTORE_EMULATOR_HOST=127.0.0.1:8181` before importing
+      `firebase-admin`.
+   b. Seed documents through Firebase Admin SDK helpers.
+   c. Poll trigger side effects; do not use fixed sleeps.
+   d. Delete seeded documents in `afterEach` and dispose Admin apps in `afterAll`.
+6. For simplified balances, assert that the persisted value changes only through
+   `recomputeSimplifiedBalances`, `onExpenseWriteFriendship`, or
+   `onSettlementWrite`; clients must never write it.
 
 ## Output format
 
-A Dart integration test file under `integration_test/` with descriptive step
-comments and assertions matching each acceptance criterion.
+Either a Jest/TypeScript emulator test under
+`functions/test/integration/*.integration.test.ts`, or a skipped Flutter flow
+stub under `test/integration/<feature>/` documenting the intended steps and
+assertions.
 
 ## Validation checks
 
-- [ ] Journey maps to one of the 12 critical user journeys in the test strategy.
-- [ ] Emulator requirements are specified.
-- [ ] Seed data setup and teardown are included.
+- [ ] Emulator services and ports are documented.
+- [ ] Seeding and `afterEach` teardown are included.
 - [ ] Simplified balances are verified after mutation operations.
-- [ ] Assertions cover both UI state and Firestore document state.
-- [ ] No hardcoded delays — use `tester.pumpAndSettle()` or polling.
+- [ ] Assertions cover Firestore state and relevant function side effects.
+- [ ] No hardcoded delays; use polling or `tester.pumpAndSettle()`.
 - [ ] Money assertions use integer paise.
 
 ## Examples
 
 ### Positive example
 
-**Input:** Journey 3: "Create a group of 4, add an expense with unequal split,
-settle one member using the simplified-debts suggestion."
+**Input:** "Verify that a settlement write recomputes friendship balances."
 
 **Output:**
-```dart
-testWidgets('journey 3: group expense and settlement', (tester) async {
-  // Setup: create 4 test users in Auth emulator, seed a group in Firestore.
-  // Step 1: Navigate to Groups, tap Create Group, add 4 members.
-  // Step 2: Add expense: 1000 paise, unequal split [400, 300, 200, 100].
-  // Assert: simplifiedBalances updated on group document.
-  // Step 3: Tap Settle Up for member with highest debt.
-  // Assert: settlement recorded, balances recomputed.
-  // Teardown: delete test data.
+```ts
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8181";
+
+it("recomputes after settlement create", async () => {
+  await seedDoc("friendships/fid", {memberIds: ["A", "B"]});
+  await seedDoc("friendships/fid/expenses/e1", {
+    payerId: "A",
+    amountPaise: 10000,
+    splits: [
+      {userId: "A", sharePaise: 5000},
+      {userId: "B", sharePaise: 5000},
+    ],
+    deleted: false,
+  });
+  await seedDoc("settlements/s1", {
+    contextType: "friendship",
+    contextId: "fid",
+    fromUserId: "B",
+    toUserId: "A",
+    amountPaise: 5000,
+    deleted: false,
+  });
+
+  await waitForSimplifiedBalances("friendships/fid", {});
 });
 ```
 

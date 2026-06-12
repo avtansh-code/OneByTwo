@@ -6,6 +6,8 @@
 > **SRS baseline:** v1.1
 > **Core Screen:** 9 -- Settle Up flow (SRS section 6.3, item 9)
 
+> **Status: implemented** as a bottom sheet (`settle_up_bottom_sheet.dart`) launched from Friend Detail via `OBTSettleUpCard`, plus Settlement History (`settlement_history_screen.dart`). The Group Detail / Home entry points are **planned** (those hosts are not built).
+
 ---
 
 ## Overview

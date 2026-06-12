@@ -32,13 +32,16 @@ graph TD
         end
 
         subgraph "Feature Modules"
-            AUTH["features/auth/<br/>---<br/>Phone entry (+91), OTP verification,<br/>profile setup, sign-out,<br/>account deletion request"]
+            AUTH["features/auth/<br/>---<br/>Phone entry (+91), OTP verification,<br/>profile setup, sign-out<br/>(no in-app account deletion in v1.0)"]
             FRIENDS["features/friends/<br/>---<br/>Friend list, add friend,<br/>friend detail, balance history"]
-            GROUPS["features/groups/<br/>---<br/>Group list, create group,<br/>group detail, invite members,<br/>member management"]
-            EXPENSES["features/expenses/<br/>---<br/>Add/edit expense, split methods<br/>(equal, unequal, percentage,<br/>shares, exact), categories,<br/>receipt attachment"]
+            GROUPS["features/groups/<br/>---<br/>Data-layer only in v1.0:<br/>placeholders, no UI<br/>(schema + rules exist; Sprint 3)"]
+            EXPENSES["features/expenses/<br/>---<br/>Add/edit expense, split methods<br/>(equal + exact enabled; unequal,<br/>percentage, shares defined only),<br/>categories, receipt attachment"]
             SETTLEMENTS["features/settlements/<br/>---<br/>Settle up flow,<br/>settlement history"]
             PROFILE["features/profile/<br/>---<br/>View/edit profile,<br/>notification preferences,<br/>contact support"]
-            ACTIVITY["features/activity/<br/>---<br/>Activity feed<br/>(expense, settlement,<br/>group change events)"]
+            ACTIVITY["features/activity/<br/>---<br/>Activity feed<br/>(expense + settlement events;<br/>reminder items are server-written)"]
+            SHELL["features/shell/<br/>---<br/>Bottom-nav scaffold, FAB,<br/>expense-context selector"]
+            NOTIFS["features/notifications/<br/>---<br/>FCM token registration,<br/>foreground handling,<br/>notification tap routing"]
+            REMINDERS["features/reminders/<br/>---<br/>Send-reminder action<br/>(calls sendReminderNotification)"]
         end
 
         subgraph "Shared Infrastructure"
@@ -56,6 +59,9 @@ graph TD
     APP --> SETTLEMENTS
     APP --> PROFILE
     APP --> ACTIVITY
+    APP --> SHELL
+    APP --> NOTIFS
+    APP --> REMINDERS
     APP --> CORE
     APP --> DATA
     APP --> L10N
@@ -89,6 +95,16 @@ graph TD
     ACTIVITY --> DATA
     ACTIVITY --> L10N
 
+    SHELL --> CORE
+    SHELL --> DATA
+    SHELL --> L10N
+
+    NOTIFS --> CORE
+    NOTIFS --> DATA
+
+    REMINDERS --> CORE
+    REMINDERS --> DATA
+
     %% Cross-feature dependencies
     EXPENSES --> FRIENDS
     EXPENSES --> GROUPS
@@ -105,7 +121,9 @@ graph TD
    exceptions: `expenses` and `settlements` reference `friends` and `groups`
    because expense creation and settlement flows require selecting a friend or
    group context (SRS sections 4.5, 4.6). These cross-feature references are
-   restricted to shared identifiers and provider reads, not widget imports.
+   restricted to shared identifiers and provider reads, not widget imports. In
+   v1.0 only the `friends` linkage is live; the `groups` linkage is forward-looking,
+   as `groups` is data-layer-only (no UI).
 
 2. **All feature modules depend on `core/`, `data/`, and `l10n/`** for
    shared utilities, repository access, and localised strings respectively.
@@ -125,120 +143,118 @@ graph TD
 
 ## 2. Cloud Functions Components
 
-The Cloud Functions backend (Node.js 20, TypeScript, region `asia-south1`) is
-organised by trigger type, with a shared core module for the simplified-debts
-algorithm and common utilities (SRS sections 7.1, 7.3, 7.4, 13.1).
+The Cloud Functions backend (Node.js 22, TypeScript, region `asia-south1`) is
+organised by feature folder, with a shared core module for the simplified-debts
+algorithm and a function-based notifications module (SRS sections 7.1, 7.3, 7.4,
+13.1). v1.0 ships **six** functions: one HTTPS endpoint (`healthcheck`), three HTTPS
+callables (`recomputeSimplifiedBalances`, `lookupUserByPhoneNumber`,
+`sendReminderNotification`), and two Firestore triggers (`onExpenseWriteFriendship`,
+`onSettlementWrite`). There is **no** `onUserDelete`, **no** group-invite callable, and
+**no** group-expense trigger in v1.0.
 
 ```mermaid
 graph TD
     subgraph "External Trigger Sources"
-        FS_EXP[("Firestore<br/>expenses collection<br/>(write events)")]
+        FS_EXP[("Firestore<br/>friendships/{id}/expenses<br/>(write events)")]
         FS_SET[("Firestore<br/>settlements collection<br/>(write events)")]
-        FS_USR[("Firestore<br/>users collection<br/>(delete events)")]
-        CLIENT["Flutter App<br/>(HTTPS callable)"]
+        CLIENT["Flutter App<br/>(HTTPS / callable)"]
     end
 
-    subgraph "Cloud Functions Container"
+    subgraph "Cloud Functions Container (Node 22, asia-south1)"
         direction TB
 
-        subgraph "Firestore Triggers"
-            ON_EXP["onExpenseWrite<br/>---<br/>Triggered on create/update/delete<br/>of expense documents under<br/>groups or friendships.<br/>Invokes recomputeSimplifiedBalances.<br/>Writes activity feed items."]
-            ON_SET["onSettlementWrite<br/>---<br/>Triggered on create/update<br/>of settlement documents.<br/>Invokes recomputeSimplifiedBalances.<br/>Writes activity feed items."]
-            ON_DEL["onUserDelete<br/>---<br/>Triggered on user document<br/>deletion. Cascades cleanup:<br/>removes from groups, friendships,<br/>FCM tokens. Anonymises<br/>activity references."]
+        subgraph "HTTPS"
+            HEALTH["healthcheck<br/>---<br/>onRequest. Returns<br/>{ ok, region }."]
         end
 
         subgraph "Callable Functions"
-            ACCEPT["acceptGroupInvite<br/>---<br/>Validates invite token/link.<br/>Adds caller to group memberIds.<br/>Writes activity feed item."]
-            REVOKE["revokeGroupInvite<br/>---<br/>Admin-only. Removes pending<br/>invite. Validates caller<br/>is group admin."]
-            REMIND["sendReminderNotification<br/>---<br/>Sends FCM push to debtor.<br/>Rate-limited per sender.<br/>Reads fcmTokens from<br/>user document."]
+            RECOMP["recomputeSimplifiedBalances<br/>---<br/>Callable entry to the<br/>simplified-debts recompute core."]
+            LOOKUP["lookupUserByPhoneNumber<br/>---<br/>Phone lookup via Admin SDK.<br/>PII-safe logging (id-hash)."]
+            REMIND["sendReminderNotification<br/>---<br/>FR-SE-09. Reads simplifiedBalances<br/>(read-only), rate-limits in<br/>_rateLimits, writes activity item,<br/>sends FCM."]
         end
 
-        subgraph "Core Module"
-            DEBTS["simplifiedDebts.ts<br/>---<br/>Pure function.<br/>Net-balance, partition,<br/>greedy matching algorithm.<br/>Deterministic tie-breaking<br/>by ascending userId.<br/>(SRS section 7.4)"]
+        subgraph "Firestore Triggers"
+            ON_EXP["onExpenseWriteFriendship<br/>---<br/>create/update/delete of<br/>friendship expenses.<br/>Invokes recompute core,<br/>writes activity, notifies."]
+            ON_SET["onSettlementWrite<br/>---<br/>create/update/delete of<br/>settlements. Invokes recompute<br/>core, writes activity, notifies."]
         end
 
-        subgraph "Shared Utilities"
-            TYPES["types.ts<br/>---<br/>Shared TypeScript interfaces:<br/>Expense, Settlement, Split,<br/>SimplifiedBalance, ActivityItem"]
-            VALID["validation.ts<br/>---<br/>Input validation helpers:<br/>paise assertions (integer, > 0),<br/>splits-sum check,<br/>memberIds membership check"]
+        subgraph "Core + Shared Modules"
+            DEBTS["simplified-debts/<br/>---<br/>algorithm.ts (pure fold +<br/>greedy matching, SRS 7.4)<br/>function.ts (recomputeAndWrite<br/>Firestore boundary)"]
+            NOTIF["notifications/<br/>---<br/>Function-based NotificationsApi<br/>over fcm-send.ts transport;<br/>payload-renderer.ts, prefs-filter.ts"]
+            UTILS["utils/id-hash.ts<br/>---<br/>SHA-256 to 16-hex PII-safe<br/>ID hashing for logs"]
         end
     end
 
     subgraph "Output Destinations"
-        FS_BAL[("Firestore<br/>simplifiedBalances field<br/>on groups / friendships")]
+        FS_BAL[("Firestore<br/>simplifiedBalances on<br/>friendships (groups: future)")]
         FS_ACT[("Firestore<br/>activity/{userId}/items")]
-        FS_GRP[("Firestore<br/>groups/{groupId}<br/>memberIds")]
         FCM_SVC["Firebase Cloud Messaging"]
     end
 
     %% Trigger sources to functions
-    FS_EXP -->|"onCreate / onUpdate / onDelete"| ON_EXP
-    FS_SET -->|"onCreate / onUpdate"| ON_SET
-    FS_USR -->|"onDelete"| ON_DEL
-    CLIENT -->|"HTTPS callable"| ACCEPT
-    CLIENT -->|"HTTPS callable"| REVOKE
-    CLIENT -->|"HTTPS callable"| REMIND
+    FS_EXP -->|"onDocumentWritten"| ON_EXP
+    FS_SET -->|"onDocumentWritten"| ON_SET
+    CLIENT -->|"callable"| RECOMP
+    CLIENT -->|"callable"| LOOKUP
+    CLIENT -->|"callable"| REMIND
+    CLIENT -->|"HTTPS GET"| HEALTH
 
     %% Internal dependencies
     ON_EXP --> DEBTS
-    ON_EXP --> TYPES
-    ON_EXP --> VALID
+    ON_EXP --> NOTIF
     ON_SET --> DEBTS
-    ON_SET --> TYPES
-    ON_SET --> VALID
-    ON_DEL --> TYPES
-    ACCEPT --> TYPES
-    ACCEPT --> VALID
-    REVOKE --> TYPES
-    REVOKE --> VALID
-    REMIND --> TYPES
-    DEBTS --> TYPES
+    ON_SET --> NOTIF
+    RECOMP --> DEBTS
+    REMIND --> NOTIF
+    LOOKUP --> UTILS
 
     %% Output destinations
+    RECOMP -->|"writes"| FS_BAL
     ON_EXP -->|"writes"| FS_BAL
     ON_EXP -->|"writes"| FS_ACT
+    ON_EXP -->|"sends"| FCM_SVC
     ON_SET -->|"writes"| FS_BAL
     ON_SET -->|"writes"| FS_ACT
-    ON_DEL -->|"cascades"| FS_GRP
-    ON_DEL -->|"writes"| FS_ACT
-    ACCEPT -->|"writes"| FS_GRP
-    ACCEPT -->|"writes"| FS_ACT
+    ON_SET -->|"sends"| FCM_SVC
+    REMIND -->|"writes"| FS_ACT
     REMIND -->|"sends"| FCM_SVC
 ```
 
 ### Trigger and data-flow notes
 
-1. **`onExpenseWrite` and `onSettlementWrite`** are the only paths that invoke
-   `simplifiedDebts.ts` and write to the `simplifiedBalances` field. This
-   enforces Invariant 2 -- clients never write to `simplifiedBalances`
-   (SRS sections 4.6, 7.3, 7.5).
+1. **`onExpenseWriteFriendship`, `onSettlementWrite`, and the
+   `recomputeSimplifiedBalances` callable** are the only paths that write the
+   `simplifiedBalances` field. They all funnel through the shared recompute core
+   (`simplified-debts/function.ts`, `recomputeAndWrite`). This enforces Invariant 2 --
+   clients never write `simplifiedBalances` (SRS sections 4.6, 7.3, 7.5).
 
-2. **`simplifiedDebts.ts` is a pure function** with no Firestore or network
-   dependencies. It accepts an array of expenses and settlements, returns a
-   list of `{ from, to, amountPaise }` transfers. All monetary values are
-   integer paise (Invariant 1). The algorithm is specified in SRS section 7.4
-   and must be covered by its own unit-test suite (SRS section 5.7).
+2. **`simplified-debts/algorithm.ts` is a pure function** with no Firestore or network
+   dependencies. It folds expenses and settlements into net balances and returns a
+   minimal set of `{ from, to, amountPaise }` transfers. All monetary values are integer
+   paise (Invariant 1). The algorithm is specified in SRS section 7.4 and has its own
+   unit-test suite (SRS section 5.7); the Firestore read/write boundary lives in
+   `function.ts`.
 
-3. **`onUserDelete`** handles account deletion cascading. The deletion itself
-   is initiated by the client calling Firebase Auth delete, which triggers
-   this function. Heavy operations run server-side so the client cannot bypass
-   invariants (SRS section 7.3).
+3. **Account deletion is not implemented in v1.0.** There is no `onUserDelete` function;
+   the earlier cascade-cleanup design is deferred with the account-deletion epic.
 
-4. **`acceptGroupInvite` and `revokeGroupInvite`** are callable functions
-   rather than direct Firestore writes because group membership changes
-   require server-side validation that the client cannot be trusted to perform
-   (SRS section 7.3). Invite link resolution follows ADR-0015 (deep linking
-   via Universal Links / App Links rather than deprecated Dynamic Links).
+4. **Groups are data-layer-only in v1.0.** There are no `acceptGroupInvite` /
+   `revokeGroupInvite` callables and no group-expense trigger; group documents have rules
+   but no client or server write paths yet (Sprint 3).
 
-5. **`sendReminderNotification`** is callable rather than triggered because
-   the reminder is user-initiated (SRS section 4.7). It reads `fcmTokens`
-   from the target user's document and dispatches via Firebase Cloud
-   Messaging.
+5. **`sendReminderNotification`** is a callable (user-initiated, FR-SE-09). It reads
+   `simplifiedBalances` for the precondition check (read-only), enforces a per-friend
+   24-hour limit via `_rateLimits/{senderUid}/sends/{recipientUid}`, writes an activity
+   item for the recipient, and dispatches FCM via the notifications module.
 
-6. **`validation.ts`** provides shared checks used by both triggers and
-   callables: paise integrity (integer, greater than zero), splits-sum
-   equality with expense amount, and membership verification. These mirror
-   the Firestore Security Rules checks but are applied within function
-   transactions for defence in depth (SRS section 7.5).
+6. **Split-sum and paise validation** are enforced primarily in `firestore.rules`
+   (bounded-enumeration sum check, integer-paise assertions; see
+   `firestore-security-rules.md`). The simplified-debts core additionally operates only
+   on integer paise. There is no shared `validation.ts` module in v1.0.
+
+7. **`utils/id-hash.ts`** provides PII-safe ID hashing (SHA-256 truncated to 16 hex) for
+   structured logs, mirrored client-side by `lib/core/telemetry/event_id_hash.dart`
+   (ADR-0013).
 
 ---
 

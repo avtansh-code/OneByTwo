@@ -9,8 +9,11 @@ description: >
 
 ## When to use
 
-When a Git tag (`v*.*.*`) has been created and release notes need to be drafted
-for the GitHub Release and app store listings.
+When a release tag (`v*.*.*`) is being released and notes need to be drafted for
+the GitHub Release and app store listings. The current release workflow is
+`.github/workflows/release.yml`: it documents the `v*.*.*` tag trigger, currently
+runs through `workflow_dispatch` with a `tag` input, and creates a GitHub Release
+after test guard, Firebase deploy, Android build, and iOS build jobs.
 
 ## When NOT to use
 
@@ -23,26 +26,39 @@ for the GitHub Release and app store listings.
 2. **Commit range** — commits since the last tag.
 3. **User stories completed** — list of GitHub Issues closed in this release.
 4. **Known issues** — any open S3/S4 bugs shipping in this release.
+5. **Workflow evidence** — the relevant `.github/workflows/release.yml` run or
+   release branch/tag context.
 
 ## Procedure
 
-1. Collect all commits since the previous tag using `git log`.
-2. Group changes by Conventional Commit type:
+1. Read `.github/workflows/release.yml` before drafting. Confirm the tag name
+   follows `v*.*.*`; if using the current workflow manually, confirm the
+   `workflow_dispatch` `tag` input.
+2. Collect commits since the previous tag using `git log`, matching the workflow's
+   generated-notes behaviour (`git log --pretty=format:"- %s (%h)"` between the
+   previous tag and the release tag, or the most recent 50 commits when no
+   previous tag is available).
+3. Group changes by Conventional Commit type:
    a. **New features** (`feat`): user-facing capabilities added.
    b. **Bug fixes** (`fix`): issues resolved.
    c. **Improvements** (`refactor`, `chore`): non-user-facing but noteworthy.
-3. For each feature or fix:
+4. For each feature or fix:
    a. Write a one-line summary in plain language (no technical jargon).
-   b. Reference the user story or issue number.
-4. Add a "Known issues" section if any S3/S4 bugs are shipping.
-5. Add a "Breaking changes" section if any exist.
-6. Write in British English, no emojis, no marketing copy.
-7. Keep the tone informative and concise.
+   b. Reference the user story, issue, or PR number only when it exists in the
+      supplied release evidence. Do not invent references.
+5. Cover only implemented repo features: activity, auth, expenses, friends,
+   notifications, profile, reminders, settlements, and shell. State that Groups
+   UI is planned only if it is relevant to a known issue or deferred scope.
+6. Add a "Known issues" section if any S3/S4 bugs are shipping.
+7. Add a "Breaking changes" section if any exist.
+8. Write in British English, no emojis, no marketing copy.
+9. Keep the tone informative and concise.
 
 ## Output format
 
 Markdown text suitable for a GitHub Release body and adaptable for app store
-"What's New" sections.
+"What's New" sections. The GitHub Release body may include a concise "Changes"
+section compatible with the workflow-generated commit-subject format.
 
 ## Validation checks
 
@@ -52,7 +68,11 @@ Markdown text suitable for a GitHub Release body and adaptable for app store
 - [ ] Known issues are listed.
 - [ ] British English throughout.
 - [ ] No emojis or marketing copy.
-- [ ] Issue/story references are included.
+- [ ] Issue/story/PR references are included only when present in release
+      evidence.
+- [ ] The release tag follows `v*.*.*`.
+- [ ] The notes do not claim Groups client UI has shipped unless the repo shows
+      that it has.
 
 ## Examples
 
@@ -64,21 +84,22 @@ Markdown text suitable for a GitHub Release body and adaptable for app store
 ```markdown
 ## v1.0.0
 
-### New Features
+### New features
 
-- Phone-number authentication with OTP verification (+91 only). (#1)
-- Add and split expenses equally, by amount, percentage, shares, or exact
-  amounts. (#5, #6)
-- Simplified Debts: balances are automatically minimised so you see the fewest
-  possible transfers. (#10)
-- Record settlements and track history per friend and group. (#12)
-- Activity feed with real-time updates. (#15)
-- Contact Support via email with pre-filled diagnostics. (#18)
+- Phone-number authentication with OTP verification (+91 only).
+- Add and split friendship expenses with integer paise storage and INR display.
+  (include issue or PR references only when present in the release evidence)
+- Simplified balances are recomputed by Cloud Functions and read by the client.
+- Record settlements, send reminders, and track settlement history for supported
+  contexts.
+- Activity feed with real-time updates.
+- Profile and notification preference screens.
 
-### Known Issues
+### Known issues
 
 - Offline expense sync may take up to 10 seconds after reconnection on slow
-  networks. (#42, S3)
+  networks. (reference the tracked S3 issue only when present in the release
+  evidence)
 ```
 
 ### Negative example (should refuse)

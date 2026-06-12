@@ -11,6 +11,8 @@
 | SRS baseline     | v1.1                                        |
 | Last updated     | 2025-01-20                                  |
 
+> **Implementation status.** This map describes the **target** GoRouter architecture; the current build does **not** use GoRouter (it is not a dependency). Navigation today = `MaterialApp` with an auth-state-switched `home` (`lib/main.dart`) → Splash / Phone Entry / Profile Setup / `AuthenticatedShell`; a 5-tab `IndexedStack` shell (`lib/features/shell/`); and imperative `Navigator.push(MaterialPageRoute)` for details and modal sheets. The declarative routes/URL paths, `ShellRoute`, and auth-guard `redirect` below are **planned** (architect §2.1, a Sprint 3 chore). **Not yet implemented:** Onboarding, Search, all Groups screens, Contact Support, Account Deletion; the **Home** tab renders a placeholder. Deep links are handled by `lib/core/routing/notification_deep_links.dart` (`NotificationDeepLinks` → sealed `DeepLinkTarget`, navigates via `MaterialPageRoute`, **no URL scheme**); `group_invite` → "Groups are coming soon" snackbar; deleted/malformed → "This item is no longer available" snackbar.
+
 ---
 
 ## 1. Mermaid Navigation Graph
@@ -19,6 +21,8 @@ The diagram is organised into sub-graphs for readability. Decision diamonds
 represent auth-state checks performed by the GoRouter `redirect` guard.
 Edge labels describe the user action or system event that triggers the
 transition.
+
+> **Implementation note.** The Mermaid graph and section 4 remain the planned GoRouter design. The implemented equivalent for the `RouteResolver` / deep-link branches is `NotificationDeepLinks.resolve(...)`, returning `DeepLinkExpenseDetail`, `DeepLinkFriendDetail`, `DeepLinkUnavailable`, or `DeepLinkGroupsComingSoon`.
 
 ```mermaid
 graph TD
@@ -247,6 +251,8 @@ The GoRouter `redirect` callback runs on every navigation event, including
 cold starts, deep links, and push notification taps. It implements a
 three-tier guard:
 
+> **Current implementation note.** This is the planned guard. Today, auth state switches the `MaterialApp.home`, and notification resolution uses `NotificationDeepLinks.resolve(...)` rather than a GoRouter redirect.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    GoRouter redirect                        │
@@ -305,7 +311,7 @@ the route scheme proposed in `docs/sprint-zero/first-story-FR-AU-01.md`.
 ### Bottom navigation shell
 
 Routes under the main tabs (`/home`, `/friends`, `/groups`, `/activity`,
-`/profile`) are wrapped in a GoRouter `ShellRoute` that renders the
+`/profile`) are currently an `IndexedStack` in `AuthenticatedShell` (GoRouter `ShellRoute` planned, architect §2.1) that renders the
 persistent bottom navigation bar with the floating action button for adding
 expenses (FR-HD-04). Child routes (e.g., `/friends/:id`, `/groups/:id`)
 push on top of the shell, preserving the tab state beneath.
@@ -316,6 +322,8 @@ push on top of the shell, preserving the tab state beneath.
 
 Push notifications and invite links carry a payload that the GoRouter
 `redirect` logic uses to resolve the target screen after auth validation.
+
+> **Current implementation note.** The implemented `NotificationPayload` fields are `type` / `contextId` / `itemId`, resolved by `NotificationDeepLinks.resolveFromFields`.
 
 | Payload Field | Type | Example | Maps To |
 |---|---|---|---|

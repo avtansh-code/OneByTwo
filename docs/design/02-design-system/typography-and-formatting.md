@@ -48,6 +48,8 @@ The grouping pattern, reading right to left from the decimal point, is: 3, 2, 2,
 | Decimal separator | Full stop (`.`). |
 | Grouping | Indian system: 3 digits, then groups of 2 (see section 1.2). |
 
+> **Implementation note.** The implemented `formatInrFromPaise()` prefixes a **Unicode minus (U+2212)** for negative paise (e.g. `−₹50.00`). The 'never show a minus' rule is the balance-presentation intent; balance widgets must pass the absolute value to honour it (note: `BalancePill` currently passes the signed value).
+
 ### 1.4 Paise-to-Display Conversion Table
 
 All values in the data layer are integer paise. The UI layer divides by 100 and formats. The following worked examples are the canonical test vectors for any formatting utility.
@@ -78,6 +80,8 @@ All values in the data layer are integer paise. The UI layer divides by 100 and 
 ---
 
 ## 2. Compact / Abbreviated Currency Display
+
+> **Status.** **Planned, not implemented.** `formatInrFromPaise()` always renders the full Indian-grouped format; there is no compact `L`/`Cr` mode and no `compact` prop in v1.0.
 
 ### 2.1 When to Use
 
@@ -138,6 +142,8 @@ When compact format is used, the screen reader semantic label must read the full
 ### 3.2 Display Rules
 
 Never display a minus sign or negative number. All balance communication is through colour and contextual labels.
+
+> **Implementation note.** The implemented `formatInrFromPaise()` prefixes a **Unicode minus (U+2212)** for negative paise (e.g. `−₹50.00`). The 'never show a minus' rule is the balance-presentation intent; balance widgets must pass the absolute value to honour it (note: `BalancePill` currently passes the signed value).
 
 | State | Colour Token | Light Mode Hex | Dark Mode Hex | Label Pattern |
 |-------|-------------|----------------|---------------|---------------|
@@ -303,6 +309,8 @@ Rules:
 ### 7.2 Type Scale
 
 The following scale uses Material 3 naming conventions and is implemented via Flutter's `TextTheme`.
+
+> **Implementation note.** Authoritative implemented scale is `lib/app/theme.dart` (mirrored in `tokens.md §2`). Some values here are stale relative to it — e.g. `displayLarge` is **34 sp / −0.25** in code (not 32 / −0.5); `labelSmall` is **10 sp** (not 11). Defer to `tokens.md §2`.
 
 | Token Name | Font Family | Weight | Size (sp) | Line Height | Letter Spacing | Usage |
 |------------|-------------|--------|-----------|-------------|----------------|-------|

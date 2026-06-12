@@ -6,6 +6,8 @@ functional requirements with step-by-step happy paths.
 **Source:** SRS sections 4, 6.3, 10.2 (docs/OneByTwo_Requirements_Spec.md v1.1)
 and `.github/shared/test-strategy.md`.
 
+> **Status by journey.** Exercisable today: CUJ-02 (friend + equal split, minus group steps), CUJ-04/05 (edit/delete expense), CUJ-06 (push + deep-link), CUJ-07 (offline), CUJ-08 (dark mode), CUJ-11 friend-invite half. **Partially/planned:** CUJ-01 has **no Onboarding carousel** (Splash → Phone Entry directly) and lands on the **Home placeholder**; CUJ-03 & CUJ-09 (**Groups**) are not implemented; CUJ-10 (**Account Deletion**) and CUJ-12 (**Contact Support**) are "Coming soon" stubs in `profile_screen.dart`.
+
 ---
 
 ## CUJ-01 -- First-Time User: Onboarding to Home Dashboard

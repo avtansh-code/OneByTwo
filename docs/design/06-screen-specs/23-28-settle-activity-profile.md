@@ -6,6 +6,8 @@
 > **SRS baseline:** v1.1
 > **Last updated:** 2025-07-15
 
+> **Implementation status (verified against `lib/`, this pass).** SCR-23 Settle Up (bottom sheet), SCR-24 Settlement History, SCR-25 Activity Feed, SCR-26 Profile, SCR-27 Notification Prefs — implemented. **SCR-28 Support/Deletion: entries exist but are 'Coming soon' stubs** (mailto FR-SH-03/04 and FR-AU-09 not wired).
+
 ---
 
 ## Table of Contents

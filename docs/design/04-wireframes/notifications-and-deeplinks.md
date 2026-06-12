@@ -4,6 +4,8 @@ This document specifies the visual layouts, interaction flows, and state definit
 for all notification and deep-link surfaces in One By Two v1.0. It is authored by
 the UX/UI Designer and handed off to the Flutter Developer for implementation.
 
+> **Status.** Implemented: in-app banner (`InAppNotificationBanner`), pre-permission dialog (`pre_permission_dialog.dart`), lifecycle host (`notifications_lifecycle_host.dart`), and deep-link resolution (`NotificationDeepLinks`, via `MaterialPageRoute`). There is **no URL deep-link scheme**; `group_invite` → 'Groups are coming soon' snackbar; deleted/malformed → 'This item is no longer available'.
+
 **SRS version:** 1.1
 **Primary requirements:** FR-AC-03, FR-AC-04, FR-AC-05 (SRS section 4.7),
 FR-PR-03 (SRS section 4.2), FR-SH-02 (SRS section 4.11), FR-GR-02, FR-GR-03

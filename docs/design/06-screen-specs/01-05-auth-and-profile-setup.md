@@ -9,6 +9,8 @@
 
 This document provides detailed screen specifications for the five unauthenticated screens in the One By Two authentication and profile setup flow. Each specification is intended to be consumed directly by the Flutter Developer during implementation and by the QA Engineer during test case authoring. All monetary values follow Invariant 1 (integer paise). All navigation follows the site-map routing contract (site-map sections 2.1 and 2.5).
 
+> **Implementation status (verified against `lib/`, this pass).** SCR-01/03/04/05 implemented; **SCR-02 Onboarding not implemented** (Splash → Phone Entry directly).
+
 ---
 
 ## SCR-01: Splash Screen

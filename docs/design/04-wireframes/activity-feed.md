@@ -11,6 +11,8 @@
 | SRS baseline     | v1.1                                        |
 | Last updated     | 2025-07-15                                  |
 
+> **Status: implemented** (`activity_feed_screen.dart` + `OBTActivityRow`). States match code: 5-row `ActivityFeedSkeleton` loading, 'All quiet here' empty, 'Something went wrong' + Retry error, pull-to-refresh.
+
 ---
 
 ## SRS Traceability

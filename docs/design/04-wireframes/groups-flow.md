@@ -1,5 +1,7 @@
 # Groups Flow Wireframes
 
+> **Status: planned — not yet implemented in the client.** `lib/features/groups/` contains no UI; the Groups tab renders `GroupsListPlaceholder` ('Coming in Sprint 3') and the Add-Expense picker shows a disabled Groups stub. The Firestore schema/rules exist server-side. This spec is retained as the build target.
+
 This document defines the screen-by-screen wireframes, states, component mappings, and navigation flow for the Groups feature of One By Two v1.0. All specifications derive from the Software Requirements Specification (SRS) sections 4.4 (FR-GR-01 through FR-GR-07), 4.11 (FR-SH-01, FR-SH-02), and 6.3 (Core Screen 7), and from the Component Catalogue (`docs/design/02-design-system/components.md`).
 
 All monetary values are integer paise; conversion to rupees occurs at the UI layer (Invariant 1). The `simplifiedBalances` field is server-maintained and client-read-only (Invariant 2). All outbound sharing uses the system share sheet exclusively (Invariant 3).

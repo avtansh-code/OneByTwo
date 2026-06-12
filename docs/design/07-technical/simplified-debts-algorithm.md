@@ -2,54 +2,77 @@
 
 | Field            | Value                                              |
 |------------------|----------------------------------------------------|
-| Document Version | 1.0                                                |
-| Status           | Draft                                              |
+| Document Version | 1.1                                                |
+| Status           | Current (reconciled with deployed code)            |
 | Author           | Cloud Functions Developer Agent                    |
 | SRS Baseline     | v1.1                                               |
-| Source File      | `functions/src/simplifiedDebts.ts`                 |
+| Source Files     | `functions/src/simplified-debts/algorithm.ts` (pure algorithm), `functions/src/simplified-debts/function.ts` (`recomputeAndWrite` boundary) |
 
 ---
 
 ## 1. Reference Algorithm
 
-The canonical algorithm is defined in SRS section 7.4. It is implemented as a
-**pure function** in `functions/src/simplifiedDebts.ts` and invoked within a
-Firestore transaction by the `recomputeSimplifiedBalances` Cloud Function
-(SRS section 7.3, FR-SE-03, FR-SE-04).
+The canonical algorithm is defined in SRS section 7.4. It is implemented as two
+**pure functions** — `simplifyDebts` and `projectToBalancesMap` — in
+`functions/src/simplified-debts/algorithm.ts`. They are invoked within a
+Firestore transaction by the shared `recomputeAndWrite` core in
+`functions/src/simplified-debts/function.ts`, which in turn is shared by the
+`recomputeSimplifiedBalances` callable and the `onExpenseWriteFriendship` /
+`onSettlementWrite` triggers (SRS section 7.3, FR-SE-03 through FR-SE-06; see
+section 2 below).
 
 ### Steps
 
-1. **Compute net balances.** For each member in the context (group or friendship),
-   compute:
+1. **Compute net balances.** `computeNetBalances` (exported from
+   `function.ts`) folds the context's expenses and settlements into a
+   `Map<userId, netPaise>`:
+
+   - **Expense:** the payer is credited `+amountPaise`; each split member is
+     debited `−sharePaise`.
+   - **Settlement** `{ fromUserId, toUserId, amountPaise }` (cash paid by
+     `fromUserId` to `toUserId`): the payer `fromUserId` is credited
+     `+amountPaise` (their debt is reduced) and `toUserId` is debited
+     `−amountPaise` (they are now owed less).
+
+   Equivalently, for each member:
 
    ```
-   netPaise = sum(amounts paid by self for others)
-            − sum(amounts paid by others for self)
-            − sum(settlement amounts paid out)
-            + sum(settlement amounts received in)
+   netPaise = sum(expense amounts paid by self for others)
+            − sum(expense shares paid by others for self)
+            + sum(settlement amounts self paid out as fromUserId)
+            − sum(settlement amounts self received as toUserId)
    ```
 
-   All values are **integer paise** (Invariant 1; SRS section 7.3). The result is
-   a `Map<userId, netPaise>`.
+   All values are **integer paise** (Invariant 1; SRS section 7.3). Because every
+   expense and every settlement is internally balanced, the resulting map always
+   satisfies the zero-sum invariant by construction. The result is a
+   `Map<userId, netPaise>`.
 
 2. **Partition into creditors and debtors.** Members with `netPaise > 0` are
    creditors (they are owed money). Members with `netPaise < 0` are debtors (they
    owe money). Members with `netPaise === 0` are excluded from further processing.
 
 3. **Greedy pairing.** Sort creditors in descending order of `netPaise` and debtors
-   in descending order of `|netPaise|` (i.e., most negative first). Repeatedly:
-   - Select the largest creditor and the largest debtor.
-   - Compute the transfer amount: `transferPaise = Math.min(|debtorNet|, creditorNet)`.
+   in descending order of `|netPaise|` (i.e., most negative first); ties on the
+   absolute amount are broken by **ascending `userId`** in both lists (step 5).
+   Then walk both sorted lists with a pointer into each, repeatedly:
+   - Select the current largest creditor and the current largest debtor.
+   - Compute the transfer amount: `transferPaise = Math.min(creditorNet, |debtorNet|)`.
    - Emit a transfer record `{ from: debtorId, to: creditorId, amountPaise: transferPaise }`.
    - Subtract `transferPaise` from the creditor's net; add `transferPaise` to the
      debtor's net (moving it towards zero).
-   - Remove any participant whose net reaches zero.
-   - Continue until both lists are empty.
+   - Advance the pointer past any participant whose net reaches zero.
+   - Continue until either list is exhausted. Because the inputs are zero-sum, both
+     lists are consumed together.
 
-4. **Emit result and project.** The output is a flat array of
-   `Transfer { from: string; to: string; amountPaise: number }`. This array is
-   then projected into the nested `simplifiedBalances` map on the relevant
-   `friendship` or `group` document (SRS section 7.3, FR-SE-03).
+4. **Emit result and project.** The output of `simplifyDebts` is a flat array of
+   `Transfer { from: string; to: string; amountPaise: number }`. `projectToBalancesMap`
+   then projects this array into the nested `simplifiedBalances` map on the relevant
+   `friendship` or `group` document (SRS section 7.3, FR-SE-03). The projection is
+   **debtor-keyed and positive-only**: only debtors appear as outer keys, the inner
+   key is the creditor, and every value is the positive `amountPaise` of that
+   transfer. There are **no** creditor outer keys and **no** negative or mirrored
+   entries (see Appendix B and the worked examples below).
 
 5. **Determinism.** When multiple creditors or multiple debtors share the same
    absolute `netPaise`, ties are broken by **ascending `userId`**
@@ -59,7 +82,97 @@ Firestore transaction by the `recomputeSimplifiedBalances` Cloud Function
 
 ---
 
-## 2. Worked Examples
+## 2. Function Boundary — `recomputeAndWrite` and the Cloud Function Wrappers
+
+The pure `simplifyDebts` / `projectToBalancesMap` functions are wrapped by a
+shared core, `recomputeAndWrite`, in `functions/src/simplified-debts/function.ts`.
+This core is the **sole writer of `simplifiedBalances`** (Invariant 2) and is
+shared by three deployed entry points:
+
+- the `recomputeSimplifiedBalances` HTTPS Callable (`functions/src/simplified-debts/index.ts`);
+- the `onExpenseWriteFriendship` Firestore trigger (`functions/src/triggers/on-expense-write/`);
+- the `onSettlementWrite` Firestore trigger (`functions/src/triggers/on-settlement-write/`).
+
+### 2.1 Transaction sequence
+
+`recomputeAndWrite(deps, { contextType, contextId, alsoSet? })` runs entirely
+inside a single `db.runTransaction(...)`:
+
+1. Read the context document (`friendships/{id}` or `groups/{id}`). If it does
+   not exist, return `{ ok: false, code: 'CONTEXT_NOT_FOUND' }` without writing.
+2. Read the active expenses from the context subcollection with the server-side
+   filter `where('deleted', '!=', true)`.
+3. Read the settlements for the context from the **top-level** `settlements`
+   collection with two equality filters, `where('contextType', '==', ...)` and
+   `where('contextId', '==', ...)`. Soft-deleted settlements (`deleted === true`)
+   are filtered **in code** inside `computeNetBalances` to avoid an unnecessary
+   composite index.
+4. Fold expenses and settlements into `Map<userId, netPaise>` via
+   `computeNetBalances`, then run `simplifyDebts` and `projectToBalancesMap`.
+5. Write `simplifiedBalances` (plus any caller-supplied `alsoSet` fields) back to
+   the context document in the same `tx.update(...)`.
+
+### 2.2 Typed result, not `HttpsError`
+
+`recomputeAndWrite` never throws `HttpsError`. It returns a discriminated union:
+
+```typescript
+type RecomputeResult =
+  | { ok: true; transfers: Transfer[]; simplifiedBalances: SimplifiedBalancesMap }
+  | { ok: false; code: 'CONTEXT_NOT_FOUND' | 'BALANCE_INVARIANT_VIOLATED' };
+```
+
+A zero-sum violation surfaces because `simplifyDebts` throws a plain `Error`
+whose message contains `Balance invariant violation`; the core catches that
+specific error and converts it to `{ ok: false, code: 'BALANCE_INVARIANT_VIOLATED' }`.
+Any other (unknown) error bubbles up unchanged so each caller can apply its own
+policy:
+
+- the **callable** wrapper (`createHandler`) maps `CONTEXT_NOT_FOUND` →
+  `HttpsError('not-found', …, { errorCode: 'CONTEXT_NOT_FOUND' })`,
+  `BALANCE_INVARIANT_VIOLATED` →
+  `HttpsError('internal', …, { errorCode: 'BALANCE_INVARIANT_VIOLATED' })`, and
+  any uncaught error → `HttpsError('internal', …, { errorCode: 'INTERNAL' })`.
+  On success it returns `{ ok: true, transfers, simplifiedBalances, computedAt }`
+  where `computedAt` is an ISO 8601 string.
+- the **triggers** return successfully on `CONTEXT_NOT_FOUND` (the context is
+  gone — retries cannot help) and **throw** a plain `Error` on
+  `BALANCE_INVARIANT_VIOLATED` and on unknown errors so Cloud Functions retries.
+
+See `docs/design/07-technical/cloud-functions-error-codes.md` for the full code
+catalogue.
+
+### 2.3 `alsoSet`, reserved keys, and the `lastActivityAt` monotonicity guard
+
+Callers may pass an `alsoSet` map to atomically write extra fields alongside
+`simplifiedBalances`. Both triggers use this to advance `lastActivityAt` on the
+parent context document so the friends-list ordering moves on every event. The
+core enforces two safety rules:
+
+- **Reserved keys.** `alsoSet` must not contain `simplifiedBalances`; the core
+  throws if it does, and additionally places its own computed `simplifiedBalances`
+  last in the write spread so a malformed `alsoSet` cannot overwrite it
+  (Invariant 2, defence-in-depth).
+- **Monotonicity guard.** When `alsoSet.lastActivityAt` is present it must be a
+  Firestore `Timestamp`; the value actually written is
+  `max(existing.lastActivityAt, alsoSet.lastActivityAt)`, so out-of-order Cloud
+  Functions delivery can never regress the ordering.
+
+### 2.4 Property tests
+
+`functions/test/simplified-debts/algorithm.property.test.ts` (fast-check) asserts
+the load-bearing properties on random valid inputs:
+
+- transfer count ≤ N−1 for N non-zero-balance members;
+- applying every emitted transfer settles all members to exactly zero;
+- the algorithm is deterministic (identical input → identical output);
+- every `amountPaise` is a positive integer;
+- `computeNetBalances` preserves the zero-sum invariant under any mixed sequence of
+  expenses and settlements, and soft-deleted settlements are excluded from the fold.
+
+---
+
+## 3. Worked Examples
 
 All monetary values below are in **paise**. Member identifiers are short strings for
 readability; in production they are Firebase Auth UIDs.
@@ -236,14 +349,14 @@ transfers = [
 
 ```json
 {
-  "A": { "B": 20000, "C": 20000 },
-  "B": { "A": -20000 },
-  "C": { "A": -20000 }
+  "B": { "A": 20000 },
+  "C": { "A": 20000 }
 }
 ```
 
-Interpretation: `A` is owed 20000 by `B` and 20000 by `C`. `B` owes 20000 to `A`.
-`C` owes 20000 to `A`.
+Interpretation: `B` owes 20000 to `A`, and `C` owes 20000 to `A`. The map is
+debtor-keyed and positive-only — creditor `A` does **not** appear as an outer key,
+and there are no negative or mirrored entries.
 
 ---
 
@@ -304,17 +417,21 @@ transfers = [
 
 ```json
 {
-  "A": { "B": 800000, "C": 900000, "D": 1100000, "E": 1100000 },
-  "B": { "A": -800000 },
-  "C": { "A": -900000 },
-  "D": { "A": -1100000 },
-  "E": { "A": -1100000 }
+  "B": { "A": 800000 },
+  "C": { "A": 900000 },
+  "D": { "A": 1100000 },
+  "E": { "A": 1100000 }
 }
 ```
 
+Interpretation: each of `B`, `C`, `D`, `E` owes `A` the stated positive amount.
+This is the exact shape asserted by the integration test
+`functions/test/integration/simplified-debts.integration.test.ts` and the unit
+test `functions/test/simplified-debts/algorithm.test.ts`.
+
 ---
 
-## 3. Determinism Rule
+## 4. Determinism Rule
 
 ### Specification
 
@@ -365,7 +482,7 @@ Every client, every execution, every retry produces this exact result.
 
 ---
 
-## 4. Performance Budget
+## 5. Performance Budget
 
 | Metric                  | Target               | Source                |
 |-------------------------|----------------------|-----------------------|
@@ -388,13 +505,15 @@ Every client, every execution, every retry produces this exact result.
 
 ### Region pinning
 
-The `recomputeSimplifiedBalances` Cloud Function is deployed to **`asia-south1`**
-(Mumbai) to minimise latency for Indian users (SRS section 5.2). This is configured
-in the function's region annotation and must not be overridden.
+The `recomputeSimplifiedBalances` callable and the `onExpenseWriteFriendship` and
+`onSettlementWrite` triggers — every entry point that runs `recomputeAndWrite` —
+are deployed to **`asia-south1`** (Mumbai) to minimise latency for Indian users
+(SRS section 5.2). Each module sets `{ region: "asia-south1" }` in its trigger
+options; this must not be overridden.
 
 ---
 
-## 5. Invariant Compliance
+## 6. Invariant Compliance
 
 This section maps the algorithm and its Cloud Function wrapper to the project's
 non-negotiable invariants (`.github/shared/invariants.md`).
@@ -414,10 +533,13 @@ Firestore schema level (integer fields).
 ### Invariant 2 — simplifiedBalances is server-maintained
 
 The `simplifiedBalances` field on `friendships` and `groups` documents is written
-**exclusively** by the `recomputeSimplifiedBalances` Cloud Function. Client SDKs
-read the field but never write to it. This is enforced by Firestore Security Rules
-(SRS sections 7.3, 7.5). The Cloud Function runs inside a Firestore transaction to
-guarantee atomicity with the triggering expense or settlement write (FR-SE-04).
+**exclusively** by `recomputeAndWrite` in
+`functions/src/simplified-debts/function.ts` — the shared core invoked by the
+`recomputeSimplifiedBalances` callable, the `onExpenseWriteFriendship` trigger, and
+the `onSettlementWrite` trigger. Client SDKs read the field but never write to it.
+This is enforced by Firestore Security Rules (SRS sections 7.3, 7.5). The write
+happens inside the same Firestore transaction that reads the expenses and
+settlements, guaranteeing atomicity with the triggering write (FR-SE-04, FR-SE-06).
 
 ### Invariant 3 — System share sheet only
 
@@ -453,18 +575,26 @@ interface Transfer {
 ## Appendix B: simplifiedBalances Map Structure
 
 The `simplifiedBalances` field is a nested map stored on the `friendship` or `group`
-Firestore document. Its shape is:
+Firestore document, produced by `projectToBalancesMap`. Its shape is:
 
-```
-simplifiedBalances: {
-  [userId: string]: {
-    [otherUserId: string]: number  // positive = owed to you; negative = you owe
+```typescript
+interface SimplifiedBalancesMap {
+  [debtorUserId: string]: {
+    [creditorUserId: string]: number  // integer paise, always > 0
   }
 }
 ```
 
-Each entry is mirrored: if `simplifiedBalances.A.B = 20000`, then
-`simplifiedBalances.B.A = -20000`. The Cloud Function writes both sides atomically.
+The map is **debtor-keyed and positive-only**: the outer key is the debtor, the
+inner key is the creditor, and the value is the positive `amountPaise` the debtor
+owes the creditor. Creditors do **not** appear as outer keys, and there are **no**
+negative or mirrored entries. For example, when `B` owes `A` 20000 paise the map
+contains `{ "B": { "A": 20000 } }` — there is no `"A"` entry and no `-20000`.
+
+To answer "does `X` owe `Y`?", a reader checks `simplifiedBalances[X][Y]` and treats
+it as the positive paise amount `X` owes `Y` (and a missing entry as zero). This is
+exactly how the FR-SE-09 reminder callable reads the field: it requires
+`simplifiedBalances[recipientUid][senderUid]` to be a positive integer.
 
 ## Appendix C: SRS Cross-References
 

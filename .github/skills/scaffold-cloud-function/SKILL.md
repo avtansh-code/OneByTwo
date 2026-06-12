@@ -20,8 +20,9 @@ an HTTP callable, or a scheduled function.
 
 ## Inputs
 
-1. **Function name** — camelCase name (e.g., `recomputeSimplifiedBalances`).
-2. **Trigger type** — `onDocumentWritten`, `onCall`, `onSchedule`, etc.
+1. **Function name** — the camelCase export name (e.g. `recomputeSimplifiedBalances`).
+   Its source lives in a kebab-case folder (e.g. `simplified-debts/`).
+2. **Trigger type** — `onDocumentWritten`, `onCall`, `onRequest`, `onSchedule`, etc.
 3. **Firestore paths** — the collection/document paths the function operates on.
 4. **Input/output types** — TypeScript interfaces for the function's data.
 5. **Invariants to enforce** — which invariants this function must uphold.
@@ -31,31 +32,64 @@ an HTTP callable, or a scheduled function.
 1. Read `.github/shared/invariants.md`.
 2. Read `.github/shared/coding-standards.md` for TypeScript conventions.
 3. Read SRS section 7.3 and 7.4 for architectural decisions.
-4. Create the function file under `functions/src/`:
+4. Create a **per-function folder** under `functions/src/<function-name>/` (kebab-case).
+   Triggers live under `functions/src/triggers/<trigger-name>/`. The folder contains:
    ```
-   functions/src/<functionName>.ts
+   functions/src/<function-name>/
+     index.ts       — trigger/callable registration, region-pinned, wires real deps
+     function.ts    — createHandler / createTriggerHandler factory (injected Dependencies)
+     algorithm.ts   — pure logic (if any), plus any helper modules
    ```
-5. Include in the file:
-   a. **Region pinning:** `region('asia-south1')` on every function definition.
-   b. **Type definitions:** TypeScript interfaces for input and output data.
-   c. **Function body:** skeleton with TODO markers for business logic.
-   d. **Error handling:** try/catch with structured JSON logging.
-   e. **Idempotency:** for trigger-based functions, check if the operation has
-      already been applied before re-applying.
+   The `healthcheck` function is the only inline exception (defined directly in
+   `functions/src/index.ts`).
+5. Populate the files following the established convention:
+   a. **`index.ts` registration + region pinning:** define `const REGION =
+      "asia-south1";` and pass it via the **v2 options object** — `onCall({ region:
+      REGION }, …)`, or `onDocumentWritten({ region: REGION, document: "…", retry:
+      true }, …)`. (Do **not** use `region('asia-south1')`; that is the v1 API.)
+   b. **Dependency injection:** `index.ts` constructs the real dependencies
+      (`getFirestore()`, `firebase-functions/logger`, and for FCM
+      `getMessaging()` + the `notificationsApi`) and delegates to a handler factory
+      (`createHandler(deps)` / `createTriggerHandler(deps)`) exported from
+      `function.ts`. The factory returns the actual handler so unit tests can inject
+      mocked dependencies.
+   c. **Type definitions:** TypeScript interfaces for input and output data.
+   d. **Error handling:** callables throw `HttpsError` from
+      `firebase-functions/v2/https` with `{ errorCode: '…' }` in the details;
+      triggers log a structured failure and either return (no retry) or throw a plain
+      `Error` (retry). Match `docs/design/07-technical/cloud-functions-error-codes.md`.
+   e. **Idempotency:** trigger functions drop stale events (older than the 7-day
+      delivery window via `event.time`) and must tolerate in-window redelivery.
    f. **Money as paise:** all monetary values are `number` representing integer
-      paise. Add a comment reinforcing this.
-   g. **JSDoc:** document the trigger, input, output, and error conditions.
-6. Create a test structure matching the five-layer pyramid:
-   1. Algorithm unit tests — `functions/test/<functionName>/algorithm.test.ts` (pure logic, no Firebase)
-   2. Algorithm property tests — `functions/test/<functionName>/algorithm.property.test.ts` (fast-check invariant verification)
-   3. Function boundary tests — `functions/test/<functionName>/function.test.ts` (mocked Firestore)
+      paise. Never use floating-point arithmetic; format for display via
+      `formatInrFromPaise` (`utils/format-inr.ts`).
+   g. **PII-safe logging:** hash composite/UID identifiers via `hashId`
+      (`utils/id-hash.ts`) before logging (e.g. `contextIdHash`).
+   h. **JSDoc:** document the trigger, input, output, and error conditions.
+6. **Re-export** the function from `functions/src/index.ts`
+   (e.g. `export { myFunction } from "./my-function/index";`).
+7. Create a test structure matching the five-layer pyramid:
+   1. Algorithm unit tests — `functions/test/<function-name>/algorithm.test.ts` (pure logic, no Firebase)
+   2. Algorithm property tests — `functions/test/<function-name>/algorithm.property.test.ts` (fast-check invariant verification)
+   3. Function boundary tests — `functions/test/<function-name>/function.test.ts` (mocked Firestore via injected deps)
    4. Security rules tests — `functions/test/firestore-rules/<collection>.test.ts` (emulator-based)
-   5. Integration tests — `functions/test/integration/<functionName>.integration.test.ts` (full emulator suite)
+   5. Integration tests — `functions/test/integration/<function-name>.integration.test.ts` (full emulator suite)
 
    For non-algorithm functions, adapt the structure: layers 1-2 may collapse into a
    single unit test file. Reference: PR #12 (simplified-debts) as the exemplar.
-7. If the function writes `simplifiedBalances`, it must do so inside a Firestore
-   transaction.
+8. If the function writes `simplifiedBalances`, it must do so via `recomputeAndWrite`
+   inside a Firestore transaction (Invariant 2 — `recomputeAndWrite` is the sole
+   writer).
+
+## Build, lint, and test commands
+
+All commands run from the `functions/` directory (runtime: Node 22):
+
+- `npm run build` — compile TypeScript (`tsc`).
+- `npm run lint` — ESLint over `src/`.
+- `npm test` — unit + boundary tests (Jest; excludes `.integration.test.ts`).
+- `npm run test:rules` — Firestore/Storage security-rules tests (emulator).
+- `npm run test:integration` — integration tests against the full Emulator Suite.
 
 ## Output format
 
@@ -64,40 +98,54 @@ and Jest files.
 
 ## Validation checks
 
-- [ ] Region is `asia-south1`.
+- [ ] Region is `asia-south1`, passed via the v2 options object (`{ region: REGION }`).
+- [ ] Function lives in its own kebab-case folder (`index.ts` + `function.ts`) and is
+      re-exported from `functions/src/index.ts`.
+- [ ] Handler logic is in a `createHandler` / `createTriggerHandler` factory that
+      accepts injected dependencies.
 - [ ] All money values are integer paise (no floats).
-- [ ] `simplifiedBalances` writes happen inside a transaction.
+- [ ] `simplifiedBalances` writes happen via `recomputeAndWrite` inside a transaction.
 - [ ] JSDoc on the exported function.
 - [ ] Test structure matches the five-layer pyramid, with non-algorithm adaptations documented where needed.
-- [ ] Error handling with structured logging.
-- [ ] Idempotency guard for trigger functions.
+- [ ] Error handling matches the error-codes catalogue (callables throw `HttpsError`; triggers return-or-throw for retry).
+- [ ] Stale-event guard and idempotency considered for trigger functions.
+- [ ] Composite/UID identifiers hashed via `hashId` before logging.
 
 ## Examples
 
 ### Positive example
 
-**Input:** Function name: `onSettlementCreated`, trigger: `onDocumentCreated` on
+**Input:** Function name `onSettlementWrite`, trigger `onDocumentWritten` on
 `settlements/{settlementId}`.
 
-**Output:**
+**Output (`functions/src/triggers/on-settlement-write/index.ts`):**
 ```typescript
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { region } from 'firebase-functions/v2';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import * as logger from 'firebase-functions/logger';
+import { createTriggerHandler } from './function';
+
+const REGION = 'asia-south1';
 
 /**
- * Triggered when a new settlement is created.
- * Recomputes simplified balances for the affected context.
+ * Recomputes simplifiedBalances when a settlement is written.
  *
- * @trigger onDocumentCreated('settlements/{settlementId}')
+ * @trigger onDocumentWritten('settlements/{settlementId}')
  * @region asia-south1
  */
-export const onSettlementCreated = onDocumentCreated(
-  { document: 'settlements/{settlementId}', region: 'asia-south1' },
+export const onSettlementWrite = onDocumentWritten(
+  { region: REGION, document: 'settlements/{settlementId}', retry: true },
   async (event) => {
-    // TODO(functions-dev): implement recomputation logic
-  }
+    const handler = createTriggerHandler({ db: getFirestore(), logger });
+    return handler(event);
+  },
 );
 ```
+
+A callable follows the same shape with `onCall({ region: REGION }, async (request)
+=> createHandler({ db: getFirestore(), logger })(request.data))`. The corresponding
+`function.ts` exports `createTriggerHandler(deps)` / `createHandler(deps)` and is
+re-exported from `functions/src/index.ts`.
 
 ### Negative example (should refuse)
 

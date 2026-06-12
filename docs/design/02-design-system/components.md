@@ -1,8 +1,8 @@
 # One By Two v1.0 -- Component Catalogue
 
-This document defines the reusable widget library for One By Two v1.0. Every component is specified with its visual description, data inputs, interactive states, accessibility behaviour, and the SRS requirements it satisfies. The Flutter Developer should consume this catalogue as the authoritative design contract when implementing the `lib/common/widgets/` and feature-specific widget directories.
+This document defines the reusable widget library for One By Two v1.0. Every component is specified with its visual description, data inputs, interactive states, accessibility behaviour, and the SRS requirements it satisfies. The Flutter Developer should consume this catalogue as the authoritative design contract when implementing the `lib/core/widgets/` and feature-specific widget directories.
 
-All monetary values arriving as props are **integer paise** (Invariant 1). Conversion to rupees with Indian numbering formatting is the responsibility of the UI layer -- specifically, the `OBTRupeeText` component or the formatter it wraps.
+All monetary values arriving as props are **integer paise** (Invariant 1). Conversion to rupees with Indian numbering formatting is the responsibility of the UI layer -- specifically the `formatInrFromPaise()` function in `lib/core/formatters/inr_formatter.dart` (single source of truth). The `OBTRupeeText` wrapper in this catalogue is **not yet built**; widgets call `formatInrFromPaise()` directly.
 
 ---
 
@@ -26,6 +26,19 @@ All components draw from the visual system defined in SRS section 6.2. Tokens ar
 | `tapTargetMin` | 48x48 dp (Android) / 44x44 pt (iOS) | -- | All interactive elements |
 
 Typography: Inter or Plus Jakarta Sans (Latin); system fallback for non-Latin scripts.
+
+> **Implementation note.** Dark `success`/`danger` differ from light in code (`#3CC0AF`/`#F08B72`); the authoritative dark values live in `tokens.md §1.2`.
+
+| Catalogue component | Status | Where in code |
+|---|---|---|
+| 2 OBTBottomNav, 3 OBTFloatingActionButton | **Built** | `lib/core/widgets/nav/` |
+| 6 OBTAmountInput | **Built** | `lib/core/widgets/inputs/` |
+| 14 OBTActivityRow | **Built** | `lib/core/widgets/lists/` |
+| 24 OBTConfirmationDialog | **Built** | `lib/core/widgets/dialogs/` |
+| 13 OBTSettleUpCard | **Built** (not yet in `core/`) | `lib/features/friends/presentation/widgets/` |
+| 4 BalancePill, 7 OtpInput, 9 contact picker, 12 category grid, 15/16 list tiles, 18/19 empty/error states, 20 skeleton, 21/22 split | **Built under non-OBT names** | feature `presentation/widgets/` (e.g. `BalancePill`, `OtpInput`, `ContactListTile`, `ExpenseCategoryGrid`, `FriendListTile`, `EmptyContactsState`/`PermissionDeniedView`, `ActivityFeedSkeleton`, `SplitRow`) |
+| 8 OBTPhoneInput | **Partial** | `IndianPhoneInputFormatter` + `ManualPhoneEntryTab` |
+| 1 OBTAppBar, 5 OBTRupeeText, 10 OBTGroupAvatar, 11 OBTUserAvatar, 17 OBTGroupListTile, 23 OBTSearchBar, 25 OBTSnackbar | **Not built** | Material `AppBar`/`SnackBar`/`CircleAvatar` used directly; `formatInrFromPaise()` for rupees; Groups & Search features not implemented |
 
 ---
 
