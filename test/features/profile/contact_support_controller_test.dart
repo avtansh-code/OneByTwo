@@ -91,7 +91,8 @@ ContactSupportController _buildController({
 
 void main() {
   group('buildBody', () {
-    test('contains all five labelled diagnostic lines', () {
+    test('contains the four labelled diagnostic lines and the '
+        'do-not-delete header', () {
       final body = ContactSupportController.buildBody(
         userId: 'uid_abc123',
         diagnostics: _diagnostics,
