@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #57 merged (FR-HD-04 persistent FAB + Add Expense context picker — closes FR-HD-04 P0 + bundled `currentUserIdProvider` production-wiring closure that PR #56 architect §2.1 left as the mandatory natural completion).
+> Last updated: PR #58 merged (FR-SE-08 dedicated settlement-history screen, SCR-24 — friendship axis; group axis stubbed pending the Sprint 3 Groups epic).
 
 ---
 
@@ -24,12 +24,13 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #55 | PR | FR-PR-03 + FR-AC-04 Notification Preferences UI (SCR-27) + production `cloud_functions` adapter wiring for `reminderRepositoryProvider` + `matchingRepositoryProvider` (merged 2026-06-11) |
 | #56 | PR | OBTBottomNav design-system primitive (`components.md §2`) + `AuthenticatedShell` IndexedStack host (5 primary tabs) + 2 placeholder screens + `bottom_nav_tab_selected` telemetry + PopScope snap-to-tab-0 + `lib/main.dart` wire-change + deletion of temporary `HomePlaceholderScreen` (merged 2026-06-11) |
 | #57 | PR | FR-HD-04 persistent FAB + Add Expense context picker — `OBTFloatingActionButton` design-system primitive + `AuthenticatedShell` FAB slot + context picker bottom sheet (Friend / Group target with Group path stubbed for Sprint 3) + bundled `currentUserIdProvider` production wiring in `AuthenticatedWithProfile` arm of `lib/main.dart` (closes FR #56 deferral that left `friendsListProvider` + `activityFeedProvider` throwing in production) (merged 2026-06-11) |
-| **#58** | **PR** | **Next feature/chore PR — see below** |
+| #58 | PR | FR-SE-08 dedicated settlement-history screen (SCR-24) — `SettlementHistoryScreen` at `/settle/history` + `settlementHistoryProvider` (`StreamProvider.family`, 50-item cap) + `settlement_history_telemetry.dart` (2 pre-declared events) + "View Settlement History" link on `FriendDetailScreen` (friendship axis; group axis stubbed) (merged 2026-06-12) |
+| **#59** | **PR** | **Next feature/chore PR — see below** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
-**pull requests** — i.e. PR #58, PR #59, PR #60. Their issue-number
+**pull requests** — i.e. PR #59, PR #60, PR #61. Their issue-number
 counterparts (when filed) will consume intermediate numbers; the
-orchestrator should not assume PR #58 = number 58 on GitHub.
+orchestrator should not assume PR #59 = number 59 on GitHub.
 
 ---
 
@@ -229,31 +230,61 @@ copy itself already conveys the required user action.
 
 ---
 
-## PR #58 — TBD
+## PR #58 — Merged
 
-**Status:** Next up. Architect picks at PR #58 kickoff per Sprint 2 velocity.
+**Status:** Merged 2026-06-12. FR-SE-08 dedicated settlement-history
+screen (SCR-24) shipped for the friendship axis.
 
-PR #57 shipped the FR-HD-04 persistent FAB + Add Expense context
-picker plus the bundled `currentUserIdProvider` production-wiring
-closure. The shell now has its canonical primary-action FAB and the
-two providers it depends on (`friendsListProvider`,
-`activityFeedProvider`) are correctly wired in production. The FAB
-is the natural seam that the FR-HD-01..04 home-dashboard work and
-the Sprint 3 Groups epic will inherit.
+PR #58 closed the FR-SE-08 P0 commitment for the dedicated
+`/settle/history` surface. The in-timeline settlement rows (PR #42 +
+PR #43) satisfied the functional commitment; PR #58 delivered the
+design-spec contract — a full reverse-chronological list reachable
+from the "View Settlement History" link on Friend Detail:
+
+- **`SettlementHistoryScreen`** (SCR-24) at
+  `lib/features/settlements/presentation/settlement_history_screen.dart`.
+  Generic over `(contextType, contextId)` — the architectural seam the
+  Sprint 3 Group Detail screen inherits. Four states (loading /
+  populated / empty / error) via inline private widgets (no OBT*
+  primitive extraction).
+- **`settlementHistoryProvider`** — a `StreamProvider.family` keyed by
+  `SettlementHistoryArgs { contextType, contextId }`, reusing the
+  PR #42 `watchByContext` read path with a 50-item cap. Zero changes
+  to the repository, rules, or indexes.
+- **`settlement_history_telemetry.dart`** — the two pre-declared
+  events (`settlement_history_viewed`, `settlement_history_error`).
+  NEITHER carries `context_id` (PII guard, ADR-0013).
+- **"View Settlement History" link** on `FriendDetailScreen` (populated
+  state only). No entry-point telemetry — the destination's
+  `settlement_history_viewed` captures the funnel arrival.
+
+Deferred (tracked follow-ups): Group-context push wiring (Sprint 3),
+cursor-based pagination beyond 50, the OBT* primitive extractions
+(`OBTSkeletonLoader` / `OBTEmptyState` / `OBTErrorState` /
+`OBTUserAvatar` / `OBTRupeeText`), real-time fade-in, context-deleted
+snackbar, per-month grouping, settlement-detail navigation, and the
+share/export action.
+
+**Velocity:** 3 SP (PR #58) → cumulative **93 SP across 22 PRs**.
+
+---
+
+## PR #59 — TBD
+
+**Status:** Next up. Architect picks at PR #59 kickoff per Sprint 2 velocity.
+
+The dedicated settlement-history surface is now live. The next slot is
+open; the candidate list below carries forward everything not yet
+shipped.
 
 Candidates (in rough priority order — architect's call at kickoff):
 
-- **FR-SE-08 dedicated full-history settlement screen** at
-  `/settlements/history` (P0 — PR #42's in-timeline rows satisfy
-  v1.0 functionally but the dedicated screen is still a v1.0
-  commitment). Natural pairing with the shell + FAB that PR #56 +
-  PR #57 just shipped because the shared nav surface makes the
-  "All settlements" deep-link target obvious. ~3-5 SP. **Highest-
-  priority follow-up; top candidate for PR #58.**
 - **FR-PR-05 Contact Support `mailto:` flow** (P0; depends on
   Remote Config wiring for the support email address; small
   standalone PR ~2 SP). Closes the last P0 line item on the
-  Profile screen.
+  Profile screen. The `SettlementHistoryScreen` error state's Retry
+  button is the v1.0 fallback; the "Contact Support" link in SCR-24
+  §States row 4 lands with this PR.
 - **`app_settings` / `permission_handler` dependency +
   AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
   ~1-2 SP. Adds the dependency + wires the CTA on both platforms.
@@ -350,19 +381,19 @@ Candidates (in rough priority order — architect's call at kickoff):
 
 ---
 
-## PR #59 — TBD
-
-**Status:** Slot reserved. Architect picks at PR #58 kickoff.
-
-Candidates: whatever doesn't land in PR #58 from the list above.
-
----
-
 ## PR #60 — TBD
 
 **Status:** Slot reserved. Architect picks at PR #59 kickoff.
 
-Candidates: whatever doesn't land in PR #58 / PR #59 from the list above.
+Candidates: whatever doesn't land in PR #59 from the list above.
+
+---
+
+## PR #61 — TBD
+
+**Status:** Slot reserved. Architect picks at PR #60 kickoff.
+
+Candidates: whatever doesn't land in PR #59 / PR #60 from the list above.
 
 ---
 
@@ -458,14 +489,14 @@ completion of PR #56 architect §2.1 reconciliation.
 
 ---
 
-## Snapshot — Sprint 2 status at end of PR #57
+## Snapshot — Sprint 2 status at end of PR #58
 
 | Metric | Value |
 |---|---|
-| PRs merged in Sprint 2 | 21 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51, #52, #53, #54, #55, #56, #57) |
-| Story points delivered | 90 |
-| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b). Remaining: 27 / 37. **PR #57 made zero Bucket-B progress** — the FR-HD-04 FAB + context picker work was tracked as a P0 functional requirement (closes SRS row FR-HD-04), not as a Bucket-B item; the bundled `currentUserIdProvider` production-wiring closure was tracked in `next-three-prs.md` as a PR #56 reconciliation discovery, not as a Bucket-B item. |
+| PRs merged in Sprint 2 | 22 (#31, #32, #34, #35, #36, #37, #38, #41, #42, #43, #44, #45, #46, #48, #51, #52, #53, #54, #55, #56, #57, #58) |
+| Story points delivered | 93 |
+| Bucket-B items closed | 10 (R1, R2, R3, R5a, R7, R8, CV3, SR8, D5a, D5b). Remaining: 27 / 37. **PR #58 made zero Bucket-B progress** — the FR-SE-08 settlement-history screen was tracked as a P0 functional requirement (closes SRS row FR-SE-08), not as a Bucket-B item. |
 | Critical Cross-PR Constraints | C-1 RESOLVED (chore #25 closed in PR #38) |
-| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #57 did not file any new issues) |
+| Open `sprint-2-chore` issues | 14 (issues #47, #49, #50 remain open; PR #58 did not file any new issues) |
 | Outstanding deadline-bound work | **None.** |
-| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. Activity-feed WRITE-SIDE closed by PR #51; READ-SIDE closed by PR #52. FCM push-notification round-trip closed by PR #53. FR-SE-09 Send Reminder round-trip closed by PR #54. Notification preferences round-trip closed by PR #55 (server gate from PR #53 + client UI). Bottom-nav UX-foundation closed by PR #56. **FR-HD-04 persistent FAB + Add Expense context picker closed by PR #57** — the shell exposes its canonical primary-action FAB and the Add Expense funnel is reachable from any tab; the bundled `currentUserIdProvider` production-wiring closure restores `friendsListProvider` + `activityFeedProvider` to functional state in production. |
+| Round-trip closures | **Simplified-debts WRITE round-trip closed in PR #43.** Expense lifecycle (create / edit / soft-delete) closed end-to-end on the friendship axis by PR #46. Receipt attachment surface closed by PR #48. Activity-feed WRITE-SIDE closed by PR #51; READ-SIDE closed by PR #52. FCM push-notification round-trip closed by PR #53. FR-SE-09 Send Reminder round-trip closed by PR #54. Notification preferences round-trip closed by PR #55 (server gate from PR #53 + client UI). Bottom-nav UX-foundation closed by PR #56. FR-HD-04 persistent FAB + Add Expense context picker closed by PR #57. **FR-SE-08 dedicated settlement-history surface (friendship axis) closed by PR #58** — the `/settle/history` screen is reachable from the Friend Detail "View Settlement History" link; the group axis is wired by the Sprint 3 Group Detail screen. |

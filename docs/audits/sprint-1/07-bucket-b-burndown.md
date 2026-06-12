@@ -6,7 +6,7 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #57 (FR-HD-04 persistent FAB + Add Expense context picker + bundled `currentUserIdProvider` production-wiring closure).
+> Last updated: PR #58 (FR-SE-08 dedicated settlement-history screen, SCR-24 — friendship axis; group axis stubbed pending Sprint 3 Groups epic).
 
 ---
 
@@ -913,4 +913,49 @@ implementation. Tracked as a separate ~1-2 SP investigation
 chore on the PR #58 candidate list.
 
 Net contribution of PR #57 to Bucket-B totals: **0**. The
+remaining count stays at **27 / 37**.
+
+### PR #58 (FR-SE-08 dedicated settlement-history screen — P0 feature)
+
+PR #58 is a **3 SP feature PR** that closes the **FR-SE-08 P0**
+SRS row for the dedicated settlement-history surface (friendship
+axis). PR #42 + PR #43 shipped the in-timeline settlement rows that
+satisfied the v1.0 functional commitment; PR #58 delivers the
+design-spec contract — the dedicated `/settle/history` screen
+(SCR-24). PR #58 ships:
+
+1. `SettlementHistoryScreen` (SCR-24) at
+   `lib/features/settlements/presentation/settlement_history_screen.dart`.
+   Generic over `(contextType, contextId)` — the architectural seam
+   the Sprint 3 Group Detail screen inherits. Four states (loading /
+   populated / empty / error) via inline private widgets.
+2. `settlementHistoryProvider` — a `StreamProvider.family` keyed by
+   `SettlementHistoryArgs { contextType, contextId }`, reusing the
+   PR #42 `watchByContext` read path with a 50-item cap.
+3. `settlement_history_telemetry.dart` — the two pre-declared events
+   (`settlement_history_viewed`, `settlement_history_error`); NEITHER
+   carries `context_id` (PII guard, ADR-0013).
+4. The "View Settlement History" link on `FriendDetailScreen`
+   (populated state only; no entry-point telemetry).
+
+**No Bucket-B items closed by PR #58.** FR-SE-08 is a P0 functional
+requirement (closes an SRS row) rather than a Bucket-B audit item.
+Invariants 1 / 2 / 3 / 4 are all N/A on this read-only client
+surface (no money write paths — the per-row amount flows through
+`formatInrFromPaise()`; no `simplifiedBalances` access; no
+share-sheet code; no new Firebase SDK usage). The
+`settlement_history_pii_leak_test.dart` boundary-contract triad
+(Inv-1 + Inv-2 + PII parameter-key) returns zero violations over
+the three new source files.
+
+**No new Bucket-B items filed by PR #58.** Several follow-ups are
+tracked in `docs/sprint-zero/next-three-prs.md` rather than as
+Bucket-B items: the OBT* primitive extractions (`OBTSkeletonLoader`
+/ `OBTEmptyState` / `OBTErrorState` / `OBTUserAvatar` /
+`OBTRupeeText`), cursor-based pagination beyond 50, Group-context
+push wiring, the settlement-detail screen, per-month grouping, the
+share/export action, and the screen-spec vs telemetry-plan
+`context_id` discrepancy docs cleanup.
+
+Net contribution of PR #58 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.
