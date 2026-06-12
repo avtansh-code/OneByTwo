@@ -72,6 +72,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -125,8 +133,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Run unit tests
-        run: npm test
+      - name: Run unit tests with coverage
+        run: npx jest --coverage --coverageReporters=json-summary --coverageReporters=text --forceExit
+
+      - name: Upload Functions coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: functions-coverage
+          path: functions/coverage/
+          retention-days: 14
 
   # ── Integration tests against Firebase Emulator Suite ───────────────────────
   # Enabled in PR #7 (phone-auth feature) which added integration_test/.
@@ -153,6 +168,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: functions/package-lock.json
 
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
       - name: Install Flutter dependencies
         run: flutter pub get
 
@@ -167,7 +190,7 @@ jobs:
         run: cd functions && npm run build
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@15.20.0
 
       - name: Run Firestore Security Rules tests (no functions loaded)
         # Runs the rules-test layer in a dedicated emulator session with
@@ -231,6 +254,24 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -261,6 +302,10 @@ jobs:
     name: Build iOS (no signing)
     runs-on: macos-15
     needs: [flutter-checks]
+    env:
+      # Pinned so the activated CLI snapshot is cacheable via the pub-cache step
+      # below and the from-source compile is skipped on a warm cache.
+      FLUTTERFIRE_VERSION: 1.4.0
     steps:
       - uses: actions/checkout@v4
 
@@ -268,6 +313,15 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Cache pub packages and FlutterFire CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}-flutterfire-${{ env.FLUTTERFIRE_VERSION }}
+          restore-keys: |
+            pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}-
+            pub-${{ runner.os }}-
 
       - name: Install dependencies
         run: flutter pub get
@@ -283,8 +337,20 @@ jobs:
         # until FlutterFire 2.x ships full SwiftPM support.
         run: flutter config --no-enable-swift-package-manager
 
-      - name: Install FlutterFire CLI
-        run: dart pub global activate flutterfire_cli
+      - name: Install FlutterFire CLI (cached)
+        # The Xcode "upload-crashlytics-symbols" build phase invokes the
+        # `flutterfire` binary, so the CLI is required for `flutter build ios`.
+        # Activation compiles the CLI from source (slow); skip it when the
+        # pinned version has already been restored from the pub-cache step
+        # above. The version check (not a mere existence check) ensures a
+        # FLUTTERFIRE_VERSION bump still re-activates even if a restore-key
+        # fallback brought back an older snapshot.
+        run: |
+          if dart pub global list 2>/dev/null | grep -q "flutterfire_cli ${FLUTTERFIRE_VERSION}"; then
+            echo "flutterfire_cli ${FLUTTERFIRE_VERSION} restored from cache; skipping activation."
+          else
+            dart pub global activate flutterfire_cli "$FLUTTERFIRE_VERSION"
+          fi
 
       - name: Restore GoogleService-Info.plist
         # ── Firebase config secret restoration ──
@@ -305,6 +371,16 @@ jobs:
           fi
           printf '%s' "${GOOGLE_SERVICE_INFO_PLIST_BASE64}" | base64 -D > ios/Runner/GoogleService-Info.plist
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
+
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
 
@@ -317,36 +393,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: [flutter-checks, functions-checks]
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
+      # Coverage data is produced once upstream — flutter-checks emits
+      # coverage/lcov.info and functions-checks emits
+      # functions/coverage/coverage-summary.json — and uploaded as artifacts.
+      # This job downloads them and enforces the SRS 5.7 thresholds without
+      # re-running any tests.
+      - name: Download Flutter coverage
+        uses: actions/download-artifact@v4
         with:
-          channel: stable
-          cache: true
+          name: flutter-coverage
+          path: coverage
 
-      - uses: actions/setup-node@v4
+      - name: Download Functions coverage
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: functions/package-lock.json
-
-      - name: Install Flutter dependencies
-        run: flutter pub get
-
-      - name: Install Functions dependencies
-        run: cd functions && npm ci
-
-      - name: Run Flutter tests with coverage
-        run: flutter test --coverage
-
-      - name: Run Functions tests with coverage
-        run: cd functions && npx jest --coverage --coverageReporters=json-summary --coverageReporters=text
-
-      - name: Install lcov
-        run: |
-          if ! command -v lcov >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y lcov
-          fi
+          name: functions-coverage
+          path: functions/coverage
 
       - name: Enforce coverage thresholds
         run: |
@@ -501,19 +563,3 @@ jobs:
               print("")
               print("Coverage gate PASSED. All thresholds met.")
           COVERAGE_SCRIPT
-
-      - name: Upload Flutter coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: flutter-coverage-report
-          path: coverage/lcov.info
-          retention-days: 14
-
-      - name: Upload Functions coverage
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: functions-coverage-report
-          path: functions/coverage/
-          retention-days: 14
