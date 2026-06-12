@@ -104,6 +104,7 @@ class TopBalanceTile extends StatelessWidget {
           const SizedBox(width: 4),
           Semantics(
             button: true,
+            onTap: onSettleUp,
             label:
                 'Settle up with ${item.displayName}, '
                 'rupees ${formatInrFromPaise(item.netBalancePaise.abs())}',

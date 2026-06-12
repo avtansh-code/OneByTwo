@@ -14,6 +14,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/remote_config/remote_config_service.dart';
@@ -26,6 +27,7 @@ import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart
 import 'package:onebytwo/features/home/application/home_telemetry.dart';
 import 'package:onebytwo/features/home/presentation/home_dashboard_screen.dart';
 import 'package:onebytwo/features/home/presentation/widgets/net_balance_header_card.dart';
+import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_placeholder_card.dart';
 import 'package:onebytwo/features/profile/data/device_diagnostics_service.dart';
 import 'package:onebytwo/features/profile/domain/support_diagnostics.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
@@ -126,12 +128,13 @@ void main() {
     await controller.close();
   });
 
-  Widget buildSubject() {
+  Widget buildSubject({Override? friendsOverride}) {
     return ProviderScope(
       overrides: [
         analyticsServiceProvider.overrideWithValue(analytics),
         currentUserIdProvider.overrideWithValue('uid-me'),
-        friendsListProvider.overrideWith((ref) => controller.stream),
+        friendsOverride ??
+            friendsListProvider.overrideWith((ref) => controller.stream),
         remoteConfigServiceProvider.overrideWithValue(
           FakeRemoteConfigService(),
         ),
@@ -292,6 +295,13 @@ void main() {
       expect(find.text("You're all settled up — high five!"), findsOneWidget);
       expect(find.text('Aarav'), findsOneWidget);
       expect(find.text('Bina'), findsOneWidget);
+      // AC-3: a populated-but-overall-settled dashboard still emits the
+      // zero net_balance_state token (distinct from the empty-state path
+      // which also emits zero but renders no tiles).
+      expect(analytics.countOf(HomeTelemetry.viewed), 1);
+      expect(analytics.lastParamsFor(HomeTelemetry.viewed), {
+        HomeTelemetry.paramNetBalanceState: HomeTelemetry.netBalanceStateZero,
+      });
     });
 
     testWidgets('logs home_viewed once with the positive state', (
@@ -413,6 +423,64 @@ void main() {
 
       expect(find.text('Settle Up'), findsNWidgets(5));
     });
+
+    testWidgets('Settle Up node exposes an explicit semantic tap action', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(buildSubject());
+      controller.add([
+        _item(
+          friendshipId: 'uid-a_uid-me',
+          otherUserId: 'uid-a',
+          displayName: 'Aarav',
+          netBalancePaise: 5000,
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      final settleNode = tester.getSemantics(
+        find.bySemanticsLabel(RegExp('^Settle up with')),
+      );
+      expect(
+        settleNode.getSemanticsData().hasAction(SemanticsAction.tap),
+        isTrue,
+        reason:
+            'the Settle Up node must carry SemanticsAction.tap so screen '
+            'readers can activate it explicitly (ExcludeSemantics strips '
+            "the inner button's action)",
+      );
+      handle.dispose();
+    });
+
+    testWidgets('FR-HD-03 placeholder card is non-interactive', (tester) async {
+      await tester.pumpWidget(buildSubject());
+      controller.add([
+        _item(
+          friendshipId: 'uid-a_uid-me',
+          otherUserId: 'uid-a',
+          displayName: 'Aarav',
+          netBalancePaise: 5000,
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpendingBreakdownPlaceholderCard), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SpendingBreakdownPlaceholderCard),
+          matching: find.byType(InkWell),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(SpendingBreakdownPlaceholderCard),
+          matching: find.byType(GestureDetector),
+        ),
+        findsNothing,
+      );
+    });
   });
 
   group('error state', () {
@@ -451,6 +519,44 @@ void main() {
       expect(analytics.countOf(HomeTelemetry.errorRetryTapped), 1);
       expect(analytics.lastParamsFor(HomeTelemetry.errorRetryTapped), {
         HomeTelemetry.paramAttemptNumber: 1,
+      });
+    });
+
+    testWidgets('second retry increments attempt_number and shows the '
+        '"still not working" copy', (tester) async {
+      // An always-erroring stream so each invalidate re-enters the error
+      // state — exercising the showSecondTryCopy branch and attempt 2.
+      await tester.pumpWidget(
+        buildSubject(
+          friendsOverride: friendsListProvider.overrideWith(
+            (ref) => Stream<List<FriendListItem>>.error(Exception('boom')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // First error render uses the first-try copy.
+      expect(
+        find.textContaining('We could not load your balances'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      // After the first retry the copy escalates.
+      expect(find.textContaining('Still not working'), findsOneWidget);
+      expect(
+        find.textContaining('We could not load your balances'),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(analytics.countOf(HomeTelemetry.errorRetryTapped), 2);
+      expect(analytics.lastParamsFor(HomeTelemetry.errorRetryTapped), {
+        HomeTelemetry.paramAttemptNumber: 2,
       });
     });
 
