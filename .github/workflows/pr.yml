@@ -70,15 +70,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # subosito/flutter-action already caches ~/.pub-cache keyed on
+          # pubspec.lock, so no separate pub cache step is needed.
           cache: true
-
-      - name: Cache pub packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pub-${{ runner.os }}-
 
       - name: Install dependencies
         run: flutter pub get
@@ -168,14 +162,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: functions/package-lock.json
 
-      - name: Cache pub packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pub-${{ runner.os }}-
-
       - name: Install Flutter dependencies
         run: flutter pub get
 
@@ -254,24 +240,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Cache pub packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pub-${{ runner.os }}-
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -303,8 +271,9 @@ jobs:
     runs-on: macos-15
     needs: [flutter-checks]
     env:
-      # Pinned so the activated CLI snapshot is cacheable via the pub-cache step
-      # below and the from-source compile is skipped on a warm cache.
+      # Pinned so the version-checked guard on the activation step below can
+      # detect a cache hit (flutterfire_cli restored via subosito's pub cache)
+      # and skip the slow from-source compile on a warm cache.
       FLUTTERFIRE_VERSION: 1.4.0
     steps:
       - uses: actions/checkout@v4
@@ -312,16 +281,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # subosito/flutter-action caches ~/.pub-cache (keyed on pubspec.lock),
+          # which also preserves the globally-activated flutterfire_cli snapshot,
+          # so the activation step below is skipped on a warm cache.
           cache: true
-
-      - name: Cache pub packages and FlutterFire CLI
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}-flutterfire-${{ env.FLUTTERFIRE_VERSION }}
-          restore-keys: |
-            pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}-
-            pub-${{ runner.os }}-
 
       - name: Install dependencies
         run: flutter pub get
@@ -340,11 +303,11 @@ jobs:
       - name: Install FlutterFire CLI (cached)
         # The Xcode "upload-crashlytics-symbols" build phase invokes the
         # `flutterfire` binary, so the CLI is required for `flutter build ios`.
-        # Activation compiles the CLI from source (slow); skip it when the
-        # pinned version has already been restored from the pub-cache step
-        # above. The version check (not a mere existence check) ensures a
-        # FLUTTERFIRE_VERSION bump still re-activates even if a restore-key
-        # fallback brought back an older snapshot.
+        # Activation compiles the CLI from source (slow, ~2-4 min); skip it when
+        # the globally-activated snapshot has already been restored via the
+        # subosito/flutter-action pub cache above (common case: unchanged
+        # pubspec.lock). The version check (not a mere existence check) ensures a
+        # FLUTTERFIRE_VERSION bump still triggers re-activation.
         run: |
           if dart pub global list 2>/dev/null | grep -q "flutterfire_cli ${FLUTTERFIRE_VERSION}"; then
             echo "flutterfire_cli ${FLUTTERFIRE_VERSION} restored from cache; skipping activation."
@@ -382,14 +345,7 @@ jobs:
             pods-${{ runner.os }}-
 
       - name: Build iOS (no codesign)
-        # Debug build (not release): the PR pipeline only needs to "catch build
-        # errors early" (SRS 9.2.1), and a debug build does that while skipping
-        # Dart AOT compilation and building the ~270 Firebase/gRPC/BoringSSL pods
-        # unoptimised, which is markedly faster than a release build. This mirrors
-        # the Android PR job (flutter build apk --debug). The release pipeline
-        # (release.yml) still performs the full signed release build before
-        # shipping, so release-only build errors are caught pre-ship.
-        run: flutter build ios --debug --no-codesign
+        run: flutter build ios --no-codesign
 
   # ── Coverage Gate — authoritative SRS 5.7 enforcement ────────────────────
   # Runs after test jobs complete. Checks per-feature/per-module thresholds
