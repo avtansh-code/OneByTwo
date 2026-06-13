@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: PR #60 (FR-PR-05 Contact Support `mailto:`, `8f72514`) and PR #61 (CI pipeline speed-up, `d474507`) merged. FR-HD-01/02 Home dashboard (SCR-06) opened as the next feature PR (roadmap "PR #62" slot; lands as the next available GitHub number ≥ #62).
+> Last updated: FR-HD-01/02 Home dashboard (#62, `57c272e`) merged. FR-PR-04 (My Friends / My Groups from Profile, SCR-26, **P0**) opened as the next feature PR — it was **missing from this candidate list** (an omission: it is the last open P0 functional requirement, SRS line 177) and lands as the next available GitHub number (≥ #63).
 
 ---
 
@@ -28,7 +28,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#59** | **PR** | Documentation reconciliation — docs/skills/agents synced to current code + two code fixes (Firestore emulator debug-log port `8080`->`8181` in `lib/main.dart`; missing `test:canonical` script in `functions/package.json`) + fvm pin + lefthook repair (merged 2026-06-12, `093fce7`) |
 | **#60** | **PR** | FR-PR-05 Contact Support `mailto:` flow + FR-SH-04 fallback dialog (merged 2026-06-12, `8f72514`). |
 | **#61** | **PR** | CI PR-pipeline speed-up — parallelise `build-ios`/`build-android` with `flutter-checks` (no `needs:` edge), cache CocoaPods, guard `flutterfire_cli` activation, de-duplicate coverage-gate via artifacts, pin `firebase-tools` (merged 2026-06-12, `d474507`). |
-| **#62** | **PR** | **FR-HD-01/02 Home dashboard (SCR-06) — open; roadmap "PR #62" slot; lands as the next available GitHub number ≥ #62.** |
+| **#62** | **PR** | FR-HD-01/02 Home dashboard (SCR-06) — merged 2026-06-13, `57c272e`. |
+| **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — open; the last open P0 functional requirement, omitted from this candidate list (corrected); lands as the next available GitHub number ≥ #63.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -40,13 +41,65 @@ PR open.
 
 ---
 
-## PR #62 — IN FLIGHT (FR-HD-01/02 Home dashboard)
+## PR #63 — IN FLIGHT (FR-PR-04 My Friends / My Groups from Profile)
 
-**Status:** Open. FR-HD-01 + FR-HD-02 confirmed as the next-slot pick at
-kickoff per Sprint 2 velocity — the last open P0 product surface on this
-candidate list after FR-PR-05 (#60) closed.
+**Status:** Open. FR-PR-04 confirmed as the next-slot pick at kickoff —
+the **last open P0 functional requirement** (SRS section 4.2, line 177).
+It was **missing from this candidate list** (the FR-HD-01/02 kickoff
+called FR-HD "the last open P0 product surface"; FR-PR-04 was an
+omission), and P0 outranks every remaining P1 (FR-PR-02, FR-AU-09,
+FR-HD-03) and every chore.
 
-Replaces `HomeDashboardPlaceholder` (shell tab 0, live since PR #56) with
+Replaces the two hardcoded `'0'` + "Coming soon" snackbar Stats stubs on
+the Profile screen (SCR-26) — shipped with FR-PR-01 — with live counts +
+cross-tab navigation:
+
+- **Live "My Friends" count.** `friendCountProvider`
+  (`lib/features/profile/application/`, `Provider<AsyncValue<int>>`) — a
+  pure `.length` projection over `friendsListProvider` with
+  `dependencies: [friendsListProvider]` (the PR #62 scoping rule). Four
+  async sub-states on the row: em dash on loading / error (never a
+  crash), the integer on data, `0` on empty.
+- **`shellNavigationControllerProvider` — the architectural first.** A
+  `NotifierProvider.autoDispose<ShellNavigationController, int>` exposing
+  `selectTab(int)`, replacing the in-shell `setState(_currentIndex)` and
+  closing the PR #56 shell-story §2.2 deferral ("no `Notifier<int>` until
+  a second consumer needs it" — FR-PR-04's Profile rows are that
+  consumer). `AuthenticatedShell` reads it for `IndexedStack.index` /
+  bottom-nav / PopScope and writes it from `_onTabSelected`, preserving
+  the `bottom_nav_tab_selected` user-tap telemetry, the PopScope
+  snap-to-tab-0 (no telemetry), and the FAB rules.
+- **Profile rows rewired.** "My Friends" → `selectTab(1)` (Friends tab);
+  "My Groups" → stub `0` + `selectTab(2)` (Groups tab) — no duplicate
+  `FriendsListScreen` push (preserves IndexedStack tab-state). Two
+  PII-free events `profile_friends_tapped` / `profile_groups_tapped`
+  (`profile_stats_telemetry.dart`, pre-declared in `telemetry-plan.md`
+  §1.7). SCR-26 a11y labels preserved with the live count.
+
+**Stubs / defers.** Group axis stubbed (Sprint 3 Groups epic — "My
+Groups" count is a literal `0`). **FR-AC-05 cold-start deep-link
+tab-switch migration deferred** — this PR provides the controller seam
+only; the FCM handler migration is a separate follow-up. No
+`OBTProfileStatRow` extraction (deferred until a second use site). Zero
+schema / rules / index / function change; no new Flutter plugin (no
+`ios/Podfile.lock` change).
+
+**Next candidates** (architect's call at the post-#63 kickoff): the
+carry-forward list below — the FR-AC-05 deep-link tab-switch migration
+(now unblocked by `shellNavigationControllerProvider`),
+`app_settings`/`permission_handler` "Open Settings" CTA chore, FR-PR-02
+phone-number-change, FR-AU-09 account-deletion, Issue #47
+rules-hardening, the FR-HD-03 real chart, and the Sprint 3 Groups epic.
+
+---
+
+## PR #62 — Merged
+
+**Status:** Merged 2026-06-13 (`57c272e`). FR-HD-01 + FR-HD-02 the real
+Home dashboard (SCR-06) shipped — the last open P0 product surface on
+this candidate list when it was picked.
+
+Replaced `HomeDashboardPlaceholder` (shell tab 0, live since PR #56) with
 the real `lib/features/home/` feature:
 
 - **FR-HD-01** overall net-balance header card +
@@ -70,12 +123,6 @@ the real `lib/features/home/` feature:
 tiles). FR-OF-01 offline banner deferred (needs a connectivity plugin →
 `ios/Podfile.lock` churn). Zero schema / rules / index / function change;
 no new Flutter plugin.
-
-**Next candidates** (architect's call at the post-#62 kickoff): the
-carry-forward list below — `app_settings`/`permission_handler` "Open
-Settings" CTA chore, FR-PR-02 phone-number-change, FR-AU-09
-account-deletion, Issue #47 rules-hardening, the FR-HD-03 real
-chart, and the Sprint 3 Groups epic.
 
 ---
 

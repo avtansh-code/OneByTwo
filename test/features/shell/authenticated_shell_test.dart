@@ -31,6 +31,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
 import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 
@@ -78,6 +79,51 @@ List<Widget> _stubTabs() {
     _TabStub(key: ValueKey('tab-2'), label: 'groups'),
     _TabStub(key: ValueKey('tab-3'), label: 'activity'),
     _TabStub(key: ValueKey('tab-4'), label: 'profile'),
+  ];
+}
+
+/// A tab-content stub whose button drives the shell to [target] via
+/// [shellNavigationControllerProvider] directly — never through the
+/// bottom nav — so the resulting switch fires NO `bottom_nav_tab_selected`
+/// telemetry (the FR-PR-04 Profile "My Friends/Groups" rows do exactly
+/// this).
+class _SelectTabButtonStub extends ConsumerWidget {
+  const _SelectTabButtonStub({
+    required this.label,
+    required this.target,
+    super.key,
+  });
+
+  final String label;
+  final int target;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Tab: $label')),
+      body: Center(
+        child: ElevatedButton(
+          key: ValueKey('select-tab-button-$label'),
+          onPressed: () => ref
+              .read(shellNavigationControllerProvider.notifier)
+              .selectTab(target),
+          child: Text('content of $label'),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tab content for the controller-driven switch test: tab 0 hops to
+/// tab 4 (so tab 4 becomes on-stage and tappable without a bottom-nav
+/// tap), and tab 4 hops to tab 1.
+List<Widget> _controllerDrivenTabs() {
+  return const <Widget>[
+    _SelectTabButtonStub(key: ValueKey('tab-0'), label: 'home', target: 4),
+    _TabStub(key: ValueKey('tab-1'), label: 'friends'),
+    _TabStub(key: ValueKey('tab-2'), label: 'groups'),
+    _TabStub(key: ValueKey('tab-3'), label: 'activity'),
+    _SelectTabButtonStub(key: ValueKey('tab-4'), label: 'profile', target: 1),
   ];
 }
 
@@ -428,6 +474,52 @@ void main() {
         // tree at the shell level.
         expect(find.byType(OBTFloatingActionButton), findsOneWidget);
       }
+    });
+  });
+
+  group('AuthenticatedShell — controller-driven programmatic switch '
+      '(FR-PR-04 AC-5, AC-7)', () {
+    testWidgets('a Consumer in tab content switches tabs via selectTab and '
+        'the shell follows it, with no bottom_nav_tab_selected', (
+      tester,
+    ) async {
+      final analytics = _FakeAnalyticsService();
+      await tester.pumpWidget(
+        _buildShell(
+          analytics: analytics,
+          tabContentOverride: _controllerDrivenTabs(),
+        ),
+      );
+      await tester.pump();
+
+      // Home (tab 0) is on stage. Its button programmatically selects
+      // tab 4 through the navigation controller — not a bottom-nav tap.
+      await tester.tap(find.byKey(const ValueKey('select-tab-button-home')));
+      await tester.pump();
+      var stack = tester.widget<IndexedStack>(find.byType(IndexedStack));
+      expect(stack.index, 4, reason: 'shell read the controller (now tab 4)');
+
+      // Tab 4 (profile) is now on stage; its Consumer button selects
+      // tab 1 directly through the controller — the FR-PR-04 pattern.
+      await tester.tap(find.byKey(const ValueKey('select-tab-button-profile')));
+      await tester.pump();
+
+      // The shell reads the controller, so BOTH the IndexedStack and the
+      // bottom nav follow the programmatic selection.
+      stack = tester.widget<IndexedStack>(find.byType(IndexedStack));
+      expect(stack.index, 1);
+      final nav = tester.widget<BottomNavigationBar>(
+        find.byType(BottomNavigationBar),
+      );
+      expect(nav.currentIndex, 1);
+
+      // AC-7 — programmatic switches emit ZERO bottom_nav_tab_selected;
+      // that event is reserved for user taps on the bottom-nav bar.
+      expect(
+        analytics.events.where((e) => e.name == bottomNavTabSelectedEvent),
+        isEmpty,
+        reason: 'selectTab must not fire bottom_nav_tab_selected',
+      );
     });
   });
 }

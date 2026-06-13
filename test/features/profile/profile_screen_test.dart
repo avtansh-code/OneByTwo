@@ -16,9 +16,12 @@ import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
+import 'package:onebytwo/features/profile/application/friend_count_provider.dart';
+import 'package:onebytwo/features/profile/application/profile_stats_telemetry.dart';
 import 'package:onebytwo/features/profile/data/device_diagnostics_service.dart';
 import 'package:onebytwo/features/profile/domain/support_diagnostics.dart';
 import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 
 // -- Fakes -------------------------------------------------------
 
@@ -145,6 +148,26 @@ class _FakeUrlLauncherService implements UrlLauncherService {
   }
 }
 
+/// Spy [ShellNavigationController] that records every `selectTab` index
+/// into an external list. The external list (rather than an instance
+/// field) is load-bearing: the Profile rows call `selectTab` through a
+/// one-off `ref.read(...notifier)`, after which the `autoDispose`
+/// provider drops its only listener and disposes; a later rebuild would
+/// construct a fresh spy. Recording into the shared list keeps captures
+/// stable across that lifecycle so the isolated ProfileScreen tests can
+/// assert which tab a row tried to select.
+class _SpyShellNav extends ShellNavigationController {
+  _SpyShellNav(this.recordedTabs);
+
+  final List<int> recordedTabs;
+
+  @override
+  void selectTab(int index) {
+    recordedTabs.add(index);
+    super.selectTab(index);
+  }
+}
+
 // -- Helpers -----------------------------------------------------
 
 final _testUser = UserModel(
@@ -189,7 +212,11 @@ void main() {
     urlLauncherServiceProvider.overrideWithValue(fakeLauncher),
   ];
 
-  Widget buildSubject({UserModel? user}) {
+  Widget buildSubject({
+    UserModel? user,
+    AsyncValue<int> friendCount = const AsyncData<int>(0),
+    List<Override> extraOverrides = const [],
+  }) {
     final effectiveUser = user ?? _testUser;
     return ProviderScope(
       overrides: [
@@ -198,11 +225,18 @@ void main() {
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
         ...contactSupportOverrides(),
+        // FR-PR-04 — the populated Profile state watches
+        // `friendCountProvider`. Override it directly so these widget
+        // tests need not stand up the whole friends-list provider graph;
+        // the count sub-states are unit-tested in
+        // friend_count_provider_test.dart.
+        friendCountProvider.overrideWithValue(friendCount),
         authStateNotifierProvider.overrideWith(
           (ref) => Stream.value(
             AuthenticatedWithProfile(uid: 'uid-123', user: effectiveUser),
           ),
         ),
+        ...extraOverrides,
       ],
       child: const MaterialApp(home: ProfileScreen()),
     );
@@ -272,14 +306,193 @@ void main() {
       expect(find.text('Edit Profile'), findsOneWidget);
     });
 
-    testWidgets('stats rows show placeholder counts', (tester) async {
-      await tester.pumpWidget(buildSubject());
+    testWidgets('stats rows show the live friend count and the group stub', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject(friendCount: const AsyncData(3)));
       await tester.pumpAndSettle();
 
       expect(find.text('My Friends'), findsOneWidget);
       expect(find.text('My Groups'), findsOneWidget);
-      // Both counts should show "0".
+      // The live friend count renders "3"; the group stub renders "0".
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+      // SCR-26 accessibility labels carry the live count.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics && w.properties.label == 'My Friends, 3, button',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'My Groups, 0, button',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('My Friends shows 0 with the correct label when the user '
+        'has no friends (AC-2)', (tester) async {
+      // buildSubject defaults friendCount to AsyncData(0) — the empty case.
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      // Both the friend count (empty) and the group stub render "0".
       expect(find.text('0'), findsNWidgets(2));
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics && w.properties.label == 'My Friends, 0, button',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'My Groups, 0, button',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('My Friends shows an em dash while the count is loading', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildSubject(friendCount: const AsyncLoading<int>()),
+      );
+      await tester.pumpAndSettle();
+
+      // Em dash (U+2014) trailing instead of a number; the row still
+      // renders and the rest of the screen is unaffected (AC-3).
+      expect(find.text('\u2014'), findsOneWidget);
+      expect(find.text('My Friends'), findsOneWidget);
+      expect(find.text('Test User'), findsOneWidget);
+      // Loading semantics omit the count.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'My Friends, button',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('My Friends shows an em dash on a count read error', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildSubject(
+          friendCount: AsyncError<int>(
+            Exception('Firestore read failed'),
+            StackTrace.empty,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // AC-4 — em dash, NOT a crash, NOT an error dialog, NOT a "0".
+      expect(find.text('\u2014'), findsOneWidget);
+      expect(find.text('My Friends'), findsOneWidget);
+      expect(find.text('Test User'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      // The error sub-state semantics omit the count too.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == 'My Friends, button',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('tapping My Friends emits profile_friends_tapped and '
+        'selects the Friends tab (index 1)', (tester) async {
+      final recorded = <int>[];
+      await tester.pumpWidget(
+        buildSubject(
+          friendCount: const AsyncData(2),
+          extraOverrides: [
+            shellNavigationControllerProvider.overrideWith(
+              () => _SpyShellNav(recorded),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('My Friends'));
+      await tester.pumpAndSettle();
+
+      expect(
+        fakeAnalytics.loggedEvents.any(
+          (e) => e.name == ProfileStatsTelemetry.friendsTapped,
+        ),
+        isTrue,
+      );
+      expect(recorded, [1], reason: 'My Friends row must call selectTab(1)');
+    });
+
+    testWidgets('tapping My Groups emits profile_groups_tapped and '
+        'selects the Groups tab (index 2)', (tester) async {
+      final recorded = <int>[];
+      await tester.pumpWidget(
+        buildSubject(
+          extraOverrides: [
+            shellNavigationControllerProvider.overrideWith(
+              () => _SpyShellNav(recorded),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('My Groups'));
+      await tester.pumpAndSettle();
+
+      expect(
+        fakeAnalytics.loggedEvents.any(
+          (e) => e.name == ProfileStatsTelemetry.groupsTapped,
+        ),
+        isTrue,
+      );
+      expect(recorded, [2], reason: 'My Groups row must call selectTab(2)');
+    });
+
+    testWidgets('profile stats telemetry events are parameter-free (no PII)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject(friendCount: const AsyncData(5)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('My Friends'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('My Groups'));
+      await tester.pumpAndSettle();
+
+      final statEvents = fakeAnalytics.loggedEvents
+          .where(
+            (e) =>
+                e.name == ProfileStatsTelemetry.friendsTapped ||
+                e.name == ProfileStatsTelemetry.groupsTapped,
+          )
+          .toList();
+      expect(statEvents, hasLength(2));
+      for (final event in statEvents) {
+        // AC-9 — both events are emitted parameter-free; certainly no
+        // UID-derived, name, phone, or photo-URL parameter.
+        expect(
+          event.parameters == null || event.parameters!.isEmpty,
+          isTrue,
+          reason: '${event.name} must be parameter-free',
+        );
+        for (final key in const ['userId', 'uid', 'phoneNumber', 'photoUrl']) {
+          expect(
+            event.parameters?.containsKey(key) ?? false,
+            isFalse,
+            reason: '${event.name} must not carry $key',
+          );
+        }
+      }
     });
 
     testWidgets('profile_viewed telemetry fires on mount', (tester) async {
