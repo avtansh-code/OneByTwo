@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-HD-01/02 Home dashboard (#62, `57c272e`) merged. FR-PR-04 (My Friends / My Groups from Profile, SCR-26, **P0**) opened as the next feature PR — it was **missing from this candidate list** (an omission: it is the last open P0 functional requirement, SRS line 177) and lands as the next available GitHub number (≥ #63).
+> Last updated: FR-PR-04 My Friends / My Groups from Profile (#63, `209afea`) merged — **every P0 functional requirement is now shipped**. FR-PR-02 (update phone number via OTP re-verification, SRS section 4.2 line 175, **P1**) opened as the next feature PR — the top-ranked remaining P1 on the carry-forward candidate list (above FR-AU-09 account-deletion and the chore bundle); lands as the next available GitHub number (≥ #64).
 
 ---
 
@@ -29,7 +29,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#60** | **PR** | FR-PR-05 Contact Support `mailto:` flow + FR-SH-04 fallback dialog (merged 2026-06-12, `8f72514`). |
 | **#61** | **PR** | CI PR-pipeline speed-up — parallelise `build-ios`/`build-android` with `flutter-checks` (no `needs:` edge), cache CocoaPods, guard `flutterfire_cli` activation, de-duplicate coverage-gate via artifacts, pin `firebase-tools` (merged 2026-06-12, `d474507`). |
 | **#62** | **PR** | FR-HD-01/02 Home dashboard (SCR-06) — merged 2026-06-13, `57c272e`. |
-| **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — open; the last open P0 functional requirement, omitted from this candidate list (corrected); lands as the next available GitHub number ≥ #63.** |
+| **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — the last open P0 functional requirement, omitted from this candidate list (corrected); merged 2026-06-13, `209afea`.** |
+| **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — IN FLIGHT; top-ranked remaining P1 now that every P0 is shipped; lands as the next available GitHub number ≥ #64.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -41,14 +42,71 @@ PR open.
 
 ---
 
-## PR #63 — IN FLIGHT (FR-PR-04 My Friends / My Groups from Profile)
+## PR #64 — IN FLIGHT (FR-PR-02 update phone number via OTP re-verification)
 
-**Status:** Open. FR-PR-04 confirmed as the next-slot pick at kickoff —
-the **last open P0 functional requirement** (SRS section 4.2, line 177).
-It was **missing from this candidate list** (the FR-HD-01/02 kickoff
-called FR-HD "the last open P0 product surface"; FR-PR-04 was an
-omission), and P0 outranks every remaining P1 (FR-PR-02, FR-AU-09,
-FR-HD-03) and every chore.
+**Status:** Open. FR-PR-02 confirmed as the next-slot pick at kickoff —
+the **top-ranked remaining P1** (SRS section 4.2, line 175) now that
+**every P0 functional requirement is shipped** (FR-PR-04 closed the last
+one in #63). It sits above FR-AU-09 account-deletion and the chore bundle
+on the carry-forward list, removes the "Phone number cannot be changed
+from here." dead-end on the Edit Profile screen (FR-PR-01), and is the
+**first reuse of the auth phone-entry + OTP-entry flow outside sign-in**.
+
+Replaces the read-only phone dead-end (SCR-26 Open Question #1, resolved
+here) with a "Change Phone Number" flow:
+
+- **`updatePhoneNumber` repo method — the mutate-current-user path.** New
+  `PhoneAuthRepository.updatePhoneNumber({verificationId, code})` building
+  `PhoneAuthProvider.credential(...)` and calling
+  `currentUser.updatePhoneNumber(credential)` (NOT `signInWithCredential`,
+  which would switch accounts). `credential-already-in-use` maps to the
+  existing `AuthError.credentialInUse`.
+- **`requires-recent-login` is the common path** (FR-AU-07 session
+  persistence keeps the last sign-in older than Firebase's ~5-minute
+  window). Two-OTP state machine: re-verify the CURRENT number
+  (`reauthenticateWithCredential`) then verify the NEW number. New
+  `AuthError.requiresRecentLogin` variant + British copy; mapped in
+  `_mapException`.
+- **`firestore.rules` `phoneNumber`-immutability relaxation
+  (architect-owned).** `isValidUserUpdate()` line 80 relaxed from
+  `data.phoneNumber == prev.phoneNumber` to
+  `(data.phoneNumber == prev.phoneNumber || data.phoneNumber ==
+  request.auth.token.phone_number)` — the first conditionally-writable
+  identity field. Every other immutability/shape check is preserved.
+  Token-refresh ordering: `currentUser.getIdToken(true)` after
+  `updatePhoneNumber` and BEFORE the `users/{uid}.phoneNumber` write, or
+  the relaxed rule rejects against a stale `phone_number` claim. Functions
+  Dev extends `users-update.test.ts` (allow change-to-token-phone; reject
+  change-to-arbitrary-phone; other immutables still rejected).
+- **Telemetry (PII-free).** `phone_change_*` funnel events with an
+  `error_code` enum; the number is NEVER a parameter (SRS line 308).
+  Pre-declared in `telemetry-plan.md §1.7`.
+
+**Stubs / defers.** International / multi-number support permanently out
+of scope (+91 only, SRS line 133 / section 12.3). No friendship/contact
+migration on change (existing friendships are UID-keyed, unaffected). No
+new Cloud Function / collection / index / Flutter plugin — `firebase_auth`
+already a dependency, so **no `ios/Podfile.lock` change**. The only backend
+change is the `firestore.rules` relaxation + its tests.
+
+**Next candidates** (architect's call at the post-#64 kickoff): the
+carry-forward list below — FR-AU-09 account-deletion (P1, needs the
+cascade-delete Cloud Function), the FR-AC-05 deep-link tab-switch
+migration, the `app_settings`/`permission_handler` "Open Settings" CTA
+chore, the FR-HD-03 real chart, Issue #47 rules-hardening, and the
+Sprint 3 Groups epic.
+
+---
+
+## PR #63 — Merged (FR-PR-04 My Friends / My Groups from Profile)
+
+**Status:** Merged 2026-06-13 (`209afea`). FR-PR-04 was the next-slot pick
+at kickoff — the **last open P0 functional requirement** (SRS section 4.2,
+line 177); **every P0 functional requirement is now shipped**. It was
+**missing from this candidate list** (the FR-HD-01/02 kickoff called
+FR-HD "the last open P0 product surface"; FR-PR-04 was an omission), and
+P0 outranked every remaining P1 (FR-PR-02, FR-AU-09, FR-HD-03) and every
+chore.
 
 Replaces the two hardcoded `'0'` + "Coming soon" snackbar Stats stubs on
 the Profile screen (SCR-26) — shipped with FR-PR-01 — with live counts +

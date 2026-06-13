@@ -71,6 +71,12 @@ class _FakePhoneAuthRepository implements PhoneAuthRepository {
 
 class _FakeUserRepository implements UserRepository {
   @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
+  @override
   Future<UserModel?> getUser(String uid) async => null;
 
   @override

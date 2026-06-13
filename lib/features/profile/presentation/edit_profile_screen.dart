@@ -7,6 +7,7 @@ import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/profile/application/edit_profile_controller.dart';
+import 'package:onebytwo/features/profile/presentation/change_phone_screen.dart';
 import 'package:onebytwo/features/profile/presentation/widgets/photo_picker_sheet.dart';
 
 /// Edit profile screen for FR-PR-01 (SCR-26 edit sub-screen).
@@ -137,24 +138,38 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone number field (read-only).
+                // Phone number row — tappable "Change Phone Number"
+                // (FR-PR-02; resolves SCR-26 Open Question #1).
                 Semantics(
+                  button: true,
                   label:
-                      'Phone number: '
+                      'Phone number, '
                       '${_formatPhoneForA11y(phoneNumber)}, '
-                      'read-only',
-                  child: TextFormField(
-                    initialValue: phoneNumber,
-                    enabled: false,
-                    decoration: InputDecoration(
-                      labelText: 'Phone number',
-                      helperText:
-                          'Phone number cannot be changed '
-                          'from here.',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppTheme.radiusLarge,
+                      'change phone number',
+                  excludeSemantics: true,
+                  child: InkWell(
+                    onTap: state.isSaving
+                        ? null
+                        : () => Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ChangePhoneScreen(),
+                            ),
+                          ),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Phone number',
+                        helperText: 'Tap to change your phone number.',
+                        suffixIcon: const Icon(Icons.chevron_right),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLarge,
+                          ),
                         ),
+                      ),
+                      child: Text(
+                        phoneNumber,
+                        style: theme.textTheme.titleMedium,
                       ),
                     ),
                   ),

@@ -216,6 +216,10 @@ Source: `docs/design/06-screen-specs/23-28-settle-activity-profile.md`
 | `profile_photo_changed` | `action` | `string` (`take` / `choose` / `remove`) | Photo change completed | SCR-26 |
 | `profile_friends_tapped` | — | — | User taps the "My Friends" stats row (FR-PR-04); switches to the Friends tab (index 1). Parameter-free — a friend count is non-identifying. | SCR-26 |
 | `profile_groups_tapped` | — | — | User taps the "My Groups" stats row (FR-PR-04); switches to the Groups tab (index 2). Parameter-free. | SCR-26 |
+| `phone_change_started` | — | — | User opens the Change Phone Number flow from Edit Profile (FR-PR-02). Parameter-free; the number is never logged. | SCR-26 |
+| `phone_change_otp_requested` | `leg` | `string` (`reauth` / `new_number`) | An OTP is requested for the re-authentication leg (current number) or the new-number leg. No phone number is logged. | SCR-26 |
+| `phone_change_completed` | — | — | `updatePhoneNumber` succeeds and the `users/{uid}.phoneNumber` write completes. Parameter-free. | SCR-26 |
+| `phone_change_failed` | `error_code` | `string` (the `AuthError` name, e.g. `invalidOtp` / `credentialInUse` / `requiresRecentLogin` / `networkFailure`, or `sync_failed`) | A Firebase or Firestore step fails after an OTP was requested. Mirrors the `otp_send_failed` / `otp_verification_failed` `error_code` convention (the `AuthError.name`); never carries PII. | SCR-26 |
 | `sign_out_completed` | — | — | User signs out successfully | SCR-26 |
 | `sign_out_cancelled` | — | — | User cancels sign-out dialog | SCR-26 |
 | `notification_prefs_viewed` | — | — | Notification Preferences screen opened | SCR-27 |

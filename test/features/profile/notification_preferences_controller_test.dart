@@ -42,6 +42,12 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakeUserRepository implements UserRepository {
+  @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
   UserModel? userToReturn;
   Exception? throwOnGet;
 

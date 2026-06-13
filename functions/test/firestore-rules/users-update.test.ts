@@ -172,6 +172,86 @@ describe("users/{userId} — immutable fields", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Phone number change (FR-PR-02)
+//
+// phoneNumber is immutable EXCEPT a change to the caller's freshly
+// re-verified auth phone. The relaxed `isValidUserUpdate()` clause is
+// `data.phoneNumber == prev.phoneNumber ||
+//  data.phoneNumber == request.auth.token.phone_number`. The client forces
+// an ID-token refresh after `updatePhoneNumber` so the `phone_number` claim
+// reflects the NEW number before this write (ADR-0015). These tests model
+// the post-refresh token via the `phone_number` claim on the auth context.
+// ---------------------------------------------------------------------------
+
+describe("users/{userId} — phoneNumber change (FR-PR-02)", () => {
+  beforeEach(async () => {
+    await seedUserDoc();
+  });
+
+  it("allows changing phoneNumber to the caller's (refreshed) token phone", async () => {
+    // Token claim is the NEW number, simulating the post-getIdToken(true)
+    // state the client establishes before the Firestore write.
+    const ctx = testEnv.authenticatedContext(uid, {
+      phone_number: "+919123456780",
+    });
+    const userDoc = doc(ctx.firestore(), `users/${uid}`);
+    await assertSucceeds(
+      updateDoc(userDoc, {
+        phoneNumber: "+919123456780",
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("rejects changing phoneNumber to an arbitrary value (not the token phone)", async () => {
+    // The token still carries the OLD number — the rule must reject a write
+    // to any other number than request.auth.token.phone_number.
+    const ctx = testEnv.authenticatedContext(uid, {
+      phone_number: "+919876543210",
+    });
+    const userDoc = doc(ctx.firestore(), `users/${uid}`);
+    await assertFails(
+      updateDoc(userDoc, {
+        phoneNumber: "+919999999999",
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("rejects a phoneNumber change bundled with an immutable createdAt change", async () => {
+    // Even when phoneNumber matches the token phone, every OTHER immutability
+    // check still holds — createdAt cannot move.
+    const ctx = testEnv.authenticatedContext(uid, {
+      phone_number: "+919123456780",
+    });
+    const userDoc = doc(ctx.firestore(), `users/${uid}`);
+    await assertFails(
+      updateDoc(userDoc, {
+        phoneNumber: "+919123456780",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("rejects a phoneNumber change that also drops a required notificationPrefs key", async () => {
+    // The relaxation is scoped to phoneNumber only — the full document shape
+    // (here, notificationPrefs) is still validated on every update.
+    const ctx = testEnv.authenticatedContext(uid, {
+      phone_number: "+919123456780",
+    });
+    const userDoc = doc(ctx.firestore(), `users/${uid}`);
+    await assertFails(
+      updateDoc(userDoc, {
+        phoneNumber: "+919123456780",
+        notificationPrefs: {newExpense: true, settlement: true},
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Validation constraints
 // ---------------------------------------------------------------------------
 

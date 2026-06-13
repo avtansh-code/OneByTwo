@@ -36,6 +36,12 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakeUserRepository implements UserRepository {
+  @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
   UserModel? existingUser;
   bool shouldFail = false;
   Map<String, dynamic>? lastCreatedDoc;
