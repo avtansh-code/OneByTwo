@@ -8,6 +8,7 @@ import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friends_list_screen.dart';
 import 'package:onebytwo/features/home/presentation/home_dashboard_screen.dart';
 import 'package:onebytwo/features/profile/presentation/profile_screen.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 import 'package:onebytwo/features/shell/presentation/groups_list_placeholder.dart';
@@ -24,9 +25,12 @@ import 'package:onebytwo/features/shell/presentation/groups_list_placeholder.dar
 /// **Architectural notes (chore story §Architect Notes).**
 /// - §2.1: IndexedStack — chosen over `go_router ShellRoute` for v1.0;
 ///   the migration is a Sprint 3 standalone chore.
-/// - §2.2: in-shell `setState` — no Riverpod `Notifier<int>` until a
-///   second consumer (e.g. FCM cold-start deep-link expansion) needs
-///   programmatic tab switching.
+/// - §2.2: the active tab index is owned by
+///   `shellNavigationControllerProvider` (a Riverpod `Notifier<int>`).
+///   The PR #56 deferral ("no `Notifier<int>` until a second consumer
+///   needs programmatic tab switching") is now IMPLEMENTED — FR-PR-04's
+///   Profile "My Friends / My Groups" rows are that second consumer and
+///   drive `selectTab(1)` / `selectTab(2)`.
 /// - §2.6: [PopScope] snap-to-tab-0 on Android back when on a
 ///   non-zero tab. The back-driven switch does NOT fire telemetry —
 ///   the `bottom_nav_tab_selected` event is reserved for user-initiated
@@ -53,8 +57,6 @@ class AuthenticatedShell extends ConsumerStatefulWidget {
 }
 
 class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
-  int _currentIndex = 0;
-
   late final List<Widget> _tabContent = _resolveTabContent();
 
   List<Widget> _resolveTabContent() {
@@ -90,7 +92,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
             tabLabelParam: tab.telemetryLabel,
           },
         );
-    setState(() => _currentIndex = index);
+    ref.read(shellNavigationControllerProvider.notifier).selectTab(index);
   }
 
   void _onFabTapped() {
@@ -109,7 +111,9 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
     // `logEvent` calls because they sequence with `Navigator.pop` /
     // `ScaffoldMessenger.showSnackBar` where ordering matters; the
     // FAB-tap path has no such sequencing requirement.
-    final sourceTab = OBTBottomNav.tabs[_currentIndex].telemetryLabel;
+    final sourceTab = OBTBottomNav
+        .tabs[ref.read(shellNavigationControllerProvider)]
+        .telemetryLabel;
     ref
         .read(analyticsServiceProvider)
         .logEvent(
@@ -126,17 +130,21 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(shellNavigationControllerProvider);
     return PopScope(
-      canPop: _currentIndex == 0,
+      canPop: currentIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        setState(() => _currentIndex = 0);
+        // Direct notifier call (NOT via `_onTabSelected`) so the
+        // back-driven snap-to-tab-0 emits NO `bottom_nav_tab_selected`
+        // telemetry — architect §2.6 / AC-7.
+        ref.read(shellNavigationControllerProvider.notifier).selectTab(0);
       },
       child: Scaffold(
-        body: IndexedStack(index: _currentIndex, children: _tabContent),
+        body: IndexedStack(index: currentIndex, children: _tabContent),
         floatingActionButton: OBTFloatingActionButton(onPressed: _onFabTapped),
         bottomNavigationBar: OBTBottomNav(
-          currentIndex: _currentIndex,
+          currentIndex: currentIndex,
           onTabSelected: _onTabSelected,
         ),
       ),

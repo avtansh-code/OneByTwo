@@ -31,6 +31,10 @@ const _newShellFiles = <String>[
   // AC-17 (Inv-1 paise) + AC-18 (Inv-2 simplifiedBalances) cover them.
   'lib/core/widgets/nav/obt_floating_action_button.dart',
   'lib/features/shell/presentation/add_expense_context_picker_sheet.dart',
+  // FR-PR-04 addition — the shell navigation controller that replaces
+  // the in-shell `setState(_currentIndex)`. No money, no
+  // simplifiedBalances, no PII flows through tab-index state.
+  'lib/features/shell/application/shell_navigation_controller.dart',
 ];
 
 void main() {

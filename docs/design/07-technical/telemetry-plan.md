@@ -214,6 +214,8 @@ Source: `docs/design/06-screen-specs/23-28-settle-activity-profile.md`
 | `profile_viewed` | — | — | Profile View screen opened | SCR-26 |
 | `profile_edited` | `fields_changed` | `string` (comma-delimited list) | Profile saved successfully | SCR-26 |
 | `profile_photo_changed` | `action` | `string` (`take` / `choose` / `remove`) | Photo change completed | SCR-26 |
+| `profile_friends_tapped` | — | — | User taps the "My Friends" stats row (FR-PR-04); switches to the Friends tab (index 1). Parameter-free — a friend count is non-identifying. | SCR-26 |
+| `profile_groups_tapped` | — | — | User taps the "My Groups" stats row (FR-PR-04); switches to the Groups tab (index 2). Parameter-free. | SCR-26 |
 | `sign_out_completed` | — | — | User signs out successfully | SCR-26 |
 | `sign_out_cancelled` | — | — | User cancels sign-out dialog | SCR-26 |
 | `notification_prefs_viewed` | — | — | Notification Preferences screen opened | SCR-27 |

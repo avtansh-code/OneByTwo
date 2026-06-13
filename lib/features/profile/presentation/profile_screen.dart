@@ -7,9 +7,12 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/notifications/application/sign_out_with_fcm_cleanup.dart';
 import 'package:onebytwo/features/profile/application/contact_support_controller.dart';
+import 'package:onebytwo/features/profile/application/friend_count_provider.dart';
+import 'package:onebytwo/features/profile/application/profile_stats_telemetry.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
 import 'package:onebytwo/features/profile/presentation/edit_profile_screen.dart';
 import 'package:onebytwo/features/profile/presentation/notification_preferences_screen.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 
 /// Profile view screen for FR-PR-01 (SCR-26).
 ///
@@ -179,6 +182,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     WidgetRef ref,
     UserModel user,
   ) {
+    // FR-PR-04 — live "My Friends" count. Read-side projection of
+    // `friendsListProvider`; a count read failure renders an em dash
+    // (never a crash) and never blocks the rest of the screen.
+    final friendCountAsync = ref.watch(friendCountProvider);
+    final friendsCountText = _friendCountLabel(friendCountAsync);
+    final friendsSemanticsLabel = switch (friendCountAsync) {
+      AsyncData(:final value) => 'My Friends, $value, button',
+      _ => 'My Friends, button',
+    };
     return SafeArea(
       child: ListView(
         children: [
@@ -235,7 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           // Section 2 — Stats.
           Semantics(
             button: true,
-            label: 'My Friends, 0, button',
+            label: friendsSemanticsLabel,
             child: _ProfileRow(
               icon: Icons.people,
               label: 'My Friends',
@@ -243,7 +255,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '0',
+                    friendsCountText,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -256,9 +268,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
               onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Coming soon')));
+                // Fire-and-forget telemetry (no await) then switch to the
+                // Friends tab via the shell controller — NOT a duplicate
+                // FriendsListScreen push (AC-5). Parameter-free event
+                // (AC-9): a friend count is a non-identifying integer.
+                ref
+                    .read(analyticsServiceProvider)
+                    .logEvent(name: ProfileStatsTelemetry.friendsTapped);
+                ref
+                    .read(shellNavigationControllerProvider.notifier)
+                    .selectTab(1);
               },
             ),
           ),
@@ -272,6 +291,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
+                    // Groups are README-only (Sprint 3 epic); the count
+                    // is a literal stub. The Sprint 3 Groups epic swaps
+                    // this for a real `groupCountProvider` without
+                    // changing the row or navigation contract.
                     '0',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
@@ -285,9 +308,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
               onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Coming soon')));
+                ref
+                    .read(analyticsServiceProvider)
+                    .logEvent(name: ProfileStatsTelemetry.groupsTapped);
+                ref
+                    .read(shellNavigationControllerProvider.notifier)
+                    .selectTab(2);
               },
             ),
           ),
@@ -555,6 +581,18 @@ String _formatPhoneForA11y(String phone) {
     return 'plus 91 ${digits.substring(0, 5)} ${digits.substring(5)}';
   }
   return phone;
+}
+
+/// Maps the FR-PR-04 friend-count async sub-state to the trailing text
+/// shown on the "My Friends" stats row: the resolved integer, or an em
+/// dash (U+2014) while loading or on a read error. The error case is
+/// defensive — a count read failure must never crash the Profile screen
+/// or block sign-out (SRS §6.4; AC-3 loading / AC-4 error).
+String _friendCountLabel(AsyncValue<int> friendCount) {
+  return switch (friendCount) {
+    AsyncData(:final value) => '$value',
+    _ => '\u2014',
+  };
 }
 
 /// Animated shimmer overlay for skeleton loading placeholders.
