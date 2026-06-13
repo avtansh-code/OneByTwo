@@ -432,6 +432,47 @@ void main() {
       expect(recorded, [1], reason: 'My Friends row must call selectTab(1)');
     });
 
+    testWidgets('My Friends remains tappable in the count error state — '
+        'tapping it still navigates to the Friends tab (AC-4)', (tester) async {
+      // AC-4 wording: "the row remains tappable". Even when the friend
+      // count read has failed (trailing renders an em dash), the row
+      // must still emit telemetry and switch to the Friends tab.
+      final recorded = <int>[];
+      await tester.pumpWidget(
+        buildSubject(
+          friendCount: AsyncError<int>(
+            Exception('Firestore read failed'),
+            StackTrace.empty,
+          ),
+          extraOverrides: [
+            shellNavigationControllerProvider.overrideWith(
+              () => _SpyShellNav(recorded),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Precondition: we are in the error sub-state (em dash, no count).
+      expect(find.text('\u2014'), findsOneWidget);
+
+      await tester.tap(find.text('My Friends'));
+      await tester.pumpAndSettle();
+
+      expect(
+        fakeAnalytics.loggedEvents.any(
+          (e) => e.name == ProfileStatsTelemetry.friendsTapped,
+        ),
+        isTrue,
+      );
+      expect(
+        recorded,
+        [1],
+        reason: 'the error-state My Friends row must still call selectTab(1)',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('tapping My Groups emits profile_groups_tapped and '
         'selects the Groups tab (index 2)', (tester) async {
       final recorded = <int>[];
