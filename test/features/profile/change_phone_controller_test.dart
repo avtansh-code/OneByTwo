@@ -362,6 +362,51 @@ void main() {
       });
     });
 
+    test('wrong OTP on the new number surfaces invalidOtp and allows retry '
+        'on the same leg (AC-3)', () async {
+      final controller = await atNewPhoneOtp();
+
+      // First attempt: wrong code.
+      account.updateResult = AuthError.invalidOtp;
+      await controller.submitNewPhoneOtp('000000');
+
+      expect(controller.state.step, ChangePhoneStep.newPhoneOtp);
+      expect(controller.state.errorMessage, AuthError.invalidOtp.message);
+      expect(users.updatePhoneCallCount, 0);
+      expect(analytics.paramsOf('phone_change_failed'), {
+        'error_code': 'invalidOtp',
+      });
+
+      // Retry with a correct code — no restart, no new OTP request.
+      account.updateResult = null;
+      await controller.submitNewPhoneOtp('654321');
+
+      expect(controller.state.step, ChangePhoneStep.success);
+      expect(users.lastPhone, '+919123456780');
+      // Only the two leg OTPs were requested across the whole flow.
+      expect(account.requestedPhones, [currentPhone, '+919123456780']);
+    });
+
+    test('a late instant-verification credential cannot double-update during '
+        'an in-flight manual submit', () async {
+      final controller = await atNewPhoneOtp();
+      account.updateResult = null;
+
+      // Kick off a manual submit but do NOT await it yet, then fire the
+      // late auto-retrieval while the first update is in flight.
+      final pending = controller.submitNewPhoneOtp('654321');
+      controller.debugFireNewPhoneAutoRetrieved(
+        PhoneAuthProvider.credential(verificationId: 'vid', smsCode: '654321'),
+      );
+      await pending;
+      await Future<void>.delayed(Duration.zero);
+
+      // Exactly one update + one Firestore write occurred.
+      expect(users.updatePhoneCallCount, 1);
+      expect(ops, ['refreshIdToken', 'firestoreWrite']);
+      expect(controller.state.step, ChangePhoneStep.success);
+    });
+
     test(
       'firestore sync failure sets syncPending; retrySync completes',
       () async {

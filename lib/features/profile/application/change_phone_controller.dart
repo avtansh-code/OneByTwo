@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' show PhoneAuthCredential;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/validators.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -134,6 +135,14 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   final PhoneAccountRepository _accountRepository;
   final UserRepository _userRepository;
 
+  /// True while a re-auth / update (manual OR auto-retrieved) and its
+  /// follow-on Firestore sync are in flight. Guards against a late Android
+  /// instant-verification credential racing an in-flight manual submit and
+  /// issuing a second `updatePhoneNumber`. Distinct from
+  /// [ChangePhoneState.isLoading], which is also true during the OTP-request
+  /// phase when an instant-verification credential legitimately arrives.
+  bool _verifying = false;
+
   /// Updates the entered new-number digits and clears any prior error.
   void updateNewPhone(String digits) {
     state = state.copyWith(
@@ -156,8 +165,9 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   /// Submits the OTP for the re-authentication leg.
   Future<void> submitReauthOtp(String code) async {
     final vid = state.verificationId;
-    if (vid == null || state.isLoading) return;
+    if (vid == null || _verifying) return;
 
+    _verifying = true;
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     final error = await _accountRepository.reauthenticate(
       verificationId: vid,
@@ -169,6 +179,7 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
 
   /// Applies the outcome of a re-authentication (manual or auto-retrieved).
   void _onReauthComplete(AuthError? error) {
+    _verifying = false;
     if (error == null) {
       state = state.copyWith(
         isLoading: false,
@@ -183,6 +194,7 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   /// Android instant verification of the CURRENT number: re-authenticate
   /// with the auto-retrieved credential rather than waiting for manual OTP.
   void _onReauthAutoRetrieved(PhoneAuthCredential credential) {
+    if (_verifying) return;
     if (state.step != ChangePhoneStep.reauthIntro &&
         state.step != ChangePhoneStep.reauthOtp) {
       return;
@@ -191,6 +203,8 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   }
 
   Future<void> _reauthWithCredential(PhoneAuthCredential credential) async {
+    if (_verifying) return;
+    _verifying = true;
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     final error = await _accountRepository.reauthenticateWithCredential(
       credential,
@@ -226,8 +240,9 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   /// Submits the OTP for the new number and, on success, syncs Firestore.
   Future<void> submitNewPhoneOtp(String code) async {
     final vid = state.verificationId;
-    if (vid == null || state.isLoading || state.syncPending) return;
+    if (vid == null || _verifying || state.syncPending) return;
 
+    _verifying = true;
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     final error = await _accountRepository.updatePhoneNumber(
       verificationId: vid,
@@ -240,7 +255,7 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   /// Android instant verification of the NEW number: update with the
   /// auto-retrieved credential rather than waiting for manual OTP.
   void _onNewPhoneAutoRetrieved(PhoneAuthCredential credential) {
-    if (state.syncPending) return;
+    if (_verifying || state.syncPending) return;
     if (state.step != ChangePhoneStep.newPhoneEntry &&
         state.step != ChangePhoneStep.newPhoneOtp) {
       return;
@@ -249,6 +264,8 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   }
 
   Future<void> _updateWithCredential(PhoneAuthCredential credential) async {
+    if (_verifying) return;
+    _verifying = true;
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     final error = await _accountRepository.updatePhoneNumberWithCredential(
       credential,
@@ -260,21 +277,27 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
   /// Applies the outcome of a phone-number update (manual or auto-retrieved).
   Future<void> _onUpdateComplete(AuthError? error) async {
     if (error != null) {
+      _verifying = false;
       _failWith(error);
       return;
     }
     // Auth phone updated. Clear the (now-consumed) verificationId so an
     // OtpInput re-fire cannot re-run updatePhoneNumber, then sync Firestore.
+    // _verifying is held across the sync so a late auto-retrieval cannot
+    // start a second update mid-sync.
     state = state.copyWith(verificationId: () => null);
     await _completeSync();
+    _verifying = false;
   }
 
   /// Retries the Firestore sync after a successful auth update whose
   /// users-doc write failed (no new OTP required).
   Future<void> retrySync() async {
-    if (state.isLoading || !state.syncPending) return;
+    if (_verifying || !state.syncPending) return;
+    _verifying = true;
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     await _completeSync();
+    _verifying = false;
   }
 
   Future<void> _completeSync() async {
@@ -356,6 +379,13 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
       ),
     );
   }
+
+  /// Test-only hook to simulate a late Android instant-verification
+  /// credential arriving on the new-number leg (e.g. during an in-flight
+  /// manual submit). Drives the same private handler as production.
+  @visibleForTesting
+  void debugFireNewPhoneAutoRetrieved(PhoneAuthCredential credential) =>
+      _onNewPhoneAutoRetrieved(credential);
 }
 
 /// Riverpod provider for [ChangePhoneController].
