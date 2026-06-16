@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-PR-02 update phone number via OTP re-verification (#64, `2e68713`) merged — it was the top-ranked remaining P1 and **every P0 functional requirement remains shipped**. FR-AU-09 (permanently delete your account, SRS section 4.1 line 168, **P1**) opened as the next feature PR — the next top-ranked P1 on the carry-forward candidate list (above the Bucket-B chore bundle, Issue #47 rules-hardening, and the `shared_preferences` / `app_settings` chores) and the first reuse of the FR-PR-02 re-authentication surface outside change-phone; lands as the next available GitHub number (≥ #65).
+> Last updated: FR-PR-02 update phone number via OTP re-verification (#64, `2e68713`) merged — it was the top-ranked remaining P1 and **every P0 functional requirement remains shipped**. FR-AU-09 (permanently delete your account, SRS section 4.1 line 168, **P1**) opened as the next feature PR — the next top-ranked P1 on the carry-forward candidate list (above the Bucket-B chore bundle, Issue #47 rules-hardening, and the `shared_preferences` / `app_settings` chores) and the first reuse of the FR-PR-02 re-authentication surface outside change-phone; opened as PR #65; the deferred 30-day reaper / grace-period / SMS / audit-log work is filed as FUTURE issue #66.
 
 ---
 
@@ -31,7 +31,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#62** | **PR** | FR-HD-01/02 Home dashboard (SCR-06) — merged 2026-06-13, `57c272e`. |
 | **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — the last open P0 functional requirement, omitted from this candidate list (corrected); merged 2026-06-13, `209afea`.** |
 | **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — merged 2026-06-16, `2e68713`.** |
-| **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — IN FLIGHT; the next top-ranked P1 now that FR-PR-02 has merged and every P0 is shipped; first reuse of the FR-PR-02 re-authentication surface; lands as the next available GitHub number ≥ #65 (a companion FUTURE issue for the deferred 30-day reaper / grace-period may consume an intermediate number).** |
+| **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — IN FLIGHT; the next top-ranked P1 now that FR-PR-02 has merged and every P0 is shipped; first reuse of the FR-PR-02 re-authentication surface; opened as PR #65; the deferred 30-day reaper / grace-period work is FUTURE issue #66.** |
+| #66 | Issue | FUTURE: 30-day scheduled-cleanup reaper + grace-period / confirmation SMS / audit log for account deletion (SCR-28 Open Questions 1-3) — deferred from FR-AU-09 (#65); CANNOT be closed by #65. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -514,7 +515,7 @@ Candidates (in rough priority order — architect's call at kickoff):
   existing OTP re-verification flow; medium PR ~5 SP).
 - **FR-AU-09 account-deletion flow** (P1; depends on a new
   Cloud Function for cascade-delete fan-out; medium PR ~5-8 SP) —
-  **IN FLIGHT (this PR; roadmap "PR #65" slot, ≥ #65).**
+  **IN FLIGHT (this PR; PR #65; deferred reaper work as FUTURE issue #66).**
 - **Bucket-B chore close-out** (single ~3 SP PR closing #20 CV3,
   #21 R1-R4, #23 PY3 partial with comments — see
   `docs/sprint-zero/sprint-2-plan.md` §"Issue closure candidates").
