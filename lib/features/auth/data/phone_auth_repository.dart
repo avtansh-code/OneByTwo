@@ -192,26 +192,11 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
 
   /// Maps a [FirebaseAuthException] to a domain [AuthError].
   ///
-  /// See `docs/design/07-technical/auth-error-codes.md` for the
-  /// full mapping table.
-  AuthError _mapException(FirebaseAuthException e) {
-    return switch (e.code) {
-      'invalid-phone-number' ||
-      'missing-phone-number' => AuthError.invalidPhoneNumber,
-      'too-many-requests' => AuthError.tooManyRequests,
-      'quota-exceeded' => AuthError.quotaExceeded,
-      'network-request-failed' => AuthError.networkFailure,
-      'operation-not-allowed' => AuthError.operationNotAllowed,
-      'app-not-authorized' => AuthError.appNotAuthorised,
-      'captcha-check-failed' => AuthError.captchaFailed,
-      'user-disabled' => AuthError.userDisabled,
-      'invalid-verification-code' => AuthError.invalidOtp,
-      'session-expired' ||
-      'invalid-verification-id' => AuthError.sessionExpired,
-      'credential-already-in-use' => AuthError.credentialInUse,
-      _ => AuthError.unknown,
-    };
-  }
+  /// Delegates to [authErrorFromFirebaseCode], the single source of truth
+  /// for the mapping. See `docs/design/07-technical/auth-error-codes.md`
+  /// for the full mapping table.
+  AuthError _mapException(FirebaseAuthException e) =>
+      authErrorFromFirebaseCode(e.code);
 }
 
 /// Riverpod provider for [PhoneAuthRepository].

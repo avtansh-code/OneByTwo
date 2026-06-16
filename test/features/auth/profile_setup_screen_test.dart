@@ -26,6 +26,12 @@ class FakeAnalyticsService implements AnalyticsService {
 
 /// Fake [UserRepository] for screen tests.
 class FakeUserRepository implements UserRepository {
+  @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
   bool shouldFailCreate = false;
 
   /// When non-null, [createUser] waits on this completer.

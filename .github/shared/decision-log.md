@@ -783,3 +783,96 @@ looked up (a single selected phone number); ADR-0014 defines how that lookup
 is performed (Cloud Function, rate-limited, with minimal response shape).
 
 ---
+
+## ADR-0015: Phone Number Change via Re-verification (FR-PR-02)
+
+**Status:** Accepted
+
+### Context
+
+FR-PR-02 (SRS section 4.2, line 175, P1) lets a signed-in user change their phone
+number. Three forces shaped the design:
+
+1. The operation must mutate the *current* account, not sign in. Firebase exposes
+   `currentUser.updatePhoneNumber(PhoneAuthCredential)` for exactly this; the
+   sign-in path (`signInWithCredential`, used by `PhoneAuthRepository.verifyOtp`)
+   would create or switch accounts and is wrong here.
+2. `updatePhoneNumber` raises `requires-recent-login` when the last sign-in is
+   older than Firebase's recent-login window. Because FR-AU-07 persists the session
+   and auto-logs in, this is the **common** path, not an edge case.
+3. `users/{uid}.phoneNumber` was immutable on update (`isValidUserUpdate()` asserted
+   `data.phoneNumber == prev.phoneNumber`). The client must be able to persist the
+   new number, but only the genuinely re-verified one.
+
+### Decision
+
+- **Two-OTP, proactive re-authentication.** The flow always re-verifies the
+  CURRENT number first (`reauthenticateWithCredential`), then verifies the NEW
+  number and calls `updatePhoneNumber`. Re-authenticating refreshes the recent-login
+  window, so the subsequent `updatePhoneNumber` does not raise
+  `requires-recent-login`. This is preferred over a reactive
+  (try-update, catch, re-auth, retry) shape because it yields a working result for
+  the session-persisted majority without a mid-flow credential-consumption retry.
+- **Interface Segregation.** The mutate-current-user operations live on a new
+  `PhoneAccountRepository` (`lib/features/auth/data/phone_account_repository.dart`),
+  distinct from the sign-in `PhoneAuthRepository`. Its `requestOtp` handles Android
+  instant verification by handing the auto-retrieved credential to an
+  `onAutoRetrieved` callback (which re-authenticates / updates the current user) —
+  it NEVER calls `signInWithCredential`, so auto-retrieval cannot switch accounts,
+  and the flow can never get stuck on a loading state when no SMS code is sent.
+  Keeping the interfaces separate also avoids forcing the 13 existing sign-in test
+  fakes to implement change-phone methods they never exercise.
+- **Relaxed, narrowly-scoped Security Rule (ADR-0010 pattern preserved).**
+  `isValidUserUpdate()` changes the `phoneNumber` clause from
+  `data.phoneNumber == prev.phoneNumber` to
+  `(data.phoneNumber == prev.phoneNumber || data.phoneNumber == request.auth.token.phone_number)`.
+  Every other immutability and shape check is unchanged: `createdAt` stays
+  immutable, the `hasOnly` key whitelist, the displayName / photoUrl /
+  notificationPrefs / locale validators, and `updatedAt == request.time` all hold.
+  An arbitrary `phoneNumber` (not the freshly-verified token phone) is still
+  rejected.
+- **Token-refresh-before-write ordering.** After `updatePhoneNumber` succeeds the
+  client forces `currentUser.getIdToken(true)` BEFORE writing
+  `users/{uid}.phoneNumber`, so `request.auth.token.phone_number` reflects the NEW
+  number when the relaxed rule evaluates. The Firestore write itself is a
+  client-side `UserRepository.updatePhoneNumber` (ADR-0008), not a Cloud Function —
+  Firebase has no native "phone changed" trigger and a callable would be
+  over-engineering.
+
+### Consequences
+
+- The new number must be a valid +91 10-digit mobile (reuses `validateIndianMobile`;
+  SRS line 133); international numbers remain out of scope.
+- The re-auth target number is sourced from Firebase Auth
+  (`currentUser.phoneNumber`) — the authoritative number
+  `reauthenticateWithCredential` runs against — not the Firestore users-doc copy.
+- **Known limitation (S3 follow-up):** the change spans two systems (Firebase Auth,
+  then the Firestore users-doc). If `updatePhoneNumber` succeeds but the gated
+  Firestore write fails persistently and the user abandons the flow at
+  `syncPending`, Auth holds the NEW number while the users-doc still shows the OLD
+  one. The account stays fully usable (friendships are UID-keyed) and the displayed
+  number is the stale doc value; a follow-up reconciliation (detect
+  `auth.phoneNumber != users.phoneNumber` on launch and re-attempt the sync) is
+  tracked separately. `user-mismatch` is mapped to `AuthError.requiresRecentLogin`
+  so the re-entry path surfaces a clear message rather than a generic error.
+- Existing friendships are UID-keyed and unaffected — no contact-matching migration.
+  The user becomes discoverable by the new number going forward (ADR-0013/0014).
+- Functions Dev adds `users-update.test.ts` cases: a change to the token phone is
+  allowed; a change to an arbitrary phone is rejected; other immutable-field changes
+  remain rejected.
+- Telemetry is PII-free: the number is never an event parameter (SRS section 5.4).
+- No new Cloud Function, collection, index, or Flutter plugin; `firebase_auth`
+  already provides the required APIs (no `ios/Podfile.lock` change).
+
+### Alternatives Considered
+
+- **Reactive re-auth (update first, catch `requires-recent-login`).** Rejected:
+  for the session-persisted majority it always fails first, consumes an OTP, and
+  needs a more complex retry; the proactive flow is simpler and always works.
+- **Callable Cloud Function for the Firestore sync.** Rejected as over-engineering;
+  the client write gated by the relaxed rule is consistent with ADR-0008.
+- **Adding the methods to `PhoneAuthRepository`.** Rejected: it would force all 13
+  sign-in fakes to implement change-phone methods and risks coupling the sign-in
+  auto-verify behaviour into the change flow.
+
+---

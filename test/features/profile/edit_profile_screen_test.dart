@@ -28,6 +28,12 @@ class _FakeAnalyticsService implements AnalyticsService {
 
 class _FakeUserRepository implements UserRepository {
   @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
+  @override
   Future<UserModel?> getUser(String uid) async => null;
 
   @override
@@ -166,13 +172,20 @@ void main() {
       expect(find.text('Display name cannot be empty.'), findsOneWidget);
     });
 
-    testWidgets('phone number field is read-only', (tester) async {
+    testWidgets('phone number row shows a tappable change affordance', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
+      // The FR-PR-02 entry point: number shown, "tap to change" helper,
+      // a chevron, and the old read-only hint removed.
+      expect(find.text('+919876543210'), findsOneWidget);
+      expect(find.text('Tap to change your phone number.'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       expect(
         find.text('Phone number cannot be changed from here.'),
-        findsOneWidget,
+        findsNothing,
       );
     });
 
@@ -204,22 +217,19 @@ void main() {
       expect(find.text('45/50'), findsOneWidget);
     });
 
-    testWidgets('phone number field is disabled and shows hint', (
+    testWidgets('phone number row is a tappable button, not a disabled field', (
       tester,
     ) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      // Helper text should be present.
-      expect(
-        find.text('Phone number cannot be changed from here.'),
-        findsOneWidget,
+      // Exposed as an InkWell affordance with a non-null onTap (the
+      // navigation into the change-phone flow), replacing the old disabled
+      // TextFormField.
+      final inkWell = tester.widget<InkWell>(
+        find.widgetWithText(InkWell, 'Tap to change your phone number.'),
       );
-      // The TextFormField should be disabled.
-      final formFields = tester.widgetList<TextFormField>(
-        find.byType(TextFormField),
-      );
-      expect(formFields.any((f) => f.enabled == false), isTrue);
+      expect(inkWell.onTap, isNotNull);
     });
   });
 }

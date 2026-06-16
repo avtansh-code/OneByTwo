@@ -56,6 +56,12 @@ class _FakePhoneAuthRepository implements PhoneAuthRepository {
 /// Fake [UserRepository] for the smoke test.
 class _FakeUserRepository implements UserRepository {
   @override
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {}
+
+  @override
   Future<UserModel?> getUser(String uid) async => null;
 
   @override

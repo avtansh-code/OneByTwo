@@ -242,4 +242,44 @@ void main() {
       );
     });
   });
+
+  group('UserRepository — updatePhoneNumber writer (FR-PR-02)', () {
+    test('writes exactly phoneNumber and updatedAt server timestamp', () async {
+      final firestore = _FakeFirestore();
+      final repo = _repo(firestore);
+
+      await repo.updatePhoneNumber(
+        uid: 'uid-test',
+        phoneNumber: '+919123456780',
+      );
+
+      expect(firestore.lastCollectionPath, 'users');
+      final doc = _userDoc(firestore, 'uid-test');
+      expect(doc.updateCallCount, 1);
+
+      final payload = doc.capturedUpdate!;
+      // Exactly two keys: the new number plus the server timestamp. The
+      // writer never touches displayName, photoUrl, createdAt, etc.
+      expect(payload.keys.toSet(), {'phoneNumber', 'updatedAt'});
+      expect(payload['phoneNumber'], '+919123456780');
+      expect(payload['updatedAt'], isA<FieldValue>());
+    });
+
+    test('propagates a Firestore failure to the caller', () async {
+      final firestore = _FakeFirestore();
+      final repo = _repo(firestore);
+
+      final doc = _userDoc(firestore, 'uid-test');
+      doc.throwOnUpdate = FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'stale token',
+      );
+
+      await expectLater(
+        repo.updatePhoneNumber(uid: 'uid-test', phoneNumber: '+919123456780'),
+        throwsA(isA<FirebaseException>()),
+      );
+    });
+  });
 }

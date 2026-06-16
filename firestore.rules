@@ -76,8 +76,15 @@ service cloud.firestore {
             'phoneNumber', 'displayName', 'photoUrl', 'fcmTokens',
             'createdAt', 'updatedAt', 'notificationPrefs', 'locale'
           ])
-          // Immutable fields must not change.
-          && data.phoneNumber == prev.phoneNumber
+          // Immutable fields must not change, with one exception:
+          // phoneNumber MAY change, but only to the caller's freshly
+          // re-verified auth phone (FR-PR-02 re-verification flow,
+          // ADR-0015). request.auth.token.phone_number reflects the NEW
+          // number only after the client forces an ID-token refresh
+          // (getIdToken(true)) following currentUser.updatePhoneNumber.
+          // Any other phoneNumber value is rejected.
+          && (data.phoneNumber == prev.phoneNumber
+              || data.phoneNumber == request.auth.token.phone_number)
           && data.createdAt == prev.createdAt
           // Mutable fields must remain valid.
           && data.displayName is string

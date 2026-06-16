@@ -362,6 +362,8 @@ void main() {
         'session-expired': AuthError.sessionExpired,
         'invalid-verification-id': AuthError.sessionExpired,
         'credential-already-in-use': AuthError.credentialInUse,
+        'requires-recent-login': AuthError.requiresRecentLogin,
+        'user-mismatch': AuthError.requiresRecentLogin,
         'internal-error': AuthError.unknown,
         'some-unknown-code': AuthError.unknown,
       };

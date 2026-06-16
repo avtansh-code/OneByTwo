@@ -121,6 +121,26 @@ class UserRepository {
     });
   }
 
+  /// Updates the user's phone number at `users/{uid}.phoneNumber` after a
+  /// successful FR-PR-02 re-verification.
+  ///
+  /// The caller MUST have already (1) called
+  /// `currentUser.updatePhoneNumber(...)` so the new number is the verified
+  /// auth phone, and (2) forced an ID-token refresh (`getIdToken(true)`) so
+  /// `request.auth.token.phone_number` matches [phoneNumber]. Otherwise the
+  /// relaxed `isValidUserUpdate()` rule rejects this write against a stale
+  /// token claim (see ADR-0015). Always sets `updatedAt` to the server
+  /// timestamp; writes no other field.
+  Future<void> updatePhoneNumber({
+    required String uid,
+    required String phoneNumber,
+  }) async {
+    await _firestore.collection('users').doc(uid).update(<String, Object?>{
+      'phoneNumber': phoneNumber,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Deletes the avatar file at `avatars/{uid}` from
   /// Firebase Storage.
   ///

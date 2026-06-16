@@ -38,6 +38,14 @@ enum AuthError {
   /// The credential is already linked to another account.
   credentialInUse,
 
+  /// The operation needs a recent sign-in; the user must re-authenticate.
+  ///
+  /// Raised by sensitive mutations such as `updatePhoneNumber` when the
+  /// last sign-in is older than Firebase's recent-login window. Under
+  /// FR-AU-07 session persistence this is the common path, not an edge
+  /// case, so the change-phone flow re-verifies the current number first.
+  requiresRecentLogin,
+
   /// An unknown error occurred.
   unknown;
 
@@ -75,6 +83,35 @@ enum AuthError {
     credentialInUse =>
       'This phone number is already linked to another '
           'account. Please contact support.',
+    requiresRecentLogin =>
+      'For your security, please verify your current '
+          'number again before changing it.',
     unknown => 'Something went wrong. Please try again.',
+  };
+}
+
+/// Maps a raw `FirebaseAuthException.code` to a domain [AuthError].
+///
+/// This is the single source of truth for the Firebase-code → [AuthError]
+/// translation, shared by every repository that wraps Firebase Phone Auth
+/// (`FirebasePhoneAuthRepository` for sign-in and the change-phone account
+/// repository). See `docs/design/07-technical/auth-error-codes.md` for the
+/// full mapping table.
+AuthError authErrorFromFirebaseCode(String code) {
+  return switch (code) {
+    'invalid-phone-number' ||
+    'missing-phone-number' => AuthError.invalidPhoneNumber,
+    'too-many-requests' => AuthError.tooManyRequests,
+    'quota-exceeded' => AuthError.quotaExceeded,
+    'network-request-failed' => AuthError.networkFailure,
+    'operation-not-allowed' => AuthError.operationNotAllowed,
+    'app-not-authorized' => AuthError.appNotAuthorised,
+    'captcha-check-failed' => AuthError.captchaFailed,
+    'user-disabled' => AuthError.userDisabled,
+    'invalid-verification-code' => AuthError.invalidOtp,
+    'session-expired' || 'invalid-verification-id' => AuthError.sessionExpired,
+    'credential-already-in-use' => AuthError.credentialInUse,
+    'requires-recent-login' || 'user-mismatch' => AuthError.requiresRecentLogin,
+    _ => AuthError.unknown,
   };
 }

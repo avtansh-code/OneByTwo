@@ -84,6 +84,26 @@ Non-`FirebaseAuthException` exceptions (e.g. `PlatformException` from the method
 channel) are also mapped to `AuthError.unknown`. The raw exception type and
 message are logged to Crashlytics but never shown to the user.
 
+### 1.4 Phone Change Phase (FR-PR-02 — `reauthenticateWithCredential` / `updatePhoneNumber`)
+
+These errors can be thrown when re-verifying the current number
+(`currentUser.reauthenticateWithCredential`) or applying the new number
+(`currentUser.updatePhoneNumber`) in the change-phone flow. They are mapped by the
+same `authErrorFromFirebaseCode` function used by sign-in.
+
+| Firebase Code | Domain Error | User Message | Recovery | Telemetry Code |
+|---|---|---|---|---|
+| `requires-recent-login` | `AuthError.requiresRecentLogin` | "For your security, please verify your current number again before changing it." | The flow re-authenticates the current number first; surfaced only if re-authentication itself cannot complete. | `requiresRecentLogin` |
+| `invalid-verification-code` | `AuthError.invalidOtp` | "That code does not match. Please check and try again." | Re-enter the code on the current step. | `invalidOtp` |
+| `credential-already-in-use` | `AuthError.credentialInUse` | "This phone number is already linked to another account. Please contact support." | Contact Support; the new number belongs to another account. | `credentialInUse` |
+| `session-expired` / `invalid-verification-id` | `AuthError.sessionExpired` | "Your code has expired. Please request a new one." | Request a new code for the current leg. | `sessionExpired` |
+
+> The change-phone funnel logs `phone_change_failed` with `error_code` set to the
+> `AuthError.name` (e.g. `requiresRecentLogin`), consistent with the
+> `otp_send_failed` / `otp_verification_failed` convention. A failed Firestore
+> users-doc sync after a successful auth update logs `error_code: sync_failed`.
+> The phone number is never a telemetry parameter (SRS section 5.4).
+
 ---
 
 ## 2. AuthError Enum — Quick Reference
@@ -100,6 +120,7 @@ AuthError.userDisabled
 AuthError.invalidOtp
 AuthError.sessionExpired
 AuthError.credentialInUse
+AuthError.requiresRecentLogin
 AuthError.unknown
 ```
 
