@@ -14,7 +14,8 @@
 Error handling differs by entry-point type:
 
 - **HTTPS Callables** (`recomputeSimplifiedBalances`, `lookupUserByPhoneNumber`,
-  `sendReminderNotification`) throw `HttpsError` from `firebase-functions/v2/https`.
+  `sendReminderNotification`, `deleteUserAccount`) throw `HttpsError` from
+  `firebase-functions/v2/https`.
   The Firebase callable protocol serialises this to the client. The machine-readable
   catalogue code is carried in the `details` object as `errorCode` (and, for
   `RATE_LIMITED` on the reminder, an additional `nextAllowedAtIso`).
@@ -103,6 +104,18 @@ event with an `errorCode` field:
 
 Activity-feed and FCM emission failures inside a trigger are logged but never
 rethrown, so they cannot trigger a retry of the already-committed recompute.
+
+### 2.6 deleteUserAccount (callable)
+
+FR-AU-09 account-deletion cascade. Input: none (the subject is the caller's own
+`request.auth.uid`); output: `{ success: true }`. The auth check runs first; any
+failure inside the idempotent cascade maps to `INTERNAL`. See ADR-0016 for the
+delete-vs-anonymise matrix.
+
+| Code | Firebase Code | HTTP Equiv | Description | Retryable |
+|------|---------------|------------|-------------|-----------|
+| `UNAUTHENTICATED` | `unauthenticated` | 401 | No `context.auth.uid` on the request. | No |
+| `INTERNAL` | `internal` | 500 | Unexpected error during the deletion cascade; the cascade is idempotent and safe to retry. | Yes |
 
 ---
 

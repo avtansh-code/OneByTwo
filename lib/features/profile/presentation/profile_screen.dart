@@ -10,6 +10,7 @@ import 'package:onebytwo/features/profile/application/contact_support_controller
 import 'package:onebytwo/features/profile/application/friend_count_provider.dart';
 import 'package:onebytwo/features/profile/application/profile_stats_telemetry.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
+import 'package:onebytwo/features/profile/presentation/delete_account_screen.dart';
 import 'package:onebytwo/features/profile/presentation/edit_profile_screen.dart';
 import 'package:onebytwo/features/profile/presentation/notification_preferences_screen.dart';
 import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
@@ -392,11 +393,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               label: 'Delete Account',
               iconColour: theme.colorScheme.error,
               labelColour: theme.colorScheme.error,
-              onTap: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Coming soon')));
-              },
+              onTap: _openDeleteAccount,
             ),
           ),
         ],
@@ -425,6 +422,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await ContactSupportFallbackDialog.show(
         context,
         supportEmailAddress: result.supportEmailAddress,
+      );
+    }
+  }
+
+  /// Opens the FR-AU-09 account-deletion flow (SCR-28 Part B). On a Step D
+  /// failure / timeout the screen pops with [DeleteAccountOutcome.failed]
+  /// and Profile View shows an error snackbar whose action reuses the
+  /// FR-PR-05 Contact Support flow. On success the flow signs out and the
+  /// root auth gate routes to the Phone Entry screen, so control never
+  /// returns here.
+  Future<void> _openDeleteAccount() async {
+    final outcome = await Navigator.of(context).push<DeleteAccountOutcome>(
+      MaterialPageRoute<DeleteAccountOutcome>(
+        builder: (_) => const DeleteAccountScreen(),
+      ),
+    );
+    if (!mounted) return;
+    if (outcome == DeleteAccountOutcome.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Account deletion failed. Please try again or contact support.',
+          ),
+          action: SnackBarAction(
+            label: 'Contact Support',
+            onPressed: _contactSupport,
+          ),
+        ),
       );
     }
   }

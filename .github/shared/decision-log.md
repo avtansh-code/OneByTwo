@@ -876,3 +876,204 @@ number. Three forces shaped the design:
   auto-verify behaviour into the change flow.
 
 ---
+
+## ADR-0016: Account Deletion Cascade — Delete-vs-Anonymise via a users-doc Tombstone (FR-AU-09)
+
+**Status:** Accepted
+
+### Context
+
+FR-AU-09 (SRS section 4.1, line 168, P1) lets a signed-in user permanently delete
+their account. The requirement text is precise about the split: the operation
+"anonymises their data in shared groups and removes personal records within 30
+days." SRS section 5.5 (line 318) reinforces this under the DPDP Act 2023 — the
+right to delete requires removal or anonymisation of all personal data within 30
+days. SRS sections 7.1 (line 405) and 7.3 (line 473) place account deletion among
+the heavy operations that must run as a Cloud Function so the client cannot bypass
+invariants.
+
+The user-facing flow is specified in SCR-28 Part B (the five-step Warning ->
+Re-auth -> Confirm -> Processing -> Success route). Step D calls a single Cloud
+Function `deleteUserAccount`; this ADR defines that function's contract and,
+critically, the data-fate matrix it implements.
+
+The design tension is the One By Two data model itself. A user's records fall into
+two disjoint classes:
+
+1. **Personal records** that belong to the user alone — their profile, activity
+   feed, rate-limit counters, avatar, and the Firebase Auth identity.
+2. **Shared records** that are co-owned with another member — friendships, the
+   expenses and settlements inside them, receipts, and the derived
+   `simplifiedBalances`. Hard-deleting these would corrupt the surviving member's
+   balance and history, which they have an equal claim to and which FR-AU-09
+   explicitly says to preserve ("balances will be preserved for other members",
+   SCR-28 Step A copy).
+
+Three further forces shaped the design:
+
+- **Invariant 2** makes `simplifiedBalances` server-maintained and written solely
+  by the recompute core. The deletion function runs under the Admin SDK and so
+  *could* write the field, which makes accidental mutation a real, high-severity
+  risk.
+- The client already renders missing display names as `displayName ?? 'Unknown'`
+  at three call sites. The design has to choose how a deleted user surfaces in the
+  surviving member's UI without a client change.
+- The re-authentication step (SCR-28 Step B) is the same proactive phone
+  re-verification primitive that ADR-0015 (FR-PR-02) introduced, raising the
+  question of whether to reuse or fork it.
+
+### Decision
+
+`deleteUserAccount` partitions every record that touches the departing user into
+exactly one of three fates. The matrix is the core decision; the points below
+justify it and pin the callable contract.
+
+| Fate | Records | Mechanism |
+|---|---|---|
+| **DELETE** (personal) | `activity/{uid}` document and its `items/**` subcollection; `_rateLimits/{uid}/**`; the Storage object `avatars/{uid}`; the Firebase **Auth** record. | Hard delete. `admin.auth().deleteUser(uid)` runs **last**. |
+| **TOMBSTONE** (identity) | `users/{uid}` | The document is **replaced** with the PII-free shell `{ displayName: 'Deleted User', deletedAt: <serverTimestamp> }`. |
+| **PRESERVE / no-op** (shared) | `friendships/{*}` the user belongs to, their `expenses` subcollections, the related top-level `settlements`, and `receipts/friendships/{fid}/{expenseId}`. | The function does nothing. The surviving member keeps the exact balance and history they had. |
+
+- **The tombstone is the anonymisation mechanism.** Replacing `users/{uid}` with
+  the name-only shell strips `phoneNumber`, `photoUrl`, `fcmTokens`,
+  `notificationPrefs`, and `locale`, removing every personal field (this is how
+  FR-AU-09's "removes personal records" and the SRS section 5.5 / DPDP 2023 erasure
+  duty are met) while leaving a resolvable identity. Anonymisation in shared
+  contexts is delivered **entirely** by this single write — never by mutating any
+  friendship, expense, settlement, or balance.
+- **Invariant 2 boundary — deliberate preservation (the highest-risk
+  regression).** `deleteUserAccount` runs under the Admin SDK and is therefore
+  *technically* able to write `simplifiedBalances`. It must **never** recompute,
+  zero, or strip `simplifiedBalances` on a surviving friendship. The sole writer of
+  `simplifiedBalances` values remains the recompute core
+  (`functions/src/simplified-debts/function.ts`; Invariant 2). An integration test
+  must assert that a surviving member's `simplifiedBalances` map is **byte-for-byte
+  identical** before and after their counterparty deletes their account.
+- **"Unknown" vs "Deleted User" — option (b), no client change.** The three
+  name-fallback sites (`friends_list_provider.dart:109`,
+  `friend_detail_provider.dart:289`, `activity_feed_screen.dart:297`) already
+  coalesce with `displayName ?? 'Unknown'`. Because the tombstone sets
+  `displayName: 'Deleted User'`, those sites render "Deleted User" with **no client
+  edit**, while a genuinely absent users-doc still renders "Unknown". The two
+  outcomes are intentionally distinct; the client requires no change for this
+  feature.
+- **"30 days" is a synchronous hard-delete for v1.0.** The cascade runs
+  synchronously inside the callable — no scheduler, no grace period, no background
+  reaper — which is the simplest mechanism, adds no new infrastructure, and matches
+  the SCR-28 Step D contract (the client awaits one call and shows success on
+  return). "30 days" becomes user-facing copy and a safety ceiling, not a delay.
+  The soft-delete tombstone plus a scheduled `onSchedule` reaper and a reversible
+  grace period (SCR-28 Account Deletion Open Questions 1-3) are **deferred to a
+  future issue**.
+- **Idempotency, step ordering, and batching.**
+  - *Ordering:* delete Firestore data -> delete Storage -> delete Auth **last**.
+    While the Auth record exists the caller can re-authenticate and retry the whole
+    cascade; once Auth is gone the account is unreachable, so deleting it last keeps
+    every partial-failure state recoverable.
+  - *Idempotency:* every step treats already-absent state as success.
+    `auth/user-not-found`, a missing users or activity document, an absent
+    rate-limit path, and a missing avatar object are all swallowed as no-ops, so a
+    re-run converges.
+  - *Batching:* the subcollection deletes use Firestore `recursiveDelete`
+    (BulkWriter under the hood), which handles the 500-write `WriteBatch` cap and is
+    safe to re-run (SCR-28 edge cases 3 and 4).
+- **`deleteUserAccount` callable contract.** HTTPS callable, region `asia-south1`,
+  pinned via the `REGION` constant exported from `functions/src/index.ts`. Input:
+  none — the subject is `request.auth.uid`, so a user can only delete themselves.
+  Output: `{ success: true }`. The auth check runs **first**: a missing
+  `request.auth.uid` throws
+  `HttpsError("unauthenticated", ..., { errorCode: "UNAUTHENTICATED" })` before any
+  read or write; any unexpected error throws
+  `HttpsError("internal", ..., { errorCode: "INTERNAL" })`. Structured logs hash
+  the uid via `functions/src/utils/id-hash.ts` `hashId` (`uidHash`); the raw uid
+  and phone number are never logged (SRS section 5.4; ADR-0013). The boundary
+  follows `functions/src/send-reminder-notification/function.ts` — a handler
+  factory with injected dependencies for testability, wired to an `onCall` export
+  in `index.ts`. The two codes are catalogued in
+  `docs/design/07-technical/cloud-functions-error-codes.md` section 2.
+- **Re-authentication reuse.** SCR-28 Step B reuses the FR-PR-02
+  `PhoneAccountRepository` (ADR-0015) as a **re-auth-only** path — `requestOtp` +
+  `reauthenticate` / `reauthenticateWithCredential`, with the target number read
+  from `currentPhoneNumber`. It does not update a number, so no extension or fork is
+  needed, and it must **never** call `signInWithCredential` (which would switch
+  accounts). +91 numbers only.
+- **Storage personal-vs-shared split.** Personal — **delete** `avatars/{uid}`.
+  Shared — **preserve** `receipts/friendships/{fid}/{expenseId}`, which belongs to
+  the surviving friendship and its other member. (The group-receipt path is
+  forward-compat only; see below.)
+- **Client delete stays denied.** `firestore.rules` already denies client deletes
+  on `users` (line 46), `friendships` (line 127), and `settlements` (line 495) with
+  `allow delete: if false`; the Admin SDK bypasses Security Rules, so the cascade
+  needs no rule relaxation. **The rules do not change.** A rules test must confirm
+  that a client `delete` on `users/{uid}` and on a `friendships/{fid}` document
+  stays rejected. Adding any client-side `allow delete` is explicitly forbidden — it
+  would breach the server-only deletion boundary FR-AU-09 depends on.
+- **Groups forward-compat.** `groups/{groupId}` exists in the schema but has no
+  client UI and no live data in v1.0. The function implements the **friendship axis
+  fully** and **stubs the group axis** with a `TODO` referencing this ADR (a future
+  group member tombstones identically, with group `simplifiedBalances` preserved by
+  the same Invariant 2 discipline). This ADR does **not** authorise building the
+  Groups epic.
+
+### Consequences
+
+- A new callable `deleteUserAccount` is added under `functions/src/`, following the
+  ADR-0011 module layout and the reminder-callable boundary pattern. Functions Dev
+  owns the implementation and its tests; the Architect owns this contract.
+- **Architectural firsts:** the first cascade-delete fan-out Cloud Function; the
+  first use of `admin.auth().deleteUser(...)`; the first reuse of the FR-PR-02
+  re-auth surface outside change-phone; and the first server-side write adjacent to
+  `simplifiedBalances` that **deliberately preserves** it rather than producing it.
+- **Required tests** (Functions Dev / QA):
+  - Integration — a surviving member's `simplifiedBalances` is byte-for-byte
+    unchanged after their counterparty deletes their account.
+  - Integration — idempotent re-run: invoking the cascade twice, or after a
+    simulated partial failure, converges, treating `auth/user-not-found` and missing
+    docs/objects as success.
+  - Integration — `users/{uid}` is replaced by
+    `{ displayName: 'Deleted User', deletedAt }`, with `phoneNumber`, `photoUrl`,
+    `fcmTokens`, `notificationPrefs`, and `locale` all absent.
+  - Rules — a client `delete` on `users/{uid}` and on `friendships/{fid}` remains
+    rejected.
+- **No client change** is required for name resolution; the three fallback sites
+  already render "Deleted User" from the tombstone and "Unknown" from a genuinely
+  absent doc.
+- **No Security Rules, index, or schema-shape change.** The tombstone is a narrower
+  users-doc, not a new collection, and the cascade runs entirely under the Admin
+  SDK.
+- Telemetry stays PII-free: SCR-28 emits `delete_account_*` events with no phone
+  number or raw uid (SRS section 5.4); function logs carry only `uidHash`.
+- **Deferred to a future issue:** SCR-28 Account Deletion Open Questions 1-3
+  (grace-period reversal, confirmation SMS, audit-log collection) and the
+  soft-delete-plus-reaper mechanism.
+- **Accepted limitation:** because the cascade is synchronous, a network loss during
+  SCR-28 Step D can leave the function completing server-side after the client times
+  out (SCR-28 edge case 3); the user discovers the completed deletion on next launch
+  via an Auth error. The idempotent design makes a client retry safe even if the
+  first run partially completed.
+
+### Relationship to prior ADRs
+
+- **ADR-0015 (FR-PR-02 phone change)** supplies the re-auth primitive. ADR-0016
+  reuses `PhoneAccountRepository` in a read-only re-verification mode — `requestOtp`
+  + `reauthenticate`, never `updatePhoneNumber`, never `signInWithCredential` —
+  showing the Interface Segregation choice in ADR-0015 generalises beyond
+  change-phone.
+- **ADR-0011 (module layout)** and the reminder callable: ADR-0016 follows the same
+  pure-logic-plus-boundary split and handler-factory-with-injected-deps pattern, so
+  the cascade is unit-testable without live Firebase.
+- **ADR-0008 (client-side user-doc writes)** and **ADR-0010 (field-level rules):**
+  deletion is the deliberate exception — the only deletion writer is the trusted
+  server and `allow delete: if false` for clients stands unchanged. ADR-0016 fixes
+  that the client never deletes.
+- **ADR-0001 / Invariant 2 (`simplifiedBalances` server-only):** ADR-0016 is the
+  first server-side actor to sit beside the field and intentionally not touch it.
+  Where the recompute core is the sole producer of balance values, the cascade is a
+  deliberate non-producer; anonymisation comes from the users-doc tombstone, keeping
+  the surviving member's balances byte-for-byte intact.
+- **ADR-0013 / ADR-0014 (PII-safe logging, server-gated cross-user operations):**
+  ADR-0016 continues both — uids are hashed via `hashId` before logging, and the
+  sensitive multi-record operation runs server-side under the Admin SDK rather than
+  as client writes.
+
+---
