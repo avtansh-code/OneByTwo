@@ -71,6 +71,61 @@ Surface shifts to `#121212` per SRS section 6.2. All pairings verified for WCAG 
 | `balanceNegative` | `#F08B72` | "You owe" amounts (lightened coral, matches `danger`) |
 | `balanceZero` | `#9CA3AF` | "All settled up" (lightened neutral grey for dark context) |
 
+### 1.3 Expense Category Palette (FR-HD-03)
+
+A categorical 8-colour palette for the Home dashboard's monthly category-breakdown donut (SCR-06, FR-HD-03) and any future per-category surface. One colour per `ExpenseCategory` (`food`, `travel`, `rent`, `utilities`, `groceries`, `entertainment`, `shopping`, `other`; canonical source `lib/features/expenses/domain/expense_category.dart`). The hues harmonise with the India-flavoured system palette — Food echoes the `danger` coral family, Travel the `primary` indigo, Groceries the `success` emerald, and Shopping the `secondary` saffron, deepened to clear the contrast bar.
+
+Design rules:
+
+- **Distinguishable + colour-blind-safe.** Eight well-separated hues, with a deliberate luminance spread across the warm/green trio (Food darker than Shopping darker than Groceries) so the set stays separable under deuteranopia/protanopia. Colour is **never** the sole signal: every segment is also labelled in the legend (colour swatch + category icon + label + rupee value + percentage) and announced per-segment to the screen reader (SRS section 5.6, "no information by colour alone").
+- **WCAG 2.1 AA for non-text UI components (>=3:1).** Each segment fill meets >=3:1 against the card surface it sits on, in **both** themes — light fills on `surface` `#FFFFFF`, dark fills on `surface` `#1E1E1E` (verification table below).
+- **Segment separation.** Donut segments are drawn with a 2 dp gap in the card `surface` colour so adjacent arcs are visually bounded (adjacency + low-vision aid); inter-segment contrast is therefore not a WCAG concern.
+
+#### 1.3.1 Light Theme
+
+| Token Name | Hex Value | Usage |
+|---|---|---|
+| `categoryFood` | `#B23A48` | Food segment + legend swatch (deep rose-red; brand `danger`/coral family) |
+| `categoryTravel` | `#3556A0` | Travel segment + legend swatch (indigo; brand `primary` family) |
+| `categoryRent` | `#7E57A8` | Rent segment + legend swatch (violet) |
+| `categoryUtilities` | `#0E7C86` | Utilities segment + legend swatch (deep teal) |
+| `categoryGroceries` | `#46974A` | Groceries segment + legend swatch (leaf green; brand `success`/emerald family) |
+| `categoryEntertainment` | `#B33C8A` | Entertainment segment + legend swatch (magenta) |
+| `categoryShopping` | `#A86E1C` | Shopping segment + legend swatch (gold/ochre; brand `secondary`/saffron family, deepened) |
+| `categoryOther` | `#71717A` | Other segment + legend swatch (neutral slate-grey; the real 8th category, never a synthetic tail bucket) |
+
+#### 1.3.2 Dark Theme
+
+Lightened variants of the same hues, each verified for WCAG AA >=3:1 on the dark card surface `#1E1E1E`. Token names are identical to section 1.3.1 (brightness selects the map, exactly as `primary`/`secondary` differ between sections 1.1 and 1.2).
+
+| Token Name | Hex Value | Usage |
+|---|---|---|
+| `categoryFood` | `#E8788A` | Food segment + legend swatch (lightened coral-rose for dark surfaces) |
+| `categoryTravel` | `#7B9CE0` | Travel segment + legend swatch (periwinkle-indigo) |
+| `categoryRent` | `#B79BE0` | Rent segment + legend swatch (light violet) |
+| `categoryUtilities` | `#34B3BE` | Utilities segment + legend swatch (bright teal) |
+| `categoryGroceries` | `#5CB85C` | Groceries segment + legend swatch (bright leaf green) |
+| `categoryEntertainment` | `#D773B4` | Entertainment segment + legend swatch (light magenta) |
+| `categoryShopping` | `#E0A73E` | Shopping segment + legend swatch (amber-gold) |
+| `categoryOther` | `#A1A1AA` | Other segment + legend swatch (neutral grey; matches dark `textSecondary`/`balanceZero` family) |
+
+#### 1.3.3 Contrast Verification (WCAG 2.1 AA, non-text UI component, >=3:1)
+
+Each fill is verified against the card `surface` it renders on in its theme. All pass with margin.
+
+| Category token | Light hex | vs `surface` `#FFFFFF` | Dark hex | vs `surface` `#1E1E1E` | Pass (AA >=3:1) |
+|---|---|---|---|---|---|
+| `categoryFood` | `#B23A48` | 5.8:1 | `#E8788A` | 5.9:1 | Yes |
+| `categoryTravel` | `#3556A0` | 7.0:1 | `#7B9CE0` | 6.1:1 | Yes |
+| `categoryRent` | `#7E57A8` | 5.5:1 | `#B79BE0` | 7.0:1 | Yes |
+| `categoryUtilities` | `#0E7C86` | 5.0:1 | `#34B3BE` | 6.6:1 | Yes |
+| `categoryGroceries` | `#46974A` | 3.6:1 | `#5CB85C` | 6.7:1 | Yes |
+| `categoryEntertainment` | `#B33C8A` | 5.3:1 | `#D773B4` | 5.6:1 | Yes |
+| `categoryShopping` | `#A86E1C` | 4.3:1 | `#E0A73E` | 7.7:1 | Yes |
+| `categoryOther` | `#71717A` | 4.8:1 | `#A1A1AA` | 6.5:1 | Yes |
+
+> **Implementation note.** Implement this palette as a **feature-local, brightness-aware lookup** — a light `Map<ExpenseCategory, Color>` and a dark `Map<ExpenseCategory, Color>` (or a `static const` switch keyed by `ExpenseCategory`), selected by `Theme.of(context).brightness`. Transcribe the hexes 1:1 into `static const Color` values (e.g. `categoryFood` light = `Color(0xFFB23A48)`, dark = `Color(0xFFE8788A)`). Consistent with the closing convention of this document, the category palette is **NOT** surfaced via a `ThemeExtension`; it lives alongside the feature that consumes it, mirroring how `AppTheme` holds its semantic colours as static consts in `lib/app/theme.dart`.
+
 ---
 
 ## 2. Typography Scale
@@ -221,6 +276,8 @@ Key pairings verified against WCAG 2.1 AA (SRS section 5.6):
 | `primary` (`#2E86AB`) | `background` (`#121212`) | 5.8:1 | Yes (dark) |
 | `success` (`#3CC0AF`) | `surface` (`#1E1E1E`) | 6.9:1 | Yes (dark) |
 | `danger` (`#F08B72`) | `surface` (`#1E1E1E`) | 6.2:1 | Yes (dark) |
+
+> Per-category chart-segment contrast (the 8 `categoryFood`..`categoryOther` fills, light on `#FFFFFF` and dark on `#1E1E1E`, all >=3.6:1) is verified in section 1.3.3. Tightest margins: `categoryGroceries` light 3.6:1 and `categoryShopping` light 4.3:1 — both clear the >=3:1 non-text-component threshold.
 
 ---
 

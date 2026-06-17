@@ -110,6 +110,23 @@ class FakeExpenseStore implements ExpenseStore {
     return watchController.stream;
   }
 
+  final List<({String fid, DateTime monthStartUtc})> monthFetches = [];
+  List<ExpenseDoc> monthExpenses = const [];
+  Object? throwOnFetchMonth;
+
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async {
+    if (throwOnFetchMonth != null) {
+      // ignore: only_throw_errors
+      throw throwOnFetchMonth!;
+    }
+    monthFetches.add((fid: friendshipId, monthStartUtc: monthStartUtc));
+    return monthExpenses;
+  }
+
   Future<void> close() => watchController.close();
 }
 
@@ -471,6 +488,65 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(store.lastWatchedLimit, 5);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // FR-HD-03 — read-path tests for fetchExpensesInMonth (one-shot read).
+  // ---------------------------------------------------------------------------
+
+  group('ExpenseRepository.fetchExpensesInMonth', () {
+    test('delegates the friendshipId and month start to the store', () async {
+      final monthStart = DateTime.utc(2026, 5, 31, 18, 30);
+      await repo.fetchExpensesInMonth(
+        friendshipId: 'uid-a_uid-b',
+        monthStartUtc: monthStart,
+      );
+
+      expect(store.monthFetches, hasLength(1));
+      expect(store.monthFetches.single.fid, 'uid-a_uid-b');
+      expect(store.monthFetches.single.monthStartUtc, monthStart);
+    });
+
+    test(
+      'returns the store result unchanged (no typed-error mapping)',
+      () async {
+        store.monthExpenses = [
+          ExpenseDoc(
+            amountPaise: 1000,
+            description: 'Coffee',
+            category: ExpenseCategory.food,
+            date: DateTime.utc(2026, 6, 6),
+            payerId: 'uid-current',
+            splits: const [
+              Split(userId: 'uid-current', sharePaise: 500),
+              Split(userId: 'uid-friend', sharePaise: 500),
+            ],
+            splitMethod: SplitMethod.equal,
+            createdBy: 'uid-current',
+          ),
+        ];
+
+        final result = await repo.fetchExpensesInMonth(
+          friendshipId: 'uid-a_uid-b',
+          monthStartUtc: DateTime.utc(2026, 5, 31, 18, 30),
+        );
+
+        expect(result, hasLength(1));
+        expect(result.single.description, 'Coffee');
+      },
+    );
+
+    test('rethrows the raw store rejection (reads are not wrapped)', () async {
+      store.throwOnFetchMonth = Exception('Firestore unavailable');
+
+      expect(
+        () => repo.fetchExpensesInMonth(
+          friendshipId: 'uid-a_uid-b',
+          monthStartUtc: DateTime.utc(2026, 5, 31, 18, 30),
+        ),
+        throwsA(isException),
+      );
     });
   });
 

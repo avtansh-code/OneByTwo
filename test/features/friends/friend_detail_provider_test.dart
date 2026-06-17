@@ -135,6 +135,12 @@ class FakeExpenseStore implements ExpenseStore {
     lastWatchedLimit = limit;
     return controller.stream;
   }
+
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
 }
 
 class FakeSettlementStore implements SettlementStore {

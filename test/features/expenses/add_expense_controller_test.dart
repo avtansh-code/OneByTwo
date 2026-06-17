@@ -105,6 +105,12 @@ class FakeExpenseRepository implements ExpenseRepository {
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
 
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
+
   // FR-EX-05 hooks — exercised by the receipt-flow tests.
   String? capturedAllocatedFriendshipId;
   String newExpenseIdResult = 'expense-id-123';

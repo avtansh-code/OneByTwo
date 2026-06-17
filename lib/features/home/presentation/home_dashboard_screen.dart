@@ -11,7 +11,7 @@ import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart
 import 'package:onebytwo/features/home/application/home_balances_providers.dart';
 import 'package:onebytwo/features/home/application/home_telemetry.dart';
 import 'package:onebytwo/features/home/presentation/widgets/net_balance_header_card.dart';
-import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_placeholder_card.dart';
+import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_card.dart';
 import 'package:onebytwo/features/home/presentation/widgets/top_balance_tile.dart';
 import 'package:onebytwo/features/profile/application/contact_support_controller.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
@@ -31,7 +31,7 @@ import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_
 /// - **Populated**: the FR-HD-01 net-balance header card, the FR-HD-02
 ///   "Top Balances" list (each row with a "Settle Up" action and
 ///   tile-tap navigation to Friend Detail), and the FR-HD-03 "This
-///   Month" placeholder card.
+///   Month" spend-breakdown card.
 /// - **Error** (`HD-FIRESTORE-READ`): a retry affordance plus a Contact
 ///   Support link reusing the FR-PR-05 flow.
 ///
@@ -385,7 +385,7 @@ class _PopulatedState extends StatelessWidget {
             ),
           ),
         ),
-        const SpendingBreakdownPlaceholderCard(),
+        const SpendingBreakdownCard(),
       ],
     );
   }

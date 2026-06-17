@@ -15,10 +15,15 @@ import 'package:flutter_test/flutter_test.dart';
 const _homeSourceFiles = [
   'lib/features/home/application/home_balances_providers.dart',
   'lib/features/home/application/home_telemetry.dart',
+  'lib/features/home/application/monthly_spend_breakdown_provider.dart',
+  'lib/features/home/domain/monthly_spend_breakdown.dart',
+  'lib/features/home/domain/monthly_spend_aggregator.dart',
   'lib/features/home/presentation/home_dashboard_screen.dart',
   'lib/features/home/presentation/widgets/net_balance_header_card.dart',
   'lib/features/home/presentation/widgets/top_balance_tile.dart',
-  'lib/features/home/presentation/widgets/spending_breakdown_placeholder_card.dart',
+  'lib/features/home/presentation/widgets/spending_breakdown_card.dart',
+  'lib/features/home/presentation/widgets/spending_category_palette.dart',
+  'lib/features/home/presentation/widgets/spending_donut_chart.dart',
 ];
 
 void main() {

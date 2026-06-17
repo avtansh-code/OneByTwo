@@ -173,6 +173,12 @@ class FakeExpenseRepository implements ExpenseRepository {
   }
 
   @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
+
+  @override
   String newExpenseId({required String friendshipId}) => returnId;
 
   @override

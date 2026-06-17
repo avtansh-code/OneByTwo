@@ -83,6 +83,12 @@ class FakeExpenseRepository implements ExpenseRepository {
   }) => const Stream<List<ExpenseDoc>>.empty();
 
   @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
+
+  @override
   String newExpenseId({required String friendshipId}) => 'noop';
 
   @override
