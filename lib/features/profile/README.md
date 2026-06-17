@@ -30,7 +30,9 @@ delegated to the notifications feature for FCM-token cleanup.
 
 - `presentation/notification_preferences_screen.dart` —
   `NotificationPreferencesScreen` (SCR-27): the per-category toggles, an
-  OS-permission info banner when push is blocked, and a one-shot
+  OS-permission info banner (with an "Open Settings" CTA that deep-links
+  to the OS notification settings via `appSettingsServiceProvider`,
+  AC-11 / ADR-0019) when push is blocked, and a one-shot
   "You are offline" snackbar.
 - `application/notification_preferences_controller.dart` — the sealed
   `NotificationPreferencesState` (`Loading` / `Error` / `Ready`) and

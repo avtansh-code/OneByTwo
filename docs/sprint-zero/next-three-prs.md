@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-HD-03 current-month spend summary with a category breakdown chart (#67, `1f26548`) merged — it was the **top-ranked remaining P1** and the **last open Home-dashboard requirement** (FR-HD-01/02 in #62, FR-HD-04 in #57); **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped**. The deferred N+1-read denormalised monthly-spend rollup is filed as FUTURE issue #68 (do not build it). FR-AC-05 (deep-link tab-switch, SRS section 4.7 line 240, **P0**) opened as the next PR — the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; it lands as the next available GitHub number (≥ #69 now that FUTURE issue #68 is filed), reconciled at PR open.
+> Last updated: FR-AC-05 deep-link tab-switch on notification tap (#69, `8dd67f9`) merged — it closed the **last deferred piece of a P0**, so **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **AC-11 "Open Settings" deep-link CTA chore** (the highest-ranked unshipped carry-forward candidate, surfaced by PR #55 QA) — opened to add the `app_settings` plugin behind a shared `AppSettingsService` seam and wire the "Open Settings" CTA on the SCR-27 notification banner (FR-AC-04 / AC-11) and the SCR-10 contact-permission view (FR-FR-01), closing the PR #55 §2.4 deferral and the `openExternalPick` placeholder (ADR-0019). There is **no** tracked GitHub issue (candidate-list bullet only), so the PR opens without a `Closes #NN`; it lands as the next available number (≥ #70 now that the highest PR is #69 and the highest issue is #68), reconciled at PR open.
 
 ---
 
@@ -35,21 +35,82 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #66 | Issue | FUTURE: 30-day scheduled-cleanup reaper + grace-period / confirmation SMS / audit log for account deletion (SCR-28 Open Questions 1-3) — deferred from FR-AU-09 (#65); CANNOT be closed by #65. |
 | **#67** | **PR** | **FR-HD-03 current-month spend summary with a category breakdown chart (SCR-06, SRS 4.8 line 248, P1) — merged 2026-06-17, `1f26548`; the top-ranked remaining P1 and the last open Home-dashboard requirement (FR-HD-01/02 in #62, FR-HD-04 in #57); first cross-friendship expense read path (fan-out) + first charting approach (`fl_chart`, pure-Dart, no `ios/Podfile.lock` change); two review refinements landed in-PR (server-side month upper bound in `fetchExpensesInMonth`, reusing the existing `expenses (deleted ASC + date DESC)` index; largest-remainder legend percentages summing to 100). ADR-0017.** |
 | #68 | Issue | FUTURE: denormalised per-user monthly-spend rollup Cloud Function to remove the FR-HD-03 N+1 fan-out reads — filed/deferred from FR-HD-03 (#67); CANNOT be closed by #67. Do NOT build it in FR-AC-05. |
-| **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — IN FLIGHT; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller; lands as the next available number ≥ #69, reconciled at PR open.** |
+| **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — merged 2026-06-17, `8dd67f9`; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller. Closed the last deferred piece of a P0, so every P0 except the Sprint-3 Groups epic and every P1 is shipped. Two review refinements landed in-PR (an explicit AC-7 foreground-banner tab-selection test; a comment pinning the synchronous `selectTab`-before-`context.mounted` ordering). ADR-0018.** |
+| #70 | PR | AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — IN FLIGHT; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). Adds `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam and wires the CTA on the SCR-27 notification banner + the SCR-10 contact-permission view; closes the PR #55 §2.4 AC-11 deferral and the `openExternalPick` placeholder. No tracked issue (candidate-list bullet only — no `Closes #NN`); lands as the next available number ≥ #70, reconciled at PR open. ADR-0019. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
 consume intermediate numbers; the orchestrator should not assume the
-roadmap slot label equals the GitHub number. **Now that FR-HD-03 has
-merged as PR #67 and FUTURE issue #68 is filed, the FR-AC-05 tab-switch
-work lands as the next available number ≥ #69** — reconcile the slot label at
-PR open.
+roadmap slot label equals the GitHub number. **Now that FR-AC-05 has
+merged as PR #69, the AC-11 "Open Settings" deep-link CTA chore lands as
+the next available number ≥ #70** (highest PR is #69, highest issue is
+#68; there is no tracked issue for this chore) — reconcile the slot
+label at PR open.
 
 ---
 
-## PR #69 — IN FLIGHT (FR-AC-05 deep-link tab-switch on notification tap)
+## PR #70 — IN FLIGHT (AC-11 "Open Settings" deep-link CTA chore)
 
-**Status:** Open. FR-AC-05 (the deep-link tab-switch) confirmed as the next-slot
+**Status:** Open. The AC-11 "Open Settings" deep-link CTA chore confirmed as the
+next-slot pick at kickoff — the **highest-ranked unshipped carry-forward
+candidate** (it leads the post-#69 "Next candidates"), surfaced by PR #55 QA. It
+closes the **PR #55 §2.4 AC-11 graceful-degradation deferral** in full (the SCR-27
+notification banner gains the actionable button the fallback ladder promised) and
+the **parallel SCR-10 contact-permission gap** (the `FlutterContacts.openExternalPick()`
+placeholder is replaced by a real OS-settings deep-link). There is **no** tracked
+GitHub issue — the follow-up was recorded only as this candidate-list bullet — so
+the PR opens **without** a `Closes #NN`; it lands as the next available number
+≥ #70 (highest PR #69, highest issue #68), reconciled at PR open.
+
+Two surfaces fell short because, until now, no Flutter plugin capable of opening an
+OS settings screen was in the lockfile: SCR-27 (`_OsPermissionBanner`) shipped
+text-only (PR #55 §2.4 — `firebase_messaging` exposes no `openAppNotificationSettings()`
+on the Dart API, re-verified in `firebase_messaging-16.3.0`), and SCR-10
+(`ContactService.openSettings()`) opened the contact picker, not the app's settings
+page (a line-77 TODO named `app_settings`).
+
+- **One plugin behind a shared seam (ADR-0019).** Adds `app_settings: ^7.0.0` (the
+  single-purpose choice — smallest dependency-graph + `ios/Podfile.lock` delta; iOS
+  podspec platform 11.0 < the project's iOS 15 target, so no version break — **not**
+  `permission_handler`; never both) behind a thin
+  `lib/core/services/app_settings_service.dart` (`AppSettingsService` +
+  `appSettingsServiceProvider`), mirroring `UrlLauncherService` / `ImagePickerService`.
+  It exposes `openNotificationSettings()` (`AppSettingsType.notification`) and
+  `openAppSettings()` (`AppSettingsType.settings`), so both call sites bind to a
+  fakeable seam, never to the plugin directly.
+- **Both surfaces wired (unify).** SCR-27: `_OsPermissionBanner` becomes a
+  `ConsumerWidget` and gains an "Open Settings" `TextButton` → `openNotificationSettings()`;
+  the banner copy is unchanged. SCR-10: `FlutterContactService.openSettings()` →
+  `openAppSettings()` (the line-77 TODO removed); the non-permanent "Grant Permission"
+  re-request and "Type a number instead" fallback are unchanged. First shared consumer
+  of one permission-settings seam across `notifications`/`profile` and `friends`.
+- **Telemetry (PII-free, newly DECLARED).** One `permission_settings_opened` event
+  (`surface` enum `notifications`/`contacts`) added to `telemetry-plan.md §1.8` and
+  logged at the presentation layer. No `uid`, friendship composite, or raw entity ID
+  (SRS line 308 / ADR-0013).
+- **iOS `Podfile.lock` committed.** Regenerated via `pod install --repo-update`
+  (+`app_settings` pod, no collateral version bumps) — the CI "Build iOS (no signing)"
+  job runs vanilla `pod install` and fails on a stale lock. No Android `<queries>`
+  entry (system settings intents, not arbitrary-package visibility).
+
+**Stubs / defers.** No Cloud Function; no `firestore.rules` / index / schema change.
+Invariants 1 and 2 are N/A (no money, no `simplifiedBalances`); Invariant 3 is N/A
+and **not** conflated — opening OS settings is not sharing and is never routed
+through `Share.share`. **Does NOT bundle `shared_preferences`** (the
+`wasPermanentlyDenied` / FR-SE-09 cooldown cross-launch persistence is a SEPARATE
+tracked chore).
+
+**Next candidates** (architect's call at the post-#70 kickoff): the carry-forward
+list below — the `shared_preferences` adoption (cross-launch persistence), the
+`go_router` migration (Sprint 3), the Bucket-B chore close-out bundle, Issue #47
+rules-hardening, FR-SR-01/02 Search (SCR-07), and the Sprint 3 Groups epic
+(FR-GR-01..07).
+
+---
+
+## PR #69 — Merged (FR-AC-05 deep-link tab-switch on notification tap)
+
+**Status:** Merged 2026-06-17 (`8dd67f9`). FR-AC-05 (the deep-link tab-switch) confirmed as the next-slot
 pick at kickoff — the **first carry-forward candidate** on the list below, now
 **unblocked by the `shellNavigationControllerProvider` seam** shipped in #63 and
 explicitly deferred there as "controller seam only". It closes the **last
@@ -637,6 +698,14 @@ Candidates (in rough priority order — architect's call at kickoff):
   AC-11 "Open Settings" CTA wiring (surfaced by PR #55 QA).**
   ~1-2 SP. Adds the dependency + wires the CTA on both platforms.
   Natural pair with `shared_preferences` adoption below.
+  **IN FLIGHT as PR #70 (2026-06-17)** — `app_settings: ^7.0.0` (the
+  single-purpose choice; not `permission_handler`; never both) behind a
+  shared `lib/core/services/AppSettingsService` seam, wiring the SCR-27
+  notification banner (FR-AC-04 / AC-11) and the SCR-10 contact-permission
+  view (FR-FR-01); PII-free `permission_settings_opened` telemetry;
+  `ios/Podfile.lock` committed. Closes the PR #55 §2.4 deferral and the
+  `openExternalPick` placeholder. ADR-0019. The `shared_preferences`
+  cross-launch-persistence pairing stays a SEPARATE chore (below).
 - **FR-PR-02 phone-number-change flow** (P1; depends on the
   existing OTP re-verification flow; medium PR ~5 SP).
 - **FR-AU-09 account-deletion flow** (P1; depends on a new

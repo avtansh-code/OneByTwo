@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/services/app_settings_service.dart';
+import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
@@ -15,12 +19,13 @@ import 'package:onebytwo/features/profile/application/notification_preferences_t
 /// Surfaces an OS-permission info banner at the top when push
 /// permission is `denied` / `permanentlyDenied` (AC-11 / AC-12).
 ///
-/// Per architect §2.4 fallback, the AC-11 banner SHIPS WITHOUT the
-/// "Open Settings" CTA because `firebase_messaging: ^16.2.0` does not
-/// expose `openAppNotificationSettings()` on either platform. The user
-/// is instructed to open their device settings manually. A follow-up
-/// chore PR may wire a `permission_handler` / `app_settings`
-/// dependency to surface the button.
+/// The AC-11 banner shows an "Open Settings" CTA that deep-links to the
+/// OS notification settings via [appSettingsServiceProvider] (backed by
+/// the `app_settings` plugin, ADR-0019). The banner copy is unchanged;
+/// the button is the graceful-degradation extension the architect §2.4
+/// fallback ladder promised, now that a settings-deep-link plugin is in
+/// the lockfile (reversing that note's interim "ship without the
+/// button" decision).
 class NotificationPreferencesScreen extends ConsumerStatefulWidget {
   /// Creates a [NotificationPreferencesScreen].
   const NotificationPreferencesScreen({super.key});
@@ -334,26 +339,59 @@ class _ToggleRow extends StatelessWidget {
   }
 }
 
-class _OsPermissionBanner extends StatelessWidget {
+class _OsPermissionBanner extends ConsumerWidget {
   const _OsPermissionBanner();
 
+  void _openNotificationSettings(WidgetRef ref) {
+    // PII-free telemetry: a non-identifying `surface` enum only
+    // (SRS line 308 / ADR-0013).
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: permissionSettingsOpenedEvent,
+            parameters: const {
+              permissionSettingsSurfaceParam:
+                  permissionSettingsSurfaceNotifications,
+            },
+          ),
+    );
+    unawaited(ref.read(appSettingsServiceProvider).openNotificationSettings());
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Container(
       color: theme.colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Notifications are turned off for this app. '
-              'Enable them in your device settings to receive alerts.',
-              style: theme.textTheme.bodySmall?.copyWith(
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Notifications are turned off for this app. '
+                  'Enable them in your device settings to receive alerts.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => _openNotificationSettings(ref),
+              child: const Text('Open Settings'),
             ),
           ),
         ],

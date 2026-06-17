@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/data/contact_service.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
@@ -371,6 +372,41 @@ void main() {
 
         expect(find.text('Open Settings'), findsOneWidget);
         expect(find.text('Type a number instead'), findsOneWidget);
+      });
+
+      testWidgets('tapping "Open Settings" deep-links to OS settings via the '
+          'service seam and logs PII-free telemetry', (tester) async {
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.deniedPermanently;
+
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Settings'));
+        await tester.pumpAndSettle();
+
+        // Routes through ContactService.openSettings() (production:
+        // AppSettingsService.openAppSettings()), NOT the old
+        // FlutterContacts.openExternalPick() contact-picker fallback.
+        expect(fakeContactService.openSettingsCalled, isTrue);
+
+        // PII-free telemetry: surface=contacts, no UID-derived parameter.
+        final index = fakeAnalytics.loggedEvents.indexOf(
+          permissionSettingsOpenedEvent,
+        );
+        expect(
+          index,
+          isNonNegative,
+          reason: 'permission_settings_opened must fire on the contacts CTA.',
+        );
+        expect(fakeAnalytics.loggedParams[index], {
+          permissionSettingsSurfaceParam: permissionSettingsSurfaceContacts,
+        });
       });
     });
   });
