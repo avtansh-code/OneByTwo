@@ -37,6 +37,7 @@ import 'package:onebytwo/features/notifications/application/pending_deep_link_pr
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
 import 'package:onebytwo/features/notifications/domain/notification_payload.dart';
 import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -151,6 +152,18 @@ NotificationPayload _samplePayload() {
     body: 'Body',
     senderName: 'Sender',
     amountPaise: 12300,
+    createdAt: DateTime(2026),
+  );
+}
+
+NotificationPayload _deletedPayload() {
+  return NotificationPayload(
+    type: NotificationType.expenseDeleted,
+    contextType: 'friendship',
+    contextId: 'uid-me_uid-friend',
+    title: 'Test',
+    body: 'Body',
+    senderName: 'Sender',
     createdAt: DateTime(2026),
   );
 }
@@ -308,6 +321,63 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(deepLinkHandler.handleCalls, 0);
+    });
+  });
+
+  group('NotificationsLifecycleHost — cold-start replay tab-switch '
+      '(FR-AC-05)', () {
+    testWidgets('the pending deep-link replay selects the target primary tab '
+        'via the REAL DeepLinkHandler, on the post-auth frame', (tester) async {
+      final analytics = FakeAnalyticsService();
+      final authController = StreamController<AuthState>.broadcast();
+      addTearDown(authController.close);
+      int? observedTab;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            analyticsServiceProvider.overrideWithValue(analytics),
+            permissionMessagingAdapterProvider.overrideWithValue(
+              FakePermissionMessagingAdapter(),
+            ),
+            fcmTokenServiceProvider.overrideWithValue(FakeTokenService()),
+            authStateNotifierProvider.overrideWith(
+              (ref) => authController.stream,
+            ),
+            pendingDeepLinkProvider.overrideWith((ref) => _deletedPayload()),
+            // deepLinkHandlerProvider intentionally NOT overridden — the real
+            // handler exercises the selectTab wiring end-to-end.
+          ],
+          child: MaterialApp(
+            home: NotificationsLifecycleHost(
+              child: Consumer(
+                builder: (context, ref, _) {
+                  observedTab = ref.watch(shellNavigationControllerProvider);
+                  return const Scaffold(body: Text('child'));
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      authController.add(const AuthUnauthenticated());
+      await tester.pumpAndSettle();
+      // Before sign-in: default Home tab; the payload stays cached.
+      expect(observedTab, 0);
+
+      authController.add(
+        AuthenticatedWithProfile(uid: 'uid-me', user: _testUser()),
+      );
+      await tester.pumpAndSettle();
+
+      // expense_deleted → DeepLinkUnavailable → Activity tab (index 3),
+      // selected on the post-AuthenticatedWithProfile addPostFrameCallback.
+      expect(observedTab, 3);
+      expect(tester.takeException(), isNull);
+      // Drain the "no longer available" snackbar auto-hide timer.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
     });
   });
 

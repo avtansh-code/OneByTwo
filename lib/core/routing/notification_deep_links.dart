@@ -11,10 +11,31 @@ import 'package:onebytwo/features/notifications/domain/notification_payload.dart
 /// [NotificationDeepLinks.resolve] (no [BuildContext], no
 /// dependencies). The navigation itself is performed by
 /// [NotificationDeepLinks.navigate].
+///
+/// Each target also exposes [homeTabIndex] — the primary bottom-nav tab a
+/// notification deep-link should select **before** pushing the detail screen
+/// (FR-AC-05 tab-switch, ADR-0018), or `null` for targets that do not switch
+/// tabs. The tab selection is performed by `DeepLinkHandler.handleDeepLink`,
+/// which keeps this routing helper free of Riverpod. The Activity-feed in-tab
+/// row tap consumes [NotificationDeepLinks.resolve] +
+/// [NotificationDeepLinks.navigate] directly (not via `DeepLinkHandler`), so it
+/// never triggers a tab switch.
 @immutable
 sealed class DeepLinkTarget {
   const DeepLinkTarget();
+
+  /// Primary bottom-nav tab index (0..4) to select before navigating to this
+  /// target, or `null` to leave the active tab unchanged. Mirrors the
+  /// canonical `OBTBottomNav.tabs` order (Home 0 / Friends 1 / Groups 2 /
+  /// Activity 3 / Profile 4).
+  int? get homeTabIndex;
 }
+
+/// Primary-tab indices for [DeepLinkTarget.homeTabIndex], mirroring the
+/// canonical `OBTBottomNav.tabs` order. Named so the deep-link → tab mapping
+/// reads without magic numbers.
+const int _friendsTabIndex = 1;
+const int _activityTabIndex = 3;
 
 /// Push [ExpenseDetailScreen] for a friendship-context expense.
 final class DeepLinkExpenseDetail extends DeepLinkTarget {
@@ -39,6 +60,9 @@ final class DeepLinkExpenseDetail extends DeepLinkTarget {
   /// The other party's UID — extracted from [friendshipId] via
   /// [NotificationDeepLinks.otherUidForFriendship].
   final String otherUid;
+
+  @override
+  int? get homeTabIndex => _friendsTabIndex;
 }
 
 /// Push [FriendDetailScreen] for a friendship-context settlement or
@@ -59,6 +83,9 @@ final class DeepLinkFriendDetail extends DeepLinkTarget {
 
   /// Other party's UID.
   final String otherUid;
+
+  @override
+  int? get homeTabIndex => _friendsTabIndex;
 }
 
 /// Show the SCR-25 "This item is no longer available" snackbar; do
@@ -67,6 +94,9 @@ final class DeepLinkFriendDetail extends DeepLinkTarget {
 final class DeepLinkUnavailable extends DeepLinkTarget {
   /// Creates a [DeepLinkUnavailable].
   const DeepLinkUnavailable();
+
+  @override
+  int? get homeTabIndex => _activityTabIndex;
 }
 
 /// Show a "Groups coming soon" snackbar for `group_invite` payloads.
@@ -74,6 +104,11 @@ final class DeepLinkUnavailable extends DeepLinkTarget {
 final class DeepLinkGroupsComingSoon extends DeepLinkTarget {
   /// Creates a [DeepLinkGroupsComingSoon].
   const DeepLinkGroupsComingSoon();
+
+  /// Groups are a Sprint 3 epic — a `group_invite` deep-link shows the
+  /// "Groups are coming soon" snackbar and leaves the active tab unchanged.
+  @override
+  int? get homeTabIndex => null;
 }
 
 /// Shared resolver / navigator for notification + activity-feed deep

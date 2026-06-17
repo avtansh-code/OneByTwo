@@ -58,9 +58,16 @@ banners, and routes taps into the app.
 - `application/deep_link_handler.dart` — `DeepLinkHandler` plus the
   `DeepLinkSource` enum (`foreground` / `background` / `coldStart`).
   Dispatches a parsed payload to the right screen via the shared
-  `core/routing/notification_deep_links.dart` resolver and emits the
-  `fcm_notification_tapped` event (with a `source` parameter). Exposed
-  via `deepLinkHandlerProvider`.
+  `core/routing/notification_deep_links.dart` resolver. Before the
+  root-navigator push it **selects the relevant primary tab** via
+  `shellNavigationControllerProvider.selectTab(...)` (the target's
+  `homeTabIndex`: expense/friend detail → Friends tab 1, the "no longer
+  available" path → Activity tab 3, `group_invite` → no switch) so the user
+  lands in a coherent tab context (FR-AC-05 tab-switch, ADR-0018). Emits the
+  `fcm_notification_tapped` event with `notification_type`, `source`, and a
+  non-identifying `target_tab` enum (`friends` / `activity` / `none`). Exposed
+  via `deepLinkHandlerProvider`. The Activity-feed row tap uses the resolver +
+  `navigate` directly (not this handler), so it never switches tabs.
 - `application/pending_deep_link_provider.dart` —
   `pendingDeepLinkProvider` (`StateProvider<NotificationPayload?>`).
   Holds a deep-link intent captured at cold start while the user is
@@ -128,6 +135,8 @@ presentation/
 - **In (hosting):** the lifecycle host, pre-permission dialog and banner
   overlay are mounted via `MaterialApp.builder` in `lib/main.dart`.
 - **Telemetry:** `fcm_notification_tapped` carries a `source` value
-  (`foreground` / `background` / `cold_start`); any
-  `friendship_id`-derived value is hashed via
-  `core/telemetry/event_id_hash.dart` (ADR-0013).
+  (`foreground` / `background` / `cold_start`) and a non-identifying
+  `target_tab` value (`friends` / `activity` / `none`, the primary tab the
+  deep-link selects); any `friendship_id`-derived value would be hashed via
+  `core/telemetry/event_id_hash.dart` (ADR-0013), but no UID/composite is ever
+  a parameter on this event.
