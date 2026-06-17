@@ -342,6 +342,18 @@ All timestamps rendered in IST (`Asia/Kolkata`) per SRS section 5.9.
 
 If the target entity has been deleted, the app displays an `OBTSnackbar(message: "This item is no longer available.", type: info)` and remains on the Activity feed.
 
+**Notification-tap tab context (FR-AC-05).** When the user arrives via a **push
+notification** tap (as opposed to an in-feed row tap), the app first **selects the
+relevant primary tab** before pushing the detail screen, so the user lands in — and
+on pop returns to — a coherent tab: expense and settlement/friend deep-links select
+the **Friends tab** (the detail pushes over Friends); a deleted-item deep-link
+selects the **Activity tab** and shows the "This item is no longer available."
+snackbar (no push); a `group_invite` deep-link does **not** switch tabs and shows
+the "Groups are coming soon." snackbar (forward-compat). The switch is synchronous
+(before the push) so there is no wrong-tab flash. An **in-feed row tap on this
+screen (FR-AC-02) does NOT switch tabs** — it is an in-tab navigation; the user is
+already on Activity and stays there beneath the pushed detail.
+
 ### Inputs and Validation
 
 This screen has no user inputs. It is a read-only feed. Pull-to-refresh is the only interaction beyond row taps.
@@ -375,7 +387,7 @@ Contrast ratios verified per wireframe document: `textPrimary` on `surface` (lig
 
 ### Edge Cases
 
-1. **Notification deep-link from cold start (FR-AC-05).** The app must complete authentication (auth guard) before navigating to the target screen. The Activity tab should reflect the new event at the top of the feed upon the next visit.
+1. **Notification deep-link from cold start (FR-AC-05).** The app must complete authentication (auth guard) before navigating to the target screen. On the post-authentication frame the app **selects the relevant primary tab** (Friends for an expense/friend deep-link; Activity for a deleted-item deep-link) and then pushes the detail, in that order — so the user never sees a flash of the wrong tab and the back-stack is coherent. The Activity tab should reflect the new event at the top of the feed upon the next visit.
 2. **Rapid successive events.** If multiple events arrive in quick succession (e.g., a group member adds several expenses), the list should batch-animate new rows in with staggered 50 ms delays rather than jarring instant insertion.
 3. **Activity for a deleted group or friend.** Historical activity rows for entities that no longer exist should remain visible in the feed but display a muted style. Tapping such a row shows the "This item is no longer available." snackbar.
 4. **Extremely long primary text.** If an expense description is very long (e.g., 100 characters), the `primaryText` in `OBTActivityRow` should truncate with an ellipsis after two lines. The full text is available via the semantic label and by navigating to the expense detail.

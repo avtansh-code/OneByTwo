@@ -1317,3 +1317,154 @@ is reinforced (the fan-out and all testing target the single project via the emu
   `dependencies`.
 
 ---
+
+  ## ADR-0018: Notification Deep-Link Tab-Switch — `homeTabIndex` on the Sealed Target, `selectTab` in the Handler (FR-AC-05)
+
+  **Status:** Accepted
+
+  ### Context
+
+  FR-AC-05 (SRS section 4.7, line 240, P0) — "Tapping a notification shall deep-link the
+  user to the relevant screen, even from a cold start." The resolver, the navigation, and
+  the four dispatch sources shipped in #53. What was **deferred from #63** (which built the
+  `shellNavigationControllerProvider` seam and wired the Profile rows, recording the deferral
+  in the FR-PR-04 story Architect Notes §5 as "controller seam only") is the **tab-switch**:
+  today a notification tap pushes the detail screen onto the **root** navigator over whatever
+  primary tab happened to be active, and never drives the bottom-nav selection — so the user
+  lands in, and on pop returns to, a stale, unrelated tab.
+
+  The surfaces in play:
+
+  - `lib/core/routing/notification_deep_links.dart` — the pure resolver
+    `NotificationDeepLinks.resolve(payload, currentUid)` → a sealed `DeepLinkTarget`
+    (`DeepLinkExpenseDetail`, `DeepLinkFriendDetail`, `DeepLinkUnavailable`,
+    `DeepLinkGroupsComingSoon`), plus `navigate(context, target)` which only `Navigator.push`-es
+    the detail screen or shows a snackbar. It has **no `ref`/container** today.
+  - `lib/features/notifications/application/deep_link_handler.dart` — `DeepLinkHandler` (holds
+    the app `ProviderContainer`) resolves, emits the PII-free `fcm_notification_tapped` event,
+    then calls `navigate`.
+  - `lib/features/notifications/presentation/notifications_lifecycle_host.dart` — wires the four
+    dispatch sources (foreground banner, background `onMessageOpenedApp`, cold-start
+    `getInitialMessage`, and the post-sign-in replay of `pendingDeepLinkProvider`).
+  - `lib/features/shell/application/shell_navigation_controller.dart` — the #63
+    `shellNavigationControllerProvider` (`NotifierProvider.autoDispose<…, int>`,
+    `selectTab(int)` ignores out-of-range, emits no telemetry).
+  - `lib/features/activity/presentation/activity_feed_screen.dart` — the Activity-feed row-tap,
+    which consumes the SAME resolver + `navigate` from **within** the Activity tab (an in-tab
+    navigation that must NOT switch tabs).
+
+  This ADR ratifies where the tab-switch lives, the target→tab mapping, the switch-then-push
+  ordering and cold-start timing guarantee, the Activity-row-tap exclusion, and the telemetry
+  decision. It binds the Designer and the Flutter Dev. It authorises no schema, rules, index,
+  Cloud Function, or plugin change.
+
+  ### Decision
+
+  **1. Mapping lives on the target; the side effect lives in the handler.** Add an
+  `int? get homeTabIndex` getter to the sealed `DeepLinkTarget` and override it per case
+  (options (a)+(c) of the kickoff escalation). `DeepLinkHandler.handleDeepLink` reads the app
+  container's `shellNavigationControllerProvider.notifier` and calls `selectTab(homeTabIndex)`
+  when non-null, **before** calling `NotificationDeepLinks.navigate`. `navigate` therefore stays
+  **Riverpod-free** — no `WidgetRef`, container, or selector parameter is threaded into it. This
+  keeps the routing contract a pure function of the target while the Riverpod side effect stays
+  in the one place (the handler) that already owns a container, and the Activity-feed row-tap —
+  which calls `navigate` directly, never the handler — is excluded by construction.
+
+  **2. Target → primary-tab mapping (PM + Designer ratified).**
+
+  | Target | `homeTabIndex` | Tab | Snackbar |
+  |---|---|---|---|
+  | `DeepLinkExpenseDetail` | `1` | Friends | — (pushes Expense Detail) |
+  | `DeepLinkFriendDetail` | `1` | Friends | — (pushes Friend Detail) |
+  | `DeepLinkUnavailable` | `3` | Activity | "This item is no longer available." |
+  | `DeepLinkGroupsComingSoon` | `null` | (no switch) | "Groups are coming soon." |
+
+  Expense and friend detail are both friends-cluster screens that push **over** the Friends tab,
+  so pop lands on Friends. `DeepLinkUnavailable` (e.g. `expense_deleted`) maps to Activity
+  because the item lived in the activity feed; the existing SCR-25 snackbar is preserved and no
+  detail is pushed. `DeepLinkGroupsComingSoon` does not switch (forward-compat; Groups is a
+  Sprint 3 epic). The indices mirror the canonical `OBTBottomNav.tabs` order (Home 0 / Friends 1
+  / Groups 2 / Activity 3 / Profile 4); the handler derives the telemetry token from
+  `OBTBottomNav.tabs[index].telemetryLabel`, so there is no second source of tab tokens.
+
+  **3. Switch-then-push ordering and the cold-start timing guarantee.** `selectTab` is a
+  synchronous state set; it runs **before** the awaited `navigate` push, so the underlying
+  IndexedStack is already on the correct tab when the detail screen is presented full-screen
+  above it — no visible flash of the wrong tab. The tab switch must occur only when
+  `AuthenticatedShell` is mounted: for `background`/`foreground` the shell is mounted by
+  definition; for `coldStart` and the pending replay this is guaranteed by the existing
+  post-`AuthenticatedWithProfile` `addPostFrameCallback` in `NotificationsLifecycleHost`. A
+  deep-link arriving while a non-shell route is on top (e.g. mid-onboarding, unauthenticated)
+  still caches to `pendingDeepLinkProvider` and replays on sign-in — that behaviour is
+  preserved unchanged.
+
+  **4. Keep the root-navigator push (no per-tab Navigator).** The detail screen continues to be
+  presented full-screen above the shell via the root navigator; this PR only also selects the
+  underlying tab. A full per-tab nested-`Navigator` / `go_router` migration is Sprint 3 and out
+  of scope.
+
+  **5. Telemetry — extend, do not re-declare.** `fcm_notification_tapped` is extended with one
+  **non-identifying** `target_tab` enum parameter ∈ {`friends`, `activity`, `none`} alongside
+  the existing `notification_type` and `source`. It is **not** a new event. The `uid`, any
+  friendship composite, and raw entity IDs must NEVER be a parameter (SRS line 308 / ADR-0013);
+  `target_tab` is a fixed lowercase tab token and carries no identity.
+
+  **6. Activity-feed row-tap exclusion is load-bearing.** `ActivityFeedScreen._onRowTap` keeps
+  calling `NotificationDeepLinks.navigate` directly and must never call `selectTab`. A
+  boundary-contract grep over `activity_feed_screen.dart` guards against a future refactor
+  coupling them.
+
+  ### Consequences
+
+  - **Changed files:** `lib/core/routing/notification_deep_links.dart` (the `homeTabIndex`
+    getter on the sealed type + four overrides; `navigate` unchanged) and
+    `lib/features/notifications/application/deep_link_handler.dart` (the `selectTab` call before
+    `navigate` + the `target_tab` telemetry parameter, importing
+    `shell_navigation_controller.dart` and `obt_bottom_nav.dart`). No new production file.
+  - **Architectural firsts:** the first **notification** consumer of
+    `shellNavigationControllerProvider` (closing the #63 §5 deferral in full), and the first
+    cross-feature reach from `notifications` into the `shell` controller. With this, every
+    FR-AC requirement (FR-AC-01..05) is fully shipped.
+  - **Riverpod scoping.** `shellNavigationControllerProvider` is root-scoped (no `dependencies`
+    list) and resolves to the single root-container instance the shell `ref.watch`es; the
+    handler reads it from the same app container, so `selectTab` mutates the instance the shell
+    observes. The provider is `autoDispose` but the mounted shell is its keep-alive watcher
+    during every dispatch path, so the set is observed (not disposed mid-frame).
+  - **Required tests** (Flutter Dev / QA): target→`homeTabIndex` unit mapping; handler dispatch
+    selecting the right tab per target across the foreground/background/cold-start sources; the
+    cold-start replay ordering (tab selected on the post-auth frame, before the push); the
+    `target_tab` telemetry value + a PII-leak assertion (no `uid`/composite in any parameter);
+    and the Activity-row-tap boundary-grep guard. Per-feature coverage ≥ 70%.
+  - **No backend or plugin change.** No Cloud Function, `firestore.rules`,
+    `firestore.indexes.json`, or schema change; no new Flutter plugin → no `ios/Podfile.lock`
+    change. Invariants 1 (integer paise) and 2 (`simplifiedBalances` server-only) are N/A — no
+    money, no balance; Invariant 4 reinforced (single project, emulator-tested).
+  - **Relationship to prior ADRs.** ADR-0013 (PII-safe telemetry): `fcm_notification_tapped`
+    stays type + source + the non-identifying `target_tab`. The #63 / FR-PR-04 Architect Notes
+    §2 introduced `shellNavigationControllerProvider` and §5 deferred this exact consumer; this
+    ADR closes that deferral. ADR-0004 (Riverpod): the side effect stays out of the pure router
+    and inside the container-holding handler.
+
+  ### Alternatives Considered
+
+  - **Thread a `WidgetRef` / `tabIndex` selector into `NotificationDeepLinks.navigate`**
+    (escalation option (b)) — rejected: it couples the pure router to Riverpod and would drag the
+    Activity-feed row-tap (which calls `navigate`) into the tab-switch surface, the exact
+    coupling AC-6 forbids.
+  - **A `Map<Type, int>` mapping table in the handler** — rejected in favour of the `homeTabIndex`
+    getter, which keeps the mapping co-located with each sealed case and exhaustively checked by
+    the switch/override discipline.
+  - **Switch the tab inside `NotificationsLifecycleHost` (per dispatch source)** — rejected: the
+    handler is the single choke point all four sources already funnel through, so the switch
+    belongs there once, not replicated across the four call sites.
+  - **A new `notification_tab_switched` telemetry event** — rejected: the tap is already observed
+    by `fcm_notification_tapped`; a `target_tab` parameter on it is sufficient and avoids event
+    proliferation.
+  - **Navigate within a per-tab nested Navigator (`go_router` ShellRoute)** — deferred to Sprint 3
+    (ADR-noted in the PR #56 shell story §2.1); the minimal switch-then-root-push is the
+    lowest-risk change for v1.0.
+  - **Foreground banner tap does NOT switch tabs** — rejected: one handler, one contract; a banner
+    tap that routed differently from a background tap would be a surprising inconsistency. The
+    Designer ratified the consistent behaviour.
+
+  ---

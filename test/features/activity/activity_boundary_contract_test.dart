@@ -155,6 +155,34 @@ void main() {
       );
     });
   });
+
+  group('activity boundary contract — row-tap does NOT switch primary tabs '
+      '(FR-AC-05)', () {
+    test('activity_feed_screen.dart contains no selectTab / '
+        'shellNavigationController reference', () {
+      final file = File(
+        'lib/features/activity/presentation/activity_feed_screen.dart',
+      );
+      if (!file.existsSync()) {
+        fail('Expected activity_feed_screen.dart to exist');
+      }
+      final lines = file.readAsLinesSync();
+      final violations = <String>[];
+      for (var i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        if (_isCommentLine(line)) continue;
+        if (line.contains('selectTab') ||
+            line.contains('shellNavigationController')) {
+          violations.add(
+            '${file.path}:${i + 1}: forbidden tab-switch reference — the '
+            'activity-feed row tap is an in-tab navigation and must never '
+            'select a primary tab (FR-AC-05 tab-switch is FCM-dispatch only)',
+          );
+        }
+      }
+      expect(violations, isEmpty, reason: violations.join('\n'));
+    });
+  });
 }
 
 bool _isCommentLine(String raw) {

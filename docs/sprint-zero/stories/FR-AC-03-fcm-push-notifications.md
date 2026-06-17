@@ -524,7 +524,7 @@ opening the app**.
 |---|---|---|
 | `fcm_token_registered` | After `getToken()` + arrayUnion success | (none — implicit user context) |
 | `fcm_permission_prompt_shown` | When the pre-permission dialog appears | `trigger: 'first_session' \| 'manual'` |
-| `fcm_notification_tapped` | Foreground banner tap / background tap / cold-start | `notification_type`, `source: 'foreground' \| 'background' \| 'cold_start'` |
+| `fcm_notification_tapped` | Foreground banner tap / background tap / cold-start | `notification_type`, `source: 'foreground' \| 'background' \| 'cold_start'`, `target_tab: 'friends' \| 'activity' \| 'none'` (FR-AC-05 tab-switch, ADR-0018 — non-identifying) |
 
 PII guard (ADR-0013): UID-derived parameters MUST be hashed; FCM
 tokens themselves are NOT subject to ADR-0013 (opaque, non-deterministic,

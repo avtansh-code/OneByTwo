@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-AU-09 permanently delete your account (#65, `d542793`) merged — it was the second top-ranked remaining P1 (FR-PR-02 #64 was the first) and **every P0 functional requirement remains shipped**; the deferred 30-day reaper / grace-period / SMS / audit-log work is filed as FUTURE issue #66. FR-HD-03 (current-month spend summary with a category breakdown chart, SRS section 4.8 line 248, **P1**) opened as the next feature PR — the **top-ranked remaining P1** on the carry-forward candidate list and the **last open Home-dashboard requirement** (FR-HD-01/02 in #62, FR-HD-04 in #57); it lands as the next available GitHub number (≥ #67 now that FUTURE issue #66 is filed), reconciled at PR open.
+> Last updated: FR-HD-03 current-month spend summary with a category breakdown chart (#67, `1f26548`) merged — it was the **top-ranked remaining P1** and the **last open Home-dashboard requirement** (FR-HD-01/02 in #62, FR-HD-04 in #57); **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped**. The deferred N+1-read denormalised monthly-spend rollup is filed as FUTURE issue #68 (do not build it). FR-AC-05 (deep-link tab-switch, SRS section 4.7 line 240, **P0**) opened as the next PR — the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; it lands as the next available GitHub number (≥ #69 now that FUTURE issue #68 is filed), reconciled at PR open.
 
 ---
 
@@ -33,21 +33,85 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — merged 2026-06-16, `2e68713`.** |
 | **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — merged 2026-06-17, `d542793`; the second top-ranked P1 (FR-PR-02 #64 was the first); first reuse of the FR-PR-02 re-authentication surface; the deferred 30-day reaper / grace-period work is FUTURE issue #66.** |
 | #66 | Issue | FUTURE: 30-day scheduled-cleanup reaper + grace-period / confirmation SMS / audit log for account deletion (SCR-28 Open Questions 1-3) — deferred from FR-AU-09 (#65); CANNOT be closed by #65. |
-| **#67** | **PR** | **FR-HD-03 current-month spend summary with a category breakdown chart (SCR-06, SRS 4.8 line 248, P1) — IN FLIGHT; the top-ranked remaining P1 and the last open Home-dashboard requirement (FR-HD-01/02 in #62, FR-HD-04 in #57); first cross-friendship expense read path (fan-out) + first charting approach; lands as the next available number ≥ #67, reconciled at PR open.** |
+| **#67** | **PR** | **FR-HD-03 current-month spend summary with a category breakdown chart (SCR-06, SRS 4.8 line 248, P1) — merged 2026-06-17, `1f26548`; the top-ranked remaining P1 and the last open Home-dashboard requirement (FR-HD-01/02 in #62, FR-HD-04 in #57); first cross-friendship expense read path (fan-out) + first charting approach (`fl_chart`, pure-Dart, no `ios/Podfile.lock` change); two review refinements landed in-PR (server-side month upper bound in `fetchExpensesInMonth`, reusing the existing `expenses (deleted ASC + date DESC)` index; largest-remainder legend percentages summing to 100). ADR-0017.** |
+| #68 | Issue | FUTURE: denormalised per-user monthly-spend rollup Cloud Function to remove the FR-HD-03 N+1 fan-out reads — filed/deferred from FR-HD-03 (#67); CANNOT be closed by #67. Do NOT build it in FR-AC-05. |
+| **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — IN FLIGHT; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller; lands as the next available number ≥ #69, reconciled at PR open.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
 consume intermediate numbers; the orchestrator should not assume the
-roadmap slot label equals the GitHub number. **Now that FR-AU-09 has
-merged as PR #65 and FUTURE issue #66 is filed, the FR-HD-03 chart work
-lands as the next available number ≥ #67** — reconcile the slot label at
+roadmap slot label equals the GitHub number. **Now that FR-HD-03 has
+merged as PR #67 and FUTURE issue #68 is filed, the FR-AC-05 tab-switch
+work lands as the next available number ≥ #69** — reconcile the slot label at
 PR open.
 
 ---
 
-## PR #67 — IN FLIGHT (FR-HD-03 monthly spend category breakdown chart)
+## PR #69 — IN FLIGHT (FR-AC-05 deep-link tab-switch on notification tap)
 
-**Status:** Open. FR-HD-03 confirmed as the next-slot pick at kickoff — the
+**Status:** Open. FR-AC-05 (the deep-link tab-switch) confirmed as the next-slot
+pick at kickoff — the **first carry-forward candidate** on the list below, now
+**unblocked by the `shellNavigationControllerProvider` seam** shipped in #63 and
+explicitly deferred there as "controller seam only". It closes the **last
+deferred piece of a P0** (SRS section 4.7, line 240): every FR-AC requirement is
+then fully shipped.
+
+Today a notification tap pushes the detail screen onto the **root** navigator
+over whatever primary tab happened to be active, and never drives the bottom-nav
+selection — so the user lands in (and on pop returns to) a stale, unrelated tab.
+This PR makes a notification deep-link **select the correct primary tab** before
+the push, so the user lands in the relevant tab context with a coherent
+back-stack.
+
+- **Drive the shell tab from the deep-link dispatch (ADR-0018).** A new
+  `int? homeTabIndex` getter on the sealed `DeepLinkTarget` carries the mapping
+  with the target; `DeepLinkHandler.handleDeepLink` reads
+  `shellNavigationControllerProvider.notifier` and `selectTab(...)` BEFORE the
+  root-navigator push, leaving `NotificationDeepLinks.navigate` Riverpod-free.
+- **Target → primary-tab mapping.** `DeepLinkExpenseDetail` /
+  `DeepLinkFriendDetail` → the **Friends tab (index 1)** (both push a
+  friends-cluster detail, so pop lands on Friends); `DeepLinkUnavailable`
+  (e.g. `expense_deleted`) → the **Activity tab (index 3)** + the existing
+  "This item is no longer available" snackbar (the item lived in the activity
+  feed); `DeepLinkGroupsComingSoon` → no tab switch + the existing "Groups are
+  coming soon" snackbar (forward-compat).
+- **Cold-start ordering.** The tab switch rides the existing post-
+  `AuthenticatedWithProfile` `addPostFrameCallback` replay so it never runs
+  before `AuthenticatedShell` is mounted; `selectTab` is synchronous and runs
+  before the awaited push, so there is no wrong-tab flash. A deep-link arriving
+  pre-auth still caches to `pendingDeepLinkProvider` and replays on sign-in.
+- **Activity-feed row-tap excluded.** The in-tab row-tap shares the resolver but
+  uses `NotificationDeepLinks.navigate` directly (never the handler), so it does
+  NOT switch tabs — guarded by a boundary-contract grep so a future refactor
+  cannot accidentally couple them.
+- **Telemetry (PII-free).** `fcm_notification_tapped` is extended with a
+  non-identifying `target_tab` enum (`friends` / `activity` / `none`) — not a
+  new event; no `uid`, friendship composite, or raw entity ID is ever a
+  parameter (SRS line 308 / ADR-0013).
+
+**Stubs / defers.** No new Cloud Function; no `firestore.rules` / index / schema
+change; no new Flutter plugin (no `ios/Podfile.lock` change). Invariants 1 and 2
+are N/A (no money, no `simplifiedBalances`). The `go_router` / per-tab nested
+Navigator migration stays Sprint 3; the Groups epic and a real `group_invite`
+deep-link stay deferred (the `group_invite` payload remains the
+`DeepLinkGroupsComingSoon` snackbar).
+
+**Next candidates** (architect's call at the post-#69 kickoff): the carry-forward
+list below — the `app_settings`/`permission_handler` "Open Settings" CTA chore,
+the `go_router` migration (Sprint 3), the Bucket-B chore close-out bundle, Issue
+#47 rules-hardening, FR-SR-01/02 Search (SCR-07), and the Sprint 3 Groups epic
+(FR-GR-01..07).
+
+---
+
+## PR #67 — Merged (FR-HD-03 monthly spend category breakdown chart)
+
+**Status:** Merged 2026-06-17 (`1f26548`). Two review refinements landed in-PR
+(a server-side month upper bound in `fetchExpensesInMonth`, reusing the existing
+`expenses (deleted ASC + date DESC)` composite index; largest-remainder legend
+percentages that always sum to 100); the deferred N+1-read denormalised rollup is
+filed as FUTURE issue #68. FR-HD-03 confirmed as the next-slot pick at kickoff —
+the
 **top-ranked remaining P1** (SRS section 4.8, line 248) on the carry-forward
 candidate list and the **last open Home-dashboard requirement** now that
 FR-HD-01/02 shipped (#62), FR-HD-04 shipped (#57), and **every P0 functional
@@ -601,12 +665,39 @@ Candidates (in rough priority order — architect's call at kickoff):
 - **FR-SE-09 message-compose dialog follow-up** (the deferred UX
   PR per FR-SE-09 architect §2.5). 1-2 SP.
 - **`shellNavigationControllerProvider` + FR-AC-05 deep-link
-  tab-switching expansion** (follow-up to PR #56; ~2 SP). The FCM
-  cold-start handler currently lands on the activity feed via
-  `MaterialPageRoute.push`; a future expansion can land on a
-  SPECIFIC tab (0..4) using a Riverpod `Notifier<int>` controller
-  read by the shell. Defer until a concrete second consumer (this
-  expansion IS the second consumer).
+  tab-switching expansion** (follow-up to PR #56; ~2-3 SP). **IN FLIGHT as
+  PR #69 (2026-06-17)** — the seam shipped in #63, and this PR wires the
+  notification deep-link dispatch to `selectTab(...)` so a tap lands on the
+  relevant primary tab (Friends for expense/friend detail, Activity for the
+  unavailable snackbar) before the root-navigator push. The Activity-feed
+  row-tap is excluded (in-tab navigation). Closes the #63 "controller seam
+  only" deferral; every FR-AC requirement is then fully shipped.
+- **FR-SR-01 / FR-SR-02 Search (SCR-07)** (P1; **reconciled into this
+  list 2026-06-17 — previously OMITTED, corrected here**; net-new
+  feature; **Sprint 3**; sizeable, ~8-13 SP, likely split across PRs).
+  Search expenses by description, amount, category, or member (FR-SR-01,
+  SRS line 255) + filter by date range, group, and category (FR-SR-02,
+  SRS line 256). **Unbuilt** — there is no `lib/features/search/` folder,
+  though the **six `search_*` events are already pre-declared** in
+  `telemetry-plan.md §1.3` and SCR-07 (`search_opened`,
+  `search_query_submitted`, `search_filter_applied`,
+  `search_result_tapped`, `search_no_results`, `search_closed`).
+  **Architectural escalation (ADR-worthy):** Firestore has **no native
+  full-text search**, so "search by description" cannot be a server
+  query — the approach must be ratified at kickoff: (a) client-side
+  filtering over a cross-friendship expense read path (the FR-HD-03
+  fan-out precedent; no new dependency, but only over loaded data and
+  re-using/extending the FUTURE rollup #68 cost profile), (b) a
+  third-party search index (Algolia / Typesense — a new dependency,
+  cost, and a sync Cloud Function), or (c) Firestore prefix/exact
+  matching only (description prefix + exact amount/category/member).
+  **Open SCR-07 design questions that gate the build:** OQ-SR-01 (entry
+  point — Home app-bar icon vs all-tab vs pull-down), OQ-SR-02
+  (recent-searches persistence — pairs with the `shared_preferences`
+  chore above), OQ-SR-03 (amount range vs exact match), OQ-SR-04
+  (date-range filter presentation). Ranks **below the Groups P0 epic**;
+  the search-backend decision plus the four OQs must be resolved before
+  implementation — the architect confirms the slot at a Sprint 3 kickoff.
 - **`OBTFloatingActionButton` spring-physics polish** (~1 SP —
   tracked follow-up per PR #57 architect §2.2 reconciliation. The
   primitive shipped without the spring-physics scale-in animation
