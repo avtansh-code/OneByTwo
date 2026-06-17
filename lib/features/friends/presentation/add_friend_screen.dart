@@ -104,8 +104,14 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
             },
           ),
     );
+    // Graceful degradation (AC-5): a failed OS-settings deep-link must
+    // not crash or surface an uncaught async error; the permission view
+    // stays so the user can retry.
     unawaited(
-      ref.read(contactPermissionControllerProvider.notifier).openSettings(),
+      ref
+          .read(contactPermissionControllerProvider.notifier)
+          .openSettings()
+          .catchError((Object _) {}),
     );
   }
 

@@ -46,14 +46,23 @@ class _FakeAnalyticsService implements AnalyticsService {
 }
 
 class _FakeAppSettingsService implements AppSettingsService {
+  _FakeAppSettingsService({this.throwOnOpen = false});
+
+  final bool throwOnOpen;
   int notificationCalls = 0;
   int appSettingsCalls = 0;
 
   @override
-  Future<void> openNotificationSettings() async => notificationCalls++;
+  Future<void> openNotificationSettings() async {
+    notificationCalls++;
+    if (throwOnOpen) throw Exception('settings unavailable');
+  }
 
   @override
-  Future<void> openAppSettings() async => appSettingsCalls++;
+  Future<void> openAppSettings() async {
+    appSettingsCalls++;
+    if (throwOnOpen) throw Exception('settings unavailable');
+  }
 }
 
 class _FakeUserRepository implements UserRepository {
@@ -446,6 +455,37 @@ void main() {
         opened.single.parameters!.keys,
         everyElement(equals(permissionSettingsSurfaceParam)),
       );
+    });
+
+    testWidgets('AC-5: a failing notification-settings deep-link is absorbed '
+        '(banner stays, no uncaught error)', (tester) async {
+      final repo = _FakeUserRepository()
+        ..userToReturn = _userWithPrefs({
+          'newExpense': true,
+          'settlement': true,
+          'reminder': true,
+        });
+      final appSettings = _FakeAppSettingsService(throwOnOpen: true);
+
+      await tester.pumpWidget(
+        _buildSubject(
+          repository: repo,
+          analytics: _FakeAnalyticsService(),
+          permissionState: PermissionState.permanentlyDenied,
+          appSettings: appSettings,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Settings'));
+      await tester.pumpAndSettle();
+
+      // The deep-link was attempted, the rejection was swallowed (no
+      // uncaught async error), and the banner + button remain so the
+      // user can retry.
+      expect(appSettings.notificationCalls, 1);
+      expect(tester.takeException(), isNull);
+      expect(find.widgetWithText(TextButton, 'Open Settings'), findsOneWidget);
     });
 
     testWidgets('AC-11: banner shows the same copy + button when '

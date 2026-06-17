@@ -55,6 +55,10 @@ class FakeContactService implements ContactService {
   /// Whether [openSettings] was called.
   bool openSettingsCalled = false;
 
+  /// Whether [openSettings] should throw (to exercise AC-5 graceful
+  /// degradation of a failing OS-settings deep-link).
+  bool throwOnOpenSettings = false;
+
   @override
   Future<ContactPermissionState> checkPermission() async =>
       checkPermissionResult;
@@ -69,6 +73,7 @@ class FakeContactService implements ContactService {
   @override
   Future<void> openSettings() async {
     openSettingsCalled = true;
+    if (throwOnOpenSettings) throw Exception('settings unavailable');
   }
 }
 
@@ -407,6 +412,31 @@ void main() {
         expect(fakeAnalytics.loggedParams[index], {
           permissionSettingsSurfaceParam: permissionSettingsSurfaceContacts,
         });
+      });
+
+      testWidgets('AC-5: a failing contacts settings deep-link is absorbed '
+          '(permission view stays, no uncaught error)', (tester) async {
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.deniedPermanently;
+        fakeContactService.throwOnOpenSettings = true;
+
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Settings'));
+        await tester.pumpAndSettle();
+
+        // The deep-link was attempted, the rejection was swallowed (no
+        // uncaught async error), and the permission-denied view remains.
+        expect(fakeContactService.openSettingsCalled, isTrue);
+        expect(tester.takeException(), isNull);
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Type a number instead'), findsOneWidget);
       });
     });
   });

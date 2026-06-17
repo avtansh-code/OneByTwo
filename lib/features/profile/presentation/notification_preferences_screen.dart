@@ -356,7 +356,15 @@ class _OsPermissionBanner extends ConsumerWidget {
             },
           ),
     );
-    unawaited(ref.read(appSettingsServiceProvider).openNotificationSettings());
+    // Graceful degradation (AC-5): a failed OS-settings deep-link must
+    // not crash or surface an uncaught async error; the banner stays so
+    // the user can retry or follow the on-screen instruction.
+    unawaited(
+      ref
+          .read(appSettingsServiceProvider)
+          .openNotificationSettings()
+          .catchError((Object _) {}),
+    );
   }
 
   @override
