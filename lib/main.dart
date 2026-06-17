@@ -19,6 +19,8 @@ import 'package:onebytwo/features/friends/data/matching_callable_adapter.dart';
 import 'package:onebytwo/features/friends/data/matching_repository.dart';
 import 'package:onebytwo/features/notifications/data/notification_handler.dart';
 import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
+import 'package:onebytwo/features/profile/data/delete_account_callable_adapter.dart';
+import 'package:onebytwo/features/profile/data/delete_account_repository.dart';
 import 'package:onebytwo/features/reminders/data/reminder_callable_adapter.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
@@ -80,6 +82,9 @@ void main() async {
   final matchingAdapter = MatchingCallableAdapter(
     functions.httpsCallable('lookupUserByPhoneNumber'),
   );
+  final deleteAccountAdapter = DeleteAccountCallableAdapter(
+    functions.httpsCallable('deleteUserAccount'),
+  );
 
   // FR-PR-05: initialise Firebase Remote Config (the app's first
   // consumer, ADR-0006). `initialise()` awaits the fast local
@@ -99,6 +104,9 @@ void main() async {
         ),
         matchingRepositoryProvider.overrideWithValue(
           MatchingRepository(lookupCallable: matchingAdapter.asCallable),
+        ),
+        deleteAccountRepositoryProvider.overrideWithValue(
+          DeleteAccountRepository(callable: deleteAccountAdapter.asCallable),
         ),
         remoteConfigServiceProvider.overrideWithValue(remoteConfig),
       ],

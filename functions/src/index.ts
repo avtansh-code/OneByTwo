@@ -42,6 +42,17 @@ export {lookupUserByPhoneNumber} from "./lookup-user-by-phone-number/index";
 // items/{auto}` for the in-app activity row.
 export {sendReminderNotification} from "./send-reminder-notification/index";
 
+// FR-AU-09 permanently delete account callable (SCR-28 Part B). The first
+// cascade-delete fan-out function and the first admin.auth().deleteUser(...).
+// Runs entirely under the Admin SDK (clients have NO delete path). DELETES
+// personal records (activity/{uid}, _rateLimits/{uid}, Storage avatars/{uid},
+// the Auth record LAST), TOMBSTONES users/{uid} into a PII-free
+// { displayName: 'Deleted User', deletedAt } shell, and PRESERVES shared
+// friendships/expenses/settlements untouched — the surviving member's
+// simplifiedBalances is never recomputed or stripped (Invariant 2). See
+// ADR-0016.
+export {deleteUserAccount} from "./delete-user-account/index";
+
 // Firestore trigger: recompute simplifiedBalances when an expense is
 // created, updated, or deleted under a friendship (FR-SE-03/04).
 // First non-callable producer of simplifiedBalances (Invariant 2).

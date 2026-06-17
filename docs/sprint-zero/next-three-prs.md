@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-PR-04 My Friends / My Groups from Profile (#63, `209afea`) merged — **every P0 functional requirement is now shipped**. FR-PR-02 (update phone number via OTP re-verification, SRS section 4.2 line 175, **P1**) opened as the next feature PR — the top-ranked remaining P1 on the carry-forward candidate list (above FR-AU-09 account-deletion and the chore bundle); lands as the next available GitHub number (≥ #64).
+> Last updated: FR-PR-02 update phone number via OTP re-verification (#64, `2e68713`) merged — it was the top-ranked remaining P1 and **every P0 functional requirement remains shipped**. FR-AU-09 (permanently delete your account, SRS section 4.1 line 168, **P1**) opened as the next feature PR — the next top-ranked P1 on the carry-forward candidate list (above the Bucket-B chore bundle, Issue #47 rules-hardening, and the `shared_preferences` / `app_settings` chores) and the first reuse of the FR-PR-02 re-authentication surface outside change-phone; opened as PR #65; the deferred 30-day reaper / grace-period / SMS / audit-log work is filed as FUTURE issue #66.
 
 ---
 
@@ -30,7 +30,9 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#61** | **PR** | CI PR-pipeline speed-up — parallelise `build-ios`/`build-android` with `flutter-checks` (no `needs:` edge), cache CocoaPods, guard `flutterfire_cli` activation, de-duplicate coverage-gate via artifacts, pin `firebase-tools` (merged 2026-06-12, `d474507`). |
 | **#62** | **PR** | FR-HD-01/02 Home dashboard (SCR-06) — merged 2026-06-13, `57c272e`. |
 | **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — the last open P0 functional requirement, omitted from this candidate list (corrected); merged 2026-06-13, `209afea`.** |
-| **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — IN FLIGHT; top-ranked remaining P1 now that every P0 is shipped; lands as the next available GitHub number ≥ #64.** |
+| **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — merged 2026-06-16, `2e68713`.** |
+| **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — IN FLIGHT; the next top-ranked P1 now that FR-PR-02 has merged and every P0 is shipped; first reuse of the FR-PR-02 re-authentication surface; opened as PR #65; the deferred 30-day reaper / grace-period work is FUTURE issue #66.** |
+| #66 | Issue | FUTURE: 30-day scheduled-cleanup reaper + grace-period / confirmation SMS / audit log for account deletion (SCR-28 Open Questions 1-3) — deferred from FR-AU-09 (#65); CANNOT be closed by #65. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -42,9 +44,75 @@ PR open.
 
 ---
 
-## PR #64 — IN FLIGHT (FR-PR-02 update phone number via OTP re-verification)
+## PR #65 — IN FLIGHT (FR-AU-09 permanently delete your account)
 
-**Status:** Open. FR-PR-02 confirmed as the next-slot pick at kickoff —
+**Status:** Open. FR-AU-09 confirmed as the next-slot pick at kickoff —
+the **next top-ranked remaining P1** (SRS section 4.1, line 168) now that
+FR-PR-02 has merged (#64) and **every P0 functional requirement is
+shipped**. It is the **LAST open authentication-cluster requirement**
+(FR-AU-01..08 are all shipped) and the **first reuse of the FR-PR-02
+re-authentication surface** (`PhoneAccountRepository.reauthenticate`)
+outside the change-phone flow.
+
+Replaces the `'Coming soon'` Delete Account dead-end on the Profile screen
+(SCR-26, `profile_screen.dart` lines 387-401) with the SCR-28 Part B
+multi-step full-screen flow at `/profile/delete-account` (Step A warning →
+Step B re-authentication → Step C type-`DELETE` confirmation → Step D
+processing → Step E success → Phone Entry, stack cleared):
+
+- **New callable Cloud Function `deleteUserAccount`** (region
+  `asia-south1`, exported from `index.ts` with the `REGION` const; auth
+  check first → `UNAUTHENTICATED`; `HttpsError` with `details.errorCode`).
+  The **first cascade-delete fan-out function** and the **first
+  `admin.auth().deleteUser(...)`** — it runs the cascade via the Admin SDK
+  (clients have NO delete path). Idempotent (already-absent state treated
+  as success); step order Firestore (`recursiveDelete`) → Storage → Auth
+  LAST.
+- **Cascade matrix (ADR-0016).** DELETE personal records (`activity/{uid}`,
+  `_rateLimits/{uid}`, Storage `avatars/{uid}`, the Firebase Auth record
+  LAST); TOMBSTONE `users/{uid}` into a PII-free
+  `{ displayName: 'Deleted User', deletedAt }` shell; PRESERVE shared data
+  untouched (friendships where the user is a member, their expenses,
+  settlements, receipts). The surviving member's `simplifiedBalances` is
+  **NEVER** recomputed, zeroed or stripped (Invariant 2) — the **first
+  server-side write adjacent to `simplifiedBalances` that deliberately
+  preserves it**.
+- **"Deleted User" via tombstone (no client change).** The three name
+  fallback sites already use `displayName ?? 'Unknown'`, so a present
+  `displayName: 'Deleted User'` renders "Deleted User" while a genuine
+  missing-doc read stays "Unknown".
+- **Re-auth reuses FR-PR-02.** SCR-28 Step B drives the existing
+  `PhoneAccountRepository` (`requestOtp` + `reauthenticate` +
+  `currentPhoneNumber`); never `signInWithCredential`. +91 only.
+- **Type-`DELETE` gate** (case-sensitive, trimmed) before any Function
+  call; processing Step D blocks back navigation with a 30s timeout →
+  Profile + Contact Support snackbar (reuses the FR-PR-05
+  `ContactSupportController`); success Step E → Phone Entry, stack cleared.
+- **Telemetry (PII-free).** The 7 `delete_account_*` events are already
+  pre-declared in `telemetry-plan.md §1.7`; only `delete_account_failed`
+  carries `error_code`; the uid / phone number is NEVER a parameter (SRS
+  line 308). Server logs hash the uid via `hashId`.
+
+**Stubs / defers.** `firestore.rules` unchanged (client delete already
+denied on users/friendships/settlements; a rules test confirms it stays
+rejected). Groups axis stubbed (no live groups in v1.0; friendship axis
+implemented fully, group axis forward-compat TODO + ADR note). The 30-day
+**scheduled-cleanup reaper**, deletion-confirmation SMS, and admin audit
+log (SCR-28 Account Deletion Open Questions 1-3) are deferred to a FUTURE
+follow-up issue. No new Flutter plugin (`cloud_functions` already a
+dependency) — **no `ios/Podfile.lock` change**.
+
+**Next candidates** (architect's call at the post-#65 kickoff): the
+carry-forward list below — the FR-AC-05 deep-link tab-switch migration,
+the `app_settings`/`permission_handler` "Open Settings" CTA chore, the
+FR-HD-03 real chart, the Bucket-B chore close-out bundle, Issue #47
+rules-hardening, and the Sprint 3 Groups epic.
+
+---
+
+## PR #64 — Merged (FR-PR-02 update phone number via OTP re-verification)
+
+**Status:** Merged 2026-06-16 (`2e68713`). FR-PR-02 confirmed as the next-slot pick at kickoff —
 the **top-ranked remaining P1** (SRS section 4.2, line 175) now that
 **every P0 functional requirement is shipped** (FR-PR-04 closed the last
 one in #63). It sits above FR-AU-09 account-deletion and the chore bundle
@@ -89,12 +157,13 @@ new Cloud Function / collection / index / Flutter plugin — `firebase_auth`
 already a dependency, so **no `ios/Podfile.lock` change**. The only backend
 change is the `firestore.rules` relaxation + its tests.
 
-**Next candidates** (architect's call at the post-#64 kickoff): the
-carry-forward list below — FR-AU-09 account-deletion (P1, needs the
-cascade-delete Cloud Function), the FR-AC-05 deep-link tab-switch
-migration, the `app_settings`/`permission_handler` "Open Settings" CTA
-chore, the FR-HD-03 real chart, Issue #47 rules-hardening, and the
-Sprint 3 Groups epic.
+**Next candidates** (architect's call at the post-#64 kickoff): **FR-AU-09
+account-deletion was selected and is now in flight as #65 above** (the next
+top-ranked P1, needing the cascade-delete Cloud Function). The remaining
+carry-forward list — the FR-AC-05 deep-link tab-switch migration, the
+`app_settings`/`permission_handler` "Open Settings" CTA chore, the
+FR-HD-03 real chart, Issue #47 rules-hardening, and the Sprint 3 Groups
+epic.
 
 ---
 
@@ -445,7 +514,8 @@ Candidates (in rough priority order — architect's call at kickoff):
 - **FR-PR-02 phone-number-change flow** (P1; depends on the
   existing OTP re-verification flow; medium PR ~5 SP).
 - **FR-AU-09 account-deletion flow** (P1; depends on a new
-  Cloud Function for cascade-delete fan-out; medium PR ~5-8 SP).
+  Cloud Function for cascade-delete fan-out; medium PR ~5-8 SP) —
+  **IN FLIGHT (this PR; PR #65; deferred reaper work as FUTURE issue #66).**
 - **Bucket-B chore close-out** (single ~3 SP PR closing #20 CV3,
   #21 R1-R4, #23 PY3 partial with comments — see
   `docs/sprint-zero/sprint-2-plan.md` §"Issue closure candidates").

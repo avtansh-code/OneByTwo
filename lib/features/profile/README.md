@@ -75,6 +75,36 @@ delegated to the notifications feature for FCM-token cleanup.
   app's first Remote Config consumer per ADR-0006) and
   `UrlLauncherService` (`lib/core/services/`).
 
+### FR-AU-09 — Account deletion (SCR-28 Part B)
+
+- `presentation/profile_screen.dart` — the "Delete Account" row calls
+  `_openDeleteAccount`, which pushes `DeleteAccountScreen` and, on a
+  `DeleteAccountOutcome.failed` result, shows the error snackbar whose
+  "Contact Support" action reuses the FR-PR-05 `_contactSupport` flow.
+- `presentation/delete_account_screen.dart` — `DeleteAccountScreen`, the
+  single full-screen route whose body switches by `DeleteAccountStep`:
+  Step A warning, Step B re-authentication (reusing the auth `OtpInput`
+  and the FR-PR-02 `PhoneAccountRepository`), Step C type-`DELETE`
+  confirmation, Step D processing (back blocked via `PopScope`, 30s
+  timeout), Step E success (3s, then sign-out). Returns
+  `DeleteAccountOutcome.failed` to Profile on a Step D failure / timeout.
+- `application/delete_account_controller.dart` — `DeleteAccountController`
+  (`deleteAccountControllerProvider`, autoDispose), the five-step state
+  machine. Re-auth reuses `PhoneAccountRepository` (never
+  `signInWithCredential`); the cascade runs in the `deleteUserAccount`
+  callable; on success it signs out so the root auth gate clears the stack
+  to Phone Entry (ADR-0016).
+- `application/delete_account_telemetry.dart` — the seven PII-free
+  `delete_account_*` event-name constants (only `delete_account_failed`
+  carries an `error_code`).
+- `data/delete_account_repository.dart` — `DeleteAccountRepository` +
+  `DeleteAccountCallable` typedef + `DeleteAccountException`. The
+  `deleteAccountRepositoryProvider` is overridden in `main.dart`; tests
+  inject a fake callable.
+- `data/delete_account_callable_adapter.dart` — `DeleteAccountCallableAdapter`,
+  the only profile file importing `cloud_functions`; translates
+  `FirebaseFunctionsException` to `DeleteAccountException`.
+
 ### Legacy stub
 
 - `presentation/profile_placeholder_screen.dart` —
@@ -91,8 +121,12 @@ application/
   notification_preferences_telemetry.dart  # FR-PR-03 event/param/token constants
   contact_support_controller.dart         # FR-PR-05 sealed result + controller
   contact_support_telemetry.dart          # FR-PR-05 support_email_opened (no PII)
+  delete_account_controller.dart          # FR-AU-09 five-step state machine (autoDispose)
+  delete_account_telemetry.dart           # FR-AU-09 seven delete_account_* events (no PII)
 data/
   device_diagnostics_service.dart         # FR-PR-05 package_info_plus + device_info_plus
+  delete_account_repository.dart           # FR-AU-09 callable repo + typed exception
+  delete_account_callable_adapter.dart     # FR-AU-09 cloud_functions -> typedef shim
 domain/
   support_diagnostics.dart                # FR-PR-05 immutable diagnostics value object
 presentation/
@@ -100,6 +134,7 @@ presentation/
   edit_profile_screen.dart                # SCR-26 edit sub-screen
   notification_preferences_screen.dart    # SCR-27 toggles + banner + offline snackbar
   contact_support_fallback_dialog.dart    # FR-SH-04 no-mail-client dialog
+  delete_account_screen.dart              # SCR-28 Part B five-step deletion flow
   profile_placeholder_screen.dart         # legacy sign-out stub (not on the live nav)
   widgets/
     photo_picker_sheet.dart               # PhotoPickerSheet + PhotoPickerAction
