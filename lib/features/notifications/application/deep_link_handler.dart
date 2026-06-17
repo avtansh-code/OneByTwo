@@ -104,6 +104,14 @@ class DeepLinkHandler {
           ),
     );
     if (tabIndex != null) {
+      // Select the primary tab synchronously, BEFORE the `context.mounted`
+      // guard and the awaited push (ADR-0018). This is deliberate: the
+      // switch must land in the same frame as the push so there is no
+      // wrong-tab flash. On the rare path where `context` is already
+      // unmounted (so the push below is skipped), the shell has no watcher,
+      // the `autoDispose` controller resets to Home on the next mount, and
+      // the set has no lasting effect. Do NOT move this below the
+      // `mounted` check — doing so would reintroduce the wrong-tab flash.
       _ref.read(shellNavigationControllerProvider.notifier).selectTab(tabIndex);
     }
     if (!context.mounted) return;

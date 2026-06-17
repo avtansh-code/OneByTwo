@@ -264,6 +264,25 @@ void main() {
     });
 
     testWidgets(
+      'expense_added (foreground banner) selects the Friends tab (1) — AC-7',
+      (tester) async {
+        keepAlive();
+        await _pumpHostAndDispatch(
+          tester: tester,
+          container: container,
+          handler: handler,
+          payload: _payload(),
+          currentUid: 'uid-me',
+          source: DeepLinkSource.foreground,
+        );
+        // The foreground in-app-banner tap switches tabs for consistency
+        // with the background / cold-start paths (AC-7): the tab logic is
+        // source-independent.
+        expect(container.read(shellNavigationControllerProvider), 1);
+      },
+    );
+
+    testWidgets(
       'settlement_received (cold start) selects the Friends tab (1)',
       (tester) async {
         keepAlive();
