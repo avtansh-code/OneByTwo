@@ -21,13 +21,15 @@ import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/services/url_launcher_service.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/home/application/home_telemetry.dart';
 import 'package:onebytwo/features/home/presentation/home_dashboard_screen.dart';
 import 'package:onebytwo/features/home/presentation/widgets/net_balance_header_card.dart';
-import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_placeholder_card.dart';
+import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_card.dart';
 import 'package:onebytwo/features/profile/data/device_diagnostics_service.dart';
 import 'package:onebytwo/features/profile/domain/support_diagnostics.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
@@ -98,6 +100,22 @@ class FakeSettlementRepository implements SettlementRepository {
   }) => const Stream<List<SettlementDoc>>.empty();
 }
 
+/// FR-HD-03: the breakdown card fans out through `expenseRepositoryProvider`
+/// once mounted in the dashboard's populated state. These screen tests
+/// focus on the balances axis, so the store returns no expenses — the
+/// card resolves to its empty sub-state (covered in detail by
+/// spending_breakdown_card_test.dart).
+class _EmptyExpenseStore implements ExpenseStore {
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 FriendListItem _item({
   required String friendshipId,
   required String otherUserId,
@@ -144,6 +162,9 @@ void main() {
         urlLauncherServiceProvider.overrideWithValue(launcher),
         settlementRepositoryProvider.overrideWithValue(
           FakeSettlementRepository(),
+        ),
+        expenseRepositoryProvider.overrideWithValue(
+          ExpenseRepository(store: _EmptyExpenseStore()),
         ),
       ],
       child: const MaterialApp(home: HomeDashboardScreen()),
@@ -246,7 +267,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Top Balances'), findsOneWidget);
-      expect(find.text('Spending breakdown coming soon'), findsOneWidget);
+      expect(find.byType(SpendingBreakdownCard), findsOneWidget);
     });
 
     testWidgets('negative net renders "Overall, you owe" + absolute amount', (
@@ -453,7 +474,9 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('FR-HD-03 placeholder card is non-interactive', (tester) async {
+    testWidgets('FR-HD-03 breakdown card mounts in the dashboard scroll view', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject());
       controller.add([
         _item(
@@ -465,18 +488,14 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
-      expect(find.byType(SpendingBreakdownPlaceholderCard), findsOneWidget);
+      expect(find.byType(SpendingBreakdownCard), findsOneWidget);
+      // The empty / populated card carries no per-segment drill-down
+      // (SCR-06 Edge Case 5); detailed sub-state coverage lives in
+      // spending_breakdown_card_test.dart.
       expect(
         find.descendant(
-          of: find.byType(SpendingBreakdownPlaceholderCard),
+          of: find.byType(SpendingBreakdownCard),
           matching: find.byType(InkWell),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.descendant(
-          of: find.byType(SpendingBreakdownPlaceholderCard),
-          matching: find.byType(GestureDetector),
         ),
         findsNothing,
       );

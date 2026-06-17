@@ -14,14 +14,19 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
+import 'package:onebytwo/features/expenses/domain/expense_category.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
+import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/home/application/home_telemetry.dart';
+import 'package:onebytwo/features/home/application/monthly_spend_breakdown_provider.dart';
 import 'package:onebytwo/features/home/presentation/home_dashboard_screen.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
@@ -80,6 +85,44 @@ class FakeSettlementRepository implements SettlementRepository {
   }) => const Stream<List<SettlementDoc>>.empty();
 }
 
+/// Returns a single current-month expense for the PII friendship so the
+/// breakdown card reaches its populated terminal state and fires
+/// `home_spending_breakdown_viewed`. The user's share (the
+/// non-counterparty split) is a deliberately PII-shaped paise value to
+/// prove it never reaches telemetry.
+class _StubExpenseStore implements ExpenseStore {
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async {
+    return [
+      ExpenseDoc(
+        amountPaise: 24690,
+        description: 'Dinner',
+        category: ExpenseCategory.food,
+        date: DateTime.utc(2026, 6, 10),
+        payerId: 'uid-rahulagarwal',
+        splits: const [
+          Split(userId: 'uid-rahulagarwal', sharePaise: 12345),
+          Split(userId: 'uid-priyalakshmi', sharePaise: 12345),
+        ],
+        splitMethod: SplitMethod.equal,
+        createdBy: 'uid-rahulagarwal',
+      ),
+    ];
+  }
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    required int limit,
+  }) => Stream.value(const []);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late FakeAnalyticsService analytics;
   late StreamController<List<FriendListItem>> controller;
@@ -101,6 +144,12 @@ void main() {
         friendsListProvider.overrideWith((ref) => controller.stream),
         settlementRepositoryProvider.overrideWithValue(
           FakeSettlementRepository(),
+        ),
+        expenseRepositoryProvider.overrideWithValue(
+          ExpenseRepository(store: _StubExpenseStore()),
+        ),
+        homeClockProvider.overrideWithValue(
+          () => DateTime.utc(2026, 6, 15, 12),
         ),
       ],
       child: const MaterialApp(home: HomeDashboardScreen()),
@@ -169,6 +218,28 @@ void main() {
     for (final p in _piiStrings) {
       expect(analytics.containsPii(p), isFalse, reason: 'leaked PII: $p');
     }
+  });
+
+  testWidgets('home_spending_breakdown_viewed carries only category_count', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject());
+    controller.add(const [pii]);
+    await tester.pumpAndSettle();
+
+    final breakdown = analytics.loggedEvents
+        .where((e) => e.name == HomeTelemetry.spendingBreakdownViewed)
+        .toList();
+    expect(breakdown, hasLength(1));
+    // The ONLY parameter is the small category count — never a uid,
+    // friendshipId, display name, photo URL, phone, or paise amount.
+    expect(breakdown.first.parameters, {HomeTelemetry.paramCategoryCount: 1});
+
+    for (final p in _piiStrings) {
+      expect(analytics.containsPii(p), isFalse, reason: 'leaked PII: $p');
+    }
+    // The PII friend's own paise share must never surface either.
+    expect(analytics.containsPii('12345'), isFalse);
   });
 
   testWidgets('no PII in any event name or parameter key', (tester) async {

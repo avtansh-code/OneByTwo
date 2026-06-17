@@ -1089,3 +1089,231 @@ justify it and pin the callable contract.
   as client writes.
 
 ---
+
+## ADR-0017: Current-Month Spend Breakdown — Friendship Fan-Out and `fl_chart` (FR-HD-03)
+
+**Status:** Accepted
+
+### Context
+
+FR-HD-03 (SRS section 4.8, line 248, P1) replaces the `SpendingBreakdownPlaceholderCard`
+under the Home dashboard's "This Month" header with a real current-month spend summary
+and a per-category breakdown chart. It is the last open Home-dashboard requirement;
+FR-HD-01/02 (#62) and FR-HD-04 (#57) closed the rest.
+
+The central architectural problem is that **no cross-friendship expense read path
+exists**. Every prior expense read is scoped to a single friendship
+(`ExpenseRepository.watchExpensesByFriendship`, over `friendships/{fid}/expenses`).
+FR-HD-03 needs the **signed-in user's own spend**, grouped by `ExpenseCategory`, for the
+**current calendar month computed in IST** (SRS section 5.9), folded across **all** the
+caller's friendships.
+
+Four standing forces shape the design:
+
+- **Invariant 1 (integer paise).** This is a monetary surface. Every category subtotal
+  and the month total must be an integer `*Paise` sum; the only paise-to-rupee
+  conversion is `formatInrFromPaise(int)` at the widget layer, and chart geometry is a
+  derived integer-paise ratio. No `double`, no inline `/ 100`.
+- **The membership-gated read rules.** `firestore.rules` line 294 gates expense reads
+  with `allow read: if isCallerFriendshipMember()`, where membership is resolved by a
+  `get()` of the **parent friendship's** `memberIds`. Expense documents carry no member
+  field of their own.
+- **Invariant 2 (`simplifiedBalances` server-only) — adjacent, not applicable.**
+  FR-HD-03 reads `expenses` and must never read or derive from `simplifiedBalances`:
+  spend is the user's expense share, not a balance.
+- **iOS plugin-stability history.** The repository hard-pins `device_info_plus`
+  (12.3.0) and `connectivity_plus` (6.x) because native-plugin upgrades have broken the
+  CI "Build iOS (no signing)" job. FR-HD-03 introduces the first charting library;
+  whether it adds a CocoaPod governs whether `ios/Podfile.lock` must change.
+
+This ADR ratifies the read path, the aggregation semantics, the IST boundary, the domain
+and provider shape, the charting library, the index decision, and the new telemetry
+event. It binds the Designer (Phase 3) and the Flutter Dev (Phase 4). It does not
+authorise the Sprint 3 Groups epic or any denormalised-rollup Cloud Function.
+
+### Decision
+
+**1. Read path — friendship fan-out; `collectionGroup` and a rollup function both
+rejected for v1.0.** The aggregation provider reuses `friendsListProvider` for the
+caller's `friendshipId`s and, for each, issues a one-shot read of that friendship's
+current-month, non-deleted expenses through a new injectable repository method, then
+aggregates. A `collectionGroup('expenses')` query is rejected: because expenses carry no
+member field and the rules scope reads on **parent-friendship** membership via `get()`,
+a collection-group query cannot be constrained to the caller's friendships without a
+schema change (denormalising a participant field onto every expense), which is a larger,
+higher-risk security surface and out of scope. A denormalised monthly-spend rollup
+maintained by a Cloud Function trigger is rejected for v1.0: a much larger change and a
+new server writer. The **group axis is stubbed** (an explanatory comment plus this note),
+exactly as `topBalancesProvider` stubbed groups.
+
+**2. Aggregation semantics — the user's own share, by category, in the IST month,
+integer paise.** "Spend" is the signed-in user's **own `sharePaise`**, summed per
+`ExpenseCategory`, for the current calendar month in IST. It is **never** the full
+`amountPaise`. The provider remains a pure derived consumer of `friendsListProvider`:
+for a friendship whose counterparty is `FriendListItem.otherUserId`, the user's share for
+an expense is the sum of `split.sharePaise` over the splits whose `userId != otherUserId`.
+Under the Security Rules' guarantee that an expense's split members are a subset of the
+two friendship members (`areSplitMembers`), this is identically "the split entry whose
+`userId == currentUserId`" as the story specifies — but it is computed from data already
+on `friendsListProvider`, so the provider need not re-read the scoped
+`currentUserIdProvider` (see point 4). An expense the user is not a split member of
+contributes `0`. Soft-deleted expenses (`deleted == true`) are excluded by the query
+filter; prior- and future-month expenses contribute nothing. When the month total is
+`0`, the card shows the empty state and no chart. All arithmetic is integer paise;
+per-segment percentages are derived ratios (`categoryPaise / monthTotalPaise`) computed
+at render time and are not money.
+
+**3. IST month boundary — fixed +05:30, computed as absolute instants.** IST
+(`Asia/Kolkata`) is a fixed `+05:30` offset with no DST, so no `timezone`/`intl`
+initialisation is required. The window is computed purely:
+
+- Derive the current IST calendar month `(Y, M)` from
+  `DateTime.now().toUtc().add(05:30)`.
+- `monthStartUtc = DateTime.utc(Y, M, 1).subtract(05:30)` — the first instant of the IST
+  month as an absolute UTC instant.
+- `nextMonthStartUtc = DateTime.utc(Y, M + 1, 1).subtract(05:30)` — Dart rolls month 13
+  into the next January, so December is handled.
+
+The per-friendship query carries the lower bound
+`where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStartUtc))`; the pure
+reducer applies both bounds, including an expense iff
+`!date.isBefore(monthStartUtc) && date.isBefore(nextMonthStartUtc)` (`DateTime.isBefore`
+compares absolute instants irrespective of the `isUtc` flag). For June 2026 this yields
+`monthStartUtc = 2026-05-31T18:30:00Z` (equivalent to `2026-06-01T00:00:00+05:30`): an
+expense at `2026-05-31T23:00 IST` is excluded and one at `2026-06-01T00:30 IST` is
+included, matching AC-5.
+
+**4. Domain and provider shape.** Two immutable, integer-paise domain value objects:
+`CategorySpend { ExpenseCategory category; int totalPaise }` and
+`MonthlySpendBreakdown { List<CategorySpend> categories; int monthTotalPaise }`, where
+`categories` holds only non-zero categories sorted by descending paise. The boundary
+math and the fold live in pure, separately-tested domain functions
+(`currentMonthWindowIst(DateTime now)` and an `aggregateMonthlySpend(...)` reducer). The
+provider is `monthlySpendBreakdownProvider`, a one-shot
+`FutureProvider<MonthlySpendBreakdown>` that awaits `friendsListProvider`, fans out the
+per-friendship fetch with `Future.wait`, and reduces. It declares
+`dependencies: [friendsListProvider]` — it watches the scoped `friendsListProvider` and
+lists exactly that; it does not list the transitive `currentUserIdProvider` (which it
+does not directly read, per point 2). A reactive multi-stream merge is noted as a future
+enhancement; the one-shot fan-out is simpler, testable, and refreshes when the friends
+list changes or the provider is invalidated (the Retry path). The new read method extends
+`ExpenseStore` and `ExpenseRepository` as a one-shot
+`Future<List<ExpenseDoc>> fetchExpensesInMonth({required String friendshipId, required DateTime monthStartUtc})`
+using `.get()` and reusing `ExpenseDoc.fromMap`, mirroring `watchExpensesByFriendship`'s
+shape (equality on `deleted`, range and `orderBy` on `date` descending). Because the card
+lives inside the dashboard's populated state, `friendsListProvider` is already resolved
+when the card mounts, so the provider's loading/error reflect only the fan-out.
+
+**5. Charting library — `fl_chart`, and a correction to the prompt's Podfile.lock
+claim.** The chart uses `fl_chart`, pinned `^1.2.0` with an inline comment in
+`pubspec.yaml`. **Correction:** the canonical prompt asserts an `ios/Podfile.lock` change
+is *required* for the charting plugin; this is **incorrect for `fl_chart`
+specifically**. `fl_chart` is pure Dart — its only dependencies are `equatable`,
+`flutter`, and `vector_math`, it declares no `flutter: plugin:` block, and it ships no
+native iOS/Android code, so it adds **no CocoaPod and does not change
+`ios/Podfile.lock`** (unlike the Firebase/native plugins that motivated the existing hard
+pins). `fl_chart` requires Flutter >= 3.27.4 / Dart >= 3.6.2; the repository is on
+Flutter 3.44.2 / Dart 3.12.2 and `pubspec.yaml` declares `sdk: ^3.11.0`, so it is
+compatible. The Flutter Dev must still run `flutter pub get` and `cd ios && pod install`,
+confirm `ios/Podfile.lock` is unchanged, and commit it **only if** it changes (it will
+not for `fl_chart`). A hand-rolled `CustomPainter` donut is rejected: it adds rendering
+and bespoke accessibility code to avoid a pure-Dart, low-risk dependency.
+**Accessibility:** the chart is decorative; meaning is carried by a per-segment
+`Semantics` label of the form "category, rupee amount, percentage" (rupees via
+`formatInrFromPaise`) plus a legend — never by colour alone (SCR-06; SRS section 5.6).
+
+**6. Index — no new index, no rules change.** The existing `firestore.indexes.json`
+composite index `{ collectionGroup: "expenses", queryScope: COLLECTION, fields: [deleted ASC, date DESC] }`
+covers the per-friendship query (an equality on `deleted` plus a range and `orderBy` on
+`date`) **provided the query orders by `date` descending**. The Flutter Dev must
+therefore order by `date` descending (also matching `watchExpensesByFriendship`). No new
+index is required, no `firestore.rules` change is required, and the Schema-Change
+deploy-before-client ordering is moot because there is no schema change.
+
+**7. Telemetry — one new PII-free event.** `home_spending_breakdown_viewed`, single
+parameter `category_count` (`int`, `0..8` — the number of non-zero categories rendered,
+`0` in the empty state). It fires **once per dashboard mount**, on the **first terminal
+render** of the breakdown card, in both the populated and empty sub-states, and **never**
+on the loading or error sub-states. The single-fire gate lives in a dedicated
+breakdown-card `ConsumerStatefulWidget` (its terminal sub-state has a separate data
+lifecycle from the balances axis that drives `home_viewed`), mirroring the existing
+`_loggedView` boolean. The event-name and parameter-key constants extend `HomeTelemetry`
+(`spendingBreakdownViewed`, `paramCategoryCount`). The event must be **declared** in
+`telemetry-plan.md` section 1.3 alongside the six existing `home_*` events. No `uid`,
+`friendshipId` (raw or hashed), display name, photo URL, phone number, or raw
+rupee/paise value may ever be a parameter (SRS line 308; ADR-0013); no hashing is needed
+because no hashable identifier is emitted.
+
+**8. Card placement and invariants.** The card stays in the dashboard's populated state
+for v1.0 (matching the placeholder it replaces); the narrow "spend-but-zero-overall-
+balance" edge — a settled-up user who sees the dashboard's empty state and therefore no
+breakdown — is an accepted v1.0 limitation tracked as a follow-up. Invariant 1 is
+critical and enforced throughout; Invariant 2 is not applicable (the feature never reads
+`simplifiedBalances`); Invariant 3 is not applicable (no sharing or export); Invariant 4
+is reinforced (the fan-out and all testing target the single project via the emulator).
+
+### Consequences
+
+- New files land under `lib/features/home/` (a domain model and pure aggregator, the
+  application provider, and the presentation card, chart, and category-colour palette),
+  plus a one-shot read method added to the expenses feature's `ExpenseStore` /
+  `ExpenseRepository`. The category-colour palette is feature-local with brightness-aware
+  light/dark `static const` maps — not a `ThemeExtension` (the codebase avoids
+  `ThemeExtension` per `tokens.md`); the Designer owns the colour values (dark-mode-safe,
+  WCAG 2.1 AA).
+- **Architectural firsts:** the first cross-friendship expense read; the first charting
+  library; the first Home provider that derives from `expenses` rather than
+  `simplifiedBalances`; and the first newly-declared telemetry event of the recent PRs.
+- **Read cost.** The fan-out issues N month-bounded one-shot reads (one per friendship)
+  on each dashboard view. This is acceptable for v1.0; if production telemetry shows the
+  cost is material, a denormalised monthly-rollup is filed as a FUTURE optimisation issue
+  (not built here).
+- **Required tests** (Flutter Dev / QA): pure-reducer and window unit tests
+  (multi-friendship fold, user-share-not-total, the exact IST boundary, prior-month and
+  deleted exclusion, single-category degenerate, all-eight including `other`, descending
+  sort, empty/zero); provider fan-out tests over recording fakes overriding
+  `currentUserIdProvider` and `friendsListProvider`; widget tests (loading skeleton,
+  empty card, populated chart + legend + total, error Retry/Contact Support, per-segment
+  Semantics, single-fire telemetry including `category_count: 0` and the no-fire-on-error
+  case); and the Invariant-1 boundary-contract grep plus the Invariant-2 negative-guard
+  grep extended over the new files. Per-feature coverage >= 70%.
+- **No Cloud Function, `firestore.rules`, `firestore.indexes.json`, or schema-shape
+  change.** The store method is faked in provider tests exactly as
+  `watchExpensesByFriendship` is (no `fake_cloud_firestore`); deleted-exclusion is a
+  query-filter contract verified at the store/emulator level.
+- **Relationship to prior ADRs.** ADR-0002 / Invariant 1: this monetary surface sums the
+  user's share in integer paise and never floats it. ADR-0004 (Riverpod) and the
+  FR-HD-01/02 notes: the provider mirrors the `dependencies: [friendsListProvider]`
+  derived-provider pattern of `overallNetBalanceProvider` / `topBalancesProvider`.
+  ADR-0013 (PII-safe telemetry): the event carries only `category_count`. ADR-0001 /
+  Invariant 2: like ADR-0016, this feature sits adjacent to balance data and deliberately
+  does not touch `simplifiedBalances` — spend is computed from `expenses` alone.
+
+### Alternatives Considered
+
+- **`collectionGroup('expenses')` single query** — rejected: expenses carry no member
+  field and the rules gate reads on parent-friendship membership, so the query cannot be
+  membership-scoped without denormalising a participant field onto every expense (a
+  schema and security-surface change out of scope).
+- **Denormalised monthly-spend rollup Cloud Function** — rejected for v1.0: a much larger
+  change and a new server writer; retained as a FUTURE optimisation only if read cost
+  proves material.
+- **Summing `amountPaise` (the bill total)** — rejected: it over-reports, including the
+  counterparty's share; spend is the user's own share.
+- **Hand-rolled `CustomPainter` donut** — rejected: more rendering and bespoke
+  accessibility code to avoid a pure-Dart dependency that adds no CocoaPod.
+- **A new single-collection `date` index** — rejected as unnecessary: the existing
+  `deleted ASC + date DESC` composite covers the query when it orders by `date`
+  descending.
+- **Reactive multi-stream merge** (watching each friendship's expense stream) — deferred:
+  the one-shot `Future` fan-out is simpler and testable and refreshes on friends-list
+  change or invalidation; live updates are a possible enhancement.
+- **Device-local or UTC month boundary** — rejected: the window must be IST (SRS section
+  5.9) to match the app's date rendering.
+- **Reading `currentUserIdProvider` directly in the provider** — rejected in favour of
+  the counterparty-complement share extraction, which keeps the provider a pure derived
+  consumer of `friendsListProvider` with `dependencies: [friendsListProvider]` only; the
+  direct approach would additionally require listing `currentUserIdProvider` in
+  `dependencies`.
+
+---

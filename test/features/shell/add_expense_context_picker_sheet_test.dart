@@ -90,6 +90,12 @@ class _FakeExpenseRepository implements ExpenseRepository {
     required String friendshipId,
     int limit = 5,
   }) => const Stream<List<ExpenseDoc>>.empty();
+
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const [];
 }
 
 FriendListItem _friend({

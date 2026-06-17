@@ -106,10 +106,22 @@ Displayed when the user has at least one non-zero simplified balance.
   - Tapping the tile itself navigates to the Friend Detail or Group Detail screen.
 
 - **Category Breakdown Section (P1 -- FR-HD-03):**
-  - Section header: "This Month".
-  - Placeholder card (24 dp corner radius, `elevationLow`, 160 dp height).
-  - Muted placeholder text: "Spending breakdown coming soon".
-  - When implemented in a future release, this area shall display a donut or horizontal bar chart segmented by expense category using `OBTCategoryChip` colour mapping.
+  - Section header: "This Month" (`titleMedium`, `textPrimary`, `header` semantics).
+  - **Breakdown card** (`surface`, `radiusXL` / 24 dp corner, `elevationLow`, 16 dp internal padding) presenting the signed-in user's **own** current-month spend (their `sharePaise`, summed per `ExpenseCategory`, current calendar month in IST per SRS section 5.9 -- never the full `amountPaise`) as a **donut chart + legend + month total**. The card is **non-interactive** in v1.0 (no per-segment drill-down -- see Edge Case 5).
+  - **Placement.** The card occupies the "This Month" slot in the Populated State (where `SpendingBreakdownPlaceholderCard` sits today, `home_dashboard_screen.dart:388`). Surfacing the breakdown inside the dashboard's settled/empty state is a tracked follow-up (FR-HD-03 story, Follow-up Issues) and is out of scope here.
+  - **Donut chart** (the recommended chart type over a horizontal bar -- a donut reads the part-to-whole month total at a glance and frees its centre for the total figure):
+    - One segment per `ExpenseCategory` with non-zero current-month spend, **ordered by descending paise** (AC-10). A single-category month renders one full-circle segment at 100% (AC-11). `ExpenseCategory.other`, when it carries spend, is an ordinary segment ranked by its own paise -- never a synthetic tail bucket and never a "+N more" truncation (AC-12).
+    - Geometry: outer diameter **160 dp** (matches the loading chart-skeleton, State 1, line 69); ring thickness **28 dp**; centre hole diameter **~104 dp** (in fl_chart terms: `centerSpaceRadius` ~= 52 dp, section `radius` ~= 28 dp). Segments are separated by a **2 dp gap rendered in the card `surface` colour** so each arc is visually bounded.
+    - Segment fill = the category's colour token from the **Expense Category Palette** (`docs/design/02-design-system/tokens.md` section 1.3), brightness-keyed (light map on `#FFFFFF`, dark map on `#1E1E1E`). Every token meets WCAG 2.1 AA >=3:1 against the card surface in both themes (tokens.md section 1.3.3).
+    - Segment sweep angle = the **exact integer-paise ratio** `categoryPaise / monthTotalPaise` (Invariant 1: a derived ratio, never a `double` money value). No percentage labels are painted on the arcs (percentages live in the legend and the semantics).
+    - **Centre label:** the **month total** rendered once via `formatInrFromPaise` (`headlineSmall` / `titleLarge`, `textPrimary`), with a `labelSmall` `textSecondary` caption "spent" beneath. The total equals the sum of all segment subtotals.
+  - **Legend** (beneath the donut; a single vertical column, one row per non-zero category, same descending-paise order):
+    - Row layout (leading -> trailing): a **14 dp rounded colour swatch** (radius 4 dp) filled with the category colour token (the colour key); the category icon (`expenseCategoryIcon`, `iconSmall` 20 dp, tinted `onSurface` for guaranteed legibility -- a redundant non-colour signal); the category label (`expenseCategoryLabel`, `bodyMedium`, `textPrimary`); a spacer; the category subtotal via `formatInrFromPaise` (`bodyMedium`, `textPrimary`); and the percentage (`labelSmall`, `textSecondary`).
+    - Percentage = integer-rounded `categoryPaise * 100 / monthTotalPaise`, displayed as "N%". Rounding is for readability only; the donut sweep uses the exact ratio, so rounded legend percentages may not sum to exactly 100% (acceptable). All values derive from integer paise (Invariant 1).
+    - Responsive 1..8 rows: the legend is a single vertical column at any count; the card grows vertically within the scrollable dashboard (no truncation, no "+N more", no horizontal scroll). Under dynamic font scaling to 200%, rows wrap/grow and the card height expands; the donut holds 160 dp (min 120 dp if space-constrained) with no clipping (SRS section 5.6).
+  - **Empty / zero-spend sub-state** (no qualifying current-month spend -- `monthTotalPaise == 0`): the card shows **no chart and no legend** (AC-7). Instead, centred: a decorative leading icon (`pie_chart` / `insights`, `iconLarge`, `secondary` tint, `excludeSemantics: true`); primary copy **"No spending yet this month"** (`titleSmall`, `textPrimary`); subline **"Add an expense to see your monthly breakdown"** (`bodyMedium`, `textSecondary`). Same card frame (`surface`, 24 dp corner, `elevationLow`). Microcopy per SRS section 6.5 (encouraging, not a dead end).
+  - **Loading sub-state:** reuses the dashboard skeleton discipline -- the `chart`-type `OBTSkeletonLoader` already specified for the Default / Loading State (State 1, line 69: 160x160 dp circle + three 12 dp bar lines). `reduceMotion` swaps shimmer for a static grey placeholder. `home_spending_breakdown_viewed` is **not** emitted whilst loading (AC-8 / AC-15).
+  - **Error sub-state:** if the cross-friendship expense read fails, the card shows the FR-HD-01/02 / FR-PR-05 treatment: a short message "We couldn't load your spending breakdown.", a **Retry** affordance (re-invokes the read), a **Contact Support** link wired to the FR-PR-05 `ContactSupportController` (`mailto:` flow with the copy-address fallback dialogue), and the muted support-triage code **`HD-FIRESTORE-READ`** -- identical to the dashboard Error State (State 4). `home_spending_breakdown_viewed` does **not** fire on the error sub-state (AC-17).
 
 #### 4. Error State
 
@@ -151,6 +163,7 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 | `home_empty_cta_tapped` | User taps "Add Expense" CTA in the empty state | -- |
 | `home_error_retry_tapped` | User taps "Retry" in the error state | `attempt_number`: integer |
 | `home_error_support_tapped` | User taps "Contact Support" in the error state | `error_code`: `"HD-FIRESTORE-READ"` |
+| `home_spending_breakdown_viewed` | First terminal (non-loading) render of the breakdown card per dashboard mount -- fires in the populated and empty sub-states, never on loading or error | `category_count`: integer (number of non-zero categories rendered; `0` in the empty sub-state; range 0--8). Carries no `uid`, no `friendshipId`, and no rupee/paise value (SRS section 5.4 / line 308) |
 | `expense_save_succeeded` | (Logged by the Add Expense flow, not the dashboard itself) | Per SRS section 5.10 |
 
 ### Accessibility
@@ -166,7 +179,12 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 | Friend list tile | "[Display name], [balance pill text]" | `button` |
 | Group list tile | "[Group name], [group type], [member count] members, [balance pill text]" | `button` |
 | "Settle Up" text button | "Settle up with [name], rupees [amount]" | `button` |
-| Category placeholder card | "Monthly spending breakdown, coming soon" | -- (informational) |
+| Category breakdown -- section header | "This Month" | `header` |
+| Category breakdown -- donut summary (the chart's accessible alternative) | "This month you have spent [amount via `formatInrFromPaise`] across [N] categories" (e.g. "This month you have spent ₹1,000.00 across 2 categories"; use the singular "category" when N = 1) | -- (informational) |
+| Category breakdown -- donut arcs | (excluded from semantics; the painted chart is decorative -- all information is carried by the donut summary + legend) | -- |
+| Category breakdown -- legend row (per non-zero category) | "[Category label], [amount via `formatInrFromPaise`], [N] per cent" (e.g. "Food, ₹700.00, 70 per cent") -- never conveyed by colour alone | -- (informational) |
+| Category breakdown -- empty sub-state | "No spending yet this month. Add an expense to see your monthly breakdown." | -- (informational) |
+| Category breakdown -- error sub-state | Reuses the Error-state rows below (title / Retry / Contact support / "Error code: HD-FIRESTORE-READ") | -- |
 | FAB | "Add new expense" | `button` |
 | Bottom nav tab (Home) | "Home, tab, selected" | `tab` |
 | Bottom nav tab (others) | "[Label], tab" | `tab` |
@@ -186,7 +204,7 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 2. Net balance header card (or skeleton / empty-state title / error-state title, depending on state).
 3. Empty-state CTA / Error-state Retry / top-balances section header, as applicable.
 4. Top-balances list tiles, in order (each tile, then its "Settle Up" button).
-5. Category breakdown card / placeholder.
+5. Category breakdown: section header -> donut summary -> legend rows (top to bottom) -> empty-state body or error Retry / Contact Support, when applicable. No element is a focus stop for tapping (the card is non-interactive).
 6. FAB.
 7. Bottom navigation tabs (left to right: Home, Friends, Groups, Activity, Profile).
 
@@ -199,6 +217,8 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 - No information is conveyed by colour alone; textual labels "you are owed" and "you owe" provide direction alongside colour coding (SRS section 5.6).
 - All text meets WCAG 2.1 AA contrast ratios (at least 4.5:1 for body text) in both light and dark mode.
 - All layouts support dynamic font scaling up to 200% without clipping (SRS section 5.6).
+- The category breakdown conveys no information by colour alone: every segment's category, rupee amount, and percentage are exposed in the legend and the per-segment semantic label, and the donut summary announces the month total across N categories; the painted donut arcs are excluded from semantics (SRS section 5.6).
+- The 8 category-segment colours meet WCAG 2.1 AA (>=3:1 against the card surface) in both light and dark mode (tokens.md section 1.3.3). The breakdown card is non-interactive in v1.0; its legend and summary are informational, not focusable controls.
 
 ### Edge Cases
 
@@ -210,7 +230,7 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 
 4. **Balance data updates in real time whilst the user is viewing the dashboard.** The Firestore snapshot listener updates the UI reactively. If a balance changes (e.g., another user adds an expense), the balance header and top-balances list animate to reflect the new values using `motionStandard` (200--300 ms ease-in-out). The top-5 sort order may change; items slide into new positions.
 
-5. **Category breakdown card is tapped (P1 placeholder).** In v1.0, the card is non-interactive. No navigation or action occurs. The card has no tap handler and no pressed state.
+5. **Category breakdown card is tapped.** The breakdown card is **non-interactive** in v1.0: it has no tap handler and no pressed state, and no per-segment drill-down. Tapping anywhere on it (donut, legend, or empty / error body) performs no navigation or action. A tap-to-drill-down per-category expense list is explicitly out of scope (see the FR-HD-03 story, *Out of Scope*).
 
 ### Open Questions
 
@@ -605,7 +625,7 @@ All inputs below refer to the full Add Expense multi-step flow triggered by the 
 |---|---|---|---|
 | FR-HD-01 (net balance as primary visual) | Primary | -- | -- |
 | FR-HD-02 (top 5 with quick settle) | Primary | -- | -- |
-| FR-HD-03 (category breakdown, P1) | Primary (placeholder) | -- | -- |
+| FR-HD-03 (category breakdown, P1) | Primary | -- | -- |
 | FR-HD-04 (persistent FAB) | Primary | -- | Primary |
 | FR-SR-01 (search by description, amount, category, member) | -- | Primary | -- |
 | FR-SR-02 (filter by date range, group, category) | -- | Primary | -- |

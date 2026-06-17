@@ -40,6 +40,13 @@ abstract final class HomeTelemetry {
   /// `error_code`.
   static const String errorSupportTapped = 'home_error_support_tapped';
 
+  /// FR-HD-03 — the "This Month" spend-breakdown card reached its first
+  /// terminal render (populated or empty) on a dashboard mount. Fires
+  /// exactly once per mount, never on the loading or error sub-states.
+  /// Payload: `category_count`.
+  static const String spendingBreakdownViewed =
+      'home_spending_breakdown_viewed';
+
   // ---------------------------------------------------------------
   // Parameter-key constants.
   // ---------------------------------------------------------------
@@ -64,6 +71,12 @@ abstract final class HomeTelemetry {
 
   /// Support-triage error code (always [errorCodeFirestoreRead] today).
   static const String paramErrorCode = 'error_code';
+
+  /// FR-HD-03 — the number of non-zero categories rendered in the
+  /// spend-breakdown card (`int`, `0..8`; `0` in the empty sub-state).
+  /// A non-identifying small integer — never a uid, friendshipId, or
+  /// rupee/paise value (SRS line 308; ADR-0013).
+  static const String paramCategoryCount = 'category_count';
 
   // ---------------------------------------------------------------
   // Enum tokens.

@@ -79,6 +79,20 @@ abstract class ExpenseStore {
     required String friendshipId,
     required int limit,
   });
+
+  /// FR-HD-03: one-shot read of [friendshipId]'s non-deleted expenses
+  /// dated on or after [monthStartUtc], ordered by `date` descending.
+  /// Powers the Home dashboard's cross-friendship monthly-spend fan-out.
+  ///
+  /// The `deleted == false` equality plus the `date` range and
+  /// descending `orderBy` reuse the existing `deleted ASC + date DESC`
+  /// composite index (ADR-0017 section 6) — no new index is required.
+  /// The reducer applies the upper month bound; soft-deleted expenses
+  /// are excluded here by the query filter and never reach the reducer.
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  });
 }
 
 /// Production [ExpenseStore] backed by [FirebaseFirestore].
@@ -161,6 +175,25 @@ class FirestoreExpenseStore implements ExpenseStore {
               .whereType<ExpenseDoc>()
               .toList(growable: false),
         );
+  }
+
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async {
+    final snapshot = await _expensesCollection(friendshipId)
+        .where('deleted', isEqualTo: false)
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(monthStartUtc),
+        )
+        .orderBy('date', descending: true)
+        .get();
+    return snapshot.docs
+        .map(_parseExpense)
+        .whereType<ExpenseDoc>()
+        .toList(growable: false);
   }
 
   /// Thin shim that adapts a [QueryDocumentSnapshot] to the shared
@@ -336,6 +369,25 @@ class ExpenseRepository {
     return _store.watchExpensesByFriendship(
       friendshipId: friendshipId,
       limit: limit,
+    );
+  }
+
+  /// FR-HD-03: one-shot read of [friendshipId]'s non-deleted,
+  /// current-month expenses (dated on or after [monthStartUtc], `date`
+  /// descending) for the Home dashboard's monthly-spend fan-out.
+  ///
+  /// A read delegates directly to the store: there is no typed-error
+  /// mapping (unlike the writes above) — a failure surfaces as the raw
+  /// rejection, which the `monthlySpendBreakdownProvider` `Future.wait`
+  /// turns into an `AsyncError` for the card's error sub-state, mirroring
+  /// how [watchExpensesByFriendship]'s stream errors propagate.
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) {
+    return _store.fetchExpensesInMonth(
+      friendshipId: friendshipId,
+      monthStartUtc: monthStartUtc,
     );
   }
 

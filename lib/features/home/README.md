@@ -5,16 +5,19 @@ authenticated shell. Replaces the temporary `HomeDashboardPlaceholder`
 shipped by PR #56.
 
 Implements **FR-HD-01** (overall net simplified balance as the primary
-visual element) and **FR-HD-02** (top 5 friends/groups by absolute
-simplified balance with a quick "Settle Up" action per row). **FR-HD-03**
-(P1 monthly category breakdown) ships as a "coming soon" placeholder card
-only — the real chart is a separate P1 PR.
+visual element), **FR-HD-02** (top 5 friends/groups by absolute
+simplified balance with a quick "Settle Up" action per row), and
+**FR-HD-03** (the current-month spend summary with a per-category donut
+breakdown).
 
 ## Implemented scope
 
-100% client-side and **read-only** over `simplifiedBalances`
-(Invariant 2). No new data layer: the dashboard composes the existing
-friendship balance axis (`friendsListProvider`).
+100% client-side. The FR-HD-01/02 balances axis is **read-only** over
+`simplifiedBalances` (Invariant 2); the FR-HD-03 breakdown axis is a read
+over the `expenses` subcollections (Invariant 2 N/A — it never touches
+`simplifiedBalances`). Both compose the existing `friendsListProvider`;
+FR-HD-03 adds a one-shot per-friendship fan-out read through the expenses
+feature's `ExpenseRepository`.
 
 ### Application — derived providers
 
@@ -34,14 +37,32 @@ provider's per-arm `currentUserIdProvider` scoping (bound in
 `lib/main.dart`). Both are pure read-side reducers — they never write
 `simplifiedBalances`.
 
+### Application — monthly spend (FR-HD-03)
+
+`application/monthly_spend_breakdown_provider.dart`:
+
+- `monthlySpendBreakdownProvider`
+  (`FutureProvider<MonthlySpendBreakdown>`,
+  `dependencies: [friendsListProvider]`) — awaits the resolved friends
+  list, computes the current IST month window, fans out one
+  `ExpenseRepository.fetchExpensesInMonth` read per friendship with
+  `Future.wait`, and reduces the result through the pure
+  `aggregateMonthlySpend`. It never reads `currentUserIdProvider`: the
+  user's share is the counterparty complement of each friendship's
+  `otherUserId`. `ref.invalidate` re-runs the fan-out (the card's Retry).
+- `homeClockProvider` (`Provider<DateTime Function()>`) — an injectable
+  `DateTime.now`, overridden in tests to pin the IST month window.
+
 ### Application — telemetry
 
-`application/home_telemetry.dart` — the six SCR-06 events (`home_viewed`,
-`home_settle_up_tapped`, `home_tile_tapped`, `home_empty_cta_tapped`,
-`home_error_retry_tapped`, `home_error_support_tapped`) plus their
+`application/home_telemetry.dart` — the seven SCR-06 events
+(`home_viewed`, `home_settle_up_tapped`, `home_tile_tapped`,
+`home_empty_cta_tapped`, `home_error_retry_tapped`,
+`home_error_support_tapped`, `home_spending_breakdown_viewed`) plus their
 parameter-key and enum-token constants. The only identifier parameter,
 `context_id_hash`, is the `hashFriendshipId()` of the friendshipId
-(ADR-0013); every other parameter is non-identifying.
+(ADR-0013); `home_spending_breakdown_viewed` carries only `category_count`
+(a `0`–`8` `int`); every other parameter is non-identifying.
 
 ### Presentation
 
@@ -52,7 +73,7 @@ parameter-key and enum-token constants. The only identifier parameter,
     Add Expense context picker.
   - **populated** — net-balance header card + "Top Balances" list (each
     row with Settle Up + tile-tap) + the FR-HD-03 "This Month"
-    placeholder card.
+    spend-breakdown card.
   - **error** (`HD-FIRESTORE-READ`) — Retry + a "Contact Support" link
     reusing the FR-PR-05 `ContactSupportController` (the first reuse
     outside Profile).
@@ -67,36 +88,77 @@ parameter-key and enum-token constants. The only identifier parameter,
 - `presentation/widgets/top_balance_tile.dart` — `TopBalanceTile`. A
   Top Balances row: avatar + name + the **reused** friends-feature
   `BalancePill` + a "Settle Up" text button (48×48 dp tap target).
-- `presentation/widgets/spending_breakdown_placeholder_card.dart` —
-  `SpendingBreakdownPlaceholderCard`. The non-interactive FR-HD-03
-  placeholder (no chart).
+- `presentation/widgets/spending_breakdown_card.dart` —
+  `SpendingBreakdownCard` (`ConsumerStatefulWidget`). Watches
+  `monthlySpendBreakdownProvider` and renders the four SCR-06
+  sub-states: a chart-shaped **loading** skeleton, an **empty**
+  "No spending yet this month" body (no chart), a **populated** donut +
+  vertical legend, and an **error** body (Retry + a `HD-FIRESTORE-READ`
+  Contact Support link reusing the FR-PR-05 controller). Owns the
+  single-fire `home_spending_breakdown_viewed` gate — it fires once per
+  mount on the first terminal data frame (populated or empty), never on
+  loading or error. Accessibility: a donut-summary Semantics node plus
+  one Semantics label per legend row, so no meaning is carried by colour
+  alone (SRS section 5.6).
+- `presentation/widgets/spending_donut_chart.dart` —
+  `SpendingDonutChart`. An `fl_chart` `PieChart` wrapper (160 dp ring,
+  centre = month total). The painted chart is decorative and wrapped in
+  `ExcludeSemantics`; each section sweep is the integer-paise geometry
+  ratio `categoryPaise / monthTotalPaise`, never a `double` money value.
+- `presentation/widgets/spending_category_palette.dart` — the
+  brightness-aware light/dark `ExpenseCategory → Color` maps (design
+  tokens §1.3) plus the `spendingCategoryColor()` resolver. A plain
+  `static const` map, not a `ThemeExtension`.
+
+### Domain (FR-HD-03)
+
+- `domain/monthly_spend_breakdown.dart` — the immutable value objects
+  `CategorySpend { category, totalPaise }` and
+  `MonthlySpendBreakdown { categories, monthTotalPaise }` (value
+  equality; `categories` holds the non-zero totals sorted by descending
+  paise).
+- `domain/monthly_spend_aggregator.dart` — pure functions:
+  `currentMonthWindowIst()` (the fixed `+05:30` IST month boundary
+  returned as UTC instants, with December roll-over) and
+  `aggregateMonthlySpend()` (sums each expense's user share — the
+  non-`otherUserId` splits — per category inside the half-open window).
+  No Flutter or Firebase imports, so it is exhaustively unit-tested.
 
 ## Layout
 
 ```
 application/
-  home_balances_providers.dart   # overallNetBalanceProvider + topBalancesProvider
-  home_telemetry.dart            # 6 SCR-06 events + param/token constants
+  home_balances_providers.dart          # overallNetBalanceProvider + topBalancesProvider
+  home_telemetry.dart                   # 7 SCR-06 events + param/token constants
+  monthly_spend_breakdown_provider.dart # FR-HD-03 fan-out + homeClockProvider
+domain/
+  monthly_spend_breakdown.dart          # CategorySpend + MonthlySpendBreakdown
+  monthly_spend_aggregator.dart         # pure IST window + per-category reducer
 presentation/
-  home_dashboard_screen.dart     # SCR-06 four-state screen (tab 0)
+  home_dashboard_screen.dart            # SCR-06 four-state screen (tab 0)
   widgets/
     net_balance_header_card.dart        # FR-HD-01 header
     top_balance_tile.dart               # FR-HD-02 row (reuses BalancePill)
-    spending_breakdown_placeholder_card.dart  # FR-HD-03 placeholder
+    spending_breakdown_card.dart        # FR-HD-03 card (4 sub-states)
+    spending_donut_chart.dart           # FR-HD-03 fl_chart donut
+    spending_category_palette.dart      # FR-HD-03 category colours
 ```
 
-`domain/` is intentionally empty for now: the dashboard reuses the
-friends feature's `FriendListItem` rather than introducing a parallel
-view-model.
+The FR-HD-01/02 axis reuses the friends feature's `FriendListItem`
+rather than introducing a parallel view-model; FR-HD-03 adds its own
+`domain/` value objects (above) for the aggregated breakdown.
 
 ## Invariants honoured
 
-- **Invariant 1 (integer paise):** balances flow as `int`; every rupee
-  string is produced by `formatInrFromPaise()` in the child widgets. No
-  `double`, no inline `/ 100`. Enforced by
-  `test/features/home/home_boundary_contract_test.dart`.
+- **Invariant 1 (integer paise):** balances and category totals flow as
+  `int`; every rupee string is produced by `formatInrFromPaise()` in the
+  child widgets. No `double`, no `.toDouble()`, no inline `/ 100` — the
+  donut passes each section an `int / int` geometry ratio. Enforced by
+  `test/features/home/home_boundary_contract_test.dart` over every home
+  source file (including the six FR-HD-03 files).
 - **Invariant 2 (`simplifiedBalances` server-maintained):** the
-  dashboard only reads the field (via `friendsListProvider`); the
+  FR-HD-01/02 axis only reads the field (via `friendsListProvider`) and
+  the FR-HD-03 axis never references it at all (it reads `expenses`); the
   boundary-contract grep asserts it is never written here.
 - **Invariant 3 (system share sheet only):** the error-state Contact
   Support link uses the FR-PR-05 `mailto:` flow, not the share sheet.
@@ -105,13 +167,11 @@ view-model.
 
 ## Stubs and deferrals
 
-- **Group axis** — `topBalancesProvider` is friendship-only; telemetry
-  carries `context_type: 'friend'`. The Sprint 3 Groups epic slots a
-  second source into the Top Balances section without changing the
-  provider contract.
-- **FR-HD-03 chart** — placeholder only; the donut/bar chart + the
-  category-aggregation read path are a separate P1 PR (no charting
-  plugin added here).
+- **Group axis** — both `topBalancesProvider` and
+  `monthlySpendBreakdownProvider` are friendship-only; the group axis is
+  a forward-compat seam (the Sprint 3 Groups epic folds a second source
+  into each without changing the provider contracts). FR-HD-03 telemetry
+  is group-agnostic.
 - **FR-OF-01 offline banner** — deferred (needs a connectivity signal /
   plugin → `ios/Podfile.lock` churn). The error state covers the
   empty-cache-offline first-launch case.

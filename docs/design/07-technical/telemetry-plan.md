@@ -94,6 +94,7 @@ Source: `docs/design/06-screen-specs/06-08-home-and-search.md`
 | `home_empty_cta_tapped` | — | — | User taps Add Expense CTA in empty state | SCR-06 |
 | `home_error_retry_tapped` | `attempt_number` | `int` | User taps Retry in error state | SCR-06 |
 | `home_error_support_tapped` | `error_code` | `string` | User taps Contact Support in error state | SCR-06 |
+| `home_spending_breakdown_viewed` | `category_count` | `int` (`0`–`8`) | First terminal render of the breakdown card (populated or empty), once per dashboard mount | SCR-06 |
 | `search_opened` | `source` | `string` (`home` / `activity` / `other`) | Search overlay becomes visible | SCR-07 |
 | `search_query_submitted` | `query_length`, `has_filters` | `int`, `bool` | Debounce fires after 300 ms pause | SCR-07 |
 | `search_filter_applied` | `filter_type`, `filter_value` | `string`, `string` | User selects or deselects a filter chip | SCR-07 |

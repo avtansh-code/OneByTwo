@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-PR-02 update phone number via OTP re-verification (#64, `2e68713`) merged — it was the top-ranked remaining P1 and **every P0 functional requirement remains shipped**. FR-AU-09 (permanently delete your account, SRS section 4.1 line 168, **P1**) opened as the next feature PR — the next top-ranked P1 on the carry-forward candidate list (above the Bucket-B chore bundle, Issue #47 rules-hardening, and the `shared_preferences` / `app_settings` chores) and the first reuse of the FR-PR-02 re-authentication surface outside change-phone; opened as PR #65; the deferred 30-day reaper / grace-period / SMS / audit-log work is filed as FUTURE issue #66.
+> Last updated: FR-AU-09 permanently delete your account (#65, `d542793`) merged — it was the second top-ranked remaining P1 (FR-PR-02 #64 was the first) and **every P0 functional requirement remains shipped**; the deferred 30-day reaper / grace-period / SMS / audit-log work is filed as FUTURE issue #66. FR-HD-03 (current-month spend summary with a category breakdown chart, SRS section 4.8 line 248, **P1**) opened as the next feature PR — the **top-ranked remaining P1** on the carry-forward candidate list and the **last open Home-dashboard requirement** (FR-HD-01/02 in #62, FR-HD-04 in #57); it lands as the next available GitHub number (≥ #67 now that FUTURE issue #66 is filed), reconciled at PR open.
 
 ---
 
@@ -31,22 +31,83 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#62** | **PR** | FR-HD-01/02 Home dashboard (SCR-06) — merged 2026-06-13, `57c272e`. |
 | **#63** | **PR** | **FR-PR-04 "My Friends" / "My Groups" from Profile (SCR-26, P0) — the last open P0 functional requirement, omitted from this candidate list (corrected); merged 2026-06-13, `209afea`.** |
 | **#64** | **PR** | **FR-PR-02 update phone number via OTP re-verification (SRS 4.2 line 175, P1) — merged 2026-06-16, `2e68713`.** |
-| **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — IN FLIGHT; the next top-ranked P1 now that FR-PR-02 has merged and every P0 is shipped; first reuse of the FR-PR-02 re-authentication surface; opened as PR #65; the deferred 30-day reaper / grace-period work is FUTURE issue #66.** |
+| **#65** | **PR** | **FR-AU-09 permanently delete your account (SCR-28 Part B, SRS 4.1 line 168, P1) — merged 2026-06-17, `d542793`; the second top-ranked P1 (FR-PR-02 #64 was the first); first reuse of the FR-PR-02 re-authentication surface; the deferred 30-day reaper / grace-period work is FUTURE issue #66.** |
 | #66 | Issue | FUTURE: 30-day scheduled-cleanup reaper + grace-period / confirmation SMS / audit log for account deletion (SCR-28 Open Questions 1-3) — deferred from FR-AU-09 (#65); CANNOT be closed by #65. |
+| **#67** | **PR** | **FR-HD-03 current-month spend summary with a category breakdown chart (SCR-06, SRS 4.8 line 248, P1) — IN FLIGHT; the top-ranked remaining P1 and the last open Home-dashboard requirement (FR-HD-01/02 in #62, FR-HD-04 in #57); first cross-friendship expense read path (fan-out) + first charting approach; lands as the next available number ≥ #67, reconciled at PR open.** |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
 consume intermediate numbers; the orchestrator should not assume the
-roadmap slot label equals the GitHub number. **GitHub PR #61 was
-consumed by the CI-pipeline PR (`d474507`), so the Home-dashboard work
-lands as the next available number ≥ #62** — reconcile the slot label at
+roadmap slot label equals the GitHub number. **Now that FR-AU-09 has
+merged as PR #65 and FUTURE issue #66 is filed, the FR-HD-03 chart work
+lands as the next available number ≥ #67** — reconcile the slot label at
 PR open.
 
 ---
 
-## PR #65 — IN FLIGHT (FR-AU-09 permanently delete your account)
+## PR #67 — IN FLIGHT (FR-HD-03 monthly spend category breakdown chart)
 
-**Status:** Open. FR-AU-09 confirmed as the next-slot pick at kickoff —
+**Status:** Open. FR-HD-03 confirmed as the next-slot pick at kickoff — the
+**top-ranked remaining P1** (SRS section 4.8, line 248) on the carry-forward
+candidate list and the **last open Home-dashboard requirement** now that
+FR-HD-01/02 shipped (#62), FR-HD-04 shipped (#57), and **every P0 functional
+requirement is shipped**. It was explicitly deferred from #62 as "a separate
+P1 PR (the real donut/bar chart + the category-aggregation read path)".
+
+Replaces the `SpendingBreakdownPlaceholderCard` ("Spending breakdown coming
+soon", `lib/features/home/presentation/widgets/spending_breakdown_placeholder_card.dart`)
+under the "This Month" header (`home_dashboard_screen.dart`) with a real card:
+the current calendar-month (IST, SRS section 5.9) **total spend** + a
+per-category breakdown chart.
+
+- **First cross-friendship expense read path (ADR-0017).** Every prior expense
+  read was scoped to a single friendship (`watchExpensesByFriendship`).
+  FR-HD-03 fans out over `friendsListProvider` (the FR-HD-01/02 source) to read
+  each friendship's current-month non-deleted `expenses` and folds the
+  signed-in user's OWN `sharePaise` from each expense's `splits` per
+  `ExpenseCategory` — **NOT** the full `amountPaise` (which includes the other
+  member's share and would over-report spend). `collectionGroup('expenses')`
+  was rejected: expenses carry no member field, so the query cannot be scoped
+  to the caller's friendships under the membership-gated rules without a schema
+  change. Group axis stubbed (Sprint 3), exactly as `topBalancesProvider`.
+- **Integer paise end-to-end (Invariant 1).** Every category subtotal and the
+  month total is an integer `*Paise` sum; the only rupee conversion is
+  `formatInrFromPaise(int)` at the widget layer; chart segment ratios derive
+  from integer paise. No `double`, no inline `/100`.
+- **First charting approach + 8-category colour-token map.** The donut chart
+  (charting library ratified in ADR-0017) renders per-category segments using a
+  new dark-mode-safe, WCAG-AA category→colour map (designer-owned); each
+  segment announces "category, ₹amount, percentage" (never colour-only). Legend
+  + month total below.
+- **Empty / zero state.** No expenses this month → a friendly "No spending yet
+  this month" card, NOT the chart. Loading reuses the dashboard skeleton; error
+  reuses the FR-PR-05 `ContactSupportController` / `HD-FIRESTORE-READ` path
+  (like FR-HD-01/02).
+- **Telemetry (PII-free, newly DECLARED).** A new
+  `home_spending_breakdown_viewed` event is added to `telemetry-plan.md §1.3`
+  and wired — the first newly-declared telemetry event of the sprint's recent
+  PRs (FR-PR-04/05 and FR-AU-09 all wired pre-declared events). No `uid`,
+  `friendshipId`, or raw rupee/paise value is ever a parameter (SRS line 308).
+
+**Stubs / defers.** No new Cloud Function; `firestore.rules` unchanged;
+Invariant 2 N/A (reads `expenses`, never `simplifiedBalances`). A new
+`firestore.indexes.json` index is added only if the architect finds the
+existing `expenses (deleted ASC + date DESC)` composite index does not cover
+the per-friendship current-month query (which orders by `date` DESC to reuse
+it). The donut tap-to-drill-down per-category expense list, a denormalised
+monthly-spend rollup Cloud Function (FUTURE optimisation), and any spending
+share/export action (Invariant 3) are out of scope.
+
+**Next candidates** (architect's call at the post-#67 kickoff): the
+carry-forward list below — the FR-AC-05 deep-link tab-switch migration, the
+`app_settings`/`permission_handler` "Open Settings" CTA chore, the Bucket-B
+chore close-out bundle, Issue #47 rules-hardening, and the Sprint 3 Groups epic.
+
+---
+
+## PR #65 — Merged (FR-AU-09 permanently delete your account)
+
+**Status:** Merged 2026-06-17 (`d542793`). FR-AU-09 confirmed as the next-slot pick at kickoff —
 the **next top-ranked remaining P1** (SRS section 4.1, line 168) now that
 FR-PR-02 has merged (#64) and **every P0 functional requirement is
 shipped**. It is the **LAST open authentication-cluster requirement**
@@ -102,11 +163,12 @@ log (SCR-28 Account Deletion Open Questions 1-3) are deferred to a FUTURE
 follow-up issue. No new Flutter plugin (`cloud_functions` already a
 dependency) — **no `ios/Podfile.lock` change**.
 
-**Next candidates** (architect's call at the post-#65 kickoff): the
-carry-forward list below — the FR-AC-05 deep-link tab-switch migration,
-the `app_settings`/`permission_handler` "Open Settings" CTA chore, the
-FR-HD-03 real chart, the Bucket-B chore close-out bundle, Issue #47
-rules-hardening, and the Sprint 3 Groups epic.
+**Next candidates** (architect's call at the post-#65 kickoff): **FR-HD-03 the
+real spend-breakdown chart was selected and is now in flight as #67 above** (the
+top-ranked remaining P1 and the last open Home-dashboard requirement). The
+remaining carry-forward — the FR-AC-05 deep-link tab-switch migration, the
+`app_settings`/`permission_handler` "Open Settings" CTA chore, the Bucket-B
+chore close-out bundle, Issue #47 rules-hardening, and the Sprint 3 Groups epic.
 
 ---
 

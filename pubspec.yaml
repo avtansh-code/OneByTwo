@@ -22,6 +22,7 @@ dependencies:
   firebase_messaging: ^16.2.0 # Push notifications (FCM)
   firebase_remote_config: ^6.4.0 # Feature flags (ADR-0006)
   firebase_storage: ^13.3.0 # Receipt and avatar uploads
+  fl_chart: ^1.2.0 # Donut chart for the FR-HD-03 monthly category breakdown (pure-Dart; no native pod)
   flutter:
     sdk: flutter
   flutter_contacts: ^1.1.9+2 # Device contacts for add-friend flow (ADR-0013)
