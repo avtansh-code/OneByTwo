@@ -24,7 +24,7 @@ const REGION = "asia-south1";
  *
  * Output: `DeleteUserAccountResponse` — `{ success: true }`.
  *
- * Error codes: UNAUTHENTICATED, INTERNAL. See ADR-0016 and
+ * Error codes: UNAUTHENTICATED, REAUTH_REQUIRED, INTERNAL. See ADR-0016 and
  * docs/design/07-technical/cloud-functions-error-codes.md section 2.6.
  */
 export const deleteUserAccount = onCall({region: REGION}, async (request) => {
@@ -35,6 +35,13 @@ export const deleteUserAccount = onCall({region: REGION}, async (request) => {
     logger,
   });
   return handler(request.data, {
-    auth: request.auth ? {uid: request.auth.uid} : undefined,
+    auth: request.auth ?
+      {
+        uid: request.auth.uid,
+        // auth_time (Unix seconds) drives the server-side recent-login check
+        // so the SCR-28 re-auth gate is enforced beyond the client.
+        token: {auth_time: request.auth.token.auth_time},
+      } :
+      undefined,
   });
 });

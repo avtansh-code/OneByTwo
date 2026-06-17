@@ -983,14 +983,24 @@ justify it and pin the callable contract.
   Output: `{ success: true }`. The auth check runs **first**: a missing
   `request.auth.uid` throws
   `HttpsError("unauthenticated", ..., { errorCode: "UNAUTHENTICATED" })` before any
-  read or write; any unexpected error throws
+  read or write. **Recent-login (re-auth) enforcement runs next, server-side**: the
+  caller's `request.auth.token.auth_time` (Unix seconds, refreshed by the SCR-28
+  Step B re-authentication) must be within a five-minute window, else the handler
+  throws
+  `HttpsError("failed-precondition", ..., { errorCode: "REAUTH_REQUIRED" })`. A
+  missing `auth_time` claim is treated as not-recently-authenticated. This makes the
+  Step B re-auth gate **defence-in-depth** rather than client-only — a direct
+  callable invocation with a stale (but unexpired) token cannot bypass it for this
+  irreversible operation. Any unexpected error throws
   `HttpsError("internal", ..., { errorCode: "INTERNAL" })`. Structured logs hash
   the uid via `functions/src/utils/id-hash.ts` `hashId` (`uidHash`); the raw uid
-  and phone number are never logged (SRS section 5.4; ADR-0013). The boundary
-  follows `functions/src/send-reminder-notification/function.ts` — a handler
-  factory with injected dependencies for testability, wired to an `onCall` export
-  in `index.ts`. The two codes are catalogued in
-  `docs/design/07-technical/cloud-functions-error-codes.md` section 2.
+  and phone number are never logged, and the uid is redacted from any SDK error
+  message before logging (SRS section 5.4; ADR-0013). The boundary follows
+  `functions/src/send-reminder-notification/function.ts` — a handler factory with
+  injected dependencies (including an injectable clock for the `auth_time` check)
+  for testability, wired to an `onCall` export in `index.ts`. The codes are
+  catalogued in `docs/design/07-technical/cloud-functions-error-codes.md`
+  section 2.
 - **Re-authentication reuse.** SCR-28 Step B reuses the FR-PR-02
   `PhoneAccountRepository` (ADR-0015) as a **re-auth-only** path — `requestOtp` +
   `reauthenticate` / `reauthenticateWithCredential`, with the target number read
@@ -1010,10 +1020,12 @@ justify it and pin the callable contract.
   would breach the server-only deletion boundary FR-AU-09 depends on.
 - **Groups forward-compat.** `groups/{groupId}` exists in the schema but has no
   client UI and no live data in v1.0. The function implements the **friendship axis
-  fully** and **stubs the group axis** with a `TODO` referencing this ADR (a future
+  fully** and **preserves the group axis by omission** — it never touches
+  `groups/{groupId}` or any group-context settlement, signposted by an explanatory
+  comment in `function.ts` (a plain comment, not an issue-tagged `TODO`). A future
   group member tombstones identically, with group `simplifiedBalances` preserved by
-  the same Invariant 2 discipline). This ADR does **not** authorise building the
-  Groups epic.
+  the same Invariant 2 discipline, when the Sprint 3 Groups epic lands. This ADR
+  does **not** authorise building the Groups epic.
 
 ### Consequences
 

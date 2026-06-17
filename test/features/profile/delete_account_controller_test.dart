@@ -225,6 +225,21 @@ void main() {
       expect(h.controller.state.snackbarMessage, isNull);
     });
 
+    test('max-retries on the OTP REQUEST surfaces the snackbar and makes no '
+        'delete call (AC-3 request path)', () async {
+      final h = _Harness();
+      h.account.requestOtpError = AuthError.tooManyRequests;
+      h.controller.continueFromWarning();
+      await h.controller.sendReauthOtp();
+      expect(
+        h.controller.state.snackbarMessage,
+        AuthError.tooManyRequests.message,
+      );
+      expect(h.controller.state.errorMessage, isNull);
+      expect(h.controller.state.step, DeleteAccountStep.reauthIntro);
+      expect(h.deleteRepo.calls, 0);
+    });
+
     test('Android instant verification re-authenticates and advances to '
         'confirm', () async {
       final h = _Harness();

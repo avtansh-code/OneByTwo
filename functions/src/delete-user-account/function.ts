@@ -40,11 +40,12 @@
  *   - delete_account_cascade_started
  *   - delete_account_cascade_succeeded
  *   - delete_account_cascade_failed
+ *   - delete_account_reauth_required
  *   - delete_account_avatar_absent
  *   - delete_account_auth_absent
  *
  * Error codes follow docs/design/07-technical/cloud-functions-error-codes.md
- * (section 2.6): UNAUTHENTICATED, INTERNAL.
+ * (section 2.6): UNAUTHENTICATED, REAUTH_REQUIRED, INTERNAL.
  *
  * @module delete-user-account/function
  */
@@ -64,6 +65,15 @@ import {hashId} from "../utils/id-hash";
  * genuinely absent users-doc still renders "Unknown".
  */
 const TOMBSTONE_DISPLAY_NAME = "Deleted User";
+
+/**
+ * Maximum age of the caller's last authentication (`auth_time` claim) for a
+ * deletion to proceed. SCR-28 Step B re-authentication refreshes this claim;
+ * enforcing it server-side makes the re-auth gate defence-in-depth rather
+ * than client-only (ADR-0016). Five minutes comfortably covers the
+ * re-auth -> type-DELETE -> call window while rejecting a stale token.
+ */
+const REAUTH_MAX_AGE_MS = 5 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,6 +124,16 @@ export interface DeleteUserAccountFunctionDeps {
   /** Default Storage bucket (`getStorage().bucket()` in production). */
   bucket: DeleteUserAccountBucket;
   logger: DeleteUserAccountLogger;
+  /**
+   * Clock injection for the `auth_time` recency check. Defaults to the
+   * system clock; tests inject a fixed clock.
+   */
+  now?: () => Date;
+}
+
+/** The caller context the handler reads (auth uid + the recent-login claim). */
+export interface DeleteUserAccountContext {
+  auth?: {uid: string; token?: {auth_time?: number}};
 }
 
 // ---------------------------------------------------------------------------
@@ -216,13 +236,14 @@ export function createDeleteUserAccountHandler(
   deps: DeleteUserAccountFunctionDeps,
 ): (
   data: unknown,
-  context: {auth?: {uid: string}},
+  context: DeleteUserAccountContext,
 ) => Promise<DeleteUserAccountResponse> {
   const {db, authAdmin, bucket, logger} = deps;
+  const now = deps.now ?? ((): Date => new Date());
 
   return async (
     _data: unknown,
-    context: {auth?: {uid: string}},
+    context: DeleteUserAccountContext,
   ): Promise<DeleteUserAccountResponse> => {
     // 1. Auth check (FIRST, before any read or write).
     const uid = context.auth?.uid;
@@ -233,33 +254,59 @@ export function createDeleteUserAccountHandler(
     }
 
     const uidHash = hashId(uid);
+
+    // 2. Recent-login (re-auth) enforcement — defence-in-depth for an
+    //    irreversible operation. SCR-28 Step B re-authenticates the current
+    //    number, refreshing the `auth_time` claim; require it to be recent so
+    //    a direct callable invocation with a stale (but unexpired) token
+    //    cannot bypass the re-auth gate (ADR-0016). `auth_time` is in Unix
+    //    SECONDS; a missing claim is treated as not-recently-authenticated.
+    const authTimeSec = context.auth?.token?.auth_time;
+    if (
+      typeof authTimeSec !== "number" ||
+      now().getTime() - authTimeSec * 1000 > REAUTH_MAX_AGE_MS
+    ) {
+      logger.warn("delete_account_reauth_required", {
+        event: "delete_account_reauth_required",
+        uidHash,
+      });
+      throw new HttpsError(
+        "failed-precondition",
+        "Please verify your identity again before deleting your account.",
+        {errorCode: "REAUTH_REQUIRED"},
+      );
+    }
+
     logger.info("delete_account_cascade_started", {
       event: "delete_account_cascade_started",
       uidHash,
     });
 
     try {
-      // 2. DELETE personal Firestore subtrees. recursiveDelete uses a
+      // 3. DELETE personal Firestore subtrees. recursiveDelete uses a
       //    BulkWriter under the hood (handles the 500-write WriteBatch cap)
       //    and is a no-op on an absent path, so a re-run converges.
       await db.recursiveDelete(db.collection("activity").doc(uid));
       await db.recursiveDelete(db.collection("_rateLimits").doc(uid));
 
-      // 3. TOMBSTONE users/{uid}: set() without merge REPLACES the document
+      // 4. TOMBSTONE users/{uid}: set() without merge REPLACES the document
       //    with the PII-free shell, stripping phoneNumber/photoUrl/
       //    fcmTokens/notificationPrefs/locale. This is the anonymisation
       //    (ADR-0016). Friendships, expenses, settlements and the surviving
       //    member's simplifiedBalances are deliberately left untouched
-      //    (Invariant 2).
+      //    (Invariant 2). Groups are likewise preserved by omission — the
+      //    function never touches groups/{groupId} or group-context
+      //    settlements; v1.0 has no live groups, and a future group member
+      //    tombstones identically when the Sprint 3 Groups epic lands.
       await db.collection("users").doc(uid).set({
         displayName: TOMBSTONE_DISPLAY_NAME,
         deletedAt: FieldValue.serverTimestamp(),
       });
 
-      // 4. DELETE the personal Storage avatar (idempotent).
+      // 5. DELETE the personal Storage avatar (idempotent).
       await deleteAvatar(bucket, uid, logger, uidHash);
 
-      // 5. DELETE the Firebase Auth record LAST (idempotent).
+      // 6. DELETE the Firebase Auth record LAST (idempotent).
       await deleteAuthUser(authAdmin, uid, logger, uidHash);
 
       logger.info("delete_account_cascade_succeeded", {

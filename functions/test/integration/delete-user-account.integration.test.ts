@@ -56,6 +56,9 @@ const UID_A = "int-del-user-a";
 const UID_B = "int-del-user-b";
 const FRIENDSHIP_ID = `${UID_A}_${UID_B}`;
 const SETTLEMENT_ID = "int-del-settle-1";
+const EXPENSE_ID = "exp-1";
+/** A shared receipt object — must SURVIVE A's deletion (belongs to B too). */
+const RECEIPT_PATH = `receipts/friendships/${FRIENDSHIP_ID}/${EXPENSE_ID}`;
 
 /** A owes B 5_000 paise. Integer paise (Invariant 1). */
 const SEEDED_SIMPLIFIED_BALANCES = {
@@ -67,7 +70,7 @@ let auth: ReturnType<typeof getAuth>;
 let bucket: ReturnType<ReturnType<typeof getStorage>["bucket"]>;
 let handler: (
   data: unknown,
-  context: {auth?: {uid: string}},
+  context: {auth?: {uid: string; token?: {auth_time?: number}}},
 ) => Promise<DeleteUserAccountResponse>;
 
 const noopLogger = {
@@ -75,6 +78,13 @@ const noopLogger = {
   warn: () => undefined,
   error: () => undefined,
 };
+
+/** Caller context with a freshly-authenticated `auth_time` (now, in seconds). */
+function authCtx(uid: string): {
+  auth: {uid: string; token: {auth_time: number}};
+} {
+  return {auth: {uid, token: {auth_time: Math.floor(Date.now() / 1000)}}};
+}
 
 // ---------------------------------------------------------------------------
 // Setup / teardown
@@ -180,6 +190,10 @@ async function cleanup(): Promise<void> {
       .delete({ignoreNotFound: true})
       .catch(() => undefined);
   }
+  await bucket
+    .file(RECEIPT_PATH)
+    .delete({ignoreNotFound: true})
+    .catch(() => undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +204,7 @@ describe("deleteUserAccount — integration", () => {
   it("removes personal records and tombstones users/{uid}", async () => {
     await seedPersonal();
 
-    const result = await handler(undefined, {auth: {uid: UID_A}});
+    const result = await handler(undefined, authCtx(UID_A));
     expect(result).toEqual({success: true});
 
     // users/A is replaced with the PII-free 'Deleted User' shell.
@@ -237,7 +251,7 @@ describe("deleteUserAccount — integration", () => {
       await seedPersonal();
       await seedSurvivingFriendship();
 
-      await handler(undefined, {auth: {uid: UID_A}});
+      await handler(undefined, authCtx(UID_A));
 
       const friendshipSnap = await db
         .collection("friendships")
@@ -260,7 +274,7 @@ describe("deleteUserAccount — integration", () => {
     },
   );
 
-  it("preserves the surviving member's expense and settlement history",
+  it("preserves the surviving member's expense, settlement and receipt history",
     async () => {
       await seedPersonal();
       await seedSurvivingFriendship();
@@ -270,7 +284,7 @@ describe("deleteUserAccount — integration", () => {
         .collection("friendships")
         .doc(FRIENDSHIP_ID)
         .collection("expenses")
-        .doc("exp-1")
+        .doc(EXPENSE_ID)
         .set({
           payerId: UID_A,
           amountPaise: 10000,
@@ -290,11 +304,17 @@ describe("deleteUserAccount — integration", () => {
         deleted: false,
         createdAt: Timestamp.now(),
       });
+      // A shared receipt object on the surviving friendship (AC-7) — personal
+      // to neither member; must survive A's deletion (only avatars/{uid} is a
+      // personal Storage path the cascade removes).
+      await bucket
+        .file(RECEIPT_PATH)
+        .save(Buffer.from([0xff, 0xd8, 0xff]), {contentType: "image/jpeg"});
 
-      await handler(undefined, {auth: {uid: UID_A}});
+      await handler(undefined, authCtx(UID_A));
 
       // The friendship and its history survive (deleteUserAccount never
-      // touches friendships / expenses / settlements).
+      // touches friendships / expenses / settlements / receipts).
       expect(
         (await db.collection("friendships").doc(FRIENDSHIP_ID).get()).exists,
       ).toBe(true);
@@ -302,7 +322,7 @@ describe("deleteUserAccount — integration", () => {
         .collection("friendships")
         .doc(FRIENDSHIP_ID)
         .collection("expenses")
-        .doc("exp-1")
+        .doc(EXPENSE_ID)
         .get();
       expect(expenseSnap.exists).toBe(true);
       expect(expenseSnap.data()?.amountPaise).toBe(10000);
@@ -312,6 +332,9 @@ describe("deleteUserAccount — integration", () => {
         .get();
       expect(settlementSnap.exists).toBe(true);
       expect(settlementSnap.data()?.amountPaise).toBe(5000);
+      // The shared receipt object is preserved.
+      const [receiptExists] = await bucket.file(RECEIPT_PATH).exists();
+      expect(receiptExists).toBe(true);
     },
   );
 
@@ -322,9 +345,9 @@ describe("deleteUserAccount — integration", () => {
       await seedPersonal();
       await seedSurvivingFriendship();
 
-      await handler(undefined, {auth: {uid: UID_A}});
+      await handler(undefined, authCtx(UID_A));
       // Second invocation (simulates the SCR-28 edge-case 3/4 retry).
-      const second = await handler(undefined, {auth: {uid: UID_A}});
+      const second = await handler(undefined, authCtx(UID_A));
       expect(second).toEqual({success: true});
 
       const friendshipSnap = await db

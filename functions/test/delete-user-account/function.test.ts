@@ -132,10 +132,27 @@ function createMocks(opts: MockOptions = {}): {
 
   const logger = createMockLogger();
 
-  return {deps: {db, bucket, authAdmin, logger}, captured, logger};
+  return {
+    deps: {db, bucket, authAdmin, logger, now: () => new Date(NOW_MS)},
+    captured,
+    logger,
+  };
 }
 
 const UID = "user-to-delete-123";
+
+/** Fixed clock for the deterministic auth_time recency check. */
+const NOW_MS = Date.UTC(2026, 0, 1, 12, 0, 0);
+
+/** A recently-authenticated `auth_time` (30s before NOW), in Unix seconds. */
+const RECENT_AUTH_TIME_SEC = Math.floor(NOW_MS / 1000) - 30;
+
+/** Builds a caller context with a (by default recent) `auth_time` claim. */
+function authCtx(authTimeSec: number = RECENT_AUTH_TIME_SEC): {
+  auth: {uid: string; token: {auth_time: number}};
+} {
+  return {auth: {uid: UID, token: {auth_time: authTimeSec}}};
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -157,11 +174,40 @@ describe("deleteUserAccount — function boundary", () => {
     expect(captured.authDeletes).toHaveLength(0);
   });
 
+  it("throws REAUTH_REQUIRED when auth_time is stale (re-auth gate)", async () => {
+    const {deps, captured} = createMocks();
+    const handler = createDeleteUserAccountHandler(deps);
+
+    // auth_time 10 minutes before the fixed clock — older than the 5-min window.
+    const staleAuthTimeSec = Math.floor(NOW_MS / 1000) - 10 * 60;
+    await expect(handler(undefined, authCtx(staleAuthTimeSec))).rejects
+      .toMatchObject({
+        code: "failed-precondition",
+        details: {errorCode: "REAUTH_REQUIRED"},
+      });
+    // The cascade never started — no destructive work before the gate passes.
+    expect(captured.order).toHaveLength(0);
+    expect(captured.authDeletes).toHaveLength(0);
+  });
+
+  it("throws REAUTH_REQUIRED when the auth_time claim is missing", async () => {
+    const {deps, captured} = createMocks();
+    const handler = createDeleteUserAccountHandler(deps);
+
+    await expect(
+      handler(undefined, {auth: {uid: UID, token: {}}}),
+    ).rejects.toMatchObject({
+      code: "failed-precondition",
+      details: {errorCode: "REAUTH_REQUIRED"},
+    });
+    expect(captured.order).toHaveLength(0);
+  });
+
   it("runs the full cascade and returns { success: true }", async () => {
     const {deps, captured} = createMocks();
     const handler = createDeleteUserAccountHandler(deps);
 
-    const result = await handler(undefined, {auth: {uid: UID}});
+    const result = await handler(undefined, authCtx());
 
     expect(result).toEqual({success: true});
     expect(captured.recursiveDeletePaths).toEqual([
@@ -178,7 +224,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps, captured} = createMocks();
     const handler = createDeleteUserAccountHandler(deps);
 
-    await handler(undefined, {auth: {uid: UID}});
+    await handler(undefined, authCtx());
 
     expect(captured.order[captured.order.length - 1]).toBe(`authDelete:${UID}`);
     const authIndex = captured.order.indexOf(`authDelete:${UID}`);
@@ -195,7 +241,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps, captured} = createMocks();
     const handler = createDeleteUserAccountHandler(deps);
 
-    await handler(undefined, {auth: {uid: UID}});
+    await handler(undefined, authCtx());
 
     expect(captured.usersSets).toHaveLength(1);
     const shell = captured.usersSets[0];
@@ -218,7 +264,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps, captured} = createMocks();
     const handler = createDeleteUserAccountHandler(deps);
 
-    await handler(undefined, {auth: {uid: UID}});
+    await handler(undefined, authCtx());
 
     // Only the three personal collections are touched.
     expect(new Set(captured.collectionsAccessed)).toEqual(
@@ -236,7 +282,7 @@ describe("deleteUserAccount — function boundary", () => {
     });
     const handler = createDeleteUserAccountHandler(deps);
 
-    const result = await handler(undefined, {auth: {uid: UID}});
+    const result = await handler(undefined, authCtx());
 
     expect(result).toEqual({success: true});
     expect(captured.authDeletes).toEqual([UID]);
@@ -246,7 +292,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps} = createMocks({avatarThrows: {code: 404}});
     const handler = createDeleteUserAccountHandler(deps);
 
-    await expect(handler(undefined, {auth: {uid: UID}})).resolves.toEqual({
+    await expect(handler(undefined, authCtx())).resolves.toEqual({
       success: true,
     });
   });
@@ -257,7 +303,7 @@ describe("deleteUserAccount — function boundary", () => {
     });
     const handler = createDeleteUserAccountHandler(deps);
 
-    await expect(handler(undefined, {auth: {uid: UID}})).rejects.toMatchObject({
+    await expect(handler(undefined, authCtx())).rejects.toMatchObject({
       code: "internal",
       details: {errorCode: "INTERNAL"},
     });
@@ -267,7 +313,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps} = createMocks({avatarThrows: {code: 500}});
     const handler = createDeleteUserAccountHandler(deps);
 
-    await expect(handler(undefined, {auth: {uid: UID}})).rejects.toMatchObject({
+    await expect(handler(undefined, authCtx())).rejects.toMatchObject({
       code: "internal",
       details: {errorCode: "INTERNAL"},
     });
@@ -277,7 +323,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps} = createMocks({authThrows: {code: "auth/internal-error"}});
     const handler = createDeleteUserAccountHandler(deps);
 
-    await expect(handler(undefined, {auth: {uid: UID}})).rejects.toMatchObject({
+    await expect(handler(undefined, authCtx())).rejects.toMatchObject({
       code: "internal",
       details: {errorCode: "INTERNAL"},
     });
@@ -296,7 +342,7 @@ describe("deleteUserAccount — function boundary", () => {
     const {deps, logger} = createMocks();
     const handler = createDeleteUserAccountHandler(deps);
 
-    await handler(undefined, {auth: {uid: UID}});
+    await handler(undefined, authCtx());
 
     const expectedHash = hashId(UID);
     expect(logger.calls.length).toBeGreaterThan(0);
@@ -317,7 +363,7 @@ describe("deleteUserAccount — function boundary", () => {
     });
     const handler = createDeleteUserAccountHandler(deps);
 
-    await expect(handler(undefined, {auth: {uid: UID}})).rejects.toMatchObject({
+    await expect(handler(undefined, authCtx())).rejects.toMatchObject({
       code: "internal",
     });
 
