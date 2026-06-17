@@ -182,12 +182,26 @@ class FirestoreExpenseStore implements ExpenseStore {
     required String friendshipId,
     required DateTime monthStartUtc,
   }) async {
+    // Bound the IST month on both ends server-side, so future-dated
+    // expenses are never fetched. The caller passes the IST calendar-month
+    // start as a UTC instant; the next IST month start is one calendar
+    // month later. A two-sided range on `date` alongside the `deleted`
+    // equality is still served by the existing `deleted ASC + date DESC`
+    // composite index, so no new index is required (ADR-0017 section 6).
+    const istShift = Duration(hours: 5, minutes: 30);
+    final istMonthStart = monthStartUtc.add(istShift);
+    final nextMonthStartUtc = DateTime.utc(
+      istMonthStart.year,
+      istMonthStart.month + 1,
+    ).subtract(istShift);
+
     final snapshot = await _expensesCollection(friendshipId)
         .where('deleted', isEqualTo: false)
         .where(
           'date',
           isGreaterThanOrEqualTo: Timestamp.fromDate(monthStartUtc),
         )
+        .where('date', isLessThan: Timestamp.fromDate(nextMonthStartUtc))
         .orderBy('date', descending: true)
         .get();
     return snapshot.docs

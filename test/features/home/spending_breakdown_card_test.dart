@@ -338,6 +338,35 @@ void main() {
       );
       handle.dispose();
     });
+
+    testWidgets('legend percentages use largest-remainder and sum to 100', (
+      tester,
+    ) async {
+      // 33334 + 33333 + 33333 = 100000. Independent rounding would show
+      // 33% + 33% + 33% = 99%; largest-remainder lifts the largest
+      // remainder (Food) to 34% so the displayed set sums to exactly 100.
+      await tester.pumpWidget(
+        buildSubject(
+          store: _CannedExpenseStore(
+            byFriendship: {
+              'fid-bob': [
+                _expense(category: ExpenseCategory.food, userSharePaise: 33334),
+                _expense(
+                  category: ExpenseCategory.travel,
+                  userSharePaise: 33333,
+                ),
+                _expense(category: ExpenseCategory.rent, userSharePaise: 33333),
+              ],
+            },
+          ),
+          friends: [_friend('fid-bob', 'uid-bob')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('34%'), findsOneWidget);
+      expect(find.text('33%'), findsNWidgets(2));
+    });
   });
 
   group('empty sub-state', () {

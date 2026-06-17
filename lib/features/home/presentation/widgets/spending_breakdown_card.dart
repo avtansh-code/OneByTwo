@@ -218,6 +218,7 @@ class _BreakdownPopulatedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final percents = _allocatePercentages(breakdown);
     return _BreakdownCardFrame(
       child: Column(
         children: [
@@ -229,11 +230,8 @@ class _BreakdownPopulatedBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          for (final spend in breakdown.categories)
-            _LegendRow(
-              spend: spend,
-              percent: _percent(spend.totalPaise, breakdown.monthTotalPaise),
-            ),
+          for (var i = 0; i < breakdown.categories.length; i++)
+            _LegendRow(spend: breakdown.categories[i], percent: percents[i]),
         ],
       ),
     );
@@ -364,9 +362,41 @@ String _summaryLabel(MonthlySpendBreakdown breakdown) {
   return 'This month you have spent $total across $count $noun';
 }
 
-/// Integer-rounded `categoryPaise * 100 / monthTotalPaise` (a derived
-/// ratio, not money; Invariant 1). The caller renders the legend only
-/// when `monthTotalPaise > 0`.
-int _percent(int categoryPaise, int monthTotalPaise) {
-  return (categoryPaise * 100 / monthTotalPaise).round();
+/// Allocates a whole-number percentage to each category such that the
+/// set sums to exactly 100, using the largest-remainder method, so the
+/// legend never displays percentages that sum to 99 or 101. Pure integer
+/// arithmetic over the category paise (Invariant 1; a derived ratio, not
+/// money): each category takes the floor of its exact share
+/// (`categoryPaise * 100 / monthTotalPaise`) and the leftover points are
+/// handed to the largest remainders first. `monthTotalPaise` equals the
+/// sum of the category subtotals, so the floors plus the leftover always
+/// total 100. The caller renders the legend only when `monthTotalPaise
+/// > 0`, so the divisor is never zero. Ties keep the upstream
+/// descending-paise order (stable by index).
+List<int> _allocatePercentages(MonthlySpendBreakdown breakdown) {
+  final total = breakdown.monthTotalPaise;
+  final categories = breakdown.categories;
+  final percents = <int>[];
+  final remainders = <int>[];
+  var allocated = 0;
+  for (final spend in categories) {
+    final scaled = spend.totalPaise * 100;
+    final floor = scaled ~/ total;
+    percents.add(floor);
+    remainders.add(scaled % total);
+    allocated += floor;
+  }
+  final order = [for (var i = 0; i < categories.length; i++) i]
+    ..sort((a, b) {
+      final byRemainder = remainders[b].compareTo(remainders[a]);
+      if (byRemainder != 0) return byRemainder;
+      return a.compareTo(b);
+    });
+  var leftover = 100 - allocated;
+  for (final i in order) {
+    if (leftover <= 0) break;
+    percents[i] += 1;
+    leftover -= 1;
+  }
+  return List<int>.unmodifiable(percents);
 }
