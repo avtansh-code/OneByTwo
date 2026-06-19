@@ -779,6 +779,16 @@ transition and would not compose with `Ready`'s `prefs` map.
 
 ### §2.4 OS-permission "Open Settings" implementation
 
+> **Superseded by ADR-0019 (AC-11 "Open Settings" CTA chore, PR ≥ #70).**
+> The interim decision below shipped the banner WITHOUT the button because
+> `FirebaseMessaging.instance.openAppNotificationSettings()` does not exist
+> on the installed `firebase_messaging` Dart API and §2.4 REJECTED pulling a
+> new plugin in the 5-SP PR #55 scope. The follow-up chore reverses that: it
+> adds `app_settings` behind a shared `lib/core/services/AppSettingsService`
+> seam and wires the "Open Settings" button on both the SCR-27 banner and the
+> SCR-10 contact-permission view. The banner copy and its
+> `denied || permanentlyDenied` trigger (below) are unchanged.
+
 **RATIFIED: use `FirebaseMessaging.instance.openAppNotificationSettings()`
 from the EXISTING `firebase_messaging: ^16.2.0`** (pubspec.yaml
 line 19 — no version bump). The Flutter-dev MUST verify at

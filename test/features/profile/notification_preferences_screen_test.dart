@@ -4,11 +4,11 @@
 // telemetry on mount, surfaces the load/error states from the
 // controller, and shows the OS-permission banner when the
 // `notificationPermissionControllerProvider` reports `denied` or
-// `permanentlyDenied`. AC-11 graceful-degradation: per architect §2.4
-// fallback, since `firebase_messaging: ^16.2.0` does NOT expose
-// `openAppNotificationSettings()` on either platform, the banner SHIPS
-// WITHOUT the button. The test asserts the banner copy and the
-// absence of the button.
+// `permanentlyDenied`. AC-11: the banner carries an "Open Settings"
+// CTA that deep-links to the OS notification settings via a faked
+// `appSettingsServiceProvider`; tapping it logs a PII-free
+// `permission_settings_opened` (surface=notifications) event. The
+// banner (and its button) are absent when permission is `granted`.
 
 // ignore_for_file: cascade_invocations
 
@@ -17,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/core/connectivity/connectivity_provider.dart';
+import 'package:onebytwo/core/services/app_settings_service.dart';
+import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
@@ -40,6 +42,26 @@ class _FakeAnalyticsService implements AnalyticsService {
     Map<String, Object>? parameters,
   }) async {
     events.add((name: name, parameters: parameters));
+  }
+}
+
+class _FakeAppSettingsService implements AppSettingsService {
+  _FakeAppSettingsService({this.throwOnOpen = false});
+
+  final bool throwOnOpen;
+  int notificationCalls = 0;
+  int appSettingsCalls = 0;
+
+  @override
+  Future<void> openNotificationSettings() async {
+    notificationCalls++;
+    if (throwOnOpen) throw Exception('settings unavailable');
+  }
+
+  @override
+  Future<void> openAppSettings() async {
+    appSettingsCalls++;
+    if (throwOnOpen) throw Exception('settings unavailable');
   }
 }
 
@@ -126,11 +148,15 @@ Widget _buildSubject({
   PermissionState permissionState = PermissionState.granted,
   IsOnline? isOnline,
   AuthState? authState,
+  AppSettingsService? appSettings,
 }) {
   return ProviderScope(
     overrides: [
       userRepositoryProvider.overrideWithValue(repository),
       analyticsServiceProvider.overrideWithValue(analytics),
+      appSettingsServiceProvider.overrideWithValue(
+        appSettings ?? _FakeAppSettingsService(),
+      ),
       connectivityCheckProvider.overrideWithValue(
         isOnline ?? (() async => true),
       ),
@@ -358,9 +384,8 @@ void main() {
   });
 
   group('NotificationPreferencesScreen — OS-permission banner', () {
-    testWidgets('AC-11: banner shows the architect-ratified copy when denied', (
-      tester,
-    ) async {
+    testWidgets('AC-11: banner shows the architect-ratified copy + the '
+        '"Open Settings" button when denied', (tester) async {
       final repo = _FakeUserRepository()
         ..userToReturn = _userWithPrefs({
           'newExpense': true,
@@ -385,17 +410,86 @@ void main() {
         findsOneWidget,
       );
 
-      // Architect §2.4 fallback: firebase_messaging: ^16.2.0 does NOT
-      // expose openAppNotificationSettings() on either platform. Ship
-      // the banner without the button — graceful degradation per
-      // §2.4 / §2.10 reconciliation 3. The "Open Settings" CTA is
-      // EXPECTED ABSENT in v1.0.
-      expect(find.text('Open Settings'), findsNothing);
+      // AC-11: the actionable "Open Settings" CTA is present now that
+      // the app_settings deep-link plugin is in the lockfile (ADR-0019).
+      expect(find.widgetWithText(TextButton, 'Open Settings'), findsOneWidget);
     });
 
-    testWidgets('AC-11: banner shows the same copy when permanentlyDenied', (
-      tester,
-    ) async {
+    testWidgets('AC-11: tapping "Open Settings" deep-links to the OS '
+        'notification settings and logs PII-free telemetry', (tester) async {
+      final repo = _FakeUserRepository()
+        ..userToReturn = _userWithPrefs({
+          'newExpense': true,
+          'settlement': true,
+          'reminder': true,
+        });
+      final analytics = _FakeAnalyticsService();
+      final appSettings = _FakeAppSettingsService();
+
+      await tester.pumpWidget(
+        _buildSubject(
+          repository: repo,
+          analytics: analytics,
+          permissionState: PermissionState.permanentlyDenied,
+          appSettings: appSettings,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Settings'));
+      await tester.pumpAndSettle();
+
+      // Routes to the notification-settings open, never the generic one.
+      expect(appSettings.notificationCalls, 1);
+      expect(appSettings.appSettingsCalls, 0);
+
+      final opened = analytics.events
+          .where((e) => e.name == permissionSettingsOpenedEvent)
+          .toList();
+      expect(opened, hasLength(1));
+      expect(opened.single.parameters, {
+        permissionSettingsSurfaceParam: permissionSettingsSurfaceNotifications,
+      });
+      // PII guard: the only parameter is the non-identifying surface enum.
+      expect(
+        opened.single.parameters!.keys,
+        everyElement(equals(permissionSettingsSurfaceParam)),
+      );
+    });
+
+    testWidgets('AC-5: a failing notification-settings deep-link is absorbed '
+        '(banner stays, no uncaught error)', (tester) async {
+      final repo = _FakeUserRepository()
+        ..userToReturn = _userWithPrefs({
+          'newExpense': true,
+          'settlement': true,
+          'reminder': true,
+        });
+      final appSettings = _FakeAppSettingsService(throwOnOpen: true);
+
+      await tester.pumpWidget(
+        _buildSubject(
+          repository: repo,
+          analytics: _FakeAnalyticsService(),
+          permissionState: PermissionState.permanentlyDenied,
+          appSettings: appSettings,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Settings'));
+      await tester.pumpAndSettle();
+
+      // The deep-link was attempted, the rejection was swallowed (no
+      // uncaught async error), and the banner + button remain so the
+      // user can retry.
+      expect(appSettings.notificationCalls, 1);
+      expect(tester.takeException(), isNull);
+      expect(find.widgetWithText(TextButton, 'Open Settings'), findsOneWidget);
+    });
+
+    testWidgets('AC-11: banner shows the same copy + button when '
+        'permanentlyDenied', (tester) async {
       final repo = _FakeUserRepository()
         ..userToReturn = _userWithPrefs({
           'newExpense': true,
@@ -419,11 +513,11 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(find.widgetWithText(TextButton, 'Open Settings'), findsOneWidget);
     });
 
-    testWidgets('AC-12: banner is HIDDEN when permission state is granted', (
-      tester,
-    ) async {
+    testWidgets('AC-12: banner AND its "Open Settings" button are HIDDEN '
+        'when permission state is granted', (tester) async {
       final repo = _FakeUserRepository()
         ..userToReturn = _userWithPrefs({
           'newExpense': true,
@@ -451,6 +545,7 @@ void main() {
         ),
         findsNothing,
       );
+      expect(find.text('Open Settings'), findsNothing);
     });
   });
 

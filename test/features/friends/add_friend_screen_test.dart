@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/data/contact_service.dart';
 import 'package:onebytwo/features/friends/domain/contact_permission_state.dart';
@@ -54,6 +55,10 @@ class FakeContactService implements ContactService {
   /// Whether [openSettings] was called.
   bool openSettingsCalled = false;
 
+  /// Whether [openSettings] should throw (to exercise AC-5 graceful
+  /// degradation of a failing OS-settings deep-link).
+  bool throwOnOpenSettings = false;
+
   @override
   Future<ContactPermissionState> checkPermission() async =>
       checkPermissionResult;
@@ -68,6 +73,7 @@ class FakeContactService implements ContactService {
   @override
   Future<void> openSettings() async {
     openSettingsCalled = true;
+    if (throwOnOpenSettings) throw Exception('settings unavailable');
   }
 }
 
@@ -369,6 +375,66 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Type a number instead'), findsOneWidget);
+      });
+
+      testWidgets('tapping "Open Settings" deep-links to OS settings via the '
+          'service seam and logs PII-free telemetry', (tester) async {
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.deniedPermanently;
+
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Settings'));
+        await tester.pumpAndSettle();
+
+        // Routes through ContactService.openSettings() (production:
+        // AppSettingsService.openAppSettings()), NOT the old
+        // FlutterContacts.openExternalPick() contact-picker fallback.
+        expect(fakeContactService.openSettingsCalled, isTrue);
+
+        // PII-free telemetry: surface=contacts, no UID-derived parameter.
+        final index = fakeAnalytics.loggedEvents.indexOf(
+          permissionSettingsOpenedEvent,
+        );
+        expect(
+          index,
+          isNonNegative,
+          reason: 'permission_settings_opened must fire on the contacts CTA.',
+        );
+        expect(fakeAnalytics.loggedParams[index], {
+          permissionSettingsSurfaceParam: permissionSettingsSurfaceContacts,
+        });
+      });
+
+      testWidgets('AC-5: a failing contacts settings deep-link is absorbed '
+          '(permission view stays, no uncaught error)', (tester) async {
+        fakeContactService.checkPermissionResult =
+            ContactPermissionState.deniedPermanently;
+        fakeContactService.throwOnOpenSettings = true;
+
+        await tester.pumpWidget(
+          _buildSubject(
+            fakeAnalytics: fakeAnalytics,
+            fakeContactService: fakeContactService,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Settings'));
+        await tester.pumpAndSettle();
+
+        // The deep-link was attempted, the rejection was swallowed (no
+        // uncaught async error), and the permission-denied view remains.
+        expect(fakeContactService.openSettingsCalled, isTrue);
+        expect(tester.takeException(), isNull);
         expect(find.text('Open Settings'), findsOneWidget);
         expect(find.text('Type a number instead'), findsOneWidget);
       });

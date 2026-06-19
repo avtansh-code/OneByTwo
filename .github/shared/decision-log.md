@@ -1468,3 +1468,97 @@ is reinforced (the fan-out and all testing target the single project via the emu
     Designer ratified the consistent behaviour.
 
   ---
+
+  ## ADR-0019: OS Settings Deep-Link — `app_settings` Behind a Core `AppSettingsService` Seam (AC-11)
+
+  **Status:** Accepted
+
+  ### Context
+
+  AC-11 (FR-AC-04, SRS section 4.7) requires that when an OS permission is denied, the app
+  offers an "Open Settings" CTA that deep-links to the app's OS settings page. Two surfaces
+  shipped short of that because no Flutter plugin capable of opening an OS settings screen was
+  in the lockfile:
+
+  - **SCR-27 Notification Preferences** (`lib/features/profile/presentation/notification_preferences_screen.dart`,
+    `_OsPermissionBanner`). PR #55 shipped the AC-11 banner **without** the button: the
+    FR-PR-03 story **§2.4** ratified `FirebaseMessaging.instance.openAppNotificationSettings()`
+    from the existing `firebase_messaging`, but that method does not exist on the Dart API
+    (re-verified at this kickoff in the installed `firebase_messaging-16.3.0`), so the §2.4
+    fallback ladder shipped the banner copy alone and §2.4 **REJECTED** pulling
+    `app_settings`/`permission_handler` as a 5-SP scoping decision.
+  - **SCR-10 Add Friend contact-permission** (`lib/features/friends/data/contact_service.dart`,
+    `FlutterContactService.openSettings()`). It called `FlutterContacts.openExternalPick()` — a
+    contact-picker fallback, not the OS settings page — with a line-77 TODO naming `app_settings`.
+
+  This ADR ratifies the dependency choice and the seam. It authorises no schema, rules, index,
+  or Cloud Function change.
+
+  ### Decision
+
+  **1. Add exactly one plugin: `app_settings: ^7.0.0`.** It is single-purpose, so it carries the
+  smallest dependency-graph and `ios/Podfile.lock` delta. `AppSettings.openAppSettings(type:)`
+  covers both needs: `AppSettingsType.notification` (Android `ACTION_APP_NOTIFICATION_SETTINGS`;
+  iOS the app settings page) and the default `AppSettingsType.settings` (Android
+  `ACTION_APPLICATION_DETAILS_SETTINGS`; iOS `UIApplication.openSettingsURLString`). Kickoff
+  verification: `7.0.0` resolves; its iOS podspec targets platform **11.0**, below the project's
+  iOS **15.0** Podfile target (no connectivity_plus-style version break); both enum values exist.
+  This **reverses** the FR-PR-03 §2.4 "REJECTED `app_settings`/`permission_handler`" note, which
+  was an interim scoping decision; the convenience deep-link is now in scope as its own chore.
+
+  **2. One shared seam behind a provider.** `lib/core/services/app_settings_service.dart`
+  (`AppSettingsService` abstract + `DefaultAppSettingsService` + `appSettingsServiceProvider`),
+  a thin binding shim with zero business logic — exactly the `UrlLauncherService` /
+  `ImagePickerService` pattern under `lib/core/services/`. Two methods,
+  `openNotificationSettings()` and `openAppSettings()`. Both call sites — the SCR-27 banner and
+  the SCR-10 `FlutterContactService` — bind to this seam, never to the plugin directly, so the
+  platform channel (unavailable in `flutter test`) is faked via a Riverpod override. First shared
+  consumer of a single permission-settings seam across two features (`notifications`/`profile`
+  and `friends`).
+
+  **3. Telemetry — one PII-free event.** `permission_settings_opened` with a single
+  non-identifying `surface` enum ∈ {`notifications`, `contacts`}, declared in
+  `telemetry-plan.md §1.8` and logged at the **presentation** layer (the banner button and the
+  Add Friend `_openContactSettings` callback), never inside the data-layer shim. No `uid`,
+  friendship composite, or raw entity ID (SRS line 308 / ADR-0013).
+
+  **4. No Android `<queries>` entry.** The plugin uses system settings intents
+  (`ACTION_APP_NOTIFICATION_SETTINGS` / `ACTION_APPLICATION_DETAILS_SETTINGS`), which target the
+  Settings app via well-known system actions — not arbitrary-package visibility (unlike the
+  FR-PR-05 `mailto` `<queries>`). iOS `Podfile.lock` **does** change and is committed in the same
+  PR (the CI "Build iOS (no signing)" job runs vanilla `pod install`, which fails on a stale lock).
+
+  ### Consequences
+
+  - **New files:** `lib/core/services/app_settings_service.dart`,
+    `lib/core/telemetry/permission_settings_telemetry.dart`.
+  - **Changed files:** `pubspec.yaml` (+`app_settings`), `pubspec.lock`, `ios/Podfile.lock`
+    (+`app_settings` pod, 6 insertions, no collateral version bumps),
+    `notification_preferences_screen.dart` (`_OsPermissionBanner` → `ConsumerWidget` + button;
+    stale §2.4 doc comment corrected), `contact_service.dart` (`openSettings()` delegates to
+    the seam; TODO removed; constructor takes `AppSettingsService`),
+    `add_friend_screen.dart` (`_openContactSettings` logs telemetry + calls the controller).
+  - **Invariants.** 1 (integer paise) and 2 (`simplifiedBalances` server-only) are N/A — no
+    money, no balance. **Invariant 3 (system share sheet) is N/A and not conflated** — opening
+    OS settings is not sharing and is never routed through `Share.share`. Invariant 4 reinforced
+    (single project, emulator/faked-seam tested).
+  - **Relationship to prior ADRs.** ADR-0013 (PII-safe telemetry): the new event carries only a
+    `surface` enum. The `UrlLauncherService` (FR-PR-05) and `ImagePickerService` (FR-EX-05)
+    shims are the precedent this seam mirrors.
+
+  ### Alternatives Considered
+
+  - **`permission_handler` instead of `app_settings`** — rejected: its `openAppSettings()` would
+    also subsume the permission-request lifecycle, a larger refactor than this chore needs; the
+    contact/notification request flows already work. Exactly one plugin is added, never both.
+  - **`FirebaseMessaging.instance.openAppNotificationSettings()`** (FR-PR-03 §2.4 RATIFIED) —
+    rejected: the method does not exist on the installed `firebase_messaging` Dart API; this ADR
+    supersedes that note.
+  - **Notifications-only, leave the friends `openExternalPick` as a fast-follow** — rejected: the
+    dependency is paid once and the friends TODO is the same gap; unifying now closes both.
+  - **Log telemetry inside `AppSettingsService`** — rejected: the shim stays business-logic-free;
+    telemetry is logged at the presentation layer, matching the repo convention.
+  - **No telemetry** — rejected by the PM: one PII-free `surface`-only event gives useful
+    observability of how often users reach the permanently-denied path.
+
+  ---

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_permission_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_picker_controller.dart';
@@ -86,6 +87,32 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
     if (permState == ContactPermissionState.granted) {
       await _loadContacts();
     }
+  }
+
+  /// Deep-links to the OS app-settings page so a permanently-denied
+  /// contact permission can be re-granted (SCR-10 "Open Settings" CTA).
+  void _openContactSettings() {
+    // PII-free telemetry: a non-identifying `surface` enum only
+    // (SRS line 308 / ADR-0013).
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: permissionSettingsOpenedEvent,
+            parameters: const {
+              permissionSettingsSurfaceParam: permissionSettingsSurfaceContacts,
+            },
+          ),
+    );
+    // Graceful degradation (AC-5): a failed OS-settings deep-link must
+    // not crash or surface an uncaught async error; the permission view
+    // stays so the user can retry.
+    unawaited(
+      ref
+          .read(contactPermissionControllerProvider.notifier)
+          .openSettings()
+          .catchError((Object _) {}),
+    );
   }
 
   void _onSearchChanged(String query) {
@@ -276,11 +303,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
         return PermissionDeniedView(
           isDeniedPermanently: false,
           onGrantPermission: _requestPermission,
-          onOpenSettings: () {
-            ref
-                .read(contactPermissionControllerProvider.notifier)
-                .openSettings();
-          },
+          onOpenSettings: _openContactSettings,
           onTypeNumberInstead: _switchToManualEntry,
         );
 
@@ -288,11 +311,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
         return PermissionDeniedView(
           isDeniedPermanently: true,
           onGrantPermission: _requestPermission,
-          onOpenSettings: () {
-            ref
-                .read(contactPermissionControllerProvider.notifier)
-                .openSettings();
-          },
+          onOpenSettings: _openContactSettings,
           onTypeNumberInstead: _switchToManualEntry,
         );
 

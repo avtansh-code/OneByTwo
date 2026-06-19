@@ -9,6 +9,7 @@ environment:
   sdk: ^3.11.0
 
 dependencies:
+  app_settings: ^7.0.0 # Opens the OS app/notification settings screen for the AC-11 "Open Settings" CTA (native plugin; iOS platform 11.0, below the project's iOS 15 target)
   cloud_firestore: ^6.3.0 # Firestore database
   cloud_functions: ^6.3.2
   connectivity_plus: ^6.1.5 # Network connectivity detection (FR-PR-03 AC-10) — pinned to 6.x because 7.x requires iOS 17+ (uses NWPath.isUltraConstrained); the project Podfile targets iOS 15
