@@ -15,6 +15,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/persistence/preference_keys.dart';
+import 'package:onebytwo/core/services/key_value_store.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/notifications/application/notification_permission_controller.dart';
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
@@ -102,6 +104,7 @@ ProviderContainer _container({
   required FakePermissionMessagingAdapter adapter,
   required FakeTokenService service,
   FakeAnalyticsService? analytics,
+  KeyValueStore? store,
 }) {
   return ProviderContainer(
     overrides: [
@@ -110,6 +113,7 @@ ProviderContainer _container({
       analyticsServiceProvider.overrideWithValue(
         analytics ?? FakeAnalyticsService(),
       ),
+      if (store != null) keyValueStoreProvider.overrideWithValue(store),
     ],
   );
 }
@@ -347,6 +351,102 @@ void main() {
       await notifier.onEnableTapped(uid: 'uid-me');
 
       expect(notifier.wasPermanentlyDenied, isTrue);
+    });
+  });
+
+  group('NotificationPermissionController — wasPermanentlyDenied '
+      'cross-launch persistence (FR-AC-04)', () {
+    test('hydrates wasPermanentlyDenied=true from the store at '
+        'construction', () async {
+      final store = InMemoryKeyValueStore();
+      await store.setBool(
+        PreferenceKeys.notificationsPermanentlyDenied,
+        value: true,
+      );
+      final container = _container(
+        adapter: FakePermissionMessagingAdapter(),
+        service: FakeTokenService(),
+        store: store,
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container
+            .read(notificationPermissionControllerProvider.notifier)
+            .wasPermanentlyDenied,
+        isTrue,
+      );
+    });
+
+    test('fresh install (empty store) hydrates wasPermanentlyDenied=false', () {
+      final container = _container(
+        adapter: FakePermissionMessagingAdapter(),
+        service: FakeTokenService(),
+        store: InMemoryKeyValueStore(),
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container
+            .read(notificationPermissionControllerProvider.notifier)
+            .wasPermanentlyDenied,
+        isFalse,
+      );
+    });
+
+    test('persists wasPermanentlyDenied on the deny transition', () async {
+      final store = InMemoryKeyValueStore();
+      final container = _container(
+        adapter: FakePermissionMessagingAdapter()
+          ..nextResult = AuthorizationStatus.denied,
+        service: FakeTokenService(),
+        store: store,
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(
+        notificationPermissionControllerProvider.notifier,
+      );
+      notifier.showPrePermissionDialog();
+      await notifier.onEnableTapped(uid: 'uid-me');
+
+      expect(
+        store.getBool(PreferenceKeys.notificationsPermanentlyDenied),
+        isTrue,
+      );
+    });
+
+    test('restart simulation: a denial in one session suppresses the '
+        'auto-trigger flag after a relaunch (same backing store)', () async {
+      final store = InMemoryKeyValueStore();
+
+      // Session 1: the user denies the OS prompt.
+      final c1 = _container(
+        adapter: FakePermissionMessagingAdapter()
+          ..nextResult = AuthorizationStatus.denied,
+        service: FakeTokenService(),
+        store: store,
+      );
+      final n1 = c1.read(notificationPermissionControllerProvider.notifier);
+      n1.showPrePermissionDialog();
+      await n1.onEnableTapped(uid: 'uid-me');
+      c1.dispose();
+
+      // Session 2: a fresh container reading the same store hydrates the
+      // flag, so the pre-permission dialog auto-trigger stays suppressed.
+      final c2 = _container(
+        adapter: FakePermissionMessagingAdapter(),
+        service: FakeTokenService(),
+        store: store,
+      );
+      addTearDown(c2.dispose);
+
+      expect(
+        c2
+            .read(notificationPermissionControllerProvider.notifier)
+            .wasPermanentlyDenied,
+        isTrue,
+      );
     });
   });
 

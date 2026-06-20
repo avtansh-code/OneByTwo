@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/remote_config/remote_config_service.dart';
+import 'package:onebytwo/core/services/key_value_store.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
@@ -24,6 +25,7 @@ import 'package:onebytwo/features/profile/data/delete_account_repository.dart';
 import 'package:onebytwo/features/reminders/data/reminder_callable_adapter.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Whether to use the Firebase Auth Emulator.
 ///
@@ -96,9 +98,21 @@ void main() async {
   );
   await remoteConfig.initialise();
 
+  // First on-device key-value persistence (cross-launch state). Load the
+  // SharedPreferences instance ONCE here — after the existing awaits,
+  // before runApp — and inject it behind the KeyValueStore seam via a
+  // ProviderScope override. Loading it eagerly keeps reads synchronous so
+  // the sync NotificationPermissionController.build() can hydrate without
+  // an async/sync mismatch, and guarantees the store is ready before any
+  // provider reads it.
+  final sharedPreferences = await SharedPreferences.getInstance();
+
   runApp(
     ProviderScope(
       overrides: [
+        keyValueStoreProvider.overrideWithValue(
+          SharedPreferencesKeyValueStore(sharedPreferences),
+        ),
         reminderRepositoryProvider.overrideWithValue(
           ReminderRepository(callable: reminderAdapter.asCallable),
         ),

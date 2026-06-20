@@ -717,6 +717,15 @@ that the dialog is not re-shown automatically on subsequent
 launches; the user can re-enable from the notification-preferences
 screen (FR-PR-03 — separate PR).
 
+> **Reconciled (`shared_preferences` cross-launch persistence chore,
+> ADR-0020):** this §2.6 intent is now **realised**. The
+> "permanently-denied" flag is persisted via the core `KeyValueStore`
+> seam (`shared_preferences`), hydrated in the controller's `build()` and
+> written on the deny/error transition, so the pre-permission dialog is
+> not re-shown automatically on the next launch. The interim in-memory
+> deviation (approximating "next launch" as "this session") and its
+> controller TODO are closed.
+
 ### 2.7 — Trigger-extension API surface
 
 **RATIFY:** `emitExpenseFcm(deps, params)` and `emitSettlementFcm(deps,

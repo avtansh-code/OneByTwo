@@ -55,10 +55,15 @@ by the friends feature (see Hand-off boundaries).
   `nextAllowedAt` into the cooldown provider and emits the matching
   `reminder_send_*` telemetry.
 - `application/reminder_cooldown_provider.dart` —
-  `reminderCooldownProvider` (`StateProvider.family<DateTime?, String>`).
+  `reminderCooldownProvider`
+  (`NotifierProvider.family<ReminderCooldownNotifier, DateTime?, String>`).
   Holds the per-friendship `nextAllowedAt` so the button can render a
-  disabled-with-countdown state. **In-memory only** for v1.0 — it resets
-  on app launch; the server is the authoritative gate.
+  disabled-with-countdown state. **Persisted across launches** via the
+  `KeyValueStore` seam (`shared_preferences`): `build()` hydrates the
+  stored value with an expiry guard (a past `nextAllowedAt` hydrates as
+  `null` and the stale key is removed) and `set()` persists. The server
+  remains the authoritative gate; the client value is a best-effort UX
+  optimisation, so its writes are fire-and-forget.
 - `application/reminder_telemetry.dart` — `ReminderTelemetry`, the
   event-name and parameter-key constants for the seven client events
   (`reminder_send_tapped`, `reminder_send_succeeded`,

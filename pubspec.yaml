@@ -36,6 +36,7 @@ dependencies:
   package_info_plus: ^9.0.1 # App version + build for Contact Support body (FR-PR-05)
   riverpod_annotation: ^2.6.1 # Code-gen annotations
   share_plus: ^10.1.4 # System share sheet (Invariant 3)
+  shared_preferences: ^2.5.5 # On-device key-value persistence behind the core KeyValueStore seam (cross-launch wasPermanentlyDenied + FR-SE-09 cooldown). Native plugin; iOS pod shared_preferences_foundation targets platform 13.0, below the project's iOS 15 target
   url_launcher: ^6.3.2 # mailto: launch for Contact Support (FR-PR-05 / FR-SH-03)
 
 dev_dependencies:
