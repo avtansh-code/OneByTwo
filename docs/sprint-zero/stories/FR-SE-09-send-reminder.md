@@ -665,6 +665,14 @@ A future PR (paired with the `shared_preferences` adoption deferred
 from PR #53 §2.6) may persist the cooldown across launches. Out of
 scope here.
 
+> **Reconciled (`shared_preferences` cross-launch persistence chore,
+> ADR-0020):** this deferral is now **CLOSED**. `reminderCooldownProvider`
+> is a `NotifierProvider.family` persisted via the core `KeyValueStore`
+> seam, with a past-`nextAllowedAt` expiry guard applied at hydration so a
+> stale value never disables the button. The server (`notifications.md
+> §6.1`) remains the authoritative gate; the persisted client value stays a
+> best-effort UX optimisation.
+
 ### 2.7 OBTSettleUpCard extension
 
 **RATIFY in-place extension.** Add three new parameters:

@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: FR-AC-05 deep-link tab-switch on notification tap (#69, `8dd67f9`) merged — it closed the **last deferred piece of a P0**, so **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **AC-11 "Open Settings" deep-link CTA chore** (the highest-ranked unshipped carry-forward candidate, surfaced by PR #55 QA) — opened to add the `app_settings` plugin behind a shared `AppSettingsService` seam and wire the "Open Settings" CTA on the SCR-27 notification banner (FR-AC-04 / AC-11) and the SCR-10 contact-permission view (FR-FR-01), closing the PR #55 §2.4 deferral and the `openExternalPick` placeholder (ADR-0019). There is **no** tracked GitHub issue (candidate-list bullet only), so the PR opens without a `Closes #NN`; it lands as the next available number (≥ #70 now that the highest PR is #69 and the highest issue is #68), reconciled at PR open.
+> Last updated: the AC-11 "Open Settings" deep-link CTA chore (#70, `dda2f97`) merged — with it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **`shared_preferences` cross-launch-persistence chore** (the highest-ranked unshipped carry-forward candidate; the natural pair with the #70 `app_settings` chore, deliberately NOT bundled) — opened to adopt `shared_preferences` behind a thin `lib/core/services/KeyValueStore` seam and persist the two documented in-memory deferrals across launches: FR-AC-04 `wasPermanentlyDenied` (closing the controller TODO) and the FR-SE-09 reminder cooldown with a past-`nextAllowedAt` expiry guard (ADR-0020). There is **no** tracked GitHub issue (candidate-list bullet + two in-code TODOs only), so the PR opens without a `Closes #NN`; it lands as the next available number (≥ #71 now that the highest PR is #70 and the highest issue is #68), reconciled at PR open.
 
 ---
 
@@ -36,7 +36,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#67** | **PR** | **FR-HD-03 current-month spend summary with a category breakdown chart (SCR-06, SRS 4.8 line 248, P1) — merged 2026-06-17, `1f26548`; the top-ranked remaining P1 and the last open Home-dashboard requirement (FR-HD-01/02 in #62, FR-HD-04 in #57); first cross-friendship expense read path (fan-out) + first charting approach (`fl_chart`, pure-Dart, no `ios/Podfile.lock` change); two review refinements landed in-PR (server-side month upper bound in `fetchExpensesInMonth`, reusing the existing `expenses (deleted ASC + date DESC)` index; largest-remainder legend percentages summing to 100). ADR-0017.** |
 | #68 | Issue | FUTURE: denormalised per-user monthly-spend rollup Cloud Function to remove the FR-HD-03 N+1 fan-out reads — filed/deferred from FR-HD-03 (#67); CANNOT be closed by #67. Do NOT build it in FR-AC-05. |
 | **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — merged 2026-06-17, `8dd67f9`; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller. Closed the last deferred piece of a P0, so every P0 except the Sprint-3 Groups epic and every P1 is shipped. Two review refinements landed in-PR (an explicit AC-7 foreground-banner tab-selection test; a comment pinning the synchronous `selectTab`-before-`context.mounted` ordering). ADR-0018.** |
-| #70 | PR | AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — IN FLIGHT; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). Adds `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam and wires the CTA on the SCR-27 notification banner + the SCR-10 contact-permission view; closes the PR #55 §2.4 AC-11 deferral and the `openExternalPick` placeholder. No tracked issue (candidate-list bullet only — no `Closes #NN`); lands as the next available number ≥ #70, reconciled at PR open. ADR-0019. |
+| **#70** | **PR** | **AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — merged 2026-06-20, `dda2f97`; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam; both surfaces wired (SCR-27 notification banner + SCR-10 contact-permission view); PII-free `permission_settings_opened` telemetry; `ios/Podfile.lock` committed. ADR-0019.** |
+| #71 | PR | `shared_preferences` cross-launch persistence chore — IN FLIGHT; the highest-ranked unshipped carry-forward candidate now that #70 merged (the natural pair with the #70 `app_settings` chore, deliberately NOT bundled). Adopts `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore` seam (loaded once in `main()`, injected via `ProviderScope`) and persists FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the FR-SE-09 reminder cooldown (`NotifierProvider.family` with a past-`nextAllowedAt` expiry guard). No telemetry. `ios/Podfile.lock` committed. No tracked issue (candidate-list bullet + two code TODOs — no `Closes #NN`); lands as the next available number ≥ #71, reconciled at PR open. ADR-0020. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -49,9 +50,64 @@ label at PR open.
 
 ---
 
-## PR #70 — IN FLIGHT (AC-11 "Open Settings" deep-link CTA chore)
+## PR #71 — IN FLIGHT (`shared_preferences` cross-launch persistence chore)
 
-**Status:** Open. The AC-11 "Open Settings" deep-link CTA chore confirmed as the
+**Status:** Open. The `shared_preferences` cross-launch-persistence chore confirmed as
+the next-slot pick at kickoff — the **highest-ranked unshipped carry-forward candidate**
+and the **natural pair** with the merged #70 `app_settings` chore (deliberately NOT
+bundled into it). It closes two documented in-memory deviations in one shot: the
+`notification_permission_controller.dart` TODO (FR-AC-04 "next launch") and the
+`reminder_cooldown_provider.dart` deferral (FR-SE-09 §2.6). There is **no** tracked
+GitHub issue — recorded only as this candidate-list bullet plus two in-code notes — so
+the PR opens **without** a `Closes #NN`; it lands as the next available number ≥ #71
+(highest PR #70, highest issue #68), reconciled at PR open.
+
+Both deferrals shipped best-effort-but-session-only because `shared_preferences` was not
+in the lockfile. This is the **first on-device cross-launch client state** in the app
+(every prior piece of client state is in-memory or Firestore-backed).
+
+- **One plugin behind a shared seam (ADR-0020).** Adds `shared_preferences: ^2.5.5`
+  (iOS pod `shared_preferences_foundation` platform 13.0 < the project's iOS 15 target —
+  no version break) behind a thin `lib/core/services/key_value_store.dart` (`KeyValueStore`
+  + `SharedPreferencesKeyValueStore` + `InMemoryKeyValueStore` default +
+  `keyValueStoreProvider`), mirroring `AppSettingsService` / `UrlLauncherService`. The
+  surface is synchronous and typed (`getBool` / `setBool` / `getString` / `setString` /
+  `remove`) over an already-loaded `SharedPreferences`, so the sync `Notifier.build()`
+  hydrates with no async/sync mismatch.
+- **Load once in `main()`, inject via `ProviderScope`.** `await
+  SharedPreferences.getInstance()` after the existing awaits, before `runApp`; override
+  `keyValueStoreProvider`. The default `InMemoryKeyValueStore` keeps the platform channel
+  out of `flutter test`; tests inject a fake (one shared instance across two containers
+  simulates a relaunch) — never `setMockInitialValues`.
+- **Persist `wasPermanentlyDenied`.** Hydrated in `build()`, awaited `setBool` on the
+  deny/error transition; the line-89-90 TODO removed and the controller / README dartdocs
+  corrected from "this session" to "next launch".
+- **Persist the FR-SE-09 cooldown.** `reminderCooldownProvider` promoted to a
+  `NotifierProvider.family` so read-hydrate / write-persist / **expiry** live in one class;
+  a past `nextAllowedAt` hydrates as `null` with lazy key removal (never a phantom
+  countdown). The server stays the authoritative 24-hour gate; cooldown writes are
+  fire-and-forget.
+- **Key registry + no telemetry.** Keys in `lib/core/persistence/preference_keys.dart`;
+  NO new Analytics event (persistence is not a user action).
+- **iOS `Podfile.lock` committed.** Regenerated via `pod install --repo-update`
+  (+`shared_preferences_foundation` pod, no collateral Firebase version bumps). No Android
+  `<queries>` entry.
+
+**Stubs / defers.** No Cloud Function; no `firestore.rules` / index / schema change.
+Invariants 1 and 2 are N/A (no money, no `simplifiedBalances`); Invariant 3 is N/A and
+not conflated (on-device storage is not sharing). Does NOT widen scope to other ephemeral
+state (theme, last-tab, draft expenses, onboarding flags) — each is its own future chore.
+
+**Next candidates** (architect's call at the post-#71 kickoff): the carry-forward list
+below — the `go_router` migration (Sprint 3), the Bucket-B chore close-out bundle, Issue
+#47 rules-hardening, FR-SR-01/02 Search (SCR-07), and the Sprint 3 Groups epic
+(FR-GR-01..07).
+
+---
+
+## PR #70 — Merged (AC-11 "Open Settings" deep-link CTA chore)
+
+**Status:** Merged 2026-06-20 (`dda2f97`). The AC-11 "Open Settings" deep-link CTA chore confirmed as the
 next-slot pick at kickoff — the **highest-ranked unshipped carry-forward
 candidate** (it leads the post-#69 "Next candidates"), surfaced by PR #55 QA. It
 closes the **PR #55 §2.4 AC-11 graceful-degradation deferral** in full (the SCR-27
@@ -721,7 +777,12 @@ Candidates (in rough priority order — architect's call at kickoff):
 - **`shared_preferences` adoption** for cross-launch persistence
   (PR #53 §2.6 `wasPermanentlyDenied` flag + FR-SE-09 §2.6 cooldown
   persistence). ~2-3 SP. Natural pair with the `app_settings` /
-  `permission_handler` chore above.
+  `permission_handler` chore above. **IN FLIGHT as PR #71 (2026-06-20)**
+  — `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore`
+  seam (loaded once in `main()`, injected via `ProviderScope`); persists
+  FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the
+  FR-SE-09 cooldown (`NotifierProvider.family` with a past-`nextAllowedAt`
+  expiry guard); no telemetry; `ios/Podfile.lock` committed. ADR-0020.
 - **FR-HD-01..04 home dashboard implementation** (P0) — **IN FLIGHT
   (this PR; FR-HD-01 + FR-HD-02 only; roadmap "PR #62" slot, ≥ #62).**
   The `HomeDashboardPlaceholder` shipped by PR #56 is replaced by the

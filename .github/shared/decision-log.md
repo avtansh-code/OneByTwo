@@ -1562,3 +1562,127 @@ is reinforced (the fan-out and all testing target the single project via the emu
     observability of how often users reach the permanently-denied path.
 
   ---
+
+  ## ADR-0020: On-Device Key-Value Persistence — `shared_preferences` Behind a Core `KeyValueStore` Seam (FR-AC-04 / FR-SE-09)
+
+  **Status:** Accepted
+
+  ### Context
+
+  This is the **first on-device cross-launch client state** in the app — every prior
+  piece of client state is either in-memory (Riverpod) or Firestore-backed. Two surfaces
+  shipped best-effort-but-session-only because `shared_preferences` was not in the
+  lockfile:
+
+  - **FR-AC-04 `wasPermanentlyDenied`** (`notification_permission_controller.dart`). The
+    flag was in-memory only, so "do not re-show the pre-permission dialog on **next
+    launch**" was approximated as "do not re-show **this session**" — a documented
+    deviation tracked by a TODO at the controller.
+  - **FR-SE-09 reminder cooldown** (`reminder_cooldown_provider.dart`). A
+    `StateProvider.family<DateTime?, String>` holding the server `nextAllowedAt`,
+    in-memory only, RESET on launch (its dartdoc named the deferred `shared_preferences`
+    pairing).
+
+  The natural pair with the merged #70 `app_settings` chore, deliberately NOT bundled
+  into it. This ADR authorises no schema, rules, index, or Cloud Function change.
+
+  ### Decision
+
+  **1. Add `shared_preferences: ^2.5.5`.** Kickoff verification: `2.5.5` resolves; its iOS
+  pod (`shared_preferences_foundation`) targets deployment **13.0**, below the project's
+  iOS **15.0** Podfile target, so there is no `connectivity_plus`-style version break.
+  `ios/Podfile.lock` **does** change (native plugin) and is committed in the same PR via
+  `pod install --repo-update` — the CI "Build iOS (no signing)" job runs vanilla
+  `pod install` and fails on a stale lock. No Android `<queries>`/manifest entry (local
+  storage, no intent visibility).
+
+  **2. One core `KeyValueStore` seam behind a provider.**
+  `lib/core/services/key_value_store.dart` — `KeyValueStore` (abstract) +
+  `SharedPreferencesKeyValueStore` (wraps an **already-loaded** `SharedPreferences` for
+  **synchronous** reads) + `InMemoryKeyValueStore` (the default and the test fake) +
+  `keyValueStoreProvider`. A thin binding shim with zero business logic, exactly the
+  `AppSettingsService` / `UrlLauncherService` pattern under `lib/core/services/`. The
+  surface is small and typed (`getBool` / `setBool` / `getString` / `setString` /
+  `remove`); consumers read synchronously and never touch the plugin directly. Second
+  consecutive consumer of the `lib/core/services/` thin-shim pattern after
+  `AppSettingsService` (#70).
+
+  **3. Load once in `main()`, inject via `ProviderScope`.** `await
+  SharedPreferences.getInstance()` after the existing `Firebase` / Remote Config awaits,
+  before `runApp`, then override `keyValueStoreProvider` with a
+  `SharedPreferencesKeyValueStore`. Loading the instance eagerly keeps reads synchronous
+  so the sync `NotificationPermissionController.build()` hydrates with no async/sync
+  mismatch and the first frame is never blocked; the store is ready before any provider
+  reads it. `keyValueStoreProvider` **defaults** to `InMemoryKeyValueStore`, so tests and
+  any un-wired context never hit the platform channel (unavailable in `flutter test`);
+  tests inject a fake (one shared instance across two containers simulates a relaunch) and
+  never call `SharedPreferences.setMockInitialValues`.
+
+  **4. `wasPermanentlyDenied` — hydrate + persist.** `build()` hydrates the flag with a
+  synchronous `getBool`; the deny/error transition **awaits** `setBool` before the
+  observable state transition (cross-launch suppression is its entire purpose, so it must
+  survive an immediate process kill). The session-scoped `dismissedThisSession` suppression
+  is unchanged. The line-89-90 TODO is removed and the controller / README dartdocs are
+  corrected from "this session" to "next launch".
+
+  **5. Cooldown — promote to a `NotifierProvider.family` with an expiry guard.**
+  `reminderCooldownProvider` becomes
+  `NotifierProvider.family<ReminderCooldownNotifier, DateTime?, String>` so read-hydrate,
+  write-persist, and expiry live in **one** class — never scattered `getString`/`setString`
+  across widgets. `build(friendshipId)` hydrates the stored ISO-8601 value and applies the
+  **expiry guard**: a `nextAllowedAt` already in the past (or unparseable) hydrates as
+  `null` and the stale key is lazily removed, so a long-closed app never shows a phantom
+  countdown. `set(value)` persists/clears and updates state with **no** expiry filter — the
+  value is fresh from the server, the live countdown UI already handles an elapsed
+  timestamp, and this keeps the existing `send_reminder_controller_test` past-date fixtures
+  green. Cooldown writes are fire-and-forget (best-effort; the server
+  `notifications.md §6.1` 24-hour rate-limit stays the authoritative gate). The read site
+  (`friend_detail_screen.dart`) is unchanged; the writer (`send_reminder_controller.dart`)
+  changes only `…notifier.state = value` to `…notifier.set(value)`.
+
+  **6. Key registry.** All keys in `lib/core/persistence/preference_keys.dart`
+  (`notifications_permanently_denied`, `reminder_cooldown_<friendshipId>`), so call sites
+  are not stringly-typed. On-device keys are exempt from the PII rule (which governs
+  Analytics/Crashlytics, SRS line 308) but MUST NEVER be logged to analytics.
+
+  **7. Telemetry — NONE.** Persisting a flag is not a user action worth an event; the
+  existing `fcm_*` / `reminder_send_*` events already cover the user-facing moments.
+
+  ### Consequences
+
+  - **New files:** `lib/core/services/key_value_store.dart`,
+    `lib/core/persistence/preference_keys.dart`.
+  - **Changed files:** `pubspec.yaml` / `pubspec.lock` (+`shared_preferences`),
+    `ios/Podfile.lock` (+`shared_preferences_foundation` pod, no collateral Firebase
+    version bumps), `lib/main.dart` (load + override), `notification_permission_controller.dart`
+    (hydrate/persist, TODO removed, dartdoc corrected), `notifications/README.md` +
+    `reminders/README.md` (notes corrected), `reminder_cooldown_provider.dart` (promoted +
+    expiry guard), `send_reminder_controller.dart` (writer → `set`).
+  - **Invariants.** 1 (integer paise) and 2 (`simplifiedBalances` server-only) are N/A — no
+    money, no balance; the persisted cooldown is a `DateTime`/ISO string. **Invariant 3 is
+    N/A and not conflated** — on-device storage is not sharing, nothing is routed through
+    `Share.share`. Invariant 4 reinforced (on-device, single project). PII: the
+    `friendshipId`-keyed local key is acceptable on-device but is never an analytics
+    parameter (SRS line 308 / ADR-0013).
+  - **Reverses** the FR-AC-03 §2.6 / FR-SE-09 §2.6 in-memory-for-v1.0 calls (those notes are
+    reconciled to point here).
+
+  ### Alternatives Considered
+
+  - **Notifications-only, defer the cooldown** — rejected: the dependency is paid once and
+    the cooldown's family-persistence + expiry is low blast radius behind the seam.
+  - **Keep the cooldown as `StateProvider.family` with a persistence side-effect in
+    `send_reminder_controller.dart`** — rejected: it splits read-hydrate from write-persist
+    across two files; the `Notifier.family` keeps both plus expiry in one place.
+  - **`throw`-until-overridden `keyValueStoreProvider` default** (the repo convention for
+    `currentUserIdProvider` etc.) — rejected here: an `InMemoryKeyValueStore` default degrades
+    persistence to session-only (exactly the pre-chore behaviour), keeps every existing
+    permission/cooldown/widget test green with zero override churn, and production always
+    overrides it in `main()`.
+  - **Async `Notifier.build()` / a `FutureProvider` for hydration** — rejected: it would make
+    `build()` async and risk a first-frame block; loading once in `main()` keeps reads
+    synchronous.
+  - **`SharedPreferences.setMockInitialValues` in feature tests** — rejected: bind to the
+    `KeyValueStore` seam and override with an `InMemoryKeyValueStore` fake instead.
+
+  ---

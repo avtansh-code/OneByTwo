@@ -35,11 +35,13 @@ banners, and routes taps into the app.
   (a Riverpod `Notifier<PermissionState>` exposed as
   `notificationPermissionControllerProvider`). The OS prompt is reached
   through the fakeable `PermissionMessagingAdapter`
-  (`permissionMessagingAdapterProvider`). **Note:** `shared_preferences`
-  is not in the lockfile, so the `wasPermanentlyDenied` flag is
-  in-memory only for v1.0 — "do not re-show on next launch" is
-  approximated as "do not re-show this session" (documented deviation,
-  tracked by a TODO).
+  (  `permissionMessagingAdapterProvider`). The `wasPermanentlyDenied`
+  flag is **persisted across launches** via the `KeyValueStore` seam
+  (`lib/core/services/key_value_store.dart`, `shared_preferences` under
+  the hood): it is hydrated in `build()` and written on the deny/error
+  transition, so the FR-AC-04 "do not re-show on next launch" semantic
+  is honoured after an app restart. The session-scoped
+  `dismissedThisSession` suppression remains session-only by design.
 - `presentation/pre_permission_dialog.dart` —
   `showPrePermissionDialog(...)`, the "Stay in the loop" priming dialog.
 - `presentation/widgets/in_app_notification_banner.dart` —

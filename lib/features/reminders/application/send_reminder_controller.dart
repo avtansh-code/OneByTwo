@@ -217,8 +217,7 @@ final sendReminderControllerProvider = StateNotifierProvider.autoDispose
         repository: ref.watch(reminderRepositoryProvider),
         analytics: ref.watch(analyticsServiceProvider),
         writeCooldown: (value) {
-          ref.read(reminderCooldownProvider(friendshipId).notifier).state =
-              value;
+          ref.read(reminderCooldownProvider(friendshipId).notifier).set(value);
         },
       );
     });

@@ -4,6 +4,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/persistence/preference_keys.dart';
+import 'package:onebytwo/core/services/key_value_store.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/notifications/application/firebase_messaging_provider.dart';
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
@@ -76,18 +78,16 @@ final permissionMessagingAdapterProvider = Provider<PermissionMessagingAdapter>(
 ///   3. `onEnableTapped` — triggers the OS prompt via the messaging
 ///      adapter. On grant, acquires a token via the [FcmTokenService]
 ///      and starts the refresh listener. On deny, transitions to
-///      `permanentlyDenied` and sets the local `wasPermanentlyDenied`
+///      `permanentlyDenied` and persists the local `wasPermanentlyDenied`
 ///      flag.
 ///
-/// **Local persistence (architect §2.6 / §2.8 — addendum):**
-/// `shared_preferences` is NOT in the lockfile for this repository, so
-/// the `wasPermanentlyDenied` flag is in-memory only for v1.0. The
-/// "permanently denied — do not re-show on next launch" UX is
-/// therefore approximated as "do not re-show this session". This is a
-/// documented deviation; a follow-up adds `shared_preferences` and
-/// persists across launches.
-// TODO(flutter-dev): persist wasPermanentlyDenied across launches once
-// shared_preferences is added (FR-AC-04 / FR-PR-03 follow-up).
+/// **Local persistence (FR-AC-04):** the `wasPermanentlyDenied` flag is
+/// persisted across launches via the [KeyValueStore] seam
+/// (`shared_preferences` under the hood). It is hydrated in [build] at
+/// construction and written on the deny/error transitions, so the
+/// "permanently denied — do not re-show on next launch" semantic is
+/// honoured after an app restart. The session-scoped suppression states
+/// (`dismissedThisSession`) remain session-only by design.
 class NotificationPermissionController extends Notifier<PermissionState> {
   bool _wasPermanentlyDenied = false;
 
@@ -97,7 +97,14 @@ class NotificationPermissionController extends Notifier<PermissionState> {
   bool get wasPermanentlyDenied => _wasPermanentlyDenied;
 
   @override
-  PermissionState build() => PermissionState.notDetermined;
+  PermissionState build() {
+    _wasPermanentlyDenied =
+        ref
+            .read(keyValueStoreProvider)
+            .getBool(PreferenceKeys.notificationsPermanentlyDenied) ??
+        false;
+    return PermissionState.notDetermined;
+  }
 
   /// Surfaces the pre-permission dialog. Idempotent within a session.
   void showPrePermissionDialog() {
@@ -130,14 +137,23 @@ class NotificationPermissionController extends Notifier<PermissionState> {
         await _acquireTokenAndWire(uid);
         state = PermissionState.granted;
       } else {
-        _wasPermanentlyDenied = true;
-        state = PermissionState.permanentlyDenied;
+        await _markPermanentlyDenied();
       }
     } catch (e, st) {
       debugPrint('[PermissionController] requestPermission failed: $e\n$st');
-      _wasPermanentlyDenied = true;
-      state = PermissionState.permanentlyDenied;
+      await _markPermanentlyDenied();
     }
+  }
+
+  /// Sets, persists, and reflects the permanently-denied flag. Persisting
+  /// before the state transition guarantees the cross-launch suppression
+  /// survives an immediate process kill (FR-AC-04 "next launch").
+  Future<void> _markPermanentlyDenied() async {
+    _wasPermanentlyDenied = true;
+    await ref
+        .read(keyValueStoreProvider)
+        .setBool(PreferenceKeys.notificationsPermanentlyDenied, value: true);
+    state = PermissionState.permanentlyDenied;
   }
 
   Future<void> _acquireTokenAndWire(String uid) async {
