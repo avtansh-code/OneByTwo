@@ -581,24 +581,24 @@ describe("friendships/{fid}/expenses/{eid} — update rules", () => {
 });
 
 // ---------------------------------------------------------------------------
-// FR-EX-06 UPDATE additions (PR #46)
+// FR-EX-06 UPDATE additions
 //
 // These tests document the rules-layer behaviour for the edit + soft-delete
 // shapes that the FR-EX-06 client typed-mapping helper produces.
 //
-// Tests 1 and 2 intentionally document the KNOWN ROLES GAP recorded in the
-// FR-EX-06 story §2.9 item 5: the current isValidExpenseUpdate() at
-// firestore.rules:275-284 enforces isCallerFriendshipMember() and the
-// createdBy / createdAt immutability checks, but does NOT enforce
-// request.auth.uid == resource.data.createdBy. Any friendship member can
-// therefore update or soft-delete an expense per the rules — creator-only
-// gating today lives only in the client UI (story AC-13). A future rules-
-// hardening PR will tighten this; when it does, flip Tests 1 and 2 from
-// assertSucceeds to assertFails.
+// Tests 1 and 2 enforce the CREATOR-ONLY gate now present in
+// isValidExpenseUpdate() (request.auth.uid == resource.data.createdBy): a
+// non-creator friendship member can NO LONGER edit or soft-delete an expense
+// through the rules. This is the rules-side defence-in-depth re-check of the
+// client UI gate recorded in the FR-EX-06 story §2.9 item 5. Tests 1a and 2a
+// are the positive counterparts proving the CREATOR (memberA) can still edit
+// and still soft-delete via the same shapes, so the tightening does not
+// regress the legitimate path. (A non-member is rejected by the separate
+// "rejects update by a non-member" case above.)
 //
 // Tests 3 and 4 lock the FR-EX-06 client wire-shape contract:
 //   - Test 3 confirms that partial updates which omit updatedAt are rejected
-//     by the data.updatedAt == request.time check at firestore.rules:283.
+//     by the data.updatedAt == request.time check.
 //   - Test 4 confirms that the canonical FR-EX-06 partial map
 //     (amountPaise + matching splits + updatedAt) is accepted.
 // ---------------------------------------------------------------------------
@@ -610,14 +610,14 @@ describe("friendships/{fid}/expenses/{eid} — update rules (FR-EX-06 additions)
   });
 
   it(
-    "rules currently allow update by a non-creator member (FR-EX-06 gap; see story §2.9 item 5)",
+    "rejects update by a non-creator member (creator-only gate; FR-EX-06 story §2.9 item 5)",
     async () => {
-      // memberB (non-creator but still a friendship member) attempts to
-      // update the description. The rule does not gate on creator equality,
-      // so this passes today. Flip to assertFails when the rules-hardening
-      // PR adds request.auth.uid == prev.createdBy to isValidExpenseUpdate().
+      // memberB is a friendship member but NOT the expense creator (the seed
+      // sets createdBy: memberA). isValidExpenseUpdate() now requires
+      // request.auth.uid == prev.createdBy, so a non-creator edit is rejected
+      // even though memberB can still read the expense.
       const ctxB = testEnv.authenticatedContext(memberB);
-      await assertSucceeds(
+      await assertFails(
         updateDoc(
           doc(ctxB.firestore(), `friendships/${FID}/expenses/exp1`),
           {
@@ -630,13 +630,51 @@ describe("friendships/{fid}/expenses/{eid} — update rules (FR-EX-06 additions)
   );
 
   it(
-    "rules currently allow soft-delete by a non-creator member (FR-EX-06 gap; see story §2.9 item 5)",
+    "rejects soft-delete by a non-creator member (creator-only gate; FR-EX-06 story §2.9 item 5)",
     async () => {
-      // Same gap as above, exercised via the soft-delete shape.
+      // Same creator-only gate as above, exercised via the soft-delete shape
+      // (deleted: true flows through the update rule). memberB is not the
+      // creator, so the soft-delete is rejected.
       const ctxB = testEnv.authenticatedContext(memberB);
-      await assertSucceeds(
+      await assertFails(
         updateDoc(
           doc(ctxB.firestore(), `friendships/${FID}/expenses/exp1`),
+          {
+            deleted: true,
+            updatedAt: serverTimestamp(),
+          },
+        ),
+      );
+    },
+  );
+
+  it(
+    "allows update by the creator (memberA) — creator-success counterpart",
+    async () => {
+      // memberA IS the expense creator (seed createdBy: memberA), so the same
+      // edit shape the non-creator was denied above succeeds for the creator.
+      const ctxA = testEnv.authenticatedContext(memberA);
+      await assertSucceeds(
+        updateDoc(
+          doc(ctxA.firestore(), `friendships/${FID}/expenses/exp1`),
+          {
+            description: "Edited by the creator",
+            updatedAt: serverTimestamp(),
+          },
+        ),
+      );
+    },
+  );
+
+  it(
+    "allows soft-delete by the creator (memberA) — creator-success counterpart",
+    async () => {
+      // The creator can still soft-delete (deleted: true) — the tightening
+      // does not regress the legitimate soft-delete path.
+      const ctxA = testEnv.authenticatedContext(memberA);
+      await assertSucceeds(
+        updateDoc(
+          doc(ctxA.firestore(), `friendships/${FID}/expenses/exp1`),
           {
             deleted: true,
             updatedAt: serverTimestamp(),

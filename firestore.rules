@@ -284,6 +284,15 @@ service cloud.firestore {
         let prev = resource.data;
         let members = friendshipMemberIds();
         return isValidExpenseShared(data, members)
+          // Creator-only: only the original author may edit or soft-delete.
+          // Defence-in-depth re-check of the FR-EX-06 client UI gate
+          // (expense.createdBy == currentUser.uid). Both the edit path and the
+          // soft-delete path (setting deleted: true) flow through this update
+          // rule, so this single clause restricts both to the creator. The
+          // settlement update rule deliberately permits EITHER party to soft-
+          // delete (settlements are bilateral); friendship-expenses are creator-
+          // owned, so the two are intentionally asymmetric — do not harmonise.
+          && request.auth.uid == prev.createdBy
           // Immutable fields preserved.
           && data.createdBy == prev.createdBy
           && data.createdAt == prev.createdAt
@@ -298,9 +307,12 @@ service cloud.firestore {
       allow create: if isCallerFriendshipMember()
         && isValidExpenseCreate();
 
-      // Update: caller is a member AND the post-update document is valid
-      // AND immutable fields (createdBy, createdAt) are preserved. Soft-
-      // delete (setting deleted: true) flows through this path.
+      // Update: caller is the expense CREATOR (request.auth.uid ==
+      // resource.data.createdBy) AND the post-update document is valid AND
+      // immutable fields (createdBy, createdAt) are preserved. Soft-delete
+      // (setting deleted: true) flows through this path, so it is creator-only
+      // too. Non-creator friendship members are rejected here even though they
+      // can still read the expense (allow read above).
       allow update: if isCallerFriendshipMember()
         && isValidExpenseUpdate();
 

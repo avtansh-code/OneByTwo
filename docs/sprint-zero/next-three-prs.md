@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: the AC-11 "Open Settings" deep-link CTA chore (#70, `dda2f97`) merged — with it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **`shared_preferences` cross-launch-persistence chore** (the highest-ranked unshipped carry-forward candidate; the natural pair with the #70 `app_settings` chore, deliberately NOT bundled) — opened to adopt `shared_preferences` behind a thin `lib/core/services/KeyValueStore` seam and persist the two documented in-memory deferrals across launches: FR-AC-04 `wasPermanentlyDenied` (closing the controller TODO) and the FR-SE-09 reminder cooldown with a past-`nextAllowedAt` expiry guard (ADR-0020). There is **no** tracked GitHub issue (candidate-list bullet + two in-code TODOs only), so the PR opens without a `Closes #NN`; it lands as the next available number (≥ #71 now that the highest PR is #70 and the highest issue is #68), reconciled at PR open.
+> Last updated: the `shared_preferences` cross-launch-persistence chore (#71, `a0de106`) merged — with it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **Issue #47 friendship-expense creator-only rules hardening** (the highest-ranked unshipped single-focus, issue-backed carry-forward candidate) — tightens `isValidExpenseUpdate()` so only the expense creator may edit or soft-delete a friendship-context expense (a defence-in-depth re-check of the FR-EX-06 client UI gate; closes the FR-EX-06 §2.9 item 5 gap and the two self-documenting "flip to assertFails" placeholder tests). It **has** a tracked GitHub issue — [#47](https://github.com/avtansh-code/OneByTwo/issues/47) (`sprint-2-chore`) — so the PR opens **with** a `Closes #47` line; it lands as the next available number (≥ #72 now that the highest PR is #71 and the highest issue is #68), reconciled at PR open.
 
 ---
 
@@ -13,7 +13,7 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | Number | Type | What |
 |---|---|---|
 | #46 | PR | FR-EX-06 edit / delete expense, friendship context (merged 2026-06-07) |
-| #47 | Issue | Firestore rules-hardening for non-creator update/delete (OPEN — Sprint 3 hardening) |
+| #47 | Issue | Firestore rules-hardening for non-creator update/delete (OPEN — **IN FLIGHT**; tighten friendship-expense edit / soft-delete to the creator; closed by the PR below) |
 | #48 | PR | FR-EX-05 receipt attachment, friendship context (merged 2026-06-07) |
 | #49 | Issue | Orphan-cleanup Cloud Function for unreferenced receipts (90-day reaper) — OPEN (FUTURE-work chore, 2 SP) |
 | #50 | Issue | Trigger no-op-recompute optimisation when update touches only `receiptUrl` + `updatedAt` — OPEN (FUTURE-work chore, 1 SP). **EXPLICITLY CANNOT BE CLOSED** by any FR-EX-07-consuming PR — the optimisation would skip activity emission on receipt-only updates, breaking the FR-EX-07 contract (AC-2). |
@@ -37,7 +37,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #68 | Issue | FUTURE: denormalised per-user monthly-spend rollup Cloud Function to remove the FR-HD-03 N+1 fan-out reads — filed/deferred from FR-HD-03 (#67); CANNOT be closed by #67. Do NOT build it in FR-AC-05. |
 | **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — merged 2026-06-17, `8dd67f9`; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller. Closed the last deferred piece of a P0, so every P0 except the Sprint-3 Groups epic and every P1 is shipped. Two review refinements landed in-PR (an explicit AC-7 foreground-banner tab-selection test; a comment pinning the synchronous `selectTab`-before-`context.mounted` ordering). ADR-0018.** |
 | **#70** | **PR** | **AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — merged 2026-06-20, `dda2f97`; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam; both surfaces wired (SCR-27 notification banner + SCR-10 contact-permission view); PII-free `permission_settings_opened` telemetry; `ios/Podfile.lock` committed. ADR-0019.** |
-| #71 | PR | `shared_preferences` cross-launch persistence chore — IN FLIGHT; the highest-ranked unshipped carry-forward candidate now that #70 merged (the natural pair with the #70 `app_settings` chore, deliberately NOT bundled). Adopts `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore` seam (loaded once in `main()`, injected via `ProviderScope`) and persists FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the FR-SE-09 reminder cooldown (`NotifierProvider.family` with a past-`nextAllowedAt` expiry guard). No telemetry. `ios/Podfile.lock` committed. No tracked issue (candidate-list bullet + two code TODOs — no `Closes #NN`); lands as the next available number ≥ #71, reconciled at PR open. ADR-0020. |
+| #71 | PR | `shared_preferences` cross-launch persistence chore — merged 2026-06-20, `a0de106`; the highest-ranked unshipped carry-forward candidate now that #70 merged (the natural pair with the #70 `app_settings` chore, deliberately NOT bundled). Adopts `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore` seam (loaded once in `main()`, injected via `ProviderScope`) and persists FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the FR-SE-09 reminder cooldown (`NotifierProvider.family` with a past-`nextAllowedAt` expiry guard). No telemetry. `ios/Podfile.lock` committed. No tracked issue (candidate-list bullet + two code TODOs — no `Closes #NN`); landed as the next available number ≥ #71, reconciled at PR open. ADR-0020. |
+| #72 | PR | Firestore rules — restrict friendship-expense edit / soft-delete to the **expense creator** — IN FLIGHT (opens with `Closes #47`); the highest-ranked unshipped single-focus, issue-backed carry-forward candidate now that #71 merged. Adds `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` (defence-in-depth re-check of the FR-EX-06 client UI gate), inverts the two `assertSucceeds` "flip to assertFails" placeholder tests and adds the creator-success counterparts (full rules suite green, 10 suites / 200 tests). Settlement either-party soft-delete left deliberately asymmetric. Pure `firestore.rules` + rules-tests; no client / function / trigger / schema / index change. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -50,9 +51,9 @@ label at PR open.
 
 ---
 
-## PR #71 — IN FLIGHT (`shared_preferences` cross-launch persistence chore)
+## PR #71 — Merged (`shared_preferences` cross-launch persistence chore)
 
-**Status:** Open. The `shared_preferences` cross-launch-persistence chore confirmed as
+**Status:** Merged 2026-06-20 (`a0de106`). The `shared_preferences` cross-launch-persistence chore confirmed as
 the next-slot pick at kickoff — the **highest-ranked unshipped carry-forward candidate**
 and the **natural pair** with the merged #70 `app_settings` chore (deliberately NOT
 bundled into it). It closes two documented in-memory deviations in one shot: the
@@ -773,11 +774,17 @@ Candidates (in rough priority order — architect's call at kickoff):
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
-  documented.
+  documented. **IN FLIGHT (opens with `Closes #47`)** — adds
+  `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` so only the
+  expense creator may edit or soft-delete a friendship-context expense; inverts
+  the two `assertSucceeds` "flip to assertFails" placeholder tests and adds the
+  creator-success counterparts (full rules suite green). Settlement either-party
+  soft-delete deliberately left asymmetric. Pure rules + rules-tests; no client /
+  function / trigger / schema / index change.
 - **`shared_preferences` adoption** for cross-launch persistence
   (PR #53 §2.6 `wasPermanentlyDenied` flag + FR-SE-09 §2.6 cooldown
   persistence). ~2-3 SP. Natural pair with the `app_settings` /
-  `permission_handler` chore above. **IN FLIGHT as PR #71 (2026-06-20)**
+  `permission_handler` chore above. **MERGED (#71, `a0de106`, 2026-06-20)**
   — `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore`
   seam (loaded once in `main()`, injected via `ProviderScope`); persists
   FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the
