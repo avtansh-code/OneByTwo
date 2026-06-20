@@ -6,7 +6,13 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: PR #58 (FR-SE-08 dedicated settlement-history screen, SCR-24 — friendship axis; group axis stubbed pending Sprint 3 Groups epic).
+> Last updated: the **Bucket-B close-with-evidence bundle** (PR #73, this PR) — the
+> first dedicated Bucket-B tracker-hygiene PR. It reconciles this burndown from its
+> stale PR #58 state through #72 and records the close-with-evidence reconciliation of
+> the three audit-tracker issues whose findings Sprint 2 PRs already resolved: **#21
+> fully closed**, **#20 and #23 re-scoped and kept open**. No application code, no
+> rules, no new tests — the resolving work shipped in earlier PRs; this PR verifies the
+> cited evidence and brings the tracker current.
 
 ---
 
@@ -23,6 +29,17 @@
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
+
+> **Totals verified against the Resolution Log (PR #73).** The ten struck-through
+> resolutions are SR8 (#38), D5a + D5b (#44), R1 + R2 + R3 (#32), R5a (#51),
+> R7 + R8 (#48), and CV3 (#36). The Bucket-B close-with-evidence bundle (PR #73)
+> contributes **zero** new resolutions — every finding it documents was already
+> counted when its resolving PR landed; the bundle is tracker hygiene (it closes the
+> GitHub *issues* #20 / #21 / #23, not new audit *findings*). Totals therefore hold at
+> **10 / 27**. Note the audit-accurate finding IDs: **R4 = `groups/{id}` create**,
+> **R5b = `groups/{id}` update**, **R6 = `groups/{id}` delete** (all Sprint 3 Groups
+> epic, remaining); R5a (activity-collection rules) is a Sprint-2 sub-ID split from the
+> original audit R5 when the activity feature shipped.
 
 ---
 
@@ -175,7 +192,32 @@ PR #48 (FR-EX-05):     28 remaining  ██████████████�
 PR #51 (FR-EX-07):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
 PR #52 (FR-AC-01):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
 PR #53 (FR-AC-03/05):  27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #54 (FR-SE-09):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #55 (FR-PR-03/04):  27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #56 (OBTBottomNav): 27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #57 (FR-HD-04):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #58 (FR-SE-08):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #59 (docs reconc.): 27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #60 (FR-PR-05):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #61 (CI speedup):   27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #62 (FR-HD-01/02):  27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #63 (FR-PR-04):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #64 (FR-PR-02):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #65 (FR-AU-09):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #67 (FR-HD-03):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #69 (FR-AC-05):     27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #70 (AC-11 CTA):    27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #71 (shared_prefs): 27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #72 (creator-rules):27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
+PR #73 (Bucket-B hyg.):27 remaining  ██████████████████████████░░░░░░░░░░░░  27/37
 ```
+
+The line has been flat at **27/37 since PR #51** (R5a). PRs #52–#72 shipped
+features and chores but closed no further Bucket-B audit *findings* (each is logged
+in the Resolution Log below). PR #73 — the Bucket-B close-with-evidence bundle —
+closes the GitHub *issues* #20 / #21 / #23 against findings already counted, so the
+remaining-findings line is unchanged at **27/37**; its contribution is tracker
+hygiene, not new closures.
 
 PR #32 closed three items (R1, R2, R3 — friendship rules tests). PR #33 was a
 documentation-only ADR reconciliation (no bucket-B impact). PR #34 (manual
@@ -959,3 +1001,96 @@ share/export action, and the screen-spec vs telemetry-plan
 
 Net contribution of PR #58 to Bucket-B totals: **0**. The
 remaining count stays at **27 / 37**.
+
+### PRs #59–#72 (no Bucket-B closures)
+
+This burndown's "Last updated" header sat at PR #58. PRs #59 through #72
+shipped features, chores, and infrastructure but closed **no further
+Bucket-B audit findings**. Recorded here so nothing is silently dropped:
+
+| PR | Commit | Nature | Bucket-B impact |
+|---|---|---|---|
+| #59 | `093fce7` | Documentation reconciliation (docs/skills/agents synced; two code fixes) | 0 — docs-only |
+| #60 | `8f72514` | FR-PR-05 Contact Support `mailto:` flow | 0 |
+| #61 | `d474507` | CI PR-pipeline speed-up | 0 — CI infra |
+| #62 | `57c272e` | FR-HD-01/02 Home dashboard balances | 0 |
+| #63 | `209afea` | FR-PR-04 My Friends / My Groups + tab nav | 0 |
+| #64 | `2e68713` | FR-PR-02 change phone via OTP re-verification | 0 |
+| #65 | `d542793` | FR-AU-09 delete account + cascade Cloud Function | 0 |
+| #67 | `1f26548` | FR-HD-03 monthly-spend category breakdown chart | 0 |
+| #69 | `8dd67f9` | FR-AC-05 deep-link tab-switch on notification tap | 0 |
+| #70 | `dda2f97` | AC-11 "Open Settings" deep-link CTA chore | 0 |
+| #71 | `a0de106` | `shared_preferences` cross-launch persistence chore | 0 |
+| #72 | `33f870d` | Firestore rules — friendship-expense creator-only edit / soft-delete (closes #47) | 0 — a tightening of an existing `allow update`, NOT a Bucket-B finding; the rules-hardening was the FR-EX-06 §2.9 item 5 "NEW deferred" follow-up tracked from the PR #46 burndown above, never a Bucket-B audit item |
+
+The remaining count held at **27 / 37** throughout.
+
+### PR #73 (Bucket-B close-with-evidence bundle — tracker hygiene)
+
+PR #73 is the **first PR whose primary deliverable is Bucket-B tracker
+hygiene**. Every prior Bucket-B closure (R1–R3 in #32, CV3 in #36, SR8 in
+#38, D5a/D5b in #44, R7–R8 in #48, R5a in #51) was a side-effect of feature
+or chore work logged in this burndown. PR #73 ships **no application code, no
+rules, and no new tests** — the resolving work shipped in earlier PRs. Its
+job is to verify the cited evidence, post per-issue evidence comments, and
+close or re-scope the three audit-tracker issues (#20 / #21 / #23) correctly.
+
+**Evidence verified (read the artefact; re-ran the suites green at PR #73).**
+
+| Finding | Resolved by | Artefact (verified) | Evidence |
+|---|---|---|---|
+| CV3 — `function.ts` branch coverage 76% | PR #36 (`44c1618`) | `functions/src/simplified-debts/function.ts` | The `recomputeAndWrite` variant-2.3(b) refactor + trigger-boundary tests took branch coverage **76% → 88.57% (31/35)** at the #36 gate; the full unit-coverage gate measures **89.13%** at PR #73. Gate green. |
+| R1 — `friendships/{id}` create validation | PR #32 (`84ad01a`) | `functions/test/firestore-rules/friendships.test.ts` | "create rules" describe block (valid create, missing/typed fields, wrong caller). |
+| R2 — `friendships/{id}` update validation | PR #32 (`84ad01a`) | same | "update rules" describe block (member can update `lastActivityAt`; `memberIds` immutability; `simplifiedBalances` write-block, Invariant 2). |
+| R3 — `friendships/{id}` delete deny | PR #32 (`84ad01a`) | same | "delete rules" describe block — client delete `assertFails`. |
+| R5a — `activity/{userId}/items` rules | PR #51 (`d2302b9`) | `functions/test/firestore-rules/activity.test.ts` | 12 tests, AC-6 → AC-12 (owner read positive; non-owner / unauth negatives; client create / update / delete denied; parent-doc defence-in-depth). |
+| R7 — Storage file-size validation | PR #48 (`0c6f649`) | `functions/test/storage-rules/receipts.test.ts` | File header line 7 declares "Closes R7 + R8"; AC-16 rejects an 11 MB upload against `request.resource.size < 10 * 1024 * 1024`. |
+| R8 — Storage content-type validation | PR #48 (`0c6f649`) | same | AC-17 rejects `text/plain` and `image/gif` against `contentType.matches('image/(jpeg\|png)')`. |
+| PY3 (Functions/emulator layer) — friend-add + expense-create flows | PR #36 enabled `test:integration` in CI; extended by #37 / #45 / #65 | `functions/test/integration/*.integration.test.ts` | 5 suites / 43 tests run under `firebase emulators:exec --only auth,firestore,functions,storage`. Provenance: `on-expense-write` + the in-CI gate landed in #36; `simplified-debts` integration test predates it (authored #12, first run in CI by #36); `on-settlement-write` in #37; `lookup-user-by-phone-number` unskipped/fixed in #45; `delete-user-account` in #65. |
+
+Verification runs at PR #73 (JDK 21, demo-onebytwo emulator project): rules
+suite **10 suites / 200 tests** green; integration suite **5 suites / 43
+tests** green; simplified-debts unit-coverage gate green (`function.ts`
+89.13% branch). No artefact was modified.
+
+**Issue actions.**
+
+- **#20 "Improve test coverage gaps" — PARTIAL close, re-scoped, kept OPEN.**
+  CV3 resolved by PR #36 (evidence comment posted). The remaining sub-items
+  stay open under a narrowed scope: **SC1** (concurrent-submit guard test for
+  phone entry), **SC2** (OTP auto-retrieval timeout test), **SC3**
+  (`MAX_SAFE_INTEGER` overflow test for the simplified-debts algorithm), and
+  **SC4** (large-group 100+ scalability test — Sprint 3 groups). No `Closes`
+  line.
+- **#21 "Firestore and Storage rules test gaps" — FULL close.** R1–R3 (#32),
+  R5a (#51), and R7–R8 (#48) all resolved; the only remainders are the
+  **groups** halves — **R4** (`groups/{id}` create), **R5b** (`groups/{id}`
+  update), **R6** (`groups/{id}` delete) — which belong to the Sprint 3 Groups
+  epic and are tracked there, not under #21. With every non-groups finding
+  resolved and the groups halves cleanly re-scoped, #21 is the one genuine
+  full-close (`Closes #21`).
+- **#23 "Expand integration tests for Sprint 2 flows" — PARTIAL close,
+  re-scoped, kept OPEN.** PY3 is substantially resolved **at the
+  Functions/emulator data-flow layer** (the integration suite runs in CI). The
+  remainders stay open: the **Flutter `test/integration/**/*_flow_test.dart`
+  harness half of PY3** (the `skip:`ped stubs await the emulator harness),
+  **RT2** (CI step-duration logging for the emulator suites), and **INV2**
+  (system-share-sheet verification tests — partially addressed by PR #32's
+  invite flow). No `Closes` line.
+
+**Accuracy corrections applied with this reconciliation.** Earlier narrative
+rows in this burndown and in `sprint-2-plan.md` carried two finding-ID
+mis-assignments that contradict the audit source
+(`docs/audits/sprint-1/04-dependency-and-security.md`): "R4 closed by PR #36"
+(R4 is in fact `groups/{id}` create — Sprint 3, still open) and "R6 = settlement
+rules closed by PR #37" (R6 is in fact `groups/{id}` delete — Sprint 3, still
+open). The expense-friendship rules tests added in #36/#46 and the settlement
+rules tests in #37 are real, but they are **not** the audit's R4/R6 — those
+remain the Groups-epic remainders. The `02-test-suite-health.md` labels are also
+authoritative: **SC2 = OTP auto-retrieval timeout**, **SC4 = large-group
+scalability** (do not transpose them). These corrections change no totals.
+
+Net contribution of PR #73 to Bucket-B totals: **0**. The bundle closes the
+GitHub *issues* #20 / #21 / #23 against findings already counted when their
+resolving PRs landed; it adds no new finding closures. The remaining count
+stays at **27 / 37**.
