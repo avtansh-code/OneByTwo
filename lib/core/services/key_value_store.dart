@@ -74,7 +74,10 @@ class InMemoryKeyValueStore implements KeyValueStore {
   final Map<String, Object> _store = <String, Object>{};
 
   @override
-  bool? getBool(String key) => _store[key] as bool?;
+  bool? getBool(String key) {
+    final value = _store[key];
+    return value is bool ? value : null;
+  }
 
   @override
   Future<void> setBool(String key, {required bool value}) async {
@@ -82,7 +85,10 @@ class InMemoryKeyValueStore implements KeyValueStore {
   }
 
   @override
-  String? getString(String key) => _store[key] as String?;
+  String? getString(String key) {
+    final value = _store[key];
+    return value is String ? value : null;
+  }
 
   @override
   Future<void> setString(String key, String value) async {
