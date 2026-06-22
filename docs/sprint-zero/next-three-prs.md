@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: the `shared_preferences` cross-launch-persistence chore (#71, `a0de106`) merged — with it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, and every P1 is shipped**. The next PR — the **Issue #47 friendship-expense creator-only rules hardening** (the highest-ranked unshipped single-focus, issue-backed carry-forward candidate) — tightens `isValidExpenseUpdate()` so only the expense creator may edit or soft-delete a friendship-context expense (a defence-in-depth re-check of the FR-EX-06 client UI gate; closes the FR-EX-06 §2.9 item 5 gap and the two self-documenting "flip to assertFails" placeholder tests). It **has** a tracked GitHub issue — [#47](https://github.com/avtansh-code/OneByTwo/issues/47) (`sprint-2-chore`) — so the PR opens **with** a `Closes #47` line; it lands as the next available number (≥ #72 now that the highest PR is #71 and the highest issue is #68), reconciled at PR open.
+> Last updated: the **Issue #47 friendship-expense creator-only rules hardening** (#72, `33f870d`) merged — `isValidExpenseUpdate()` now gates friendship-context expense edit / soft-delete on `request.auth.uid == prev.createdBy`. With it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, every P1 is shipped**, and the single-focus issue-backed carry-forward candidate (#47) is consumed. The next PR — the **Bucket-B close-with-evidence bundle** (the diffuse runner-up that prompt `31.md` named to #47) — is a documentation + issue-tracker-hygiene chore: it verifies the Sprint-1 boundary-audit findings that Sprint 2 PRs already resolved, posts per-issue evidence comments, **fully closes #21** and **re-scopes #20 / #23** (kept open), and reconciles the burndown + roadmap. It acts on existing audit issues #20 / #21 / #23 (no new tracked issue) and carries a `Closes #21` line only. It lands as the next available number (≥ #73 now that the highest PR is #72 and the highest issue is #68), reconciled at PR open. Likely **velocity-excluded** (docs/hygiene, like #59).
 
 ---
 
@@ -13,7 +13,7 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | Number | Type | What |
 |---|---|---|
 | #46 | PR | FR-EX-06 edit / delete expense, friendship context (merged 2026-06-07) |
-| #47 | Issue | Firestore rules-hardening for non-creator update/delete (OPEN — **IN FLIGHT**; tighten friendship-expense edit / soft-delete to the creator; closed by the PR below) |
+| #47 | Issue | Firestore rules-hardening for non-creator update/delete — **MERGED (closed by #72, `33f870d`)**; tightened friendship-expense edit / soft-delete to the creator |
 | #48 | PR | FR-EX-05 receipt attachment, friendship context (merged 2026-06-07) |
 | #49 | Issue | Orphan-cleanup Cloud Function for unreferenced receipts (90-day reaper) — OPEN (FUTURE-work chore, 2 SP) |
 | #50 | Issue | Trigger no-op-recompute optimisation when update touches only `receiptUrl` + `updatedAt` — OPEN (FUTURE-work chore, 1 SP). **EXPLICITLY CANNOT BE CLOSED** by any FR-EX-07-consuming PR — the optimisation would skip activity emission on receipt-only updates, breaking the FR-EX-07 contract (AC-2). |
@@ -38,7 +38,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#69** | **PR** | **FR-AC-05 deep-link tab-switch on notification tap (SRS 4.7 line 240, P0) — merged 2026-06-17, `8dd67f9`; the first carry-forward candidate, unblocked by the `shellNavigationControllerProvider` seam (#63) and closing that PR's "controller seam only" deferral; first notification consumer of the shell tab controller. Closed the last deferred piece of a P0, so every P0 except the Sprint-3 Groups epic and every P1 is shipped. Two review refinements landed in-PR (an explicit AC-7 foreground-banner tab-selection test; a comment pinning the synchronous `selectTab`-before-`context.mounted` ordering). ADR-0018.** |
 | **#70** | **PR** | **AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — merged 2026-06-20, `dda2f97`; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam; both surfaces wired (SCR-27 notification banner + SCR-10 contact-permission view); PII-free `permission_settings_opened` telemetry; `ios/Podfile.lock` committed. ADR-0019.** |
 | #71 | PR | `shared_preferences` cross-launch persistence chore — merged 2026-06-20, `a0de106`; the highest-ranked unshipped carry-forward candidate now that #70 merged (the natural pair with the #70 `app_settings` chore, deliberately NOT bundled). Adopts `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore` seam (loaded once in `main()`, injected via `ProviderScope`) and persists FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the FR-SE-09 reminder cooldown (`NotifierProvider.family` with a past-`nextAllowedAt` expiry guard). No telemetry. `ios/Podfile.lock` committed. No tracked issue (candidate-list bullet + two code TODOs — no `Closes #NN`); landed as the next available number ≥ #71, reconciled at PR open. ADR-0020. |
-| #72 | PR | Firestore rules — restrict friendship-expense edit / soft-delete to the **expense creator** — IN FLIGHT (opens with `Closes #47`); the highest-ranked unshipped single-focus, issue-backed carry-forward candidate now that #71 merged. Adds `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` (defence-in-depth re-check of the FR-EX-06 client UI gate), inverts the two `assertSucceeds` "flip to assertFails" placeholder tests and adds the creator-success counterparts (full rules suite green, 10 suites / 200 tests). Settlement either-party soft-delete left deliberately asymmetric. Pure `firestore.rules` + rules-tests; no client / function / trigger / schema / index change. |
+| #72 | PR | Firestore rules — restrict friendship-expense edit / soft-delete to the **expense creator** — **merged 2026-06-20, `33f870d`** (closed `#47`); the highest-ranked unshipped single-focus, issue-backed carry-forward candidate. Added `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` (defence-in-depth re-check of the FR-EX-06 client UI gate), inverted the two `assertSucceeds` "flip to assertFails" placeholder tests and added the creator-success counterparts (full rules suite green, 10 suites / 200 tests). Settlement either-party soft-delete left deliberately asymmetric. Pure `firestore.rules` + rules-tests; no client / function / trigger / schema / index change. |
+| #73 | PR | **Bucket-B close-with-evidence bundle** — IN FLIGHT; documentation + issue-tracker hygiene (the diffuse runner-up to #47). Verifies the Sprint-1 boundary-audit findings Sprint 2 PRs already resolved (CV3 → #36; R1–R3 → #32; R5a → #51; R7–R8 → #48; PY3 Functions/emulator layer → the `test:integration` suite enabled in CI by #36, extended by #37 / #45 / #65), posts per-issue evidence comments, **fully closes #21** (the groups halves R4 / R5b / R6 re-scoped to the Sprint 3 Groups epic) and **re-scopes #20** (SC1–SC4 kept open) and **#23** (Flutter-harness PY3 + RT2 + INV2 kept open), and reconciles `07-bucket-b-burndown.md` + the plan + this roadmap. Acts on #20 / #21 / #23 (no new tracked issue); `Closes #21` only. No app code / rules / new tests / schema / index / function change; no new ADR. Velocity-excluded. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -48,6 +49,45 @@ merged as PR #69, the AC-11 "Open Settings" deep-link CTA chore lands as
 the next available number ≥ #70** (highest PR is #69, highest issue is
 #68; there is no tracked issue for this chore) — reconcile the slot
 label at PR open.
+
+---
+
+## PR #72 — Merged (Firestore rules: friendship-expense creator-only edit / soft-delete)
+
+**Status:** Merged 2026-06-20 (`33f870d`, `Closes #47`). The Issue #47 friendship-expense
+creator-only rules hardening confirmed as the next-slot pick at kickoff — the
+**highest-ranked unshipped single-focus, issue-backed carry-forward candidate** now that
+#71 merged, and the one remaining candidate with a tracked GitHub issue (so the PR opened
+**with** a `Closes #47` line). It landed as the next available number ≥ #72 (highest PR
+#71, highest issue #68), reconciled at PR open.
+
+This is the **first rules PR that TIGHTENS an existing `allow`** (every prior rules change
+added a new collection block or relaxed a constraint), and the first issue-backed PR in
+several slots.
+
+- **Creator-only gate (no new ADR).** `isValidExpenseUpdate()` in `firestore.rules` now
+  requires `request.auth.uid == prev.createdBy`, so a non-creator friendship member can no
+  longer edit or soft-delete a friendship-context expense directly — a defence-in-depth
+  re-check of the FR-EX-06 client UI gate (the bottom-sheet entry points already gate on
+  `expense.createdBy == currentUser.uid`). A tightening within ADR-0010's field-level
+  pattern under ADR-0008, in service of Invariant 2; no new ADR.
+- **Tests inverted + completed.** The two self-documenting `assertSucceeds` "flip to
+  assertFails" non-creator placeholder tests in
+  `functions/test/firestore-rules/expenses-friendship.test.ts` were inverted, and the two
+  creator-success counterparts added. Full rules suite green: **10 suites / 200 tests**.
+- **Settlement asymmetry preserved.** The bilateral settlement either-party soft-delete
+  (the settlements `allow update`) was left deliberately asymmetric and untouched —
+  settlements are bilateral; expenses have a single creator.
+
+**Stubs / defers.** Pure `firestore.rules` + rules-tests; no client / Cloud Function /
+trigger / schema / `firestore.indexes.json` change. Invariants 1 / 3 / 4 N/A; Invariant 2
+reinforced.
+
+**Next candidates** (architect's call at the post-#72 kickoff): the carry-forward list
+below — the **Bucket-B close-with-evidence bundle** (now IN FLIGHT as the next PR; the
+diffuse runner-up to #47, closing/documenting the audit findings Sprint 2 already
+resolved), the `go_router` migration (Sprint 3), FR-SR-01/02 Search (SCR-07), and the
+Sprint 3 Groups epic (FR-GR-01..07).
 
 ---
 
