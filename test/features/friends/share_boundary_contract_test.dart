@@ -96,9 +96,8 @@ void main() {
     test('no platform-specific messaging package is referenced in lib/', () {
       final violations = <String>[];
       for (final file in _dartFilesUnder('lib')) {
-        final lines = file.readAsLinesSync();
+        final lines = _codeLinesOf(file);
         for (var i = 0; i < lines.length; i++) {
-          if (_isCommentLine(lines[i])) continue;
           for (final pattern in _forbiddenSharePatterns) {
             if (pattern.hasMatch(lines[i])) {
               violations.add(
@@ -124,9 +123,8 @@ void main() {
       final offenders = <String>[];
       for (final file in _dartFilesUnder('lib')) {
         if (file.path.endsWith('share_service.dart')) continue;
-        final lines = file.readAsLinesSync();
+        final lines = _codeLinesOf(file);
         for (var i = 0; i < lines.length; i++) {
-          if (_isCommentLine(lines[i])) continue;
           if (lines[i].contains('package:share_plus/') ||
               lines[i].contains('Share.share')) {
             offenders.add('${file.path}:${i + 1}');
@@ -140,6 +138,64 @@ void main() {
             'share_plus / Share.share must be confined to $seam (the single '
             'Invariant-3 boundary).\n${offenders.join('\n')}',
       );
+    });
+  });
+
+  group('share boundary contract (invariant 3) — comment stripper', () {
+    /// Convenience: does any forbidden pattern match the stripped form of
+    /// the single [source] line?
+    bool stripsToForbidden(String source) {
+      final code = _stripComments([source]).single;
+      return _forbiddenSharePatterns.any((p) => p.hasMatch(code));
+    }
+
+    test('a forbidden token in a trailing line comment is not flagged', () {
+      // Was a false positive: the line does not start with `//`, so the
+      // trailing comment was scanned as code.
+      expect(
+        stripsToForbidden('final ok = true; // wa_share is fine here'),
+        isFalse,
+      );
+    });
+
+    test('a forbidden token in a whole-line comment is not flagged', () {
+      expect(
+        stripsToForbidden('   // see whatsapp_share for context'),
+        isFalse,
+      );
+    });
+
+    test('a forbidden token inside a multi-line block comment body is not '
+        'flagged', () {
+      final stripped = _stripComments(<String>[
+        '/* this block mentions',
+        '   wa_share in its body',
+        '   and ends here */',
+      ]);
+      final anyForbidden = stripped.any(
+        (line) => _forbiddenSharePatterns.any((p) => p.hasMatch(line)),
+      );
+      expect(anyForbidden, isFalse);
+    });
+
+    test('a real URL-scheme target in code is preserved (no false '
+        'negative)', () {
+      // The `//` in `whatsapp://` is preceded by `:`, so it must NOT be
+      // treated as a comment delimiter.
+      expect(
+        stripsToForbidden("launchUrl('whatsapp://send?text=hi');"),
+        isTrue,
+      );
+    });
+
+    test('a protocol-relative target inside a string is preserved', () {
+      // `//wa.me/` is preceded by a quote, not whitespace.
+      expect(stripsToForbidden("const link = '//wa.me/919876543210';"), isTrue);
+    });
+
+    test('a real target after a block-comment close on the same line is '
+        'preserved', () {
+      expect(stripsToForbidden('/* note */ telegram_share();'), isTrue);
     });
   });
 }
@@ -170,9 +226,56 @@ List<File> _dartFilesUnder(String dir) {
       .toList();
 }
 
-bool _isCommentLine(String raw) {
-  final trimmed = raw.trim();
-  return trimmed.startsWith('//') ||
-      trimmed.startsWith('*') ||
-      trimmed.startsWith('/*');
+/// Returns the lines of [file] with comments removed, so the greps match
+/// only real code. Each returned entry keeps its original 1-based index
+/// position (line N maps to result[N - 1]).
+List<String> _codeLinesOf(File file) => _stripComments(file.readAsLinesSync());
+
+/// Strips Dart comments from [rawLines], preserving line positions.
+///
+/// Handles three cases the start-of-line-only check missed:
+///   - trailing line comments (`foo(); // wa_share`),
+///   - whole-line comments (`// ...`, leading-indented or not),
+///   - multi-line block comments (`/* ... */`), including a target hidden
+///     after a block-comment close on the same line.
+///
+/// A `//` is treated as a line comment only when it begins the line or is
+/// preceded by whitespace. This deliberately protects the URL tokens in
+/// [_forbiddenSharePatterns] that themselves contain `//` — `whatsapp://`
+/// (preceded by `:`) and `//wa.me/` / `//t.me/` (string-internal, preceded
+/// by a quote) — so stripping never produces a false negative for them.
+List<String> _stripComments(List<String> rawLines) {
+  final out = <String>[];
+  var inBlock = false;
+  for (final raw in rawLines) {
+    final buf = StringBuffer();
+    var i = 0;
+    while (i < raw.length) {
+      if (inBlock) {
+        final end = raw.indexOf('*/', i);
+        if (end == -1) {
+          i = raw.length;
+        } else {
+          i = end + 2;
+          inBlock = false;
+        }
+        continue;
+      }
+      if (i + 1 < raw.length && raw[i] == '/' && raw[i + 1] == '*') {
+        inBlock = true;
+        i += 2;
+        continue;
+      }
+      if (i + 1 < raw.length && raw[i] == '/' && raw[i + 1] == '/') {
+        final atBoundary = i == 0 || _isWhitespace(raw[i - 1]);
+        if (atBoundary) break; // rest of the line is a comment
+      }
+      buf.write(raw[i]);
+      i++;
+    }
+    out.add(buf.toString());
+  }
+  return out;
 }
+
+bool _isWhitespace(String ch) => ch == ' ' || ch == '\t';
