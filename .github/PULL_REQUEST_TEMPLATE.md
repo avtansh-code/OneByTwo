@@ -40,6 +40,28 @@ All four invariants must be respected. Tick each to confirm compliance:
 - [ ] Coverage thresholds maintained (>= 70% non-UI, >= 50% overall)
 - [ ] Simplified-debts canonical tests still pass (if applicable)
 
+### Coverage (per touched feature / module)
+
+<!--
+One line per feature/module this PR touches, using the coverage run the gate uses
+(flutter test --coverage / the Functions Istanbul report). Keep it lightweight — a
+single before/after percentage per scope, not a full report. Pure docs/design/CI
+PRs: write "N/A — no lib/ or functions/ code touched." and delete the table.
+-->
+
+| Scope (touched feature / module) | Before | After |
+|---|---|---|
+|  |  |  |
+
+## Cloud Functions Checklist
+
+<!-- Required only when this PR adds or changes a Cloud Function (functions/src/**). Delete this section if not applicable. -->
+
+- [ ] **Region pinned to `asia-south1`** — no function left region-unset or on `us-central1`
+- [ ] **Error codes mapped** — callables throw typed `HttpsError`s; no raw internals leaked to clients
+- [ ] **Transactions used** where multi-document consistency is required (not independent get/set)
+- [ ] **Idempotent** — triggers / callables tolerate retries and redelivery without double-applying writes
+
 ## Quality
 
 - [ ] `dart format` clean (no formatting changes needed)

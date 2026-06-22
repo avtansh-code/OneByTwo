@@ -6,13 +6,15 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: the **Bucket-B close-with-evidence bundle** (PR #73, this PR) — the
-> first dedicated Bucket-B tracker-hygiene PR. It reconciles this burndown from its
-> stale PR #58 state through #72 and records the close-with-evidence reconciliation of
-> the three audit-tracker issues whose findings Sprint 2 PRs already resolved: **#21
-> fully closed**, **#20 and #23 re-scoped and kept open**. No application code, no
-> rules, no new tests — the resolving work shipped in earlier PRs; this PR verifies the
-> cited evidence and brings the tracker current.
+> Last updated: the **`docs` close-out bundle** (PR #75, this PR) — the second of the
+> three consolidated Sprint-2 close-out PRs (after the #74 `chore(auth)` bundle). Unlike
+> the tracker-hygiene PR #73, it **resolves four documentation/design findings in its own
+> diff**: **CV2** (before/after coverage fields in `feature-pr-conventions.md` §6 + the PR
+> template), **CN3** (the per-config Jest-separation table in §3), **CN4** (the Cloud
+> Functions PR checklist), and **SR3** (the Friends HTML mockup,
+> `docs/design/05-mockups/09-friends.html`). It advances the Documentation-chores tally
+> from 1 → 5 and the Total from 10 / 27 → 14 / 23. Pure docs/design; closes GitHub issues
+> #19 / #24 / #28.
 
 ---
 
@@ -21,22 +23,24 @@
 | Category | Original | Resolved | Remaining |
 |---|---|---|---|
 | Code chores | 12 | 0 | 12 |
-| Documentation chores | 8 | 1 | 7 |
+| Documentation chores | 8 | 5 | 3 |
 | Dependency upgrades | 6 | 2 | 4 |
 | Test coverage gaps | 8 | 7 | 1 |
 | Infrastructure | 3 | 0 | 3 |
-| **Total** | **37** | **10** | **27** |
+| **Total** | **37** | **14** | **23** |
 
 Tracking format: 14 items logged as GitHub issues (#15 through #28); 23 items
 logged in `06-deferred-to-sprint-2.md` only.
 
-> **Totals verified against the Resolution Log (PR #73).** The ten struck-through
+> **Totals verified against the Resolution Log (PR #75).** The fourteen struck-through
 > resolutions are SR8 (#38), D5a + D5b (#44), R1 + R2 + R3 (#32), R5a (#51),
-> R7 + R8 (#48), and CV3 (#36). The Bucket-B close-with-evidence bundle (PR #73)
-> contributes **zero** new resolutions — every finding it documents was already
-> counted when its resolving PR landed; the bundle is tracker hygiene (it closes the
-> GitHub *issues* #20 / #21 / #23, not new audit *findings*). Totals therefore hold at
-> **10 / 27**. Note the audit-accurate finding IDs: **R4 = `groups/{id}` create**,
+> R7 + R8 (#48), CV3 (#36), and CV2 + CN3 + CN4 + SR3 (#75, the docs close-out bundle).
+> Unlike the Bucket-B close-with-evidence bundle (PR #73, which contributed **zero** new
+> resolutions — every finding it documented was already counted when its resolving PR
+> landed), the docs close-out bundle (#75) **resolves four documentation findings in its
+> own diff** (the coverage fields, the Jest-config table, the CF PR checklist, and the
+> Friends mockup), advancing the Documentation-chores tally from 1 to 5 and the Total
+> from 10 / 27 to **14 / 23**. Note the audit-accurate finding IDs: **R4 = `groups/{id}` create**,
 > **R5b = `groups/{id}` update**, **R6 = `groups/{id}` delete** (all Sprint 3 Groups
 > epic, remaining). **R5a (activity-collection rules) is a NEW Sprint-2 tracker ID**
 > introduced when the activity feature shipped (closed by #51) — it is **not** present
@@ -124,17 +128,17 @@ so INV2 remains partially addressed pending the dedicated chore.
 | SC1 | Concurrent submit guard test for phone entry | Next phone entry touch |
 | SC3 | `MAX_SAFE_INTEGER` overflow test for algorithm | Standalone chore or expense PR |
 
-### Documentation Chores (8 remaining)
+### Documentation Chores (3 remaining)
 
 | ID | Item | Natural Moment |
 |---|---|---|
-| CV2 | Add coverage section to PR description template | Before next feature PR |
+| ~~CV2~~ | ~~Add coverage section to PR description template~~ | **Closed by PR #75** (before/after coverage fields added to `feature-pr-conventions.md` §6 "Coverage tracking" + `.github/PULL_REQUEST_TEMPLATE.md`; one lightweight line per touched feature/module) |
 | P1 | CF testing layers in conventions doc | Review for closure (may be covered by PR #14 CN1) |
 | P2 | CF module layout in conventions doc | Review for closure (may be covered by PR #14 ADR-0011) |
 | SK3 | Field-level rules pattern in skill | Review for closure (may be covered by PR #14 ADR-0010/CN2) |
-| CN3 | Jest config separation in conventions doc | Review for closure (may be folded into PR #14 CN1) |
-| CN4 | CF-specific PR checklist items | Sprint 2 CF PR |
-| SR3 | Friends HTML mockup missing | Screen spec compensates; low urgency |
+| ~~CN3~~ | ~~Jest config separation in conventions doc~~ | **Closed by PR #75** (PR #14 CN1 noted the three configs in one line; PR #75 completes it with a per-config table — roots, npm scripts, workers, emulator ports — in `feature-pr-conventions.md` §3) |
+| ~~CN4~~ | ~~CF-specific PR checklist items~~ | **Closed by PR #75** (region pinning to `asia-south1`, error-code mapping, transaction usage, idempotency added to `feature-pr-conventions.md` §6 + `.github/PULL_REQUEST_TEMPLATE.md`) |
+| ~~SR3~~ | ~~Friends HTML mockup missing~~ | **Closed by PR #75** (`docs/design/05-mockups/09-friends.html` — the 9th mockup; SCR-09..12 aligned, mockups `README.md` index updated) |
 | ~~SR8~~ | ~~Expense event naming asymmetry~~ | **Closed by PR #38** (Camp B adopted — `expense_save_succeeded` / `expense_save_failed`) |
 
 ### Dependency Upgrades (6 remaining)

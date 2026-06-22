@@ -32,8 +32,9 @@ Repository conventions:
 - Emulator ports: Auth 9099, Firestore 8181, Functions 5001, Storage 9199,
   Emulator UI 4000. Local wrapper: `scripts/dev/start-emulators.sh`.
 - CI uses `firebase emulators:exec ... --project demo-onebytwo`.
-- `test:canonical` is referenced by workflows and docs but is not defined in
-  `functions/package.json`; treat this as a known gap until a script is added.
+- `test:canonical` (`jest --forceExit test/simplified-debts`) is defined in
+  `functions/package.json` (added in PR #59) and runs the simplified-debts
+  canonical matrix; it is referenced by workflows and docs.
 
 ---
 

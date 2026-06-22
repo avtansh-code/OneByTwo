@@ -24,10 +24,10 @@ There is **no** top-level `integration_test/` package directory. Flutter flow
 tests deliberately live under `test/integration/` until an executable on-device
 harness is added.
 
-The `test:canonical` script is referenced by `.github/workflows/pr.yml`,
-`.github/workflows/release.yml`, and documentation, but is not defined in
-`functions/package.json`. Treat that as a known gap; do not claim it is a
-working command until the script exists.
+The `test:canonical` script (`jest --forceExit test/simplified-debts`) is
+defined in `functions/package.json` (added in PR #59) and is referenced by
+`.github/workflows/pr.yml`, `.github/workflows/release.yml`, and documentation.
+It runs the simplified-debts canonical test matrix.
 
 Emulators:
 
