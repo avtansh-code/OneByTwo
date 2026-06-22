@@ -242,15 +242,18 @@ jobs:
       - name: Run simplified-debts canonical tests against emulator
         run: |
           # RT2: log step duration for the canonical simplified-debts suite.
+          # test:canonical is defined (PR #59), so a non-zero run must fail
+          # the job; preserve the exit status rather than swallowing it
+          # behind --if-present / an else "skipping" branch.
           start=$(date +%s)
-          if cd functions && npm run --silent test:canonical --if-present; then
-            echo "Canonical tests passed."
-          else
-            echo "test:canonical script not yet defined — skipping."
-          fi
+          set +e
+          cd functions && npm run --silent test:canonical
+          status=$?
+          set -e
           duration=$(( $(date +%s) - start ))
-          echo "RT2 step-duration: canonical-tests=${duration}s"
+          echo "RT2 step-duration: canonical-tests=${duration}s (exit ${status})"
           echo "::notice title=CI step duration (canonical-tests)::${duration}s"
+          exit $status
 
   # ── Build (unsigned) — catch build errors early ─────────────────────────────
   # The build jobs intentionally do NOT depend on flutter-checks: they run in
