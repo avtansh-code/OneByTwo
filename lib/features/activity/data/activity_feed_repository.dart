@@ -3,8 +3,8 @@ import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/providers/firebase_providers.dart';
 import 'package:onebytwo/features/activity/domain/activity_feed_item.dart';
-import 'package:onebytwo/features/auth/data/user_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Abstract repository

@@ -160,7 +160,7 @@ Widget _buildSubject({
       connectivityCheckProvider.overrideWithValue(
         isOnline ?? (() async => true),
       ),
-      authStateNotifierProvider.overrideWith(
+      authStateProvider.overrideWith(
         (ref) => Stream<AuthState>.value(
           authState ??
               AuthenticatedWithProfile(

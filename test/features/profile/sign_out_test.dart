@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
@@ -127,7 +128,7 @@ Widget _buildProfile({
       analyticsServiceProvider.overrideWithValue(analytics),
       phoneAuthRepositoryProvider.overrideWithValue(authRepo),
       userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
-      authStateNotifierProvider.overrideWith(
+      authStateProvider.overrideWith(
         (ref) => Stream.value(
           AuthenticatedWithProfile(uid: 'uid-123', user: _testUser),
         ),

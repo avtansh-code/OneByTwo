@@ -5,7 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:onebytwo/features/auth/data/user_repository.dart'
+import 'package:onebytwo/core/providers/firebase_providers.dart'
     show firebaseFirestoreProvider;
 import 'package:onebytwo/features/notifications/application/firebase_messaging_provider.dart';
 

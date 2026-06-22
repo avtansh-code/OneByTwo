@@ -107,7 +107,7 @@ class _NotificationPreferencesScreenState
     // rather than letting an empty-uid Firestore read masquerade as a
     // generic load failure. AsyncLoading is treated as "not yet
     // known, don't gate" — the screen waits for resolution.
-    final authState = ref.watch(authStateNotifierProvider);
+    final authState = ref.watch(authStateProvider);
     final isAuthed = authState.maybeWhen(
       data: (s) => s is AuthenticatedWithProfile,
       orElse: () => true,

@@ -343,7 +343,7 @@ class NotificationPreferencesController
 /// Riverpod provider for [NotificationPreferencesController].
 ///
 /// Reads the current authenticated user's uid from
-/// `authStateNotifierProvider`. If the state is not
+/// `authStateProvider`. If the state is not
 /// [AuthenticatedWithProfile] (the only state from which SCR-27 is
 /// reachable per the SCR-26 nav row), the controller is constructed
 /// with an empty uid — the next Firestore read will surface an Error
@@ -356,7 +356,7 @@ final notificationPreferencesControllerProvider =
       NotificationPreferencesController,
       NotificationPreferencesState
     >((ref) {
-      final authState = ref.read(authStateNotifierProvider).valueOrNull;
+      final authState = ref.read(authStateProvider).valueOrNull;
       final uid = switch (authState) {
         AuthenticatedWithProfile(:final uid) => uid,
         _ => '',

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
-import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
 
@@ -21,7 +21,7 @@ import 'package:onebytwo/features/notifications/data/fcm_token_service.dart';
 /// in their own try/catch to surface a user-facing error snackbar).
 Future<void> signOutWithFcmCleanup(WidgetRef ref) async {
   try {
-    final authState = ref.read(authStateNotifierProvider).valueOrNull;
+    final authState = ref.read(authStateProvider).valueOrNull;
     if (authState is AuthenticatedWithProfile) {
       final tokenService = ref.read(fcmTokenServiceProvider);
       final currentToken = tokenService.currentToken;

@@ -45,7 +45,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final authAsync = ref.watch(authStateNotifierProvider);
+    final authAsync = ref.watch(authStateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -155,7 +155,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _retryCount++;
                   });
                   // ignore: unused_result
-                  ref.refresh(authStateNotifierProvider);
+                  ref.refresh(authStateProvider);
                 },
                 child: const Text('Retry'),
               ),

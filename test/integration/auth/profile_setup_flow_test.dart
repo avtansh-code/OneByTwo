@@ -181,7 +181,7 @@ void main() {
 
       // Navigation to home is now handled reactively by the auth gate
       // (OneBytwoApp), which observes the Firestore user doc via
-      // authStateNotifierProvider. In this unit test context, the
+      // authStateProvider. In this unit test context, the
       // auth gate is not present, so we verify the doc was created
       // and telemetry fired correctly instead.
 

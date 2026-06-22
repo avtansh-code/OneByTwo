@@ -258,7 +258,33 @@ void main() {
       expect(fakeRepository.lastVerifyCode, '123456');
     });
 
-    test('submit logs signup_otp_submitted telemetry', () async {
+    test('submit logs otp_verification_started with manual method', () async {
+      fakeRepository.verifyOtpResult = const Success(AuthUser(uid: 'uid-123'));
+
+      for (var i = 0; i < 6; i++) {
+        controller.setDigit(i, '${i + 1}');
+      }
+      await controller.submit();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'otp_verification_started',
+      );
+      expect(event.parameters, containsPair('method', 'manual'));
+    });
+
+    test('submit logs otp_verification_started with paste method', () async {
+      fakeRepository.verifyOtpResult = const Success(AuthUser(uid: 'uid-123'));
+
+      controller.pasteOtp('123456');
+      await controller.submit();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'otp_verification_started',
+      );
+      expect(event.parameters, containsPair('method', 'paste'));
+    });
+
+    test('legacy signup_otp_submitted event is no longer emitted', () async {
       fakeRepository.verifyOtpResult = const Success(AuthUser(uid: 'uid-123'));
 
       for (var i = 0; i < 6; i++) {
@@ -268,7 +294,7 @@ void main() {
 
       expect(
         fakeAnalytics.loggedEvents.any((e) => e.name == 'signup_otp_submitted'),
-        isTrue,
+        isFalse,
       );
     });
 
@@ -443,6 +469,10 @@ void main() {
       expect(
         fakeAnalytics.loggedEvents.any((e) => e.name == 'otp_resend_exhausted'),
         isTrue,
+      );
+      expect(
+        fastController.state.validationError,
+        'Maximum resend attempts reached. Please try again later.',
       );
     });
 

@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
@@ -198,11 +197,3 @@ class FirebasePhoneAuthRepository implements PhoneAuthRepository {
   AuthError _mapException(FirebaseAuthException e) =>
       authErrorFromFirebaseCode(e.code);
 }
-
-/// Riverpod provider for [PhoneAuthRepository].
-///
-/// Override in tests with a fake implementation to avoid Firebase
-/// initialisation.
-final phoneAuthRepositoryProvider = Provider<PhoneAuthRepository>(
-  (ref) => FirebasePhoneAuthRepository(),
-);

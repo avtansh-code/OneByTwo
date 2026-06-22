@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:onebytwo/features/auth/data/user_repository.dart';
+import 'package:onebytwo/core/providers/firebase_providers.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 
@@ -95,7 +95,7 @@ void _listenToUserDoc({
 /// deletion), the user is signed out to clear local state.
 ///
 /// See `docs/design/07-technical/state-management.md` section 2.1.
-final authStateNotifierProvider = StreamProvider<AuthState>((ref) {
+final authStateProvider = StreamProvider<AuthState>((ref) {
   final auth = ref.watch(firebaseAuthProvider);
   final firestore = ref.watch(firebaseFirestoreProvider);
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -145,9 +146,11 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
   final List<DateTime> _resendTimestamps = [];
   int? _resendToken;
   Timer? _timer;
+  bool _wasPasted = false;
 
   /// Sets a single digit at [index] (0-5).
   void setDigit(int index, String digit) {
+    _wasPasted = false;
     final updated = List<String>.of(state.digits);
     updated[index] = digit;
     state = state.copyWith(digits: updated);
@@ -155,6 +158,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
 
   /// Clears the digit at [index] (0-5).
   void clearDigit(int index) {
+    _wasPasted = false;
     final updated = List<String>.of(state.digits);
     updated[index] = '';
     state = state.copyWith(digits: updated);
@@ -165,6 +169,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
   /// Rejects codes that are not exactly 6 numeric digits.
   void pasteOtp(String code) {
     if (!RegExp(r'^\d{6}$').hasMatch(code)) return;
+    _wasPasted = true;
     final digits = code.split('');
     state = state.copyWith(digits: digits);
   }
@@ -180,7 +185,12 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
       isSubmitted: true,
       validationError: () => null,
     );
-    unawaited(_analytics.logEvent(name: 'signup_otp_submitted'));
+    unawaited(
+      _analytics.logEvent(
+        name: 'otp_verification_started',
+        parameters: {'method': _wasPasted ? 'paste' : 'manual'},
+      ),
+    );
 
     final vid = state.verificationId;
     if (vid == null) {
@@ -289,8 +299,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
       unawaited(_analytics.logEvent(name: 'otp_resend_exhausted'));
       state = state.copyWith(
         validationError: () =>
-            'Too many attempts. '
-            'Please wait a few minutes before trying again.',
+            'Maximum resend attempts reached. Please try again later.',
         canResend: false,
       );
       return;

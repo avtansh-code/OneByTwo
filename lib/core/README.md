@@ -43,6 +43,16 @@ that belongs to a single feature lives under
   tests inject a fake without the platform plugin (used by profile
   avatar and expense receipt flows).
 
+### Dependency-injection providers
+
+App-scoped DI providers that live outside the feature tree because many
+features consume them (state-management doc section 4):
+
+- `providers/firebase_providers.dart` — `firebaseFirestoreProvider` and
+  `firebaseStorageProvider` (Firebase SDK singletons; override in tests).
+- `providers/phone_auth_provider.dart` — `phoneAuthRepositoryProvider`
+  over the auth feature's `PhoneAuthRepository`.
+
 ### Connectivity
 
 - `connectivity/connectivity_provider.dart` — the `IsOnline` typedef and
@@ -58,7 +68,9 @@ that belongs to a single feature lives under
   first digit 6-9).
 - `widgets/india_phone_input_formatter.dart` — `IndianPhoneInputFormatter`,
   a `TextInputFormatter` that strips `+91` / `91` / `091` prefixes from
-  pasted input and caps at 10 digits.
+  pasted input and caps at 10 digits; and `IndianPhoneDisplayFormatter`,
+  which renders the `XXXXX XXXXX` display grouping (callers store the raw
+  digits).
 
 ### Result type
 
@@ -96,6 +108,9 @@ core/
     connectivity_provider.dart
   formatters/
     inr_formatter.dart
+  providers/
+    firebase_providers.dart
+    phone_auth_provider.dart
   routing/
     notification_deep_links.dart
   services/

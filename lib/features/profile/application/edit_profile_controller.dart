@@ -337,7 +337,7 @@ final editProfileControllerProvider =
     StateNotifierProvider.autoDispose<EditProfileController, EditProfileState>((
       ref,
     ) {
-      final authState = ref.read(authStateNotifierProvider).valueOrNull;
+      final authState = ref.read(authStateProvider).valueOrNull;
       final user = switch (authState) {
         AuthenticatedWithProfile(:final user) => user,
         _ => null,
