@@ -38,8 +38,12 @@ logged in `06-deferred-to-sprint-2.md` only.
 > GitHub *issues* #20 / #21 / #23, not new audit *findings*). Totals therefore hold at
 > **10 / 27**. Note the audit-accurate finding IDs: **R4 = `groups/{id}` create**,
 > **R5b = `groups/{id}` update**, **R6 = `groups/{id}` delete** (all Sprint 3 Groups
-> epic, remaining); R5a (activity-collection rules) is a Sprint-2 sub-ID split from the
-> original audit R5 when the activity feature shipped.
+> epic, remaining). **R5a (activity-collection rules) is a NEW Sprint-2 tracker ID**
+> introduced when the activity feature shipped (closed by #51) — it is **not** present
+> in the Sprint-1 audit and is distinct from **audit R5 = `groups/{id}` update** (which
+> is tracked as the remaining **R5b**). The shorthand "R5 was split into R5a + R5b"
+> elsewhere in this doc is imprecise: only R5b corresponds to the audit's R5; R5a is a
+> separately-introduced activity-rules ID.
 
 ---
 
@@ -568,10 +572,13 @@ closes **R5a** and makes partial progress on **PY3**:
       read / create / unauthenticated read — all rejected via the
       explicit `allow read, write: if false` defence-in-depth on
       the parent doc.
-  Note: R5 in the original Bucket-B audit table was split into
-  R5a (activity rules; closed by PR #51) and R5b (groups rules;
-  Sprint 3 groups epic). The original R5 row in the Test Coverage
-  Gaps table is renumbered accordingly.
+  Note: **R5a is a new Sprint-2 tracker ID** introduced here for the
+  activity-collection rules (closed by PR #51); it is **not** part of the
+  Sprint-1 audit. Audit **R5 = `groups/{id}` update** is tracked as the
+  remaining **R5b** (Sprint 3 groups epic). The shorthand "R5 was split into
+  R5a + R5b" is imprecise — only R5b corresponds to the audit's R5; R5a is a
+  separately-introduced activity-rules ID. The original R5 row in the Test
+  Coverage Gaps table is renumbered to R5b accordingly.
 - **PY3 — Expand integration tests for Sprint 2 flows:** PR #51
   extends `functions/test/integration/on-expense-write.integration.test.ts`
   with three new round-trip tests for AC-17 (create → both members
@@ -1044,14 +1051,28 @@ close or re-scope the three audit-tracker issues (#20 / #21 / #23) correctly.
 | R2 — `friendships/{id}` update validation | PR #32 (`84ad01a`) | same | "update rules" describe block (member can update `lastActivityAt`; `memberIds` immutability; `simplifiedBalances` write-block, Invariant 2). |
 | R3 — `friendships/{id}` delete deny | PR #32 (`84ad01a`) | same | "delete rules" describe block — client delete `assertFails`. |
 | R5a — `activity/{userId}/items` rules | PR #51 (`d2302b9`) | `functions/test/firestore-rules/activity.test.ts` | 12 tests, AC-6 → AC-12 (owner read positive; non-owner / unauth negatives; client create / update / delete denied; parent-doc defence-in-depth). |
-| R7 — Storage file-size validation | PR #48 (`0c6f649`) | `functions/test/storage-rules/receipts.test.ts` | File header line 7 declares "Closes R7 + R8"; AC-16 rejects an 11 MB upload against `request.resource.size < 10 * 1024 * 1024`. |
-| R8 — Storage content-type validation | PR #48 (`0c6f649`) | same | AC-17 rejects `text/plain` and `image/gif` against `contentType.matches('image/(jpeg\|png)')`. |
+| R7 — Storage file-size validation | PR #48 (`0c6f649`) | `functions/test/storage-rules/receipts.test.ts` | File header line 7 declares "Closes R7 + R8"; AC-16 rejects an 11 MB upload against the **receipts-path** predicate `request.resource.size < 10 * 1024 * 1024`. (Avatars-path residual: see the note below.) |
+| R8 — Storage content-type validation | PR #48 (`0c6f649`) | same | AC-17 rejects `text/plain` and `image/gif` against the **receipts-path** predicate `contentType.matches('image/(jpeg\|png)')`. (Avatars-path residual: see the note below.) |
 | PY3 (Functions/emulator layer) — friend-add + expense-create flows | PR #36 enabled `test:integration` in CI; extended by #37 / #45 / #65 | `functions/test/integration/*.integration.test.ts` | 5 suites / 43 tests run under `firebase emulators:exec --only auth,firestore,functions,storage`. Provenance: `on-expense-write` + the in-CI gate landed in #36; `simplified-debts` integration test predates it (authored #12, first run in CI by #36); `on-settlement-write` in #37; `lookup-user-by-phone-number` unskipped/fixed in #45; `delete-user-account` in #65. |
 
 Verification runs at PR #73 (JDK 21, demo-onebytwo emulator project): rules
 suite **10 suites / 200 tests** green; integration suite **5 suites / 43
 tests** green; simplified-debts unit-coverage gate green (`function.ts`
 89.13% branch). No artefact was modified.
+
+> **R7/R8 residual (avatars path) — recorded for literal accuracy.** The Sprint-1 audit
+> (`docs/audits/sprint-1/04-dependency-and-security.md`, R7/R8) names the
+> **`avatars/{userId}`** Storage constraints — 5 MB size and `image/(jpeg|png)`
+> content-type. The R7/R8 close was ratified at **PR #48** against the **`receipts/`**
+> Storage predicates (`receipts.test.ts` header: "Closes R7 + R8"), which exercise the
+> identical size/MIME rule shape (10 MB cap) on the new receipts surface — i.e. R7/R8 was
+> read as generic Storage size/MIME enforcement, consistent with that prior decision. The
+> literal **avatars-path negatives** (oversize + wrong-MIME) are **not** present in
+> `functions/test/storage-rules/avatars.test.ts`: the `storage.rules` avatars clauses
+> exist and are enforced; only the two negative assertions are absent. This is a minor
+> residual that does not reopen #21's substantive rules-coverage goal — it is recorded
+> here (and on the #21 close comment) rather than silently dropped, and the two trivial
+> avatars negatives can be added in a future Storage-rules test-hygiene touch.
 
 **Issue actions.**
 
@@ -1068,7 +1089,10 @@ tests** green; simplified-debts unit-coverage gate green (`function.ts`
   update), **R6** (`groups/{id}` delete) — which belong to the Sprint 3 Groups
   epic and are tracked there, not under #21. With every non-groups finding
   resolved and the groups halves cleanly re-scoped, #21 is the one genuine
-  full-close (`Closes #21`).
+  full-close (`Closes #21`). The R7/R8 close rests on the PR #48-ratified
+  receipts-path coverage; the literal avatars-path negatives remain a minor
+  untested residual (see the R7/R8 residual note above), which does not reopen
+  #21's substantive scope.
 - **#23 "Expand integration tests for Sprint 2 flows" — PARTIAL close,
   re-scoped, kept OPEN.** PY3 is substantially resolved **at the
   Functions/emulator data-flow layer** (the integration suite runs in CI). The
