@@ -205,6 +205,62 @@ void main() {
 
         expect(captured, AuthError.tooManyRequests);
       });
+
+      test('invokes onAutoRetrievalTimeout when the platform auto-retrieval '
+          'times out (SC2)', () async {
+        fakeAuth.onVerifyPhoneNumber =
+            ({
+              required phoneNumber,
+              required verificationCompleted,
+              required verificationFailed,
+              required codeSent,
+              required codeAutoRetrievalTimeout,
+              int? forceResendingToken,
+            }) async {
+              // Code is sent, then the Android auto-retrieval window expires.
+              codeSent('vid-123', 7);
+              codeAutoRetrievalTimeout('vid-123');
+            };
+
+        var timedOut = false;
+        await repository.requestOtp(
+          phoneNumber: '+919876543210',
+          onCodeSent: (_) {},
+          onAutoVerified: (_) {},
+          onError: (_) {},
+          onAutoRetrievalTimeout: () => timedOut = true,
+        );
+
+        expect(timedOut, isTrue);
+      });
+
+      test('tolerates a null onAutoRetrievalTimeout callback on '
+          'timeout (SC2)', () async {
+        fakeAuth.onVerifyPhoneNumber =
+            ({
+              required phoneNumber,
+              required verificationCompleted,
+              required verificationFailed,
+              required codeSent,
+              required codeAutoRetrievalTimeout,
+              int? forceResendingToken,
+            }) async {
+              codeSent('vid-123', 7);
+              codeAutoRetrievalTimeout('vid-123');
+            };
+
+        // No onAutoRetrievalTimeout passed; the optional callback must be a
+        // safe no-op rather than throwing.
+        await expectLater(
+          repository.requestOtp(
+            phoneNumber: '+919876543210',
+            onCodeSent: (_) {},
+            onAutoVerified: (_) {},
+            onError: (_) {},
+          ),
+          completes,
+        );
+      });
     });
 
     group('verifyOtp', () {
