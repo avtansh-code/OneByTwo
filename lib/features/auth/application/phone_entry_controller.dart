@@ -110,7 +110,7 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
         _analytics.logEvent(
           name: 'phone_validation_failed',
           parameters: {
-            'reason': state.phoneNumber.length != 10
+            'reason': state.phoneNumber.length < 10
                 ? 'too_short'
                 : 'invalid_prefix',
           },

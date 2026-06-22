@@ -58,7 +58,7 @@ Source: `docs/design/06-screen-specs/01-05-auth-and-profile-setup.md`
 | `onboarding_slide_viewed` | `slide_index` | `int` (1, 2, or 3) | Each slide becomes visible | SCR-02 |
 | `onboarding_skipped` | `skipped_from_slide` | `int` (1 or 2) | User taps Skip | SCR-02 |
 | `onboarding_completed` | `slides_viewed` | `int` | User taps Get Started on slide 3 or completes onboarding flow and reaches home for the first time | SCR-02 |
-| `phone_entry_viewed` | `source` | `string` (`splash` / `onboarding` / `otp_back`) | Phone-entry screen mounts | SCR-03 |
+| `phone_entry_viewed` | `source` | `string` (`splash`; `onboarding` / `otp_back` deferred — see note) | Phone-entry screen mounts | SCR-03 |
 | `phone_number_submitted` | — | — | User taps Continue with 10 digits (phone number is NOT logged) | SCR-03 |
 | `phone_validation_failed` | `reason` | `string` (`invalid_prefix` / `too_short`) | Client-side validation rejects the number | SCR-03 |
 | `otp_send_requested` | — | — | `verifyPhoneNumber` called | SCR-03 |
@@ -91,6 +91,13 @@ Source: `docs/design/06-screen-specs/01-05-auth-and-profile-setup.md`
 > `is_new_user` on `otp_verification_succeeded` is encoded as an integer `0`/`1`:
 > Firebase Analytics accepts only `String` or `num` parameter values, so a Dart
 > `bool` is not a valid parameter type.
+>
+> `phone_entry_viewed` currently emits only `source: 'splash'` — the sole entry
+> path in the shipped app, where the auth gate mounts the phone-entry screen on
+> `AuthUnauthenticated`. The `onboarding` value is deferred until the SCR-02
+> onboarding flow is implemented; `otp_back` is not emitted because
+> `OtpEntryScreen` is pushed over a still-mounted phone-entry screen, so its
+> `initState` does not re-run when the user navigates back.
 
 ### 1.3 Home and Search Events
 

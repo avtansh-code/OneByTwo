@@ -287,6 +287,19 @@ void main() {
       expect(event.parameters, containsPair('reason', 'invalid_prefix'));
     });
 
+    test('phone_validation_failed labels >10 digits as '
+        'invalid_prefix', () async {
+      // Defensive: the UI caps input at 10, but a direct caller could
+      // pass more; a >10-digit value must not be mislabelled too_short.
+      controller.updatePhoneNumber('123456789012');
+      await controller.submit();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'phone_validation_failed',
+      );
+      expect(event.parameters, containsPair('reason', 'invalid_prefix'));
+    });
+
     test('otp_send_requested fires between signup_started and send', () async {
       fakeRepository.requestOtpSession = VerificationSession(
         verificationId: 'vid-123',
