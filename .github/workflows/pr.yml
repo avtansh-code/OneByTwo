@@ -203,30 +203,57 @@ jobs:
         # rules layer in its own clean emulator session removes the
         # trigger-interference vector entirely.
         run: |
+          # RT2 (audit 02-test-suite-health.md 2.3): log step duration for
+          # the emulator-dependent suites so runtime trends are monitorable.
+          start=$(date +%s)
+          set +e
           firebase emulators:exec \
             --only firestore,storage \
             "cd functions && npm run test:rules" \
             --project demo-onebytwo
+          status=$?
+          set -e
+          duration=$(( $(date +%s) - start ))
+          echo "RT2 step-duration: rules-tests=${duration}s (exit ${status})"
+          echo "::notice title=CI step duration (rules-tests)::${duration}s"
+          exit $status
 
       - name: Run Flutter + Cloud Functions integration tests with full emulators
         # Full emulator session with auth + functions loaded so the
         # registered triggers fire end-to-end during the integration
         # tests' write paths.
         run: |
+          # RT2: log step duration for the full-emulator integration suite.
+          start=$(date +%s)
+          set +e
           firebase emulators:exec \
             --only auth,firestore,functions,storage \
             "flutter test test/integration/ --timeout 300s \
              && cd functions \
              && npm run test:integration" \
             --project demo-onebytwo
+          status=$?
+          set -e
+          duration=$(( $(date +%s) - start ))
+          echo "RT2 step-duration: integration-tests=${duration}s (exit ${status})"
+          echo "::notice title=CI step duration (integration-tests)::${duration}s"
+          exit $status
 
       - name: Run simplified-debts canonical tests against emulator
         run: |
-          if cd functions && npm run --silent test:canonical --if-present; then
-            echo "Canonical tests passed."
-          else
-            echo "test:canonical script not yet defined — skipping."
-          fi
+          # RT2: log step duration for the canonical simplified-debts suite.
+          # test:canonical is defined (PR #59), so a non-zero run must fail
+          # the job; preserve the exit status rather than swallowing it
+          # behind --if-present / an else "skipping" branch.
+          start=$(date +%s)
+          set +e
+          cd functions && npm run --silent test:canonical
+          status=$?
+          set -e
+          duration=$(( $(date +%s) - start ))
+          echo "RT2 step-duration: canonical-tests=${duration}s (exit ${status})"
+          echo "::notice title=CI step duration (canonical-tests)::${duration}s"
+          exit $status
 
   # ── Build (unsigned) — catch build errors early ─────────────────────────────
   # The build jobs intentionally do NOT depend on flutter-checks: they run in

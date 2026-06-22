@@ -99,11 +99,19 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
 
   /// Validates and submits the current phone number.
   ///
+  /// No-op when an OTP request is already in flight
+  /// ([PhoneEntryState.isLoading]).
   /// On valid input, fires `signup_started`, then requests an OTP.
   /// On OTP sent, sets [PhoneEntryState.verificationSession].
   /// On error, sets [PhoneEntryState.validationError] with the
   /// domain error message.
   Future<void> submit() async {
+    // Concurrent-submit guard (SC1): ignore a second submit while an OTP
+    // request is already in flight. Mirrors the OtpEntryController submit /
+    // resend loading guards; without it a rapid double-tap could fire a
+    // duplicate requestOtp before the first completes.
+    if (state.isLoading) return;
+
     final error = validateIndianMobile(state.phoneNumber);
     if (error != null) {
       unawaited(

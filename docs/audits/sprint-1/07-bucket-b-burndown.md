@@ -6,15 +6,23 @@
 > Source: `docs/audits/sprint-1/00-triage-summary.md` (Bucket B section).
 > Detail: `docs/audits/sprint-1/06-deferred-to-sprint-2.md`.
 >
-> Last updated: the **`docs` close-out bundle** (PR #75, this PR) — the second of the
-> three consolidated Sprint-2 close-out PRs (after the #74 `chore(auth)` bundle). Unlike
-> the tracker-hygiene PR #73, it **resolves four documentation/design findings in its own
-> diff**: **CV2** (before/after coverage fields in `feature-pr-conventions.md` §6 + the PR
-> template), **CN3** (the per-config Jest-separation table in §3), **CN4** (the Cloud
-> Functions PR checklist), and **SR3** (the Friends HTML mockup,
-> `docs/design/05-mockups/09-friends.html`). It advances the Documentation-chores tally
-> from 1 → 5 and the Total from 10 / 27 → 14 / 23. Pure docs/design; closes GitHub issues
-> #19 / #24 / #28.
+> Last updated: the **`test` close-out bundle** (PR #76, this PR) — the third and final
+> of the three consolidated Sprint-2 close-out PRs (after the #74 `chore(auth)` and #75
+> `docs` bundles). It **resolves six test/CI findings in its own diff**: **SC1**
+> (concurrent-submit guard test for phone entry, plus a separate `fix(auth)` adding the
+> `isLoading` guard the test surfaced), **SC2** (OTP auto-retrieval-timeout tests at the
+> `requestOtp` consumers — the `FirebasePhoneAuthRepository` wiring + the phone-entry
+> controller's `otp_auto_read_failed` path), **SC3** (`MAX_SAFE_INTEGER` overflow
+> boundary) and **SC4** (100+/1000-member algorithm scalability) under
+> `functions/test/simplified-debts/`, **RT2** (per-step duration logging on the
+> emulator-dependent `pr.yml` steps), and **INV2** (first automated Invariant-3 guard — a
+> `ShareServiceBase.share()` boundary unit test + a `share_boundary_contract_test.dart`
+> grep over `lib/`). With SC1–SC4 done it **fully closes #20**; RT2 + INV2 close the
+> matching halves of **#23 with evidence**, and #23 is **re-scoped a third time** — the
+> PY3 Flutter emulator-harness remainder stays **open** (a real `integration_test/`
+> harness needs an Android emulator in CI). `Closes #20` + `Refs #23`. Closures are
+> recorded at the row level below; the aggregate Totals table — which already trails the
+> #74 client-chore closures — is re-derived in the periodic Bucket-B hygiene pass.
 
 ---
 
@@ -125,8 +133,8 @@ so INV2 remains partially addressed pending the dedicated chore.
 | S4 | Phone entry live formatting (XXXXX XXXXX) | Sprint 2 polish |
 | S5 | OTP resend exhausted message text alignment | Next OTP touch |
 | F2 | Group create rules missing `adminId` validation | Sprint 3 (groups) |
-| SC1 | Concurrent submit guard test for phone entry | Next phone entry touch |
-| SC3 | `MAX_SAFE_INTEGER` overflow test for algorithm | Standalone chore or expense PR |
+| ~~SC1~~ | ~~Concurrent submit guard test for phone entry~~ | **Closed by PR #76** (slow-repo concurrent-submit test in `phone_entry_controller_test.dart` + a separate `fix(auth)` adding the `if (state.isLoading) return;` guard the test surfaced) |
+| ~~SC3~~ | ~~`MAX_SAFE_INTEGER` overflow test for algorithm~~ | **Closed by PR #76** (`functions/test/simplified-debts/algorithm.boundary.test.ts` — safe-integer boundary settlement, zero-sum preservation, realistic large expenses; integer paise, no float) |
 
 ### Documentation Chores (3 remaining)
 
@@ -160,18 +168,18 @@ so INV2 remains partially addressed pending the dedicated chore.
 | ~~R5a~~ | ~~Firestore rules test gap for activity collection~~ | **Closed by PR #51** (`functions/test/firestore-rules/activity.test.ts` — 12 tests covering AC-6 through AC-12 of the FR-EX-07 story: owner-read positive + non-owner / unauth / parent-doc negatives + client-create / update / delete denied) |
 | R1-R4, R5b, R6 | Remaining Firestore rules test gaps (friendships / groups halves) | Sprint 2 friendship PR / Sprint 3 groups PR |
 | ~~R7-R8~~ | ~~Storage rules test gaps (file size, content-type)~~ | **Closed by PR #48** (`functions/test/storage-rules/receipts.test.ts` — 23 tests covering size + MIME + membership + cross-collection predicate for friendship + group predicates) |
-| SC2 | OTP auto-retrieval timeout test | Android auto-read refinement |
-| SC4 | Large group (100+) scalability test | Sprint 3 groups |
-| INV2 | Share-sheet verification tests | When sharing features implemented |
+| ~~SC2~~ | ~~OTP auto-retrieval timeout test~~ | **Closed by PR #76** (data-layer `requestOtp` `onAutoRetrievalTimeout` wiring in `phone_auth_repository_test.dart` + the phone-entry controller's `otp_auto_read_failed` timeout path, including suppression after auto-verification) |
+| ~~SC4~~ | ~~Large group (100+) scalability test~~ | **Closed by PR #76** (algorithm-layer scalability in `algorithm.boundary.test.ts` — 150-member star = N-1 transfers, 200 paired members, deterministic 1000-member stress; written at the net-balance core, not the Sprint-3 Groups feature) |
+| ~~INV2~~ | ~~Share-sheet verification tests~~ | **Closed by PR #76** (first automated Invariant-3 enforcement: a `ShareServiceBase.share()` boundary unit test on the invite path + a `share_boundary_contract_test.dart` grep asserting no platform-specific messaging package in `lib/`) |
 | INV3 | Float/double rejection hook | Low priority; type system suffices |
 | ~~CV3~~ | ~~Functions `function.ts` branch coverage at 76%~~ | **Closed by PR #36** (now 88.57%) |
-| PY3 | Expand integration tests for Sprint 2 flows | Sprint 2 ongoing |
+| PY3 | Expand integration tests for Sprint 2 flows (Flutter emulator-harness half) | **Re-scoped (kept open) at PR #76** — RT2 + INV2 closed with evidence; the executable `integration_test/` harness realising the render-only `test/integration/**/*_flow_test.dart` stubs needs an Android emulator in CI, deferred rather than blocking the close-out |
 
 ### Infrastructure (3 remaining)
 
 | ID | Item | Timeline |
 |---|---|---|
-| RT2 | CI step duration logging for trend monitoring | Sprint 2 |
+| ~~RT2~~ | ~~CI step duration logging for trend monitoring~~ | **Closed by PR #76** (per-step `date +%s` duration logging + `::notice` annotations on the emulator-dependent `pr.yml` steps: rules, integration, canonical) |
 | S2_sec | Release pipeline secrets (Google Play, TestFlight) | Before Sprint 6 |
 | SR12 | DPDP compliance legal sign-off scheduling | Before Sprint 6 |
 
