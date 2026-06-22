@@ -1,0 +1,1296 @@
+<!--
+  ============================================================
+  One By Two — Friends Mockup
+  ============================================================
+  SRS Requirements:  FR-FR-01 through FR-FR-05, Section 6.3
+  Screen specs ref:  docs/design/06-screen-specs/09-12-friends.md (SCR-09..12)
+  Wireframe ref:     docs/design/04-wireframes/friends-flow.md
+  Design tokens ref: docs/design/02-design-system/tokens.md
+  ============================================================
+  Screens rendered:
+    1. SCR-09 Friends List — Populated (Light)
+    2. SCR-09 Friends List — Populated (Dark)
+    3. SCR-09 Friends List — Empty (Light)
+    4. SCR-10 Add Friend — From Contacts (Light)
+    5. SCR-11 Friend Detail (Light)
+    6. SCR-12 Delete Friend Dialog (Light)
+  ============================================================
+  Viewport: iPhone 12 (390 x 844)
+  Typography: Inter (Google Fonts), weights 400 / 500 / 600 / 700
+  Colour tokens (Light Theme):
+    primary:          #1F4E79
+    primaryVariant:   #2E86AB
+    secondary:        #F4A261
+    success (owed):   #2A9D8F
+    danger (you owe): #E76F51
+    surface:          #FFFFFF
+    background:       #F8F9FB
+    textPrimary:      #1A1A1A
+    textSecondary:    #4B5563
+    textTertiary:     #9CA3AF
+  Colour tokens (Dark Theme):
+    primary:          #2E86AB
+    surface:          #1E1E1E
+    background:       #121212
+    textPrimary:      #E0E0E0
+  Corner radii:
+    radiusMedium: 12dp (buttons, search, segmented)
+    radiusLarge:  16dp (cards)
+    radiusXL:     24dp (dialogs)
+  Spacing: 4-point grid
+  Money: rendered in rupees with two decimals at the UI layer only
+         (stored as integer paise — Invariant 1).
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>One By Two — Friends Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #E4E7EC;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+      padding: 48px 24px;
+      min-height: 100vh;
+    }
+
+    /* ── Shared phone frame ── */
+    .phone-frame {
+      width: 390px;
+      height: 844px;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 0 0 2px #C4C9D1,
+        0 12px 40px rgba(0, 0, 0, 0.18);
+      flex-shrink: 0;
+    }
+
+    .screen-label {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: #4B5563;
+      text-align: center;
+      margin-bottom: 12px;
+      letter-spacing: 0.1px;
+    }
+
+    .phone-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Designer note rendered below the device frame ── */
+    .screen-note {
+      width: 390px;
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: #FFFFFF;
+      border-left: 3px solid #F4A261;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #4B5563;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .screen-note strong { font-weight: 600; color: #1A1A1A; }
+
+    /* ── Status bar (shared) ── */
+    .status-bar {
+      height: 44px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      flex-shrink: 0;
+    }
+
+    .status-bar .dots { letter-spacing: 1.5px; }
+    .status-bar-light { color: #FFFFFF; }
+    .status-bar-dark { color: #1A1A1A; }
+
+    /* ── Home indicator ── */
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      border-radius: 9999px;
+      z-index: 5;
+    }
+    .home-indicator-light { background: rgba(255, 255, 255, 0.35); }
+    .home-indicator-dark { background: rgba(26, 26, 26, 0.2); }
+
+    /* ============================================================
+       APP SCREEN SHELL (themeable via CSS custom properties)
+       ============================================================ */
+    .app-screen {
+      --surface: #FFFFFF;
+      --background: #F8F9FB;
+      --text-primary: #1A1A1A;
+      --text-secondary: #4B5563;
+      --text-tertiary: #9CA3AF;
+      --primary: #1F4E79;
+      --primary-variant: #2E86AB;
+      --secondary: #F4A261;
+      --success: #2A9D8F;
+      --danger: #E76F51;
+      --divider: #EAECF0;
+      --field: #F2F4F7;
+      --success-bg: rgba(42, 157, 143, 0.12);
+      --danger-bg: rgba(231, 111, 81, 0.12);
+      --muted-bg: rgba(156, 163, 175, 0.16);
+      --chip-bg: rgba(31, 78, 121, 0.10);
+
+      width: 100%;
+      height: 100%;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .app-screen.theme-dark {
+      --surface: #1E1E1E;
+      --background: #121212;
+      --text-primary: #E0E0E0;
+      --text-secondary: #A0A0A0;
+      --text-tertiary: #6B7280;
+      --primary: #2E86AB;
+      --primary-variant: #2E86AB;
+      --divider: #2A2A2A;
+      --field: #2A2A2A;
+      --success-bg: rgba(42, 157, 143, 0.18);
+      --danger-bg: rgba(231, 111, 81, 0.18);
+      --muted-bg: rgba(160, 160, 160, 0.16);
+      --chip-bg: rgba(46, 134, 171, 0.20);
+    }
+
+    /* ── App bar ── */
+    .app-bar {
+      height: 56px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px 0 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .app-bar-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+
+    .app-bar-actions { display: flex; align-items: center; }
+
+    .icon-button {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+      background: none;
+      border: none;
+    }
+
+    .icon-button svg { width: 22px; height: 22px; }
+
+    /* ── Friend list ── */
+    .scroll-area { flex: 1; overflow-y: auto; }
+
+    .friend-tile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+      cursor: pointer;
+    }
+
+    .avatar {
+      flex-shrink: 0;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .avatar-44 { width: 44px; height: 44px; font-size: 15px; }
+    .avatar-80 { width: 80px; height: 80px; font-size: 28px; }
+
+    .av-blue   { background: rgba(31, 78, 121, 0.12);  color: #1F4E79; }
+    .av-cyan   { background: rgba(46, 134, 171, 0.16); color: #2E86AB; }
+    .av-orange { background: rgba(244, 162, 97, 0.22); color: #B5651D; }
+    .av-teal   { background: rgba(42, 157, 143, 0.16); color: #2A9D8F; }
+    .av-rose   { background: rgba(231, 111, 81, 0.16); color: #E76F51; }
+
+    .friend-main { flex: 1; min-width: 0; }
+
+    .friend-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .friend-sub {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* ── Balance pill ── */
+    .balance-pill {
+      flex-shrink: 0;
+      text-align: right;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+    .pill-caption { display: block; font-size: 11px; font-weight: 500; opacity: 0.85; }
+    .pill-pos { background: var(--success-bg); color: var(--success); }
+    .pill-neg { background: var(--danger-bg); color: var(--danger); }
+    .pill-settled { background: var(--muted-bg); color: var(--text-tertiary); font-weight: 500; }
+
+    /* ── Bottom navigation ── */
+    .bottom-nav {
+      height: 64px;
+      flex-shrink: 0;
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--divider);
+      padding-bottom: 6px;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-item.active { color: var(--primary); }
+
+    /* ── Floating action button ── */
+    .fab {
+      position: absolute;
+      right: 18px;
+      bottom: 80px;
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: var(--primary);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(31, 78, 121, 0.30);
+      z-index: 4;
+    }
+    .fab svg { width: 26px; height: 26px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 32px;
+      text-align: center;
+    }
+
+    .empty-illustration {
+      width: 180px;
+      height: 180px;
+      border-radius: 9999px;
+      background: var(--field);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .empty-illustration .blob-1 {
+      position: absolute; width: 90px; height: 90px; border-radius: 9999px;
+      background: rgba(46, 134, 171, 0.12); top: 26px; left: 28px;
+    }
+    .empty-illustration .blob-2 {
+      position: absolute; width: 56px; height: 56px; border-radius: 9999px;
+      background: rgba(244, 162, 97, 0.20); bottom: 30px; right: 30px;
+    }
+
+    .empty-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .empty-subtitle {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      max-width: 260px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Primary button ── */
+    .btn-primary {
+      height: 50px;
+      padding: 0 28px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(31, 78, 121, 0.2);
+    }
+    .btn-primary svg { width: 18px; height: 18px; }
+
+    /* ── Secondary app bar (back + title) ── */
+    .sub-bar {
+      height: 56px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+    }
+    .sub-bar .sub-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .sub-bar .spacer { flex: 1; }
+
+    /* ── Segmented control ── */
+    .segmented {
+      display: flex;
+      margin: 16px;
+      padding: 4px;
+      background: var(--field);
+      border-radius: 12px;
+    }
+    .segment {
+      flex: 1;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-radius: 9px;
+    }
+    .segment.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    /* ── Search field ── */
+    .search-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 44px;
+      margin: 0 16px 8px;
+      padding: 0 14px;
+      background: var(--field);
+      border-radius: 12px;
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+    .search-field svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ── Manual entry row ── */
+    .manual-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 52px;
+      margin: 0 16px 8px;
+      padding: 0 14px;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 12px;
+    }
+    .manual-prefix {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding-right: 10px;
+      border-right: 1px solid var(--divider);
+    }
+    .manual-placeholder { font-size: 15px; color: var(--text-tertiary); }
+
+    /* ── Section header ── */
+    .section-header {
+      padding: 14px 16px 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+
+    .list-section-title {
+      padding: 16px 16px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .list-section-title a {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: none;
+      letter-spacing: 0;
+      text-decoration: none;
+    }
+
+    /* ── Contact row ── */
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 60px;
+      padding: 10px 16px;
+      background: var(--surface);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--chip-bg);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .chip .dot {
+      width: 6px; height: 6px; border-radius: 9999px; background: var(--success);
+    }
+
+    .btn-text {
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      background: none;
+    }
+    .btn-text.solid { background: var(--primary); color: #FFFFFF; border-color: var(--primary); }
+    .row-trailing { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* ── Friend detail ── */
+    .detail-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+    }
+    .detail-name {
+      margin-top: 12px;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .detail-balance-pill {
+      margin-top: 12px;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .card {
+      margin: 16px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--divider);
+      border-radius: 16px;
+    }
+    .settle-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .settle-copy .settle-label { font-size: 13px; color: var(--text-secondary); }
+    .settle-copy .settle-amount {
+      font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 2px;
+    }
+    .settle-btn {
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .txn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 60px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--divider);
+    }
+    .txn-icon {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--field); color: var(--text-secondary);
+    }
+    .txn-icon svg { width: 20px; height: 20px; }
+    .txn-main { flex: 1; min-width: 0; }
+    .txn-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .txn-date { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .txn-amount { font-size: 14px; font-weight: 600; flex-shrink: 0; }
+    .amount-pos { color: var(--success); }
+    .amount-neutral { color: var(--text-secondary); }
+
+    /* ── Modal scrim + dialog (SCR-12) ── */
+    .scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 15, 25, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 6;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 320px;
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+    }
+    .dialog-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .dialog-body {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+    }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .dialog-btn {
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    .dialog-btn.cancel { background: var(--field); color: var(--text-primary); }
+    .dialog-btn.danger { background: #E76F51; color: #FFFFFF; }
+
+    .dim { filter: saturate(0.9) brightness(0.96); }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       PANEL 1: SCR-09 FRIENDS LIST — POPULATED (LIGHT)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-09 Friends List — Populated (Light)</div>
+    <div class="phone-frame">
+      <div class="app-screen">
+
+        <div class="status-bar status-bar-dark">
+          <span>9:41</span>
+          <span class="dots">5G</span>
+        </div>
+
+        <!-- App bar -->
+        <header class="app-bar">
+          <div class="app-bar-title" role="heading" aria-level="1">Friends</div>
+          <div class="app-bar-actions">
+            <button class="icon-button" aria-label="Search friends">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button class="icon-button" aria-label="Add friend">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- Friend list -->
+        <div class="scroll-area">
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-blue" aria-hidden="true">PS</div>
+            <div class="friend-main">
+              <div class="friend-name">Priya Sharma</div>
+              <div class="friend-sub">Last activity 2 days ago</div>
+            </div>
+            <div class="balance-pill pill-pos" aria-label="Priya Sharma, owes you rupees 450.00">
+              <span class="pill-caption">owes you</span>&#8377;450.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-rose" aria-hidden="true">RV</div>
+            <div class="friend-main">
+              <div class="friend-name">Rahul Verma</div>
+              <div class="friend-sub">Last activity yesterday</div>
+            </div>
+            <div class="balance-pill pill-neg" aria-label="Rahul Verma, you owe rupees 1,200.00">
+              <span class="pill-caption">you owe</span>&#8377;1,200.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-teal" aria-hidden="true">AI</div>
+            <div class="friend-main">
+              <div class="friend-name">Ananya Iyer</div>
+              <div class="friend-sub">Last activity 1 week ago</div>
+            </div>
+            <div class="balance-pill pill-settled" aria-label="Ananya Iyer, all settled up">
+              all settled
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-orange" aria-hidden="true">VN</div>
+            <div class="friend-main">
+              <div class="friend-name">Vikram Nair</div>
+              <div class="friend-sub">Last activity 1 week ago</div>
+            </div>
+            <div class="balance-pill pill-pos" aria-label="Vikram Nair, owes you rupees 80.00">
+              <span class="pill-caption">owes you</span>&#8377;80.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-cyan" aria-hidden="true">MJ</div>
+            <div class="friend-main">
+              <div class="friend-name">Meera Joshi</div>
+              <div class="friend-sub">Last activity 2 weeks ago</div>
+            </div>
+            <div class="balance-pill pill-neg" aria-label="Meera Joshi, you owe rupees 325.00">
+              <span class="pill-caption">you owe</span>&#8377;325.00
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FAB -->
+        <div class="fab" role="button" aria-label="Add expense">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </div>
+
+        <!-- Bottom navigation -->
+        <nav class="bottom-nav">
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="2"/></svg>
+            <span>Friends</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><path d="M3 18c0-2.5 2-4 5-4s5 1.5 5 4M13 18c0-2.5 1.6-4 4-4 1.4 0 2.6.5 3.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Groups</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4a6 6 0 00-6 6v3l-1.5 2.5h15L18 13v-3a6 6 0 00-6-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Activity</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Profile</span>
+          </div>
+        </nav>
+
+        <div class="home-indicator home-indicator-dark"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PANEL 2: SCR-09 FRIENDS LIST — POPULATED (DARK)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-09 Friends List — Populated (Dark)</div>
+    <div class="phone-frame">
+      <div class="app-screen theme-dark">
+
+        <div class="status-bar status-bar-light">
+          <span>9:41</span>
+          <span class="dots">5G</span>
+        </div>
+
+        <header class="app-bar">
+          <div class="app-bar-title" role="heading" aria-level="1">Friends</div>
+          <div class="app-bar-actions">
+            <button class="icon-button" aria-label="Search friends">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button class="icon-button" aria-label="Add friend">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="scroll-area">
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-cyan" aria-hidden="true">PS</div>
+            <div class="friend-main">
+              <div class="friend-name">Priya Sharma</div>
+              <div class="friend-sub">Last activity 2 days ago</div>
+            </div>
+            <div class="balance-pill pill-pos">
+              <span class="pill-caption">owes you</span>&#8377;450.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-rose" aria-hidden="true">RV</div>
+            <div class="friend-main">
+              <div class="friend-name">Rahul Verma</div>
+              <div class="friend-sub">Last activity yesterday</div>
+            </div>
+            <div class="balance-pill pill-neg">
+              <span class="pill-caption">you owe</span>&#8377;1,200.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-teal" aria-hidden="true">AI</div>
+            <div class="friend-main">
+              <div class="friend-name">Ananya Iyer</div>
+              <div class="friend-sub">Last activity 1 week ago</div>
+            </div>
+            <div class="balance-pill pill-settled">all settled</div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-orange" aria-hidden="true">VN</div>
+            <div class="friend-main">
+              <div class="friend-name">Vikram Nair</div>
+              <div class="friend-sub">Last activity 1 week ago</div>
+            </div>
+            <div class="balance-pill pill-pos">
+              <span class="pill-caption">owes you</span>&#8377;80.00
+            </div>
+          </div>
+
+          <div class="friend-tile">
+            <div class="avatar avatar-44 av-cyan" aria-hidden="true">MJ</div>
+            <div class="friend-main">
+              <div class="friend-name">Meera Joshi</div>
+              <div class="friend-sub">Last activity 2 weeks ago</div>
+            </div>
+            <div class="balance-pill pill-neg">
+              <span class="pill-caption">you owe</span>&#8377;325.00
+            </div>
+          </div>
+
+        </div>
+
+        <div class="fab" role="button" aria-label="Add expense">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+            <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </div>
+
+        <nav class="bottom-nav">
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="2"/></svg>
+            <span>Friends</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><path d="M3 18c0-2.5 2-4 5-4s5 1.5 5 4M13 18c0-2.5 1.6-4 4-4 1.4 0 2.6.5 3.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Groups</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4a6 6 0 00-6 6v3l-1.5 2.5h15L18 13v-3a6 6 0 00-6-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Activity</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Profile</span>
+          </div>
+        </nav>
+
+        <div class="home-indicator home-indicator-light"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PANEL 3: SCR-09 FRIENDS LIST — EMPTY (LIGHT)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-09 Friends List — Empty (Light)</div>
+    <div class="phone-frame">
+      <div class="app-screen">
+
+        <div class="status-bar status-bar-dark">
+          <span>9:41</span>
+          <span class="dots">5G</span>
+        </div>
+
+        <header class="app-bar">
+          <div class="app-bar-title" role="heading" aria-level="1">Friends</div>
+          <div class="app-bar-actions">
+            <button class="icon-button" aria-label="Search friends">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <button class="icon-button" aria-label="Add friend">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="empty-state">
+          <div class="empty-illustration" role="img" aria-hidden="true">
+            <div class="blob-1"></div>
+            <div class="blob-2"></div>
+            <svg width="76" height="76" viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg" style="z-index:1;opacity:0.6;">
+              <circle cx="28" cy="30" r="12" stroke="#1F4E79" stroke-width="2.4" fill="rgba(31,78,121,0.08)"/>
+              <circle cx="50" cy="30" r="12" stroke="#2E86AB" stroke-width="2.4" fill="rgba(46,134,171,0.08)"/>
+              <line x1="44" y1="22" x2="46" y2="22" stroke="#F4A261" stroke-width="3" stroke-linecap="round"/>
+              <path d="M16 58c0-7 5.5-12 12-12s12 5 12 12" stroke="#1F4E79" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M40 56c0-6 4.5-10 10-10s10 4 10 10" stroke="#2E86AB" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h1 class="empty-title">No friends yet</h1>
+          <p class="empty-subtitle">Add a friend and start sharing expenses.</p>
+          <button class="btn-primary" aria-label="Add Friend">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="12" y1="5" x2="12" y2="19" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+              <line x1="5" y1="12" x2="19" y2="12" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+            Add Friend
+          </button>
+        </div>
+
+        <nav class="bottom-nav">
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Home</span>
+          </div>
+          <div class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="2"/></svg>
+            <span>Friends</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><path d="M3 18c0-2.5 2-4 5-4s5 1.5 5 4M13 18c0-2.5 1.6-4 4-4 1.4 0 2.6.5 3.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Groups</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4a6 6 0 00-6 6v3l-1.5 2.5h15L18 13v-3a6 6 0 00-6-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Activity</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Profile</span>
+          </div>
+        </nav>
+
+        <div class="home-indicator home-indicator-dark"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PANEL 4: SCR-10 ADD FRIEND — FROM CONTACTS (LIGHT)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-10 Add Friend — From Contacts (Light)</div>
+    <div class="phone-frame">
+      <div class="app-screen">
+
+        <div class="status-bar status-bar-dark">
+          <span>9:41</span>
+          <span class="dots">5G</span>
+        </div>
+
+        <header class="sub-bar">
+          <button class="icon-button" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <div class="sub-title" role="heading" aria-level="1">Add Friend</div>
+          <div class="spacer"></div>
+        </header>
+
+        <!-- Path selector: contacts vs manual +91 entry -->
+        <div class="segmented" role="tablist" aria-label="Add friend method">
+          <div class="segment active" role="tab" aria-selected="true">From Contacts</div>
+          <div class="segment" role="tab" aria-selected="false">Enter Number</div>
+        </div>
+
+        <div class="search-field">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+            <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <span>Search contacts</span>
+        </div>
+
+        <div class="manual-row" role="button" aria-label="Enter a mobile number manually">
+          <span class="manual-prefix">+91</span>
+          <span class="manual-placeholder">Enter mobile number</span>
+        </div>
+
+        <div class="scroll-area">
+
+          <div class="section-header">A</div>
+          <div class="contact-row">
+            <div class="avatar avatar-44 av-teal" aria-hidden="true">AI</div>
+            <div class="friend-main">
+              <div class="friend-name">Ananya Iyer</div>
+              <div class="friend-sub">+91 98xxx xxx12</div>
+            </div>
+            <div class="row-trailing">
+              <span class="chip"><span class="dot"></span>on One By Two</span>
+              <button class="btn-text solid">Add</button>
+            </div>
+          </div>
+
+          <div class="section-header">D</div>
+          <div class="contact-row">
+            <div class="avatar avatar-44 av-orange" aria-hidden="true">DK</div>
+            <div class="friend-main">
+              <div class="friend-name">Deepak Kumar</div>
+              <div class="friend-sub">+91 99xxx xxx40</div>
+            </div>
+            <div class="row-trailing">
+              <button class="btn-text">Invite</button>
+            </div>
+          </div>
+
+          <div class="section-header">M</div>
+          <div class="contact-row">
+            <div class="avatar avatar-44 av-cyan" aria-hidden="true">MJ</div>
+            <div class="friend-main">
+              <div class="friend-name">Meera Joshi</div>
+              <div class="friend-sub">+91 90xxx xxx07</div>
+            </div>
+            <div class="row-trailing">
+              <span class="chip"><span class="dot"></span>on One By Two</span>
+              <button class="btn-text solid">Add</button>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="avatar avatar-44 av-rose" aria-hidden="true">MS</div>
+            <div class="friend-main">
+              <div class="friend-name">Manish Sethi</div>
+              <div class="friend-sub">+91 97xxx xxx88</div>
+            </div>
+            <div class="row-trailing">
+              <button class="btn-text">Invite</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator home-indicator-dark"></div>
+      </div>
+    </div>
+    <div class="screen-note">
+      <strong>Invariant 3 — system share sheet only.</strong> Tapping
+      <em>Invite</em> on a contact who is not yet on One By Two opens the
+      platform's system share sheet (via <code>share_plus</code>). The app never
+      targets a specific messaging app; the OS-presented options are the user's
+      choice. Existing users show the <em>on One By Two</em> chip and are linked
+      immediately (FR-FR-02).
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PANEL 5: SCR-11 FRIEND DETAIL (LIGHT)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-11 Friend Detail (Light)</div>
+    <div class="phone-frame">
+      <div class="app-screen">
+
+        <div class="status-bar status-bar-dark">
+          <span>9:41</span>
+          <span class="dots">5G</span>
+        </div>
+
+        <header class="sub-bar">
+          <button class="icon-button" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <div class="sub-title" role="heading" aria-level="1">Priya Sharma</div>
+          <div class="spacer"></div>
+          <button class="icon-button" aria-label="More options">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="5" r="1.6" fill="currentColor" />
+              <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+              <circle cx="12" cy="19" r="1.6" fill="currentColor" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="scroll-area">
+
+          <!-- Profile header -->
+          <div class="detail-header">
+            <div class="avatar avatar-80 av-blue" aria-hidden="true">PS</div>
+            <div class="detail-name">Priya Sharma</div>
+            <div class="detail-balance-pill pill-pos" aria-label="Priya Sharma owes you rupees 450.00">
+              owes you &#8377;450.00
+            </div>
+          </div>
+
+          <!-- Settle Up card -->
+          <div class="card settle-card">
+            <div class="settle-copy">
+              <div class="settle-label">Net balance</div>
+              <div class="settle-amount">Priya owes you &#8377;450.00</div>
+            </div>
+            <button class="settle-btn" aria-label="Settle Up, rupees 450.00">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M4 12h16M14 6l6 6-6 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Settle Up
+            </button>
+          </div>
+
+          <!-- Recent expenses -->
+          <div class="list-section-title">
+            <span>Recent Expenses</span>
+            <a href="#" aria-label="View full history">View full history</a>
+          </div>
+
+          <div class="txn-row">
+            <div class="txn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 9h14l-1 10H6L5 9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <div class="txn-main">
+              <div class="txn-title">Dinner at Olive</div>
+              <div class="txn-date">18 Jun 2026</div>
+            </div>
+            <div class="txn-amount amount-pos" aria-label="you lent rupees 450.00">you lent &#8377;450.00</div>
+          </div>
+
+          <div class="txn-row">
+            <div class="txn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 17l4-8 3 5 2-3 5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="txn-main">
+              <div class="txn-title">Auto fare</div>
+              <div class="txn-date">15 Jun 2026</div>
+            </div>
+            <div class="txn-amount amount-pos" aria-label="you lent rupees 120.00">you lent &#8377;120.00</div>
+          </div>
+
+          <div class="txn-row">
+            <div class="txn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v16M8 8l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="txn-main">
+              <div class="txn-title">Priya paid you</div>
+              <div class="txn-date">12 Jun 2026 · Settlement</div>
+            </div>
+            <div class="txn-amount amount-neutral" aria-label="settlement rupees 120.00">&#8377;120.00</div>
+          </div>
+
+        </div>
+
+        <div class="home-indicator home-indicator-dark"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PANEL 6: SCR-12 DELETE FRIEND DIALOG (LIGHT)
+       ============================================================ -->
+  <div class="phone-wrapper">
+    <div class="screen-label">SCR-12 Delete Friend Dialog (Light)</div>
+    <div class="phone-frame">
+      <div class="app-screen">
+
+        <!-- Dimmed Friend Detail underlay (settled friend — deletion permitted) -->
+        <div class="dim" style="display:flex; flex-direction:column; height:100%;">
+          <div class="status-bar status-bar-dark">
+            <span>9:41</span>
+            <span class="dots">5G</span>
+          </div>
+
+          <header class="sub-bar">
+            <button class="icon-button" aria-label="Back" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <div class="sub-title">Ananya Iyer</div>
+            <div class="spacer"></div>
+            <button class="icon-button" aria-label="More options" tabindex="-1">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="5" r="1.6" fill="currentColor" />
+                <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                <circle cx="12" cy="19" r="1.6" fill="currentColor" />
+              </svg>
+            </button>
+          </header>
+
+          <div class="scroll-area">
+            <div class="detail-header">
+              <div class="avatar avatar-80 av-teal" aria-hidden="true">AI</div>
+              <div class="detail-name">Ananya Iyer</div>
+              <div class="detail-balance-pill pill-settled">all settled up</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal dialog (zero-balance confirmation variant) -->
+        <div class="scrim">
+          <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="del-title" aria-describedby="del-body">
+            <div class="dialog-title" id="del-title">Delete Friend?</div>
+            <div class="dialog-body" id="del-body">
+              Are you sure you want to remove Ananya Iyer from your friends? This
+              will not delete any shared expenses.
+            </div>
+            <div class="dialog-actions">
+              <button class="dialog-btn cancel">Cancel</button>
+              <button class="dialog-btn danger">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator home-indicator-dark"></div>
+      </div>
+    </div>
+    <div class="screen-note">
+      <strong>FR-FR-05 — settled-balance gate.</strong> Deletion is offered only
+      when the friendship's <code>simplifiedBalances</code> is zero (read-only on
+      the client, Invariant 2). When a balance is outstanding the dialog switches
+      to the blocked variant: title <em>Cannot Delete Friend</em>, body "You have
+      an outstanding balance of [amount] with [Friend name]. Please settle up
+      before removing this friend.", and a single <em>OK</em> button.
+    </div>
+  </div>
+
+</body>
+</html>

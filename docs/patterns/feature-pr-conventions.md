@@ -109,7 +109,21 @@ Use a five-layer test pyramid for Cloud Functions, mirroring the boundary split 
 | Security rules | Firestore/Storage rules against emulator | `functions/test/firestore-rules/`, `functions/test/storage-rules/` | Jest + `@firebase/rules-unit-testing` | Yes for any rule change |
 | Integration | Full emulator suite end-to-end | `functions/test/integration/` | Jest + Firebase Emulators | Yes for callable/trigger functions |
 
-Jest configs are separated by layer: `jest.config.js` (unit, parallel), `jest.rules.config.js` (rules, serial — `maxWorkers: 1` to avoid emulator race conditions), and `jest.integration.config.js` (integration).
+#### Jest config separation
+
+Three Jest configs split the Cloud Functions suites by layer; pick the config (and
+its npm script) that matches what you are testing. Each describes the actual files
+in `functions/`:
+
+| Config | npm script | Roots (test dirs) | Workers | Emulators | Use it for |
+|---|---|---|---|---|---|
+| `jest.config.js` (default) | `npm test` (and `npm run test:canonical` for `test/simplified-debts` only) | `src` + the per-function unit dirs under `test/` (e.g. `test/simplified-debts`, `test/triggers`, `test/notifications`, `test/delete-user-account`, ...); `*.integration.test.ts` is ignored | Parallel (default) | None | Pure algorithm and function-boundary unit tests with mocked Firestore. No emulator needed. |
+| `jest.rules.config.js` | `npm run test:rules` | `test/firestore-rules`, `test/storage-rules` | `maxWorkers: 1` (serial) | Firestore (`8181`) + Storage (`9199`) | Security-rules tests against the emulators. Serial because all suites share one emulator and `clearFirestore()` in one suite can race seeds in another. Run inside `firebase emulators:exec`. |
+| `jest.integration.config.js` | `npm run test:integration` | `test/integration` | Parallel (default) | Full suite — Auth (`9099`), Firestore (`8181`), Functions (`5001`), Storage (`9199`) | End-to-end callable / trigger journeys (`*.integration.test.ts`) against the running emulators. Run inside `firebase emulators:exec`. |
+
+A new unit-test directory under `functions/test/` must be added to the `roots`
+array of `jest.config.js`, or Jest reports "No tests found" for it. The emulator
+ports above are the ones declared in `firebase.json`.
 
 ### Field-Level Security Rules Pattern
 
@@ -319,13 +333,58 @@ Conventional Commits format: `<type>(<scope>): <subject>`.
 4. **Type of Change** — checkbox.
 5. **Invariant Checklist** — all four boxes ticked with explicit rationale ("Compliant
    by absence" or "Compliant: [explanation]"). Never silently skipped.
-6. **Testing** — checkboxes for unit, widget, integration, negative cases, coverage.
+6. **Testing** — checkboxes for unit, widget, integration, negative cases; and a
+   **before/after coverage line for each touched feature/module** (see "Coverage
+   tracking" below). Keep it lightweight — one line per touched scope, not a report.
 7. **Quality** — format, analyse, lint, DartDoc, no secrets, Conventional Commits.
 8. **Telemetry** — events added, PII check.
 9. **Documentation** — story file updated, ADR if applicable.
 10. **Files Added/Modified** — table grouped by purpose (implementation, tests, config).
 11. **Manual Smoke Test** — bullet list of manual checks performed.
 12. **"Next PR"** — one-line pointer to what comes next.
+
+### Coverage tracking
+
+Every PR that touches `lib/features/<feature>/**` or `functions/src/<module>/**`
+records a **before/after line-coverage figure per touched feature/module** in the
+Testing section. This keeps the SRS section 5.7 / DoD section 2 thresholds visible
+at review time without a heavyweight report — one line per touched scope:
+
+| Scope (touched feature / module) | Before | After |
+|---|---|---|
+| `lib/features/friends/**` | 78% | 81% |
+| `functions/src/<module>/**` | 90% | 92% |
+
+- One row per feature or module the PR actually touches — not the whole tree.
+- Figures come from the same coverage run the gate uses (`flutter test --coverage`
+  for Flutter, the Functions Istanbul report for Cloud Functions); a single overall
+  percentage per scope is enough.
+- A PR that touches no `lib/` / `functions/` code (pure docs, design, or CI) records
+  "N/A — no `lib/` / `functions/` code touched." in place of the table.
+- This is a description field, not a new gate: the authoritative enforcement remains
+  the `coverage-gate` CI job and the lefthook pre-push scoped gate (see section 3,
+  "Enforced coverage thresholds").
+
+### Cloud Functions PR checklist
+
+A PR that adds or changes a Cloud Function (`functions/src/**`) confirms these
+Cloud-Functions-specific points in addition to the standard checklist:
+
+- **Region pinning.** Every function is pinned to `asia-south1` (Mumbai) — the single
+  deployment region — via the per-function `region` option (the
+  `REGION = "asia-south1"` constant passed to each `onCall` / `onRequest` / trigger
+  builder, as in `functions/src/**/index.ts`). No function is deployed to `us-central1`
+  or left region-unset.
+- **Error-code mapping.** Callable functions throw typed `HttpsError`s with the correct
+  code (`unauthenticated`, `permission-denied`, `failed-precondition`,
+  `invalid-argument`, ...); internal failures are not leaked as raw stack traces to the
+  client.
+- **Transaction usage.** Multi-document reads-then-writes that must stay consistent use
+  a Firestore `runTransaction` (or a batched write where atomicity, not read
+  consistency, is required) rather than independent `get` / `set` calls.
+- **Idempotency.** Trigger handlers and callables tolerate redelivery and retries:
+  re-running with the same input produces the same end state (no double-applied writes,
+  no duplicate activity or notification emission).
 
 ### Convention citation
 
