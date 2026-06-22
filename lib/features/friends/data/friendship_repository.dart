@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:onebytwo/features/auth/data/user_repository.dart';
+import 'package:onebytwo/core/providers/firebase_providers.dart';
 import 'package:onebytwo/features/friends/domain/friendship_doc.dart';
 
 // ---------------------------------------------------------------------------

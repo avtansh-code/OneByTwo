@@ -131,7 +131,7 @@ void main() async {
 
 /// Root widget for the One By Two application.
 ///
-/// Watches the [authStateNotifierProvider] and rebuilds the
+/// Watches the [authStateProvider] and rebuilds the
 /// [MaterialApp] with the appropriate home screen based on
 /// auth state. The [ValueKey] on [MaterialApp] ensures the
 /// Navigator stack is fully cleared on auth state transitions
@@ -147,7 +147,7 @@ class OneBytwoApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateNotifierProvider);
+    final authState = ref.watch(authStateProvider);
 
     final stateCategory = authState.when(
       data: (state) => switch (state) {

@@ -63,4 +63,52 @@ void main() {
       expect(result.text, equals('9112345'));
     });
   });
+
+  group('IndianPhoneDisplayFormatter', () {
+    late IndianPhoneDisplayFormatter displayFormatter;
+
+    setUp(() {
+      displayFormatter = IndianPhoneDisplayFormatter();
+    });
+
+    TextEditingValue applyDisplay(String newText) {
+      return displayFormatter.formatEditUpdate(
+        TextEditingValue.empty,
+        TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        ),
+      );
+    }
+
+    test('inserts a space after the fifth digit', () {
+      expect(applyDisplay('9876543210').text, equals('98765 43210'));
+    });
+
+    test('no space for five or fewer digits', () {
+      expect(applyDisplay('98765').text, equals('98765'));
+      expect(applyDisplay('9876').text, equals('9876'));
+    });
+
+    test('groups partial input beyond five digits', () {
+      expect(applyDisplay('987654').text, equals('98765 4'));
+    });
+
+    test('strips non-digits before grouping', () {
+      expect(applyDisplay('98765-43210').text, equals('98765 43210'));
+    });
+
+    test('caps at ten digits', () {
+      expect(applyDisplay('98765432109999').text, equals('98765 43210'));
+    });
+
+    test('collapses the cursor to the end of the formatted text', () {
+      final result = applyDisplay('9876543210');
+      expect(result.selection.baseOffset, equals('98765 43210'.length));
+    });
+
+    test('empty input returns empty string', () {
+      expect(applyDisplay('').text, equals(''));
+    });
+  });
 }

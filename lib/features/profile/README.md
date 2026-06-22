@@ -164,8 +164,8 @@ presentation/
 - **In (host):** `ProfileScreen` is tab 4 of `AuthenticatedShell` (shell
   feature).
 - **In (shared):** profile reads/writes and avatar upload reuse
-  `UserRepository` / `firebaseStorageProvider` (auth feature) and
-  `ImagePickerService` (core).
+  `UserRepository` (auth feature), `firebaseStorageProvider`
+  (`lib/core/providers/`), and `ImagePickerService` (core).
 - **Out (sign-out):** the Sign Out action calls `signOutWithFcmCleanup`
   (notifications feature), which unregisters the device's FCM token
   before `PhoneAuthRepository.signOut`.

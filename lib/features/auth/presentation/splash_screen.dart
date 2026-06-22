@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
-import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 
 /// Splash screen displayed during cold-start auth state resolution (SCR-01).
 ///
 /// Shows the app logo, tagline, and a three-dot loader. If auth state
-/// has not resolved after 3 seconds, a "Having trouble?" recovery link
+/// has not resolved after 1500 ms, a "Having trouble?" recovery link
 /// appears that signs the user out and returns to phone entry.
 ///
 /// See `docs/design/06-screen-specs/01-05-auth-and-profile-setup.md` (SCR-01)
@@ -16,7 +16,7 @@ import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 class SplashScreen extends ConsumerStatefulWidget {
   /// Creates a [SplashScreen].
   const SplashScreen({
-    this.timeoutDuration = const Duration(seconds: 3),
+    this.timeoutDuration = const Duration(milliseconds: 1500),
     super.key,
   });
 

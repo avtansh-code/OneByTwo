@@ -152,17 +152,15 @@ void main() {
       expect(fakeRepository.lastRequestedPhoneNumber, '+919876543210');
     });
 
-    test('failed requestOtp sets validationError with '
+    test('failed requestOtp sets otpSendError with '
         'AuthError message', () async {
       fakeRepository.requestOtpError = AuthError.tooManyRequests;
 
       controller.updatePhoneNumber('9876543210');
       await controller.submit();
 
-      expect(
-        controller.state.validationError,
-        AuthError.tooManyRequests.message,
-      );
+      expect(controller.state.otpSendError, AuthError.tooManyRequests.message);
+      expect(controller.state.validationError, isNull);
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.verificationSession, isNull);
     });
@@ -174,10 +172,7 @@ void main() {
       controller.updatePhoneNumber('9876543210');
       await controller.submit();
 
-      expect(
-        controller.state.validationError,
-        AuthError.networkFailure.message,
-      );
+      expect(controller.state.otpSendError, AuthError.networkFailure.message);
     });
 
     test('signup_started telemetry fires before Firebase call', () async {
@@ -269,6 +264,54 @@ void main() {
       expect(startedIndex, greaterThanOrEqualTo(0));
       expect(succeededIndex, greaterThanOrEqualTo(0));
       expect(startedIndex, lessThan(succeededIndex));
+    });
+
+    test('phone_validation_failed fires with too_short reason', () async {
+      controller.updatePhoneNumber('12345');
+      await controller.submit();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'phone_validation_failed',
+      );
+      expect(event.parameters, containsPair('reason', 'too_short'));
+    });
+
+    test('phone_validation_failed fires with invalid_prefix reason', () async {
+      // 10 digits but starts with 5 (not 6-9).
+      controller.updatePhoneNumber('5678901234');
+      await controller.submit();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'phone_validation_failed',
+      );
+      expect(event.parameters, containsPair('reason', 'invalid_prefix'));
+    });
+
+    test('otp_send_requested fires between signup_started and send', () async {
+      fakeRepository.requestOtpSession = VerificationSession(
+        verificationId: 'vid-123',
+        phoneNumber: '+919876543210',
+        requestedAt: DateTime(2025),
+      );
+
+      controller.updatePhoneNumber('9876543210');
+      await controller.submit();
+
+      final eventNames = fakeAnalytics.loggedEvents.map((e) => e.name).toList();
+      expect(eventNames, contains('otp_send_requested'));
+      expect(
+        eventNames.indexOf('otp_send_requested'),
+        greaterThan(eventNames.indexOf('signup_started')),
+      );
+      expect(
+        eventNames.indexOf('otp_send_requested'),
+        lessThan(eventNames.indexOf('otp_send_succeeded')),
+      );
+    });
+
+    test('updatePhoneNumber strips display-formatting space', () {
+      controller.updatePhoneNumber('98765 43210');
+      expect(controller.state.phoneNumber, '9876543210');
     });
   });
 }

@@ -29,7 +29,7 @@ import 'package:onebytwo/features/notifications/presentation/widgets/in_app_noti
 ///     [DeepLinkHandler] (AC-10).
 ///   - Calls `FirebaseMessaging.instance.getInitialMessage()` once on
 ///     mount to handle the cold-start case (AC-11).
-///   - Listens to [authStateNotifierProvider]; on the first transition
+///   - Listens to [authStateProvider]; on the first transition
 ///     to [AuthenticatedWithProfile] per session:
 ///       1. Replays any pending deep-link cached in
 ///          [pendingDeepLinkProvider] (FR-AC-05 unauthenticated-then-
@@ -94,7 +94,7 @@ class _NotificationsLifecycleHostState
       if (initial == null) return;
       final payload = NotificationPayload.fromFcmDataMap(initial.data);
       if (payload == null) return;
-      final authState = ref.read(authStateNotifierProvider).valueOrNull;
+      final authState = ref.read(authStateProvider).valueOrNull;
       if (authState is AuthenticatedWithProfile) {
         await _dispatchDeepLink(
           payload,
@@ -119,7 +119,7 @@ class _NotificationsLifecycleHostState
   Future<void> _onBackgroundedTap(RemoteMessage message) async {
     final payload = NotificationPayload.fromFcmDataMap(message.data);
     if (payload == null) return;
-    final authState = ref.read(authStateNotifierProvider).valueOrNull;
+    final authState = ref.read(authStateProvider).valueOrNull;
     if (authState is AuthenticatedWithProfile) {
       await _dispatchDeepLink(
         payload,
@@ -147,9 +147,7 @@ class _NotificationsLifecycleHostState
               onTap: (p) async {
                 _bannerOverlay?.remove();
                 _bannerOverlay = null;
-                final authState = ref
-                    .read(authStateNotifierProvider)
-                    .valueOrNull;
+                final authState = ref.read(authStateProvider).valueOrNull;
                 if (authState is! AuthenticatedWithProfile) return;
                 await _dispatchDeepLink(
                   p,
@@ -255,7 +253,7 @@ class _NotificationsLifecycleHostState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<AuthState>>(authStateNotifierProvider, (prev, next) {
+    ref.listen<AsyncValue<AuthState>>(authStateProvider, (prev, next) {
       final prevState = prev?.valueOrNull;
       final nextState = next.valueOrNull;
       if (nextState == null) return;

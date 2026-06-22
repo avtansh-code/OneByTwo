@@ -45,7 +45,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final controller = ref.read(editProfileControllerProvider.notifier);
 
     // Get phone number from auth state.
-    final authState = ref.watch(authStateNotifierProvider).valueOrNull;
+    final authState = ref.watch(authStateProvider).valueOrNull;
     final phoneNumber = switch (authState) {
       AuthenticatedWithProfile(:final user) => user.phoneNumber,
       _ => '',

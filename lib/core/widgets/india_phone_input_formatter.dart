@@ -35,3 +35,32 @@ class IndianPhoneInputFormatter extends TextInputFormatter {
     );
   }
 }
+
+/// A [TextInputFormatter] that renders an Indian mobile number in the
+/// `XXXXX XXXXX` display grouping (a single space after the fifth digit).
+///
+/// Strips non-digit characters and caps the result at 10 digits, then
+/// inserts a single separating space once more than five digits are
+/// present. The grouping is for display only; callers should strip the
+/// space before storing or validating (see
+/// `PhoneEntryController.updatePhoneNumber`). Intended to be chained after
+/// [IndianPhoneInputFormatter], which strips any pasted country-code prefix.
+class IndianPhoneDisplayFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 10) {
+      digits = digits.substring(0, 10);
+    }
+    final formatted = digits.length > 5
+        ? '${digits.substring(0, 5)} ${digits.substring(5)}'
+        : digits;
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}

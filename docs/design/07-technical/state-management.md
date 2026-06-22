@@ -82,7 +82,7 @@ first introduced there; they are nonetheless shared by every feature via DI.
 
 | Provider | Type | Source | Notes |
 |---|---|---|---|
-| `authStateNotifierProvider` | `StreamProvider<AuthState>` | `lib/features/auth/application/auth_state_provider.dart` | Drives the auth gate in `main.dart`; downstream providers that need a `userId` depend on the resolved state. |
+| `authStateProvider` | `StreamProvider<AuthState>` | `lib/features/auth/application/auth_state_provider.dart` | Drives the auth gate in `main.dart`; downstream providers that need a `userId` depend on the resolved state. |
 | `firebaseAuthProvider` | `Provider<FirebaseAuth>` | `lib/features/auth/application/auth_state_provider.dart` | DI seam; emulator override in tests (ADR-0013). |
 | `firebaseFirestoreProvider` | `Provider<FirebaseFirestore>` | `lib/features/auth/data/user_repository.dart` | Injected into all repositories; emulator override in tests. |
 | `firebaseStorageProvider` | `Provider<FirebaseStorage>` | `lib/features/auth/data/user_repository.dart` | Used by receipt and avatar upload services. |
@@ -107,7 +107,7 @@ File location: `lib/features/auth/`
 | `otpEntryControllerProvider` | `StateNotifierProvider.autoDispose.family<OtpEntryController, OtpEntryState, …>` | Screen | 6-digit OTP field, resend cooldown timer, verification state (FR-AU-05). Auto-disposes on navigation away. |
 | `profileSetupControllerProvider` | `StateNotifierProvider.autoDispose<ProfileSetupController, ProfileSetupState>` | Screen | Display name and optional photo for first-login onboarding (FR-AU-06). Auto-disposes when setup completes. |
 
-`authStateNotifierProvider`, `firebaseAuthProvider`, `firebaseFirestoreProvider`,
+`authStateProvider`, `firebaseAuthProvider`, `firebaseFirestoreProvider`,
 `firebaseStorageProvider`, and `analyticsServiceProvider` also live in this
 feature but are app-scoped (listed in 2.1).
 
@@ -298,7 +298,7 @@ lib/
     services/image_picker_service.dart        -- imagePickerServiceProvider
     formatters/inr_formatter.dart             -- formatInrFromPaise (Invariant 1)
   features/auth/
-    application/auth_state_provider.dart      -- authStateNotifierProvider, firebaseAuthProvider
+    application/auth_state_provider.dart      -- authStateProvider, firebaseAuthProvider
     application/analytics_provider.dart        -- analyticsServiceProvider
     data/user_repository.dart                  -- firebaseFirestoreProvider, firebaseStorageProvider
   features/friends/
@@ -465,7 +465,7 @@ separate test DI configuration (ADR-0013).
 
 | SRS Requirement | Provider(s) |
 |---|---|
-| FR-AU-01 .. FR-AU-09 | `authStateNotifierProvider`, `phoneEntryControllerProvider`, `otpEntryControllerProvider`, `profileSetupControllerProvider`, `phoneAuthRepositoryProvider`, `userRepositoryProvider` |
+| FR-AU-01 .. FR-AU-09 | `authStateProvider`, `phoneEntryControllerProvider`, `otpEntryControllerProvider`, `profileSetupControllerProvider`, `phoneAuthRepositoryProvider`, `userRepositoryProvider` |
 | FR-PR-01, FR-PR-03 | `editProfileControllerProvider`, `notificationPreferencesControllerProvider`, `userRepositoryProvider` (FR-PR-02 change-phone not implemented) |
 | FR-FR-01 .. FR-FR-05 | `friendsListProvider`, `friendDetailProvider`, `userProfileProvider`, `contactPickerControllerProvider`, `matchAndInviteControllerProvider`, `friendshipRepositoryProvider`, `matchingRepositoryProvider`, `shareServiceProvider` |
 | FR-GR-01 .. FR-GR-07 | _Not implemented in client (see 2.4)._ |

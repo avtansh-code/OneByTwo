@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -11,15 +12,16 @@ import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 
 /// Fake [AnalyticsService] that records logged events for verification.
 class FakeAnalyticsService implements AnalyticsService {
-  /// Events logged during the test.
-  final List<String> loggedEvents = [];
+  /// Events logged as `(name, parameters)` tuples.
+  final List<({String name, Map<String, Object>? parameters})> loggedEvents =
+      [];
 
   @override
   Future<void> logEvent({
     required String name,
     Map<String, Object>? parameters,
   }) async {
-    loggedEvents.add(name);
+    loggedEvents.add((name: name, parameters: parameters));
   }
 }
 
@@ -183,7 +185,10 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pump();
 
-      expect(fakeAnalytics.loggedEvents, contains('signup_started'));
+      expect(
+        fakeAnalytics.loggedEvents.any((e) => e.name == 'signup_started'),
+        isTrue,
+      );
     });
 
     testWidgets('error message is hidden by default', (tester) async {
@@ -214,7 +219,7 @@ void main() {
       );
     });
 
-    testWidgets('shows Firebase error when requestOtp fails', (tester) async {
+    testWidgets('shows OTP-send error as a snackbar (SCR-03)', (tester) async {
       fakeRepository.requestOtpError = AuthError.tooManyRequests;
 
       await tester.pumpWidget(buildSubject());
@@ -224,8 +229,35 @@ void main() {
 
       await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 750));
 
-      expect(find.text(AuthError.tooManyRequests.message), findsOneWidget);
+      expect(
+        find.widgetWithText(SnackBar, AuthError.tooManyRequests.message),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('phone_entry_viewed fires on mount with source', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pump();
+
+      final event = fakeAnalytics.loggedEvents.firstWhere(
+        (e) => e.name == 'phone_entry_viewed',
+      );
+      expect(event.parameters, containsPair('source', 'splash'));
+    });
+
+    testWidgets('live formatting shows XXXXX XXXXX grouping (SCR-03)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+
+      await tester.enterText(find.byType(TextField), '9876543210');
+      await tester.pump();
+
+      expect(find.text('98765 43210'), findsOneWidget);
     });
   });
 }

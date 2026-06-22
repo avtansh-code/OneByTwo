@@ -5,7 +5,7 @@
 //
 // Since FirebaseAuth and FirebaseFirestore cannot be instantiated
 // in unit tests without the Firebase Emulator Suite, these tests
-// override authStateNotifierProvider directly with controlled
+// override authStateProvider directly with controlled
 // streams to verify downstream consumer behaviour.
 
 import 'dart:async';
@@ -17,18 +17,18 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 
 void main() {
-  group('authStateNotifierProvider', () {
+  group('authStateProvider', () {
     test('initial state is AsyncLoading before stream emits', () {
       final container = ProviderContainer(
         overrides: [
-          authStateNotifierProvider.overrideWith(
+          authStateProvider.overrideWith(
             (ref) => const Stream<AuthState>.empty(),
           ),
         ],
       );
       addTearDown(container.dispose);
 
-      final state = container.read(authStateNotifierProvider);
+      final state = container.read(authStateProvider);
       expect(state, isA<AsyncLoading<AuthState>>());
     });
 
@@ -37,7 +37,7 @@ void main() {
       () async {
         final container = ProviderContainer(
           overrides: [
-            authStateNotifierProvider.overrideWith(
+            authStateProvider.overrideWith(
               (ref) => Stream.value(const AuthUnauthenticated()),
             ),
           ],
@@ -45,9 +45,9 @@ void main() {
         addTearDown(container.dispose);
 
         // Let the stream emit.
-        await container.read(authStateNotifierProvider.future);
+        await container.read(authStateProvider.future);
 
-        final state = container.read(authStateNotifierProvider);
+        final state = container.read(authStateProvider);
         expect(state, isA<AsyncData<AuthState>>());
         expect(state.value, isA<AuthUnauthenticated>());
       },
@@ -58,7 +58,7 @@ void main() {
       () async {
         final container = ProviderContainer(
           overrides: [
-            authStateNotifierProvider.overrideWith(
+            authStateProvider.overrideWith(
               (ref) => Stream.value(
                 const AuthenticatedNoProfile(
                   uid: 'uid-123',
@@ -70,9 +70,9 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        await container.read(authStateNotifierProvider.future);
+        await container.read(authStateProvider.future);
 
-        final state = container.read(authStateNotifierProvider);
+        final state = container.read(authStateProvider);
         expect(state.value, isA<AuthenticatedNoProfile>());
         final noProfile = state.value! as AuthenticatedNoProfile;
         expect(noProfile.uid, 'uid-123');
@@ -92,7 +92,7 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
-            authStateNotifierProvider.overrideWith(
+            authStateProvider.overrideWith(
               (ref) => Stream.value(
                 AuthenticatedWithProfile(uid: 'uid-123', user: user),
               ),
@@ -101,9 +101,9 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        await container.read(authStateNotifierProvider.future);
+        await container.read(authStateProvider.future);
 
-        final state = container.read(authStateNotifierProvider);
+        final state = container.read(authStateProvider);
         expect(state.value, isA<AuthenticatedWithProfile>());
         final withProfile = state.value! as AuthenticatedWithProfile;
         expect(withProfile.uid, 'uid-123');
@@ -116,7 +116,7 @@ void main() {
       () async {
         final container = ProviderContainer(
           overrides: [
-            authStateNotifierProvider.overrideWith(
+            authStateProvider.overrideWith(
               (ref) => Stream.value(
                 const AuthenticatedNoProfile(
                   uid: 'uid-456',
@@ -128,9 +128,9 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        await container.read(authStateNotifierProvider.future);
+        await container.read(authStateProvider.future);
 
-        final state = container.read(authStateNotifierProvider);
+        final state = container.read(authStateProvider);
         expect(state.value, isA<AuthenticatedNoProfile>());
         final noProfile = state.value! as AuthenticatedNoProfile;
         expect(noProfile.uid, 'uid-456');
@@ -142,23 +142,18 @@ void main() {
       addTearDown(controller.close);
 
       final container = ProviderContainer(
-        overrides: [
-          authStateNotifierProvider.overrideWith((ref) => controller.stream),
-        ],
+        overrides: [authStateProvider.overrideWith((ref) => controller.stream)],
       );
       addTearDown(container.dispose);
 
       // Initially loading.
-      expect(
-        container.read(authStateNotifierProvider),
-        isA<AsyncLoading<AuthState>>(),
-      );
+      expect(container.read(authStateProvider), isA<AsyncLoading<AuthState>>());
 
       // Emit unauthenticated.
       controller.add(const AuthUnauthenticated());
       await Future<void>.delayed(Duration.zero);
       expect(
-        container.read(authStateNotifierProvider).value,
+        container.read(authStateProvider).value,
         isA<AuthUnauthenticated>(),
       );
 
@@ -171,7 +166,7 @@ void main() {
       );
       await Future<void>.delayed(Duration.zero);
       expect(
-        container.read(authStateNotifierProvider).value,
+        container.read(authStateProvider).value,
         isA<AuthenticatedNoProfile>(),
       );
 
@@ -185,7 +180,7 @@ void main() {
       controller.add(AuthenticatedWithProfile(uid: 'uid-789', user: user));
       await Future<void>.delayed(Duration.zero);
       expect(
-        container.read(authStateNotifierProvider).value,
+        container.read(authStateProvider).value,
         isA<AuthenticatedWithProfile>(),
       );
     });
@@ -195,14 +190,12 @@ void main() {
       addTearDown(controller.close);
 
       final container = ProviderContainer(
-        overrides: [
-          authStateNotifierProvider.overrideWith((ref) => controller.stream),
-        ],
+        overrides: [authStateProvider.overrideWith((ref) => controller.stream)],
       );
       addTearDown(container.dispose);
 
       // Force subscription by reading.
-      container.read(authStateNotifierProvider);
+      container.read(authStateProvider);
 
       // Emit an error.
       controller.addError(Exception('Auth stream failed'));
@@ -211,7 +204,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(authStateNotifierProvider);
+      final state = container.read(authStateProvider);
       expect(state, isA<AsyncError<AuthState>>());
     });
   });

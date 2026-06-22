@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
 import 'package:onebytwo/features/auth/presentation/otp_entry_screen.dart';
@@ -16,12 +16,37 @@ import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 /// displayed as a non-editable prefix widget. Validation occurs on
 /// Continue tap; the button is passively disabled until 10 digits are
 /// entered.
-class PhoneEntryScreen extends ConsumerWidget {
+class PhoneEntryScreen extends ConsumerStatefulWidget {
   /// Creates the phone entry screen.
-  const PhoneEntryScreen({super.key});
+  ///
+  /// [source] identifies how the screen was reached, for the
+  /// `phone_entry_viewed` telemetry event (defaults to `splash`).
+  const PhoneEntryScreen({this.source = 'splash', super.key});
+
+  /// Telemetry source recorded by `phone_entry_viewed` on mount.
+  final String source;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PhoneEntryScreen> createState() => _PhoneEntryScreenState();
+}
+
+class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: 'phone_entry_viewed',
+            parameters: {'source': widget.source},
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(phoneEntryControllerProvider);
     final controller = ref.read(phoneEntryControllerProvider.notifier);
     final theme = Theme.of(context);
@@ -52,6 +77,13 @@ class PhoneEntryScreen extends ConsumerWidget {
           next.autoVerifiedUser!.uid,
           next.phoneNumber,
         );
+      }
+      // Surface OTP-send failures as a snackbar (SCR-03).
+      if (next.otpSendError != null &&
+          previous?.otpSendError != next.otpSendError) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.otpSendError!)));
       }
     });
 
@@ -151,7 +183,7 @@ class PhoneEntryScreen extends ConsumerWidget {
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
                           IndianPhoneInputFormatter(),
-                          FilteringTextInputFormatter.digitsOnly,
+                          IndianPhoneDisplayFormatter(),
                         ],
                         onChanged: controller.updatePhoneNumber,
                         style: theme.textTheme.titleMedium,

@@ -79,7 +79,7 @@ banners, and routes taps into the app.
   `MaterialApp.builder` (in `lib/main.dart`). Subscribes to
   `FirebaseMessaging.onMessage` (foreground → banner overlay),
   `onMessageOpenedApp` (background tap), and `getInitialMessage()`
-  (cold start), and listens to `authStateNotifierProvider` to replay the
+  (cold start), and listens to `authStateProvider` to replay the
   pending deep link and schedule the pre-permission dialog once per
   session.
 

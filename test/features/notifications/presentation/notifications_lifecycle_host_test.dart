@@ -189,7 +189,7 @@ Widget _buildHost({
       ),
       fcmTokenServiceProvider.overrideWithValue(FakeTokenService()),
       deepLinkHandlerProvider.overrideWithValue(deepLinkHandler),
-      authStateNotifierProvider.overrideWith((ref) => authController.stream),
+      authStateProvider.overrideWith((ref) => authController.stream),
       if (seededPending != null)
         pendingDeepLinkProvider.overrideWith((ref) => seededPending),
     ],
@@ -341,9 +341,7 @@ void main() {
               FakePermissionMessagingAdapter(),
             ),
             fcmTokenServiceProvider.overrideWithValue(FakeTokenService()),
-            authStateNotifierProvider.overrideWith(
-              (ref) => authController.stream,
-            ),
+            authStateProvider.overrideWith((ref) => authController.stream),
             pendingDeepLinkProvider.overrideWith((ref) => _deletedPayload()),
             // deepLinkHandlerProvider intentionally NOT overridden — the real
             // handler exercises the selectTab wiring end-to-end.

@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: the **Issue #47 friendship-expense creator-only rules hardening** (#72, `33f870d`) merged — `isValidExpenseUpdate()` now gates friendship-context expense edit / soft-delete on `request.auth.uid == prev.createdBy`. With it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, every P1 is shipped**, and the single-focus issue-backed carry-forward candidate (#47) is consumed. The next PR — the **Bucket-B close-with-evidence bundle** (the diffuse runner-up that prompt `31.md` named to #47) — is a documentation + issue-tracker-hygiene chore: it verifies the Sprint-1 boundary-audit findings that Sprint 2 PRs already resolved, posts per-issue evidence comments, **fully closes #21** and **re-scopes #20 / #23** (kept open), and reconciles the burndown + roadmap. It acts on existing audit issues #20 / #21 / #23 (no new tracked issue) and carries a `Closes #21` line only. It lands as the next available number (≥ #73 now that the highest PR is #72 and the highest issue is #68), reconciled at PR open. Likely **velocity-excluded** (docs/hygiene, like #59).
+> Last updated: the **Issue #47 friendship-expense creator-only rules hardening** (#72, `33f870d`) merged — `isValidExpenseUpdate()` now gates friendship-context expense edit / soft-delete on `request.auth.uid == prev.createdBy`. With it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, every P1 is shipped**, and the single-focus issue-backed carry-forward candidate (#47) is consumed. The **Bucket-B close-with-evidence bundle** has since merged as #73 (`f9a4c54`) — it verified the Sprint-1 boundary-audit findings that Sprint 2 PRs already resolved, posted per-issue evidence comments, **fully closed #21**, **re-scoped #20 / #23** (kept open), and reconciled the burndown + roadmap; **velocity-excluded** (docs/hygiene, like #59). The next PR — the first of the three consolidated Sprint-2 close-out PRs — is the **`chore(auth)` client-housekeeping bundle**: it renames `authStateNotifierProvider` → `authStateProvider` (M1), relocates the three shared providers to `lib/core/providers/` (M4), emits the four secondary auth-funnel telemetry events and corrects the `is_new_user` typing note (T3/T4/T5), and aligns the splash / phone-entry / OTP screen specs (S1/S3/S4/S5); it **closes #15 / #16 / #17 / #18** and carries **5 SP**. It lands as the next available number (≥ #74 now that the highest PR is #73 and the highest issue is #68), reconciled at PR open.
 
 ---
 
@@ -39,16 +39,44 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | **#70** | **PR** | **AC-11 "Open Settings" deep-link CTA chore (FR-AC-04 / AC-11 + parallel FR-FR-01 contact-permission gap) — merged 2026-06-20, `dda2f97`; the highest-ranked unshipped carry-forward candidate (surfaced by PR #55 QA). `app_settings: ^7.0.0` behind a shared `lib/core/services/AppSettingsService` seam; both surfaces wired (SCR-27 notification banner + SCR-10 contact-permission view); PII-free `permission_settings_opened` telemetry; `ios/Podfile.lock` committed. ADR-0019.** |
 | #71 | PR | `shared_preferences` cross-launch persistence chore — merged 2026-06-20, `a0de106`; the highest-ranked unshipped carry-forward candidate now that #70 merged (the natural pair with the #70 `app_settings` chore, deliberately NOT bundled). Adopts `shared_preferences: ^2.5.5` behind a thin `lib/core/services/KeyValueStore` seam (loaded once in `main()`, injected via `ProviderScope`) and persists FR-AC-04 `wasPermanentlyDenied` (closes the controller TODO) + the FR-SE-09 reminder cooldown (`NotifierProvider.family` with a past-`nextAllowedAt` expiry guard). No telemetry. `ios/Podfile.lock` committed. No tracked issue (candidate-list bullet + two code TODOs — no `Closes #NN`); landed as the next available number ≥ #71, reconciled at PR open. ADR-0020. |
 | #72 | PR | Firestore rules — restrict friendship-expense edit / soft-delete to the **expense creator** — **merged 2026-06-20, `33f870d`** (closed `#47`); the highest-ranked unshipped single-focus, issue-backed carry-forward candidate. Added `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` (defence-in-depth re-check of the FR-EX-06 client UI gate), inverted the two `assertSucceeds` "flip to assertFails" placeholder tests and added the creator-success counterparts (full rules suite green, 10 suites / 200 tests). Settlement either-party soft-delete left deliberately asymmetric. Pure `firestore.rules` + rules-tests; no client / function / trigger / schema / index change. |
-| #73 | PR | **Bucket-B close-with-evidence bundle** — IN FLIGHT; documentation + issue-tracker hygiene (the diffuse runner-up to #47). Verifies the Sprint-1 boundary-audit findings Sprint 2 PRs already resolved (CV3 → #36; R1–R3 → #32; R5a → #51; R7–R8 → #48; PY3 Functions/emulator layer → the `test:integration` suite enabled in CI by #36, extended by #37 / #45 / #65), posts per-issue evidence comments, **fully closes #21** (the groups halves R4 / R5b / R6 re-scoped to the Sprint 3 Groups epic) and **re-scopes #20** (SC1–SC4 kept open) and **#23** (Flutter-harness PY3 + RT2 + INV2 kept open), and reconciles `07-bucket-b-burndown.md` + the plan + this roadmap. Acts on #20 / #21 / #23 (no new tracked issue); `Closes #21` only. No app code / rules / new tests / schema / index / function change; no new ADR. Velocity-excluded. |
+| #73 | PR | **Bucket-B close-with-evidence bundle** — **merged 2026-06-22, `f9a4c54`** (`Closes #21`); documentation + issue-tracker hygiene (the diffuse runner-up to #47). Verifies the Sprint-1 boundary-audit findings Sprint 2 PRs already resolved (CV3 → #36; R1–R3 → #32; R5a → #51; R7–R8 → #48; PY3 Functions/emulator layer → the `test:integration` suite enabled in CI by #36, extended by #37 / #45 / #65), posts per-issue evidence comments, **fully closes #21** (the groups halves R4 / R5b / R6 re-scoped to the Sprint 3 Groups epic) and **re-scopes #20** (SC1–SC4 kept open) and **#23** (Flutter-harness PY3 + RT2 + INV2 kept open), and reconciles `07-bucket-b-burndown.md` + the plan + this roadmap. Acts on #20 / #21 / #23 (no new tracked issue); `Closes #21` only. No app code / rules / new tests / schema / index / function change; no new ADR. Velocity-excluded. |
+| #74 | PR | **`chore(auth)` client-housekeeping bundle** — IN FLIGHT; first of the three consolidated Sprint-2 close-out PRs. Renames `authStateNotifierProvider` → `authStateProvider` (M1), relocates `firebaseFirestoreProvider` / `firebaseStorageProvider` / `phoneAuthRepositoryProvider` to `lib/core/providers/` (M4; `currentUserIdProvider` deferred as a separate follow-up), emits the four secondary auth-funnel events (`phone_entry_viewed` / `phone_validation_failed` / `otp_send_requested` / `otp_verification_started`, the last superseding `signup_otp_submitted`) and corrects the `is_new_user` typing note to `int (0/1)` (T3/T4/T5), and aligns the splash (1500 ms) / phone-entry (snackbar OTP-send error + live `XXXXX XXXXX`) / OTP (resend copy) screen specs (S1/S3/S4/S5). `Closes #15 / #16 / #17 / #18`; carries 5 SP. No rules / trigger / schema / index / function change; no new ADR. |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
 consume intermediate numbers; the orchestrator should not assume the
-roadmap slot label equals the GitHub number. **Now that FR-AC-05 has
-merged as PR #69, the AC-11 "Open Settings" deep-link CTA chore lands as
-the next available number ≥ #70** (highest PR is #69, highest issue is
-#68; there is no tracked issue for this chore) — reconcile the slot
-label at PR open.
+roadmap slot label equals the GitHub number. **Now that the Bucket-B
+close-out bundle has merged as PR #73, the `chore(auth)`
+client-housekeeping bundle lands as the next available number ≥ #74**
+(highest PR is #73, highest issue is #68) — and unlike the recent chores
+it DOES carry tracked issues, opening with `Closes #15 / #16 / #17 /
+#18`. Reconcile the slot label at PR open.
+
+---
+
+## PR #73 — Merged (Bucket-B close-with-evidence bundle)
+
+**Status:** Merged 2026-06-22 (`f9a4c54`, `Closes #21`). The first dedicated Bucket-B
+tracker-hygiene PR — the diffuse runner-up to #47 — confirmed as the next-slot pick at
+kickoff. Documentation + issue-tracker hygiene only; **velocity-excluded** (like #59 /
+#61), so the Total is unchanged at **132 SP / 32 PRs**.
+
+- **Evidence verified.** Confirmed the Sprint-1 boundary-audit findings that Sprint 2 PRs
+  already resolved (CV3 → #36; R1–R3 → #32; R5a → #51; R7–R8 → #48; PY3 Functions/emulator
+  layer → the `test:integration` suite) and posted per-issue evidence comments.
+- **#21 fully closed; #20 / #23 re-scoped.** All non-groups rules findings resolved (the
+  R4 / R5b / R6 groups halves re-scoped to the Sprint 3 Groups epic). #20 (SC1–SC4) and #23
+  (Flutter-harness PY3 + RT2 + INV2) kept open under narrowed scope. Reconciled
+  `07-bucket-b-burndown.md` + the plan + this roadmap.
+
+**Stubs / defers.** No app code / rules / new tests / schema / index / Cloud Function
+change; no new ADR.
+
+**Next candidates** (architect's call at the post-#73 kickoff): the **three consolidated
+Sprint-2 close-out PRs** — the `chore(auth)` client-housekeeping bundle (now IN FLIGHT as
+#74; closes #15 / #16 / #17 / #18), a `docs` bundle (#19 / #24 / #28), and a `test` bundle
+(#20 / #23) — plus the `go_router` migration (Sprint 3), FR-SR-01/02 Search (SCR-07), and
+the Sprint 3 Groups epic (FR-GR-01..07).
 
 ---
 
@@ -808,9 +836,14 @@ Candidates (in rough priority order — architect's call at kickoff):
 - **FR-AU-09 account-deletion flow** (P1; depends on a new
   Cloud Function for cascade-delete fan-out; medium PR ~5-8 SP) —
   **IN FLIGHT (this PR; PR #65; deferred reaper work as FUTURE issue #66).**
-- **Bucket-B chore close-out** (single ~3 SP PR closing #20 CV3,
-  #21 R1-R4, #23 PY3 partial with comments — see
-  `docs/sprint-zero/sprint-2-plan.md` §"Issue closure candidates").
+- **Bucket-B chore close-out** — the close-with-evidence verification
+  **MERGED as #73 (`f9a4c54`, `Closes #21`)**; the remaining actionable
+  chores (#15-#20, #23, #24, #28) are now closed out via **three
+  consolidated PRs** (see `docs/sprint-zero/sprint-2-plan.md` §"Sprint 2
+  close-out — consolidated chore PRs"). The first — the **`chore(auth)`
+  client-housekeeping bundle** closing **#15 / #16 / #17 / #18** — is
+  **IN FLIGHT (this PR, #74)**; a `docs` bundle (#19 / #24 / #28) and a
+  `test` bundle (#20 / #23) follow.
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5

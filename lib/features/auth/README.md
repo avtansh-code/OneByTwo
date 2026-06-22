@@ -10,7 +10,7 @@ depends on.
 
 ### Auth gate and app-scoped providers
 
-- `application/auth_state_provider.dart` — `authStateNotifierProvider`
+- `application/auth_state_provider.dart` — `authStateProvider`
   (`StreamProvider<AuthState>`). Combines `FirebaseAuth.authStateChanges()`
   with a snapshot listener on `users/{uid}` (switchMap semantics; the
   cached token is validated via `User.reload`) and emits the sealed
@@ -21,10 +21,10 @@ depends on.
   abstraction, `FirebaseAnalyticsService`, and `analyticsServiceProvider`
   (`Provider<AnalyticsService>`). This is the shared analytics seam used
   by every feature; tests override it with a fake.
-- `data/user_repository.dart` — `firebaseFirestoreProvider`,
-  `firebaseStorageProvider`, the `UserRepository`, and
+- `data/user_repository.dart` — the `UserRepository` and
   `userRepositoryProvider`. Reads/writes `users/{uid}` and handles avatar
-  upload to Firebase Storage.
+  upload to Firebase Storage. (The shared `firebaseFirestoreProvider` and
+  `firebaseStorageProvider` now live in `lib/core/providers/`.)
 
 ### Sign-in flow (FR-AU)
 
@@ -43,7 +43,8 @@ depends on.
 - `domain/verification_session.dart` — `VerificationSession`, the
   in-memory value returned by the `codeSent` callback.
 - `data/phone_auth_repository.dart` — the abstract `PhoneAuthRepository`
-  (and `phoneAuthRepositoryProvider`) over Firebase Phone Auth. Errors
+  over Firebase Phone Auth (the `phoneAuthRepositoryProvider` now lives in
+  `lib/core/providers/`). Errors
   are returned as `AuthError` values rather than thrown; supports
   Android SMS-Retriever auto-verification.
 - `application/phone_entry_controller.dart` — `PhoneEntryController`
@@ -77,13 +78,13 @@ depends on.
 ```
 application/
   analytics_provider.dart       # AnalyticsService seam (app-wide)
-  auth_state_provider.dart      # authStateNotifierProvider + firebaseAuthProvider
+  auth_state_provider.dart      # authStateProvider + firebaseAuthProvider
   otp_entry_controller.dart     # OtpEntryController (autoDispose)
   phone_entry_controller.dart   # PhoneEntryController
   profile_setup_controller.dart # ProfileSetupController (autoDispose)
 data/
   phone_auth_repository.dart    # PhoneAuthRepository over Firebase Phone Auth
-  user_repository.dart          # users/{uid} + Firestore/Storage DI providers
+  user_repository.dart          # users/{uid} read/write + avatar upload
 domain/
   auth_error.dart               # AuthError codes → British-English copy
   auth_state.dart               # sealed AuthState (4 arms)
@@ -116,12 +117,14 @@ presentation/
 ## Hand-off boundaries
 
 - **Out (gate):** `lib/main.dart` (`OneBytwoApp`) watches
-  `authStateNotifierProvider` and routes each `AuthState` arm to its
+  `authStateProvider` and routes each `AuthState` arm to its
   screen, mounting `AuthenticatedShell` (shell feature) for
   `AuthenticatedWithProfile`.
-- **In (shared):** `analyticsServiceProvider`, `firebaseFirestoreProvider`,
-  `firebaseStorageProvider` and `userRepositoryProvider` are consumed
-  across the app (notifications, profile, expenses, etc.).
+- **In (shared):** `analyticsServiceProvider` and `userRepositoryProvider`
+  are consumed across the app (notifications, profile, expenses, etc.).
+  The shared Firebase DI providers (`firebaseFirestoreProvider`,
+  `firebaseStorageProvider`) and `phoneAuthRepositoryProvider` were
+  relocated to `lib/core/providers/` (M4).
 - **Out (cleanup):** sign-out from the profile screen routes through
   `signOutWithFcmCleanup` (notifications feature), which unregisters the
   FCM token before calling `PhoneAuthRepository.signOut`.

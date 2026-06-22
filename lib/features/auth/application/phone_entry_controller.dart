@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/validators.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -15,6 +18,7 @@ class PhoneEntryState {
     this.isLoading = false,
     this.verificationSession,
     this.autoVerifiedUser,
+    this.otpSendError,
   });
 
   /// The raw 10-digit phone number (no prefix).
@@ -36,6 +40,10 @@ class PhoneEntryState {
   /// Set when Android auto-verification completes during OTP request.
   final AuthUser? autoVerifiedUser;
 
+  /// Non-null when an OTP-send request fails. Surfaced as a snackbar
+  /// (per SCR-03), distinct from inline [validationError].
+  final String? otpSendError;
+
   /// Creates a copy with the given fields replaced.
   PhoneEntryState copyWith({
     String? phoneNumber,
@@ -44,6 +52,7 @@ class PhoneEntryState {
     bool? isLoading,
     VerificationSession? Function()? verificationSession,
     AuthUser? Function()? autoVerifiedUser,
+    String? Function()? otpSendError,
   }) {
     return PhoneEntryState(
       phoneNumber: phoneNumber ?? this.phoneNumber,
@@ -58,6 +67,7 @@ class PhoneEntryState {
       autoVerifiedUser: autoVerifiedUser != null
           ? autoVerifiedUser()
           : this.autoVerifiedUser,
+      otpSendError: otpSendError != null ? otpSendError() : this.otpSendError,
     );
   }
 }
@@ -79,7 +89,11 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
   final PhoneAuthRepository _repository;
 
   /// Updates the phone number digits and clears any prior error.
-  void updatePhoneNumber(String digits) {
+  ///
+  /// The incoming [value] may carry display formatting (the `XXXXX XXXXX`
+  /// space); only the raw digits are stored.
+  void updatePhoneNumber(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
     state = state.copyWith(phoneNumber: digits, validationError: () => null);
   }
 
@@ -92,6 +106,16 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
   Future<void> submit() async {
     final error = validateIndianMobile(state.phoneNumber);
     if (error != null) {
+      unawaited(
+        _analytics.logEvent(
+          name: 'phone_validation_failed',
+          parameters: {
+            'reason': state.phoneNumber.length != 10
+                ? 'too_short'
+                : 'invalid_prefix',
+          },
+        ),
+      );
       state = state.copyWith(validationError: () => error);
       return;
     }
@@ -102,10 +126,13 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
       validationError: () => null,
       verificationSession: () => null,
       autoVerifiedUser: () => null,
+      otpSendError: () => null,
     );
 
     final stopwatch = Stopwatch()..start();
     final phoneE164 = '+91${state.phoneNumber}';
+
+    unawaited(_analytics.logEvent(name: 'otp_send_requested'));
 
     await _repository.requestOtp(
       phoneNumber: phoneE164,
@@ -140,7 +167,7 @@ class PhoneEntryController extends StateNotifier<PhoneEntryState> {
         if (!mounted) return;
         state = state.copyWith(
           isLoading: false,
-          validationError: () => authError.message,
+          otpSendError: () => authError.message,
         );
         _analytics.logEvent(
           name: 'otp_send_failed',

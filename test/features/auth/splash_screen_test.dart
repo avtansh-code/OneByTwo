@@ -1,11 +1,12 @@
 // Splash Screen Tests
 //
 // Widget tests for the SplashScreen, covering the logo, tagline,
-// loading indicator, and the 3-second recovery timeout flow.
+// loading indicator, and the 1500 ms recovery timeout flow.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -136,24 +137,24 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('recovery button with default 3-second timeout', (
-      tester,
-    ) async {
+    testWidgets('recovery uses a 1500 ms default timeout', (tester) async {
       await tester.pumpWidget(
-        _buildSplash(
-          analytics: analytics,
-          authRepo: authRepo,
-          timeoutDuration: const Duration(seconds: 3),
+        ProviderScope(
+          overrides: [
+            analyticsServiceProvider.overrideWithValue(analytics),
+            phoneAuthRepositoryProvider.overrideWithValue(authRepo),
+          ],
+          child: const MaterialApp(home: SplashScreen()),
         ),
       );
       await tester.pump();
 
-      // Not visible at 2 seconds.
-      await tester.pump(const Duration(seconds: 2));
+      // Not visible just before 1500 ms.
+      await tester.pump(const Duration(milliseconds: 1400));
       expect(find.text('Having trouble?'), findsNothing);
 
-      // Visible at 3 seconds.
-      await tester.pump(const Duration(seconds: 1));
+      // Visible at 1500 ms.
+      await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Having trouble?'), findsOneWidget);
     });
 

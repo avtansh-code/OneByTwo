@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
@@ -112,7 +113,7 @@ List<Override> _baseOverrides({
     ),
     phoneAuthRepositoryProvider.overrideWithValue(_FakePhoneAuthRepository()),
     userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
-    authStateNotifierProvider.overrideWith((ref) => authStream),
+    authStateProvider.overrideWith((ref) => authStream),
   ];
 }
 

@@ -108,7 +108,7 @@ void main() {
         analyticsServiceProvider.overrideWithValue(fakeAnalytics),
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
-        authStateNotifierProvider.overrideWith(
+        authStateProvider.overrideWith(
           (ref) => Stream.value(
             AuthenticatedWithProfile(uid: 'uid-123', user: _testUser),
           ),

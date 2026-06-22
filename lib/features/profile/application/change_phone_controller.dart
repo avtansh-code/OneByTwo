@@ -392,7 +392,7 @@ class ChangePhoneController extends StateNotifier<ChangePhoneState> {
 ///
 /// Auto-disposing so the controller is cleaned up when the change-phone
 /// screen is removed from the tree. The uid comes from
-/// [authStateNotifierProvider]; the re-auth target number is sourced from
+/// [authStateProvider]; the re-auth target number is sourced from
 /// Firebase Auth (`currentUser.phoneNumber`) — the authoritative number
 /// `reauthenticateWithCredential` runs against — falling back to the
 /// Firestore users-doc number only when Auth has none.
@@ -400,7 +400,7 @@ final changePhoneControllerProvider =
     StateNotifierProvider.autoDispose<ChangePhoneController, ChangePhoneState>((
       ref,
     ) {
-      final authState = ref.read(authStateNotifierProvider).valueOrNull;
+      final authState = ref.read(authStateProvider).valueOrNull;
       final uid = switch (authState) {
         AuthenticatedWithProfile(:final uid) => uid,
         _ => '',

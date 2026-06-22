@@ -60,7 +60,7 @@ class OtpEntryScreen extends ConsumerWidget {
     );
 
     // Post-auth routing is handled reactively by the auth gate
-    // (OneBytwoApp) which observes authStateNotifierProvider. When
+    // (OneBytwoApp) which observes authStateProvider. When
     // OTP verification succeeds, Firebase Auth emits a new user,
     // the auth state provider transitions, and the auth gate
     // replaces the MaterialApp (clearing this screen from the stack).

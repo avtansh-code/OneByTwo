@@ -4,21 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/providers/firebase_providers.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
-
-/// Provides a [FirebaseFirestore] instance for dependency injection.
-///
-/// Override in tests to inject a fake or mock instance.
-final firebaseFirestoreProvider = Provider<FirebaseFirestore>(
-  (ref) => FirebaseFirestore.instance,
-);
-
-/// Provides a [FirebaseStorage] instance for dependency injection.
-///
-/// Override in tests to inject a fake or mock instance.
-final firebaseStorageProvider = Provider<FirebaseStorage>(
-  (ref) => FirebaseStorage.instance,
-);
 
 /// Repository for user profile operations against Firestore and
 /// Firebase Storage.

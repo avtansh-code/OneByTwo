@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
@@ -237,7 +238,7 @@ void main() {
         // the count sub-states are unit-tested in
         // friend_count_provider_test.dart.
         friendCountProvider.overrideWithValue(friendCount),
-        authStateNotifierProvider.overrideWith(
+        authStateProvider.overrideWith(
           (ref) => Stream.value(
             AuthenticatedWithProfile(uid: 'uid-123', user: effectiveUser),
           ),
@@ -255,7 +256,7 @@ void main() {
         phoneAuthRepositoryProvider.overrideWithValue(fakeAuthRepo),
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
-        authStateNotifierProvider.overrideWith(
+        authStateProvider.overrideWith(
           // Stream that never emits keeps state as AsyncLoading.
           (ref) => const Stream<AuthState>.empty(),
         ),
@@ -272,7 +273,7 @@ void main() {
         userRepositoryProvider.overrideWithValue(fakeUserRepo),
         imagePickerServiceProvider.overrideWithValue(fakeImagePicker),
         ...contactSupportOverrides(),
-        authStateNotifierProvider.overrideWith(
+        authStateProvider.overrideWith(
           (ref) => Stream<AuthState>.error(Exception('Network error')),
         ),
       ],

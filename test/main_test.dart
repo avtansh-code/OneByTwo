@@ -20,6 +20,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/features/activity/data/activity_feed_repository.dart';
 import 'package:onebytwo/features/activity/domain/activity_feed_item.dart';
@@ -163,7 +164,7 @@ List<Override> _baseOverrides({required Stream<AuthState> authStream}) {
     analyticsServiceProvider.overrideWithValue(_FakeAnalyticsService()),
     phoneAuthRepositoryProvider.overrideWithValue(_FakePhoneAuthRepository()),
     userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
-    authStateNotifierProvider.overrideWith((ref) => authStream),
+    authStateProvider.overrideWith((ref) => authStream),
     // Keep the production friendsListProvider pipeline live (so it
     // reads the per-arm `currentUserIdProvider` override) but route
     // through an in-memory fake so no Firestore call is required.

@@ -20,7 +20,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final authState = ref.watch(authStateNotifierProvider);
+    final authState = ref.watch(authStateProvider);
 
     final displayName = authState.whenOrNull(
       data: (state) => switch (state) {

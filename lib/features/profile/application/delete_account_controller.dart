@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart' show PhoneAuthCredential;
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_account_repository.dart';
-import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/profile/application/delete_account_telemetry.dart';
@@ -390,7 +390,7 @@ final deleteAccountControllerProvider =
       DeleteAccountController,
       DeleteAccountState
     >((ref) {
-      final authState = ref.read(authStateNotifierProvider).valueOrNull;
+      final authState = ref.read(authStateProvider).valueOrNull;
       final docPhoneNumber = switch (authState) {
         AuthenticatedWithProfile(:final user) => user.phoneNumber,
         _ => '',

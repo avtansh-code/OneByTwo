@@ -4,7 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:onebytwo/features/auth/data/user_repository.dart'
+import 'package:onebytwo/core/providers/firebase_providers.dart'
     show firebaseStorageProvider;
 import 'package:onebytwo/features/expenses/domain/receipt_upload_error.dart';
 

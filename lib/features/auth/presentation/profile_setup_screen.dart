@@ -86,7 +86,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     // Post-save routing is handled reactively by the auth gate.
     // When the user doc is created, the Firestore snapshot listener
-    // in authStateNotifierProvider detects it and transitions to
+    // in authStateProvider detects it and transitions to
     // AuthenticatedWithProfile, causing the auth gate to show home.
     ref.listen<ProfileSetupState>(profileSetupControllerProvider, (
       previous,

@@ -19,7 +19,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onebytwo/features/auth/data/user_repository.dart'
+import 'package:onebytwo/core/providers/firebase_providers.dart'
     show firebaseFirestoreProvider;
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';

@@ -13,9 +13,9 @@ it, under `lib/features/<feature>/data/` (for example
 `features/friends/data/friendship_repository.dart`,
 `features/expenses/data/expense_repository.dart`,
 `features/settlements/data/settlement_repository.dart`). The shared
-Firebase dependency-injection providers (`firebaseFirestoreProvider`,
-`firebaseAuthProvider`, `firebaseStorageProvider`) live in
-`features/auth/data/` and `features/auth/application/`.
+Firebase dependency-injection providers `firebaseFirestoreProvider` and
+`firebaseStorageProvider` live in `lib/core/providers/`, and
+`firebaseAuthProvider` in `features/auth/application/`.
 
 If a genuinely cross-feature data concern emerges that does not belong to
 any single feature, it would live here. Until then, prefer the
