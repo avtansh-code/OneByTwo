@@ -1,7 +1,7 @@
 # Next Three PRs
 
 > Rolling roadmap. Updated at the end of every PR.
-> Last updated: the **Issue #47 friendship-expense creator-only rules hardening** (#72, `33f870d`) merged — `isValidExpenseUpdate()` now gates friendship-context expense edit / soft-delete on `request.auth.uid == prev.createdBy`. With it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, every P1 is shipped**, and the single-focus issue-backed carry-forward candidate (#47) is consumed. The **Bucket-B close-with-evidence bundle** has since merged as #73 (`f9a4c54`) — it verified the Sprint-1 boundary-audit findings that Sprint 2 PRs already resolved, posted per-issue evidence comments, **fully closed #21**, **re-scoped #20 / #23** (kept open), and reconciled the burndown + roadmap; **velocity-excluded** (docs/hygiene, like #59). The **`chore(auth)` client-housekeeping bundle** (#74, `ce6d594`) has since merged — the first of the three consolidated Sprint-2 close-out PRs (renamed `authStateNotifierProvider` → `authStateProvider` (M1), relocated the three shared providers to `lib/core/providers/` (M4), emitted the four secondary auth-funnel telemetry events and corrected the `is_new_user` typing note (T3/T4/T5), and aligned the splash / phone-entry / OTP screen specs (S1/S3/S4/S5)); it **closed #15 / #16 / #17 / #18** and carried **5 SP**, advancing the velocity Total to **137 SP / 33 PRs**. The next PR — the second of the three — is the **`docs` close-out bundle**: it adds the #19 (CV2) coverage fields, completes the #24 (CN3 / CN4) Jest-config table and Cloud-Functions PR checklist, and creates the #28 (SR3) Friends HTML mockup; it **closes #19 / #24 / #28** and is **velocity-excluded** (0 SP, pure docs/design). It lands as the next available number (≥ #75 now that the highest PR is #74 and the highest issue is #68), reconciled at PR open.
+> Last updated: the **Issue #47 friendship-expense creator-only rules hardening** (#72, `33f870d`) merged — `isValidExpenseUpdate()` now gates friendship-context expense edit / soft-delete on `request.auth.uid == prev.createdBy`. With it, **every P0 functional requirement except the deferred Sprint-3 Groups epic (FR-GR-01..07) is shipped, every P1 is shipped**, and the single-focus issue-backed carry-forward candidate (#47) is consumed. The **Bucket-B close-with-evidence bundle** has since merged as #73 (`f9a4c54`) — it verified the Sprint-1 boundary-audit findings that Sprint 2 PRs already resolved, posted per-issue evidence comments, **fully closed #21**, **re-scoped #20 / #23** (kept open), and reconciled the burndown + roadmap; **velocity-excluded** (docs/hygiene, like #59). The **`chore(auth)` client-housekeeping bundle** (#74, `ce6d594`) has since merged — the first of the three consolidated Sprint-2 close-out PRs (renamed `authStateNotifierProvider` → `authStateProvider` (M1), relocated the three shared providers to `lib/core/providers/` (M4), emitted the four secondary auth-funnel telemetry events and corrected the `is_new_user` typing note (T3/T4/T5), and aligned the splash / phone-entry / OTP screen specs (S1/S3/S4/S5)); it **closed #15 / #16 / #17 / #18** and carried **5 SP**, advancing the velocity Total to **137 SP / 33 PRs**. The **`docs` close-out bundle** (#75, `dbc209d`) has since **Merged** — the second of the three: it added the #19 (CV2) coverage fields, completed the #24 (CN3 / CN4) Jest-config table and Cloud-Functions PR checklist, and created the #28 (SR3) Friends HTML mockup; it **closed #19 / #24 / #28** and was **velocity-excluded** (0 SP, pure docs/design). The next PR — the **third and final** of the three — is the **`test` close-out bundle** (#76): the SC1–SC4 coverage tests, RT2 CI step-duration logging, and the INV2 share-sheet verification; it **closes #20** and **re-scopes #23** (RT2 + INV2 closed with evidence; the PY3 Flutter emulator-harness remainder kept open), and **carries 5 SP** (counted on merge: 137 / 33 → 142 / 34). It lands as the next available number (≥ #76 now that the highest PR is #75 and the highest issue is #68), reconciled at PR open.
 
 ---
 
@@ -41,7 +41,8 @@ namespace on GitHub. The post-PR #48 sequence so far:
 | #72 | PR | Firestore rules — restrict friendship-expense edit / soft-delete to the **expense creator** — **merged 2026-06-20, `33f870d`** (closed `#47`); the highest-ranked unshipped single-focus, issue-backed carry-forward candidate. Added `request.auth.uid == prev.createdBy` to `isValidExpenseUpdate()` (defence-in-depth re-check of the FR-EX-06 client UI gate), inverted the two `assertSucceeds` "flip to assertFails" placeholder tests and added the creator-success counterparts (full rules suite green, 10 suites / 200 tests). Settlement either-party soft-delete left deliberately asymmetric. Pure `firestore.rules` + rules-tests; no client / function / trigger / schema / index change. |
 | #73 | PR | **Bucket-B close-with-evidence bundle** — **merged 2026-06-22, `f9a4c54`** (`Closes #21`); documentation + issue-tracker hygiene (the diffuse runner-up to #47). Verifies the Sprint-1 boundary-audit findings Sprint 2 PRs already resolved (CV3 → #36; R1–R3 → #32; R5a → #51; R7–R8 → #48; PY3 Functions/emulator layer → the `test:integration` suite enabled in CI by #36, extended by #37 / #45 / #65), posts per-issue evidence comments, **fully closes #21** (the groups halves R4 / R5b / R6 re-scoped to the Sprint 3 Groups epic) and **re-scopes #20** (SC1–SC4 kept open) and **#23** (Flutter-harness PY3 + RT2 + INV2 kept open), and reconciles `07-bucket-b-burndown.md` + the plan + this roadmap. Acts on #20 / #21 / #23 (no new tracked issue); `Closes #21` only. No app code / rules / new tests / schema / index / function change; no new ADR. Velocity-excluded. |
 | #74 | PR | **`chore(auth)` client-housekeeping bundle** — **merged 2026-06-22, `ce6d594`** (`Closes #15 / #16 / #17 / #18`); first of the three consolidated Sprint-2 close-out PRs. Renamed `authStateNotifierProvider` → `authStateProvider` (M1), relocated `firebaseFirestoreProvider` / `firebaseStorageProvider` / `phoneAuthRepositoryProvider` to `lib/core/providers/` (M4; `currentUserIdProvider` deferred as a separate follow-up), emitted the four secondary auth-funnel events (`phone_entry_viewed` / `phone_validation_failed` / `otp_send_requested` / `otp_verification_started`, the last superseding `signup_otp_submitted`) and corrected the `is_new_user` typing note to `int (0/1)` (T3/T4/T5), and aligned the splash (1500 ms) / phone-entry (snackbar OTP-send error + live `XXXXX XXXXX`) / OTP (resend copy) screen specs (S1/S3/S4/S5). Carried 5 SP (velocity Total → 137 / 33). No rules / trigger / schema / index / function change; no new ADR. |
-| #75 | PR | **`docs` close-out bundle** — IN FLIGHT; second of the three consolidated Sprint-2 close-out PRs (closes #19 / #24 / #28). Adds the #19 (CV2) before/after coverage fields to `feature-pr-conventions.md` §6 + `.github/PULL_REQUEST_TEMPLATE.md`; completes the #24 CN3 Jest-config-separation table (`jest.config.js` / `jest.rules.config.js` / `jest.integration.config.js` — roots, npm scripts, workers, emulator ports) in §3 and adds the CN4 Cloud-Functions PR checklist (region `asia-south1`, error-code mapping, transaction usage, idempotency) to §6 + the template; creates the #28 (SR3) Friends HTML mockup `docs/design/05-mockups/09-friends.html` (the 9th mockup; SCR-09..12) and updates the mockups `README.md` index. Reconciles `07-bucket-b-burndown.md` (CV2 / CN3 / CN4 / SR3 → closed; Total 10 / 27 → 14 / 23). `Closes #19 / #24 / #28`; **velocity-excluded** (0 SP, pure docs/design). No `lib/` / `functions/` / rules / trigger / schema / index change; no new ADR. |
+| #75 | PR | **`docs` close-out bundle** — **merged 2026-06-22, `dbc209d`**; second of the three consolidated Sprint-2 close-out PRs (closes #19 / #24 / #28). Adds the #19 (CV2) before/after coverage fields to `feature-pr-conventions.md` §6 + `.github/PULL_REQUEST_TEMPLATE.md`; completes the #24 CN3 Jest-config-separation table (`jest.config.js` / `jest.rules.config.js` / `jest.integration.config.js` — roots, npm scripts, workers, emulator ports) in §3 and adds the CN4 Cloud-Functions PR checklist (region `asia-south1`, error-code mapping, transaction usage, idempotency) to §6 + the template; creates the #28 (SR3) Friends HTML mockup `docs/design/05-mockups/09-friends.html` (the 9th mockup; SCR-09..12) and updates the mockups `README.md` index. Reconciles `07-bucket-b-burndown.md` (CV2 / CN3 / CN4 / SR3 → closed; Total 10 / 27 → 14 / 23). `Closes #19 / #24 / #28`; **velocity-excluded** (0 SP, pure docs/design). No `lib/` / `functions/` / rules / trigger / schema / index change; no new ADR. |
+| #76 | PR | **`test` close-out bundle** — IN FLIGHT; third and final of the three consolidated Sprint-2 close-out PRs. **Fully closes #20**: SC1 phone-entry concurrent-submit guard test + a separate `fix(auth)` adding the `isLoading` guard the test surfaced; SC2 OTP auto-retrieval-timeout tests at the genuine `requestOtp` consumers (the `FirebasePhoneAuthRepository` wiring + the phone-entry controller's `otp_auto_read_failed` path); SC3 `MAX_SAFE_INTEGER` overflow-boundary + SC4 100+/1000-member algorithm scalability tests under `functions/test/simplified-debts/`. Closes the **#23** RT2 (per-step duration logging on the emulator-dependent `pr.yml` steps) and INV2 (first automated Invariant-3 guard: a `ShareServiceBase.share()` boundary unit test + a `share_boundary_contract_test.dart` grep over `lib/`) halves with evidence, and **re-scopes #23** — the PY3 Flutter emulator integration-harness remainder stays open (a real `integration_test/` harness needs an Android emulator in CI). `Closes #20` + `Refs #23`. No `lib/**` change beyond the single `fix(auth)` guard; no `functions/src/**` / rules / trigger / schema / index change; no new ADR. Carries **5 SP** (counted on merge: 137 / 33 → 142 / 34). |
 
 The "Next three PRs" below refer to the next three FEATURE/CHORE
 **pull requests**. Their issue-number counterparts (when filed) will
@@ -52,6 +53,33 @@ client-housekeeping bundle lands as the next available number ≥ #74**
 (highest PR is #73, highest issue is #68) — and unlike the recent chores
 it DOES carry tracked issues, opening with `Closes #15 / #16 / #17 /
 #18`. Reconcile the slot label at PR open.
+
+---
+
+## PR #75 — Merged (`docs` close-out bundle)
+
+**Status:** Merged 2026-06-22 (`dbc209d`, `Closes #19 / #24 / #28`). The second of the
+three consolidated Sprint-2 close-out PRs, confirmed as the next-slot pick at the
+post-#74 kickoff. Pure docs/design; **velocity-excluded** (like #59 / #61 / #73), so the
+Total is unchanged at **137 SP / 33 PRs**.
+
+- **Coverage tracking (CV2).** Added the before/after coverage fields to
+  `feature-pr-conventions.md` §6 and `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Cloud Functions conventions (CN3 / CN4).** Completed the Jest-config-separation
+  table (`jest.config.js` / `jest.rules.config.js` / `jest.integration.config.js`) in §3
+  and added the Cloud-Functions PR checklist (region `asia-south1`, error-code mapping,
+  transaction usage, idempotency) to §6 and the PR template.
+- **Friends mockup (SR3).** Created `docs/design/05-mockups/09-friends.html` (the 9th
+  mockup; SCR-09..12) and updated the mockups `README.md` index.
+
+**Stubs / defers.** No `lib/` / `functions/` / rules / trigger / schema / index change; no
+new ADR. A follow-up review commit (`6f0123a`) swept the stale `test:canonical` "not
+defined" note out of `test-strategy.md` and `test-design.md`.
+
+**Next candidates** (architect's call at the post-#75 kickoff): the **third and final**
+consolidated Sprint-2 close-out PR — the **`test` bundle** (now IN FLIGHT as #76; closes
+#20, re-scopes #23) — plus the `go_router` migration (Sprint 3), FR-SR-01/02 Search
+(SCR-07), and the Sprint 3 Groups epic (FR-GR-01..07).
 
 ---
 
@@ -875,8 +903,9 @@ Candidates (in rough priority order — architect's call at kickoff):
   close-out — consolidated chore PRs"). The first — the **`chore(auth)`
   client-housekeeping bundle** closing **#15 / #16 / #17 / #18** —
   **MERGED as #74 (`ce6d594`)**; the second — the **`docs` bundle**
-  closing **#19 / #24 / #28** — is **IN FLIGHT (this PR, #75)**; a
-  `test` bundle (#20 / #23) follows.
+  closing **#19 / #24 / #28** — **MERGED as #75 (`dbc209d`)**; the third
+  and final — the **`test` bundle** (closes #20, re-scopes #23) — is
+  **IN FLIGHT (this PR, #76)**.
 - **Issue #47 rules-hardening for non-creator update/delete gate**
   (operational hardening; small standalone PR ~2 SP). Closes the
   defence-in-depth gap that the FR-EX-06 architect §2.9 item 5
