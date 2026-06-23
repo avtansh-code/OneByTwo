@@ -22,8 +22,62 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  # ── Change detection ────────────────────────────────────────────────────────
+  # Detects which areas a PR touches so downstream jobs run only when relevant
+  # files change, saving CI time. The workflow still triggers on every PR, so
+  # each downstream job always reports its own check: a job skipped via its
+  # `if:` reports "skipped", which the `pull-request` ruleset counts as passing
+  # (a skipped required check does NOT block the merge). We deliberately do NOT
+  # use a workflow-level `on.paths` filter, which would skip the whole workflow
+  # and leave the required checks unreported (blocking the PR).
+  #
+  # On non-pull_request events (workflow_dispatch) the filter step is skipped
+  # and every output defaults to 'true', so a manual run executes everything.
+  # The downstream `if:` conditions also fail safe: if this job does not succeed
+  # they run anyway (better to run all tests than to skip them silently).
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      flutter: ${{ steps.filter.outputs.flutter == 'true' || github.event_name != 'pull_request' }}
+      functions: ${{ steps.filter.outputs.functions == 'true' || github.event_name != 'pull_request' }}
+      rules: ${{ steps.filter.outputs.rules == 'true' || github.event_name != 'pull_request' }}
+      android: ${{ steps.filter.outputs.android == 'true' || github.event_name != 'pull_request' }}
+      ios: ${{ steps.filter.outputs.ios == 'true' || github.event_name != 'pull_request' }}
+      ci: ${{ steps.filter.outputs.ci == 'true' || github.event_name != 'pull_request' }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            flutter:
+              - 'lib/**'
+              - 'test/**'
+              - 'integration_test/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'analysis_options.yaml'
+              - '.fvmrc'
+              - '.firebaserc'
+            functions:
+              - 'functions/**'
+              - 'firebase.json'
+            rules:
+              - 'firestore.rules'
+              - 'storage.rules'
+              - 'firestore.indexes.json'
+              - 'firebase.json'
+            android:
+              - 'android/**'
+            ios:
+              - 'ios/**'
+            ci:
+              - '.github/workflows/**'
+
   # ── PR title: Conventional Commits format ──────────────────────────────────
   # The PR title becomes the squash-merge commit message on main, so it must
   # follow Conventional Commits. Individual branch commits are checked locally
@@ -55,6 +109,14 @@ jobs:
   flutter-checks:
     name: Flutter Lint & Test
     runs-on: ubuntu-latest
+    needs: [changes]
+    # Run when Flutter sources/tests/config or any workflow change; fail safe to
+    # running if change-detection did not succeed.
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.ci == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -115,6 +177,12 @@ jobs:
   functions-checks:
     name: Cloud Functions Lint & Test
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.functions == 'true'
+      || needs.changes.outputs.ci == 'true')
     defaults:
       run:
         working-directory: functions
@@ -148,7 +216,19 @@ jobs:
   integration-tests:
     name: Integration Tests (Emulator Suite)
     runs-on: ubuntu-latest
-    needs: [flutter-checks, functions-checks]
+    needs: [changes, flutter-checks, functions-checks]
+    # Run when Flutter, Functions, rules or workflow files change. Tolerates a
+    # skipped flutter-checks / functions-checks (the changed area drives it) but
+    # does not run if a prerequisite check actually failed.
+    if: >-
+      !cancelled()
+      && needs.flutter-checks.result != 'failure'
+      && needs.functions-checks.result != 'failure'
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.functions == 'true'
+      || needs.changes.outputs.rules == 'true'
+      || needs.changes.outputs.ci == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -264,6 +344,13 @@ jobs:
   build-android:
     name: Build Android (debug)
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.android == 'true'
+      || needs.changes.outputs.ci == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -309,6 +396,13 @@ jobs:
     # (macos-15-large / -xlarge): those are billed even on public repos, where
     # this standard runner is free.
     runs-on: macos-15
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.ios == 'true'
+      || needs.changes.outputs.ci == 'true')
     env:
       # Pinned so the version-checked guard on the activation step below can
       # detect a cache hit (flutterfire_cli restored via subosito's pub cache)
@@ -394,6 +488,14 @@ jobs:
     name: Coverage Gate (SRS 5.7)
     runs-on: ubuntu-latest
     needs: [flutter-checks, functions-checks]
+    # Runs only the coverage areas that actually ran. Skipped entirely when a
+    # change touched neither Flutter nor Functions (e.g. docs-only) — a skipped
+    # required check passes the ruleset. Each download step is guarded on its
+    # job's success and the enforcement script tolerates a missing area.
+    if: >-
+      !cancelled()
+      && (needs.flutter-checks.result == 'success'
+      || needs.functions-checks.result == 'success')
     steps:
       # Coverage data is produced once upstream — flutter-checks emits
       # coverage/lcov.info and functions-checks emits
@@ -401,12 +503,14 @@ jobs:
       # This job downloads them and enforces the SRS 5.7 thresholds without
       # re-running any tests.
       - name: Download Flutter coverage
+        if: needs.flutter-checks.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: flutter-coverage
           path: coverage
 
       - name: Download Functions coverage
+        if: needs.functions-checks.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: functions-coverage
@@ -415,23 +519,25 @@ jobs:
       - name: Enforce coverage thresholds
         run: |
           python3 << 'COVERAGE_SCRIPT'
-          import json, os, re, sys
+          import io, json, os, re, sys
 
           failed = False
           results = []
 
           # ── Flutter coverage from coverage/lcov.info ──
+          # Absent when flutter-checks was skipped (no Flutter change in the PR);
+          # skip the Flutter gate in that case rather than failing.
           lcov_path = "coverage/lcov.info"
-          if not os.path.exists(lcov_path):
-              print("::error::coverage/lcov.info not found — Flutter tests may have failed.")
-              sys.exit(1)
+          flutter_present = os.path.exists(lcov_path)
+          if not flutter_present:
+              print("::notice::Flutter coverage absent (flutter-checks did not run); skipping Flutter coverage gate.")
 
           # Parse lcov.info into per-file (hit, total) counts
           file_coverage = {}  # filepath -> (lines_hit, lines_found)
           current_file = None
           lh = 0
           lf = 0
-          with open(lcov_path) as f:
+          with (open(lcov_path) if flutter_present else io.StringIO("")) as f:
               for line in f:
                   line = line.strip()
                   if line.startswith("SF:"):
@@ -472,24 +578,29 @@ jobs:
                   failed = True
 
           # Overall Flutter coverage (>= 50%)
-          for fp, (h, f) in file_coverage.items():
-              total_hit_all += h
-              total_found_all += f
-          overall_flutter = (total_hit_all * 100.0 / total_found_all) if total_found_all > 0 else 0.0
-          status = "PASS" if overall_flutter >= 50.0 else "FAIL"
-          results.append(("Overall Flutter", f"{overall_flutter:.1f}%", ">= 50%", status))
-          if overall_flutter < 50.0:
-              print(f"::error::Overall Flutter coverage is {overall_flutter:.1f}% (required >= 50%)")
-              failed = True
+          if flutter_present:
+              for fp, (h, f) in file_coverage.items():
+                  total_hit_all += h
+                  total_found_all += f
+              overall_flutter = (total_hit_all * 100.0 / total_found_all) if total_found_all > 0 else 0.0
+              status = "PASS" if overall_flutter >= 50.0 else "FAIL"
+              results.append(("Overall Flutter", f"{overall_flutter:.1f}%", ">= 50%", status))
+              if overall_flutter < 50.0:
+                  print(f"::error::Overall Flutter coverage is {overall_flutter:.1f}% (required >= 50%)")
+                  failed = True
 
           # ── Functions coverage from functions/coverage/coverage-summary.json ──
+          # Absent when functions-checks was skipped (no Functions change); skip
+          # the Functions gate in that case rather than failing.
           fn_summary_path = "functions/coverage/coverage-summary.json"
-          if not os.path.exists(fn_summary_path):
-              print("::error::functions/coverage/coverage-summary.json not found — Functions tests may have failed.")
-              sys.exit(1)
+          functions_present = os.path.exists(fn_summary_path)
+          if not functions_present:
+              print("::notice::Functions coverage absent (functions-checks did not run); skipping Functions coverage gate.")
 
-          with open(fn_summary_path) as f:
-              fn_data = json.load(f)
+          fn_data = {}
+          if functions_present:
+              with open(fn_summary_path) as f:
+                  fn_data = json.load(f)
 
           # Discover modules from keys like "functions/src/<module>/..."
           fn_modules = {}  # module -> {hit, total}
@@ -539,12 +650,13 @@ jobs:
                   results.append((f"functions/src/{module}/ (branches)", f"{bpct:.1f}%", "advisory", "INFO"))
 
           # Overall Functions coverage (>= 50%)
-          overall_fn = (fn_total_hit * 100.0 / fn_total_found) if fn_total_found > 0 else 0.0
-          status = "PASS" if overall_fn >= 50.0 else "FAIL"
-          results.append(("Overall Functions", f"{overall_fn:.1f}%", ">= 50%", status))
-          if overall_fn < 50.0:
-              print(f"::error::Overall Functions coverage is {overall_fn:.1f}% (required >= 50%)")
-              failed = True
+          if functions_present:
+              overall_fn = (fn_total_hit * 100.0 / fn_total_found) if fn_total_found > 0 else 0.0
+              status = "PASS" if overall_fn >= 50.0 else "FAIL"
+              results.append(("Overall Functions", f"{overall_fn:.1f}%", ">= 50%", status))
+              if overall_fn < 50.0:
+                  print(f"::error::Overall Functions coverage is {overall_fn:.1f}% (required >= 50%)")
+                  failed = True
 
           # ── Summary table ──
           print("")

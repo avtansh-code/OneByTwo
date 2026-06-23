@@ -50,6 +50,10 @@ being implemented.
     documentation updated if applicable.
   - Invariant Compliance and Implementation Notes.
 - Backlog prioritisation (P0 / P1 / P2 per the SRS).
+- Sprint milestone ownership: ensure a GitHub Milestone exists for the active and
+  next sprint plus `Post-v1.0`, every story/issue is assigned to exactly one
+  milestone at creation, and milestones are reconciled with each passing PR, per
+  `.github/shared/milestone-tracking.md`.
 - Release notes summarising shipped changes from `v*.*.*` release tags and
   Conventional Commit subjects, grounded in `.github/workflows/release.yml`.
 - SRS update proposals (tracked via the `update-srs` skill), not direct SRS edits.

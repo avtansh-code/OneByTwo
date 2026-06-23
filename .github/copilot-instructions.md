@@ -89,6 +89,7 @@ All agents should read these files for cross-cutting context:
 | `.github/shared/decision-log.md` | Architecture Decision Records |
 | `.github/shared/coding-standards.md` | Dart, TypeScript, and commit message rules |
 | `.github/shared/test-strategy.md` | Test pyramid, coverage thresholds, canonical test matrix |
+| `.github/shared/milestone-tracking.md` | Sprint milestones, issue assignment, per-PR reconciliation |
 
 ---
 

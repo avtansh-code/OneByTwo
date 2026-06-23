@@ -56,6 +56,7 @@ Every agent reads these files before starting work:
 - `.github/shared/handoffs.md` — handoff contracts between agents.
 - `.github/shared/coding-standards.md` — code style and commit message rules.
 - `.github/shared/glossary.md` — term definitions.
+- `.github/shared/milestone-tracking.md` — sprint milestones and per-PR reconciliation.
 
 ## Refusal Protocol
 

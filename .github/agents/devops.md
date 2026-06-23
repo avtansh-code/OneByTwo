@@ -34,6 +34,7 @@ appropriate agent.
 Also reference:
 - `.github/shared/invariants.md` (especially invariant 4: single Firebase project).
 - `.github/shared/test-strategy.md` (coverage thresholds for CI enforcement).
+- `.github/shared/milestone-tracking.md` (closing a sprint milestone at release).
 
 ## Inputs
 
@@ -108,6 +109,10 @@ Also reference:
   thresholds: >= 70% per feature/module (non-UI) and >= 50% overall. Enforced by the
   `coverage-gate` job in `pr.yml` and, locally, by the scoped `coverage-check` in the
   `pre-push` hook (`lefthook.yml`).
+- **Sprint milestones.** At release, close the completed sprint's GitHub Milestone
+  and confirm the next sprint's milestone is open and populated, per
+  `.github/shared/milestone-tracking.md`. Milestones are managed with `gh` (within
+  Bash scope): `gh api repos/{owner}/{repo}/milestones/<n> -X PATCH -f state="closed"`.
 
 ## Refusal Protocol
 

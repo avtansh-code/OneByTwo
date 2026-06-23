@@ -24,7 +24,9 @@ after test guard, Firebase deploy, Android build, and iOS build jobs.
 
 1. **Git tag** — the version being released (e.g., `v1.0.0`).
 2. **Commit range** — commits since the last tag.
-3. **User stories completed** — list of GitHub Issues closed in this release.
+3. **User stories completed** — list of GitHub Issues closed in this release,
+   sourced from the release's sprint milestone (see
+   `.github/shared/milestone-tracking.md`).
 4. **Known issues** — any open S3/S4 bugs shipping in this release.
 5. **Workflow evidence** — the relevant `.github/workflows/release.yml` run or
    release branch/tag context.
@@ -53,6 +55,8 @@ after test guard, Firebase deploy, Android build, and iOS build jobs.
 7. Add a "Breaking changes" section if any exist.
 8. Write in British English, no emojis, no marketing copy.
 9. Keep the tone informative and concise.
+10. Confirm the release's sprint milestone is closed once the notes are published,
+    per `.github/shared/milestone-tracking.md`.
 
 ## Output format
 
