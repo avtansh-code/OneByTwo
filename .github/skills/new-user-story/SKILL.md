@@ -61,6 +61,10 @@ to implement.
    system share sheet only.
 10. If the requirement touches Firebase, keep it within the single production
     project (`onebytwo-avtanshgupta`) and emulator-based pre-merge testing.
+11. Assign the new issue to exactly one sprint milestone — the sprint that owns the
+    requirement per `docs/design/08-plan/sprint-sequence.md` (the current next active
+    sprint is `Sprint 3`) — and comment the milestone choice with a one-line
+    rationale, per `.github/shared/milestone-tracking.md`.
 
 ## Output format
 
@@ -88,6 +92,8 @@ fields completed in order:
 - [ ] The story does not invent PR numbers, issue numbers, feature status, or
       SRS requirements.
 - [ ] Groups UI is not described as implemented.
+- [ ] The issue is assigned to exactly one sprint milestone per
+      `.github/shared/milestone-tracking.md`.
 
 ## Examples
 

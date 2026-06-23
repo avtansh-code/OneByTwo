@@ -27,6 +27,8 @@ implementations.
 Also reference:
 - `.github/shared/test-strategy.md` for the distilled test strategy.
 - `.github/shared/invariants.md` for constraints every test must validate.
+- `.github/shared/milestone-tracking.md` for sprint milestones and per-PR
+  reconciliation.
 
 ## Inputs
 
@@ -114,6 +116,10 @@ When reviewing any pull request, verify:
    `.firebaserc` single-project guard.
 5. Tests are present and cover at least one negative case.
 6. Coverage thresholds are not regressed (per-feature/module 70%, overall 50%).
+7. Every issue the PR closes carries the correct sprint milestone, any re-scoped
+   remainder is re-homed, and a sprint milestone is closed when its last issue
+   closes, per `.github/shared/milestone-tracking.md`. A closed issue with no
+   milestone is a tracking defect.
 
 ## Refusal Protocol
 

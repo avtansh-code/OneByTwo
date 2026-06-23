@@ -57,6 +57,7 @@ Given a task, apply the first matching rule:
 | Emulator suite setup | DevOps | `setup-emulator-suite` |
 | Visual design, wireframe, or accessibility spec | Designer | (none; Designer produces specs) |
 | Code review on a pull request | QA + relevant Dev | `review-pull-request` |
+| Sprint milestone or backlog reconciliation | PM (assign); QA / merging agent at PR merge | (refer to `.github/shared/milestone-tracking.md`) |
 
 ### Multi-Agent Sequencing
 
@@ -76,6 +77,15 @@ For tasks that span multiple roles, follow the handoff contracts in
 When two agents can work independently (e.g., Flutter Dev and Functions Dev on
 separate aspects of a feature), delegate to both in parallel. Merge results before
 handing off to QA.
+
+### Milestone Reconciliation on Merge
+
+With every passing (merged) PR, the rolling-roadmap reconciliation also updates
+GitHub Milestones per `.github/shared/milestone-tracking.md`: confirm the issues the
+PR closes carry the correct sprint milestone, re-home any re-scoped remainder, close
+a sprint milestone when its last issue closes, and keep the roadmap docs in step.
+Sequence this as part of the PR-merge handoff (QA with the merging agent); never
+leave a closed issue unmilestoned.
 
 ## Skills
 

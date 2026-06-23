@@ -63,12 +63,15 @@ analysis, reproduction confirmation, regression-test guidance, and assignment.
       Flutter flow stubs live under `test/integration/<feature>/`.
 5. Assign to the appropriate agent and label with severity. If S1, flag for
    immediate hotfix and notify DevOps.
+6. Assign the issue to a sprint milestone by SLA, per
+   `.github/shared/milestone-tracking.md`: S1 / S2 to the current active sprint,
+   S3 to the next sprint, S4 to `Post-v1.0` unless a sprint is already committed.
 
 ## Output format
 
 A triage comment on the GitHub Issue with: severity, root cause area, assigned
-agent, invariant implications, regression-test location, and recommended fix
-approach.
+agent, invariant implications, regression-test location, sprint milestone, and
+recommended fix approach.
 
 ## Validation checks
 
@@ -78,6 +81,8 @@ approach.
 - [ ] Assigned to the correct agent.
 - [ ] Invariant implications are noted.
 - [ ] Regression-test location is specified.
+- [ ] The issue is assigned to a sprint milestone by SLA per
+      `.github/shared/milestone-tracking.md`.
 - [ ] S1 bugs are flagged for immediate action.
 
 ## Examples

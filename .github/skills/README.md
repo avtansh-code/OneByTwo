@@ -57,3 +57,16 @@ All skills that produce code or configuration enforce the four project invariant
 
 Skills that scaffold code hard-code these constraints directly in their procedure
 steps.
+
+## Milestone Tracking
+
+Skills that create or review issues and pull requests keep GitHub Milestones in
+step with the sprint roadmap, per `.github/shared/milestone-tracking.md`:
+
+- `new-user-story` and `triage-bug` assign every new issue to exactly one sprint
+  milestone at creation/triage.
+- `review-pull-request` reconciles milestones with each passing PR (closed issues
+  milestoned, re-scoped remainders re-homed, a completed sprint milestone closed).
+- `write-release-notes` sources the closed stories from the release's sprint
+  milestone and confirms its closure.
+

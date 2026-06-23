@@ -74,6 +74,15 @@ surfaces.
    j. Each acceptance criterion from the user story has a corresponding test or
       is demonstrably covered.
 
+   **Milestone reconciliation (on merge):**
+   k. Every issue the PR closes (`Closes #NN`) carries the correct sprint
+      milestone before merge; an unmilestoned closed issue is a tracking defect.
+   l. Any issue the PR re-scopes (a partial close leaving a deferred remainder) is
+      re-homed to the milestone matching its new target sprint, with a comment.
+   m. If the PR closes the last open issue in a sprint milestone, that milestone is
+      closed and the next sprint's milestone is open and populated. See
+      `.github/shared/milestone-tracking.md`.
+
 3. Summarise findings as Blocking Issues, Recommendations, and Approved Items.
 
 ## Output format
@@ -90,6 +99,9 @@ Approved Items.
 - [ ] Boundary-contract grep tests considered for invariants 1 and 2.
 - [ ] No secrets or PII leaks in source or logs.
 - [ ] PR title follows Conventional Commits.
+- [ ] Milestones reconciled on merge per `.github/shared/milestone-tracking.md`
+      (closed issues milestoned; re-scoped remainders re-homed; a completed sprint
+      milestone closed).
 
 ## Examples
 
