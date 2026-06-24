@@ -6,7 +6,7 @@ import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
-import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
+import 'package:onebytwo/features/friends/presentation/add_friend_flow.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_list_tile.dart';
 
@@ -94,9 +94,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           .read(analyticsServiceProvider)
           .logEvent(name: 'friend_add_button_tapped'),
     );
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const AddFriendScreen()),
-    );
+    unawaited(_openAddFriendFlow());
   }
 
   void _onEmptyAddTapped() {
@@ -105,8 +103,17 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           .read(analyticsServiceProvider)
           .logEvent(name: 'friends_empty_add_tapped'),
     );
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const AddFriendScreen()),
+    unawaited(_openAddFriendFlow());
+  }
+
+  /// Opens the add-friend journey (AddFriendScreen -> Match-and-Invite).
+  /// Reads the signed-in identity synchronously before navigating so the
+  /// flow has the values it needs even across async navigation gaps.
+  Future<void> _openAddFriendFlow() {
+    return openAddFriendFlow(
+      context: context,
+      currentUserId: ref.read(currentUserIdProvider),
+      currentUserPhone: ref.read(currentUserPhoneProvider),
     );
   }
 

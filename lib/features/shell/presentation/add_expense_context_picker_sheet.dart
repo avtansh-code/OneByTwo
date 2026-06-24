@@ -5,7 +5,7 @@ import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
-import 'package:onebytwo/features/friends/presentation/add_friend_screen.dart';
+import 'package:onebytwo/features/friends/presentation/add_friend_flow.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_list_tile.dart';
 import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 
@@ -174,11 +174,11 @@ class _FriendsPopulated extends ConsumerWidget {
   }
 }
 
-class _FriendsEmpty extends StatelessWidget {
+class _FriendsEmpty extends ConsumerWidget {
   const _FriendsEmpty();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -189,7 +189,7 @@ class _FriendsEmpty extends StatelessWidget {
           Text('You have no friends yet', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 12),
           ElevatedButton(
-            onPressed: () => _onAddFirstFriend(context),
+            onPressed: () => _onAddFirstFriend(context, ref),
             child: const Text('Add your first friend'),
           ),
         ],
@@ -197,12 +197,18 @@ class _FriendsEmpty extends StatelessWidget {
     );
   }
 
-  void _onAddFirstFriend(BuildContext context) {
+  Future<void> _onAddFirstFriend(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     final rootContext = navigator.context;
+    // Read the signed-in identity BEFORE dismissing the picker — this
+    // widget (and its `ref`) is torn down by the pop.
+    final currentUserId = ref.read(currentUserIdProvider);
+    final currentUserPhone = ref.read(currentUserPhoneProvider);
     navigator.pop();
-    Navigator.of(rootContext).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const AddFriendScreen()),
+    await openAddFriendFlow(
+      context: rootContext,
+      currentUserId: currentUserId,
+      currentUserPhone: currentUserPhone,
     );
   }
 }

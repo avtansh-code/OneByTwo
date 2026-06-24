@@ -159,14 +159,21 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
             .read(analyticsServiceProvider)
             .logEvent(name: 'friend_contact_selected'),
       );
-      Navigator.of(context).pop(state.selectedContact);
+      // Tag the contact with its entry path (Path A) so the downstream
+      // match-and-invite controller can emit `friend_added{method}`.
+      Navigator.of(context).pop(
+        state.selectedContact!.copyWith(method: AddFriendEntryMethod.contacts),
+      );
     }
   }
 
   void _onManualSubmit(SelectedContact contact) {
     // Navigate back with the manually entered contact, consistent
-    // with the contact picker path which pops with the result.
-    Navigator.of(context).pop(contact);
+    // with the contact picker path which pops with the result. Tag it
+    // as the manual entry path (Path B) for `friend_added{method}`.
+    Navigator.of(
+      context,
+    ).pop(contact.copyWith(method: AddFriendEntryMethod.manual));
   }
 
   void _onTabChanged(Set<String> selection) {

@@ -315,11 +315,38 @@ void main() {
       await controller.performLookup(_testContact);
       await controller.addFriend();
 
+      final friendAdded = fakeAnalytics.loggedEvents
+          .where((e) => e.name == 'friend_added')
+          .toList();
       expect(
-        fakeAnalytics.loggedEvents.any((e) => e.name == 'friend_added'),
-        isTrue,
+        friendAdded,
+        hasLength(1),
         reason: 'Expected a friend_added analytics event',
       );
+      // T4: the acquisition funnel is segmented by entry method. The
+      // default contact (no explicit method) flows through the contacts
+      // path, so `method` must be the PII-free token 'contacts'.
+      expect(friendAdded.single.parameters, {'method': 'contacts'});
+    });
+
+    test('friend_added carries method=manual for manually entered '
+        'contacts', () async {
+      fakeMatchingRepo.lookupResult = const Matched(
+        displayName: 'Priya Sharma',
+        photoUrl: null,
+        otherUserId: 'uid-xyz',
+      );
+
+      await controller.performLookup(
+        _testContact.copyWith(method: AddFriendEntryMethod.manual),
+      );
+      await controller.addFriend();
+
+      final friendAdded = fakeAnalytics.loggedEvents
+          .where((e) => e.name == 'friend_added')
+          .toList();
+      expect(friendAdded, hasLength(1));
+      expect(friendAdded.single.parameters, {'method': 'manual'});
     });
 
     test('emits Error when createFriendship throws', () async {
