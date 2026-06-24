@@ -13,8 +13,16 @@ class OtpInput extends StatefulWidget {
     required this.onDigitEntered,
     required this.onCompleted,
     required this.onBackspace,
+    this.digits,
     super.key,
   });
+
+  /// The authoritative digit values from the controller, when the caller
+  /// tracks them. When supplied and they become all-empty (e.g. the
+  /// controller resets them after an invalid code), the widget clears its own
+  /// cells so the user can retype (SCR-04). When `null`, the widget is fully
+  /// self-managed (callers that only need `onCompleted`).
+  final List<String>? digits;
 
   /// Called when a digit is entered at the given index.
   final void Function(int index, String digit) onDigitEntered;
@@ -57,6 +65,27 @@ class _OtpInputState extends State<OtpInput> {
       n.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(OtpInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // SCR-04 (D3): when the caller tracks digits and the controller resets
+    // every one to empty — e.g. after an invalid code — clear the visual
+    // cells and refocus the first one so the user can retype. Programmatic
+    // controller edits do not fire `onChanged`, so there is no feedback loop.
+    final tracked = widget.digits;
+    final controllerCleared =
+        tracked != null && tracked.every((d) => d.isEmpty);
+    final cellsHaveContent = _controllers.any((c) => c.text.isNotEmpty);
+    if (controllerCleared && cellsHaveContent) {
+      for (final c in _controllers) {
+        c.clear();
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNodes.first.requestFocus();
+      });
+    }
   }
 
   void _onChanged(int index, String value) {

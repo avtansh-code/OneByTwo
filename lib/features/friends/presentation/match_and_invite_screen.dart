@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/features/friends/application/match_and_invite_controller.dart';
+import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 
 /// Screen that displays the match-and-invite flow after a contact
 /// has been selected from the device picker.
@@ -13,6 +14,25 @@ class MatchAndInviteScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(matchAndInviteControllerProvider);
     final controller = ref.read(matchAndInviteControllerProvider.notifier);
+
+    ref.listen<MatchAndInviteState>(matchAndInviteControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (next is MatchAndInviteAdded) {
+        // D6: refresh the just-added friend's cached profile so the friends
+        // list resolves their display name immediately (no relaunch).
+        ref.invalidate(userProfileProvider(next.otherUserId));
+        // D5: confirm the add and return to the previous screen (the friends
+        // list / caller), where the new friend now appears.
+        final messenger = ScaffoldMessenger.of(context);
+        final name = next.displayName;
+        Navigator.of(context).pop();
+        messenger.showSnackBar(
+          SnackBar(content: Text('$name added as a friend')),
+        );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add Friend')),
@@ -29,6 +49,9 @@ class MatchAndInviteScreen extends ConsumerWidget {
               photoUrl: photoUrl,
               onAddFriend: controller.addFriend,
             ),
+          MatchAndInviteAdded() => const Center(
+            child: CircularProgressIndicator(),
+          ),
           MatchAndInviteNoMatch(:final contactDisplayName) => _NoMatchCard(
             contactDisplayName: contactDisplayName,
             onSendInvite: controller.openInviteShareSheet,

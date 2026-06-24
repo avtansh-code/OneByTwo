@@ -13,10 +13,11 @@ void main() {
       onCompletedCalled = false;
     });
 
-    Widget buildSubject() {
+    Widget buildSubject({List<String>? digits}) {
       return MaterialApp(
         home: Scaffold(
           body: OtpInput(
+            digits: digits,
             onDigitEntered: (index, digit) {
               capturedDigits[index] = digit;
             },
@@ -114,6 +115,25 @@ void main() {
       for (var i = 0; i < 6; i++) {
         expect(find.bySemanticsLabel('Digit ${i + 1} of 6'), findsOneWidget);
       }
+    });
+
+    testWidgets('clears its cells when the controller resets digits to empty '
+        '(SCR-04 invalid-code retry)', (tester) async {
+      // Cells populated; the controller mirrors a filled state.
+      await tester.pumpWidget(buildSubject(digits: ['1', '', '', '', '', '']));
+      final textFields = find.byType(TextField);
+      await tester.enterText(textFields.at(0), '1');
+      await tester.pump();
+      expect(tester.widget<TextField>(textFields.at(0)).controller!.text, '1');
+
+      // Invalid code -> the controller resets all digits to empty -> the
+      // widget must clear its visual cells so the user can retype.
+      await tester.pumpWidget(buildSubject(digits: List.filled(6, '')));
+      await tester.pump();
+      expect(
+        tester.widget<TextField>(textFields.at(0)).controller!.text,
+        isEmpty,
+      );
     });
 
     testWidgets('OTP input group has correct semantic label', (tester) async {

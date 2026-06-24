@@ -26,7 +26,7 @@ dependencies:
   fl_chart: ^1.2.0 # Donut chart for the FR-HD-03 monthly category breakdown (pure-Dart; no native pod)
   flutter:
     sdk: flutter
-  flutter_contacts: ^1.1.9+2 # Device contacts for add-friend flow (ADR-0013)
+  flutter_contacts: ^2.2.2 # Device contacts for add-friend flow (ADR-0013); 2.2.x targets Flutter 3.44+/UISceneDelegate
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^2.6.1 # State management (ADR-0004)

@@ -63,6 +63,10 @@ class _NotificationsLifecycleHostState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // D2: this host is recreated when the MaterialApp key changes on an
+      // auth-state transition, so the disposed instance's callback must not
+      // touch `ref`. The freshly-mounted instance runs cold-start handling.
+      if (!mounted) return;
       _subscribeFcmStreams();
       _handleColdStart();
     });
@@ -91,6 +95,7 @@ class _NotificationsLifecycleHostState
     try {
       final messaging = ref.read(firebaseMessagingProvider);
       final initial = await messaging.getInitialMessage();
+      if (!mounted) return;
       if (initial == null) return;
       final payload = NotificationPayload.fromFcmDataMap(initial.data);
       if (payload == null) return;

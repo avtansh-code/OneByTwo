@@ -107,6 +107,7 @@ class OtpEntryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
               OtpInput(
+                digits: state.digits,
                 onDigitEntered: controller.setDigit,
                 onCompleted: (_) => controller.submit(),
                 onBackspace: controller.clearDigit,

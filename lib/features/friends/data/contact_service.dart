@@ -55,27 +55,29 @@ class FlutterContactService implements ContactService {
 
   @override
   Future<ContactPermissionState> checkPermission() async {
-    final granted = await fc.FlutterContacts.requestPermission();
-    return granted
-        ? ContactPermissionState.granted
-        : ContactPermissionState.denied;
+    final status = await fc.FlutterContacts.permissions.check(
+      fc.PermissionType.read,
+    );
+    return _mapPermissionStatus(status);
   }
 
   @override
   Future<ContactPermissionState> requestPermission() async {
-    final granted = await fc.FlutterContacts.requestPermission();
-    return granted
-        ? ContactPermissionState.granted
-        : ContactPermissionState.denied;
+    final status = await fc.FlutterContacts.permissions.request(
+      fc.PermissionType.read,
+    );
+    return _mapPermissionStatus(status);
   }
 
   @override
   Future<List<DeviceContact>> getContacts() async {
-    final contacts = await fc.FlutterContacts.getContacts(withProperties: true);
+    final contacts = await fc.FlutterContacts.getAll(
+      properties: fc.ContactProperties.allProperties,
+    );
     return contacts
         .map(
           (c) => DeviceContact(
-            displayName: c.displayName,
+            displayName: c.displayName ?? '',
             phoneNumbers: c.phones.map((p) => p.number).toList(),
           ),
         )
@@ -84,6 +86,26 @@ class FlutterContactService implements ContactService {
 
   @override
   Future<void> openSettings() => _appSettings.openAppSettings();
+}
+
+/// Maps the `flutter_contacts` 2.x [fc.PermissionStatus] to the app's
+/// [ContactPermissionState].
+///
+/// `limited` (iOS 18+ partial access) counts as granted; `permanentlyDenied`
+/// and `restricted` drive the SCR-10 "Open Settings" CTA.
+ContactPermissionState _mapPermissionStatus(fc.PermissionStatus status) {
+  switch (status) {
+    case fc.PermissionStatus.granted:
+    case fc.PermissionStatus.limited:
+      return ContactPermissionState.granted;
+    case fc.PermissionStatus.denied:
+      return ContactPermissionState.denied;
+    case fc.PermissionStatus.permanentlyDenied:
+    case fc.PermissionStatus.restricted:
+      return ContactPermissionState.deniedPermanently;
+    case fc.PermissionStatus.notDetermined:
+      return ContactPermissionState.notDetermined;
+  }
 }
 
 /// Provides a [ContactService] instance.

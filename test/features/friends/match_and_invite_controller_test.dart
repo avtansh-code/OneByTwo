@@ -362,6 +362,24 @@ void main() {
 
       expect(controller.state, isA<MatchAndInviteError>());
     });
+
+    test('emits Added with the friend identity on success (D5)', () async {
+      fakeMatchingRepo.lookupResult = const Matched(
+        displayName: 'Priya Sharma',
+        photoUrl: null,
+        otherUserId: 'uid-xyz',
+      );
+
+      await controller.performLookup(_testContact);
+      await controller.addFriend();
+
+      final added = controller.state;
+      expect(added, isA<MatchAndInviteAdded>());
+      added as MatchAndInviteAdded;
+      expect(added.otherUserId, 'uid-xyz');
+      expect(added.displayName, 'Priya Sharma');
+      expect(added.friendshipId, isNotEmpty);
+    });
   });
 
   group('MatchAndInviteController.openInviteShareSheet', () {

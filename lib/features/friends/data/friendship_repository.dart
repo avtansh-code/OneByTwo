@@ -96,8 +96,21 @@ class FirestoreFriendshipStore implements FriendshipStore {
 
   @override
   Future<bool> exists(String path) async {
-    final snapshot = await _collection.doc(path).get();
-    return snapshot.exists;
+    try {
+      final snapshot = await _collection.doc(path).get();
+      return snapshot.exists;
+    } on FirebaseException catch (e) {
+      // The friendships read rule checks `request.auth.uid in
+      // resource.data.memberIds`, which raises a Null value error for a
+      // document that does not exist, so the rules deny a `get` of a
+      // non-existent friendship. A member can always read an existing
+      // friendship, so a permission-denied here means the friendship does
+      // not exist yet — treat it as not-a-duplicate. This keeps the read
+      // rule strict (no social-graph enumeration) while unblocking the
+      // add-friend duplicate check.
+      if (e.code == 'permission-denied') return false;
+      rethrow;
+    }
   }
 
   @override
