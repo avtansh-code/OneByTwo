@@ -25,7 +25,9 @@ All four invariants must be respected. Tick each to confirm compliance:
 - [ ] **Integer paise:** All monetary values use `int` (Dart) or `number`
       (TypeScript) representing paise. No `double`/`float` for money.
 - [ ] **`simplifiedBalances` server-only:** No client-side writes to this field.
-      Only the `recomputeSimplifiedBalances` Cloud Function may write it.
+      Written only by the server-side recompute core via three entry points: the
+      `recomputeSimplifiedBalances` callable and the `onExpenseWriteFriendship`
+      and `onSettlementWrite` triggers.
 - [ ] **System share sheet only:** No platform-specific share package imports
       (WhatsApp, Telegram, etc.). Uses `share_plus` or native share API.
 - [ ] **Single Firebase project:** No new Firebase project IDs added. No

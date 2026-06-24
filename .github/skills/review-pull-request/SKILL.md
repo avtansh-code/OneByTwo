@@ -115,9 +115,14 @@ and real test surfaces.
    **Telemetry & privacy (`docs/design/07-technical/telemetry-plan.md`):**
    - New events are listed in the telemetry plan before use; parameters are
      `snake_case`; the PR description's Telemetry section notes them.
+   - Monetary amounts in telemetry are bucketed to `amount_range`; raw
+     `amount_paise` must never appear in an analytics event (telemetry-plan §2.1).
    - **No PII** in any analytics / Crashlytics parameter. A deterministic
      UID-composite identifier (e.g. `friendshipId`) is hashed via `hashFriendshipId`
-     (`lib/core/telemetry/event_id_hash.dart`), never sent raw.
+     (`lib/core/telemetry/event_id_hash.dart`), never sent raw. Phone numbers never
+     appear in telemetry, even hashed — a full hash of a 10-digit number is
+     reversible; the only PII-safe identifier is a truncated UID-composite via
+     `hashFriendshipId`.
 
    **Cloud Functions depth (`functions/src/**`):**
    - **Region:** every function is pinned to `asia-south1` via the per-function
@@ -177,6 +182,10 @@ and real test surfaces.
      a trigger-failure path.
    - A simplified-debts change has canonical, property, settlement-folding,
      reserved-key, and emulator-integration coverage.
+   - Critical-journey reachability: a new screen/provider is reachable from a
+     navigation entry point (no orphaned widget or never-overridden provider), and
+     the journey is covered by an executable end-to-end test — not only isolated
+     widget tests.
 
    **Acceptance criteria:**
    - Each acceptance criterion from the user story maps to a test or is demonstrably
@@ -214,8 +223,9 @@ invariant, ADR, convention, or SRS section it relates to.
       and locale-free `DateFormat` checked.
 - [ ] Accessibility reviewed: semantic labels, live regions, dark mode, dynamic
       type, 48 dp tap targets.
-- [ ] Telemetry events are in the plan, `snake_case`, and PII-free (UID composites
-      hashed via `hashFriendshipId`).
+- [ ] Telemetry events are in the plan, `snake_case`, and PII-free: amounts
+      bucketed to `amount_range` (never raw `amount_paise`), no phone numbers even
+      hashed, and UID composites hashed via `hashFriendshipId`.
 - [ ] Cloud Functions reviewed: region pinning, typed `HttpsError`s, transaction
       atomicity, idempotency.
 - [ ] Security/auth reviewed: input validation, caller authorisation, +91
@@ -225,6 +235,9 @@ invariant, ADR, convention, or SRS section it relates to.
 - [ ] PR template sections are complete and consistent with the diff.
 - [ ] Relevant CI gates and coverage thresholds verified.
 - [ ] Acceptance criteria cross-referenced.
+- [ ] Critical-journey reachability checked: a new screen/provider is reachable
+      from a navigation entry point and covered by an executable end-to-end test,
+      not only isolated widget tests.
 - [ ] Boundary-contract grep tests considered for invariants 1 and 2.
 - [ ] No secrets or PII leaks in source or logs.
 - [ ] PR title follows Conventional Commits.
