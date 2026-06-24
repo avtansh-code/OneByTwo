@@ -15,6 +15,7 @@ import 'package:onebytwo/features/home/presentation/widgets/spending_breakdown_c
 import 'package:onebytwo/features/home/presentation/widgets/top_balance_tile.dart';
 import 'package:onebytwo/features/profile/application/contact_support_controller.dart';
 import 'package:onebytwo/features/profile/presentation/contact_support_fallback_dialog.dart';
+import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 
@@ -208,7 +209,9 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               HomeTelemetry.paramContextIdHash: hashFriendshipId(
                 item.friendshipId,
               ),
-              HomeTelemetry.paramAmountPaise: item.netBalancePaise.abs(),
+              HomeTelemetry.paramAmountRange: SettleUpTelemetry.amountRangeFor(
+                item.netBalancePaise.abs(),
+              ),
             },
           ),
     );

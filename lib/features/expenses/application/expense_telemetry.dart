@@ -104,7 +104,7 @@ abstract final class ExpenseTelemetry {
   static const String deleteInitiated = 'expense_delete_initiated';
 
   /// User confirmed the delete; the soft-delete write succeeded.
-  /// Payload: `amount_paise`, `participant_count`,
+  /// Payload: `amount_range`, `participant_count`,
   /// `friendship_id_hash`, `expense_id_hash`.
   static const String deleteConfirmed = 'expense_delete_confirmed';
 
@@ -215,11 +215,6 @@ abstract final class ExpenseTelemetry {
   /// `true` when the user dismissed an edit sheet with at least one
   /// field changed. Used by [editAbandoned].
   static const String paramHadChanges = 'had_changes';
-
-  /// Raw paise integer. Per-action telemetry, not bucketed (only
-  /// used by [deleteConfirmed]; the funnel events bucket via
-  /// `amount_range`).
-  static const String paramAmountPaise = 'amount_paise';
 
   /// Typed error code name (e.g. `'permissionDenied'`, `'network'`).
   /// Used by [editFailed] and [deleteFailed].

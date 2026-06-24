@@ -1314,7 +1314,9 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
     _analytics.logEvent(
       name: ExpenseTelemetry.deleteConfirmed,
       parameters: <String, Object>{
-        ExpenseTelemetry.paramAmountPaise: draft.amountPaise,
+        ExpenseTelemetry.paramAmountRange: ExpenseTelemetry.amountRangeFor(
+          draft.amountPaise,
+        ),
         ExpenseTelemetry.paramParticipantCount: 2,
         ExpenseTelemetry.paramFriendshipIdHash: hashFriendshipId(friendshipId),
         if (initialExpenseId != null)

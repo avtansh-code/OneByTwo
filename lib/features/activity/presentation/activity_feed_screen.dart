@@ -37,9 +37,9 @@ import 'package:onebytwo/features/notifications/domain/notification_payload.dart
 ///   - `settlementRecorded` → `FriendDetailScreen` for the other party
 ///     via the shared helper.
 ///
-/// Telemetry (PII per ADR-0013 — friendship composite UIDs hashed via
-/// `hashFriendshipId`; expense IDs / settlement IDs are opaque scalar
-/// IDs and not subject to ADR-0013 hashing):
+/// Telemetry (PII per ADR-0013 — every deep-link entity ID is hashed
+/// before emission: friendship composite UIDs via `hashFriendshipId`,
+/// opaque expense IDs via `hashId`, both surfaced as `entity_id_hash`):
 ///   - `activity_feed_viewed` (once per session in Populated/Empty).
 ///   - `activity_item_tapped` (every row tap).
 ///   - `activity_feed_refreshed` (pull-to-refresh).
@@ -172,13 +172,13 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
     final analytics = ref.read(analyticsServiceProvider);
     final currentUid = ref.read(currentUserIdProvider);
     final entityId = _entityIdFor(item, currentUid);
-    final telemetryEntityId = _hashIfFriendship(entityId, item);
+    final entityIdHash = _hashEntityId(entityId, item);
     unawaited(
       analytics.logEvent(
         name: 'activity_item_tapped',
         parameters: {
           'event_type': item.type.wireName,
-          'entity_id': telemetryEntityId,
+          'entity_id_hash': entityIdHash,
         },
       ),
     );
@@ -248,18 +248,19 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
     }
   }
 
-  /// Applies ADR-0013 hashing to friendship-composite entity IDs (the
-  /// only PII-adjacent identifier surface among the deep-link
-  /// targets). Opaque scalar IDs (expense, settlement) are returned
-  /// unchanged.
-  String _hashIfFriendship(String entityId, ActivityFeedItem item) {
+  /// Hashes the deep-link entity ID for telemetry so no raw identifier
+  /// leaves the event (param `entity_id_hash`). Friendship-composite IDs
+  /// (`settlementRecorded`) go through [hashFriendshipId]; opaque scalar
+  /// IDs (expense) go through [hashId]. Both yield the same ADR-0013
+  /// SHA-256 digest form.
+  String _hashEntityId(String entityId, ActivityFeedItem item) {
     switch (item.type) {
       case ActivityEventType.settlementRecorded:
         return hashFriendshipId(entityId);
       case ActivityEventType.expenseAdded:
       case ActivityEventType.expenseEdited:
       case ActivityEventType.expenseDeleted:
-        return entityId;
+        return hashId(entityId);
     }
   }
 }

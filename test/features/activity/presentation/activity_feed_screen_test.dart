@@ -298,17 +298,17 @@ void main() {
         final params = analytics.lastParamsFor('activity_item_tapped')!;
         expect(params['event_type'], 'settlementRecorded');
         // The settlement row deep-links to the Friend Detail screen
-        // (a friendship target). The entity_id parameter MUST be the
-        // hashed composite friendship UID per ADR-0013.
+        // (a friendship target). The entity_id_hash parameter MUST be
+        // the hashed composite friendship UID per ADR-0013.
         final expectedHash = hashFriendshipId('uid-me_uid-other');
-        expect(params['entity_id'], expectedHash);
+        expect(params['entity_id_hash'], expectedHash);
         // The raw composite UID MUST NOT appear.
-        expect(params['entity_id'], isNot(equals('uid-me_uid-other')));
+        expect(params['entity_id_hash'], isNot(equals('uid-me_uid-other')));
       },
     );
 
     testWidgets(
-      'activity_item_tapped uses raw opaque expenseId for expense rows',
+      'activity_item_tapped hashes the opaque expenseId for expense rows',
       (tester) async {
         final repo = FakeActivityFeedRepository();
         final analytics = FakeAnalyticsService();
@@ -331,9 +331,10 @@ void main() {
 
         final params = analytics.lastParamsFor('activity_item_tapped')!;
         expect(params['event_type'], 'expenseAdded');
-        // Expense IDs are opaque Firestore auto IDs — NOT subject to
-        // ADR-0013 hashing per the FR-FR-03 memory.
-        expect(params['entity_id'], 'exp-1');
+        // T3: no raw id leaves the event — the opaque expenseId is
+        // hashed via hashId before emission as entity_id_hash.
+        expect(params['entity_id_hash'], hashId('exp-1'));
+        expect(params['entity_id_hash'], isNot(equals('exp-1')));
       },
     );
   });

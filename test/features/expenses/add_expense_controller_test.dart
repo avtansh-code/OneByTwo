@@ -1047,13 +1047,13 @@ void main() {
       controller.dispose();
     });
 
-    test('softDelete() fires expense_delete_confirmed with amount_paise '
+    test('softDelete() fires expense_delete_confirmed with amount_range '
         'and participant_count on success', () async {
       final controller = buildEditController();
       await controller.softDelete();
       expect(analytics.hasEvent(ExpenseTelemetry.deleteConfirmed), isTrue);
       final params = analytics.lastParamsFor(ExpenseTelemetry.deleteConfirmed)!;
-      expect(params[ExpenseTelemetry.paramAmountPaise], 50000);
+      expect(params[ExpenseTelemetry.paramAmountRange], '500_5000');
       expect(params[ExpenseTelemetry.paramParticipantCount], 2);
       expect(params[ExpenseTelemetry.paramExpenseIdHash], hashId(initialId));
       controller.dispose();

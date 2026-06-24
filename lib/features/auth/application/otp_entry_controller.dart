@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/core/providers/phone_auth_provider.dart';
@@ -107,8 +105,11 @@ class OtpEntryState {
 class OtpEntryController extends StateNotifier<OtpEntryState> {
   /// Creates an [OtpEntryController].
   ///
-  /// Immediately logs `otp_screen_viewed` with a SHA-256 hash
-  /// of the [phoneNumber].
+  /// Immediately logs the parameter-free `otp_screen_viewed` event. The
+  /// phone number is deliberately NOT included (not even hashed): a
+  /// SHA-256 of an E.164 number is reversible by brute force, so it
+  /// would be recoverable PII (telemetry plan section 2.2 / invariant
+  /// on PII-free analytics).
   OtpEntryController({
     required AnalyticsService analytics,
     required PhoneAuthRepository repository,
@@ -129,11 +130,7 @@ class OtpEntryController extends StateNotifier<OtpEntryState> {
            verificationId: verificationId,
          ),
        ) {
-    final phoneHash = sha256.convert(utf8.encode(phoneNumber)).toString();
-    _analytics.logEvent(
-      name: 'otp_screen_viewed',
-      parameters: {'phone_hash': phoneHash},
-    );
+    _analytics.logEvent(name: 'otp_screen_viewed');
     _otpScreenStopwatch.start();
   }
 
