@@ -26,9 +26,9 @@
 > - **Controllers extend `StateNotifier<State>`** in every feature except
 >   `NotificationPermissionController`, which extends `Notifier<PermissionState>`.
 >   There is no `AsyncNotifier` and no `ChangeNotifier` anywhere.
-> - **Groups, Home Dashboard, and Search have no client code.** Sections
->   that previously described their providers are retained only as planned
->   scope and are flagged accordingly.
+> - **Groups and Search have no client code.** Sections that previously described
+>   their providers are retained only as planned scope and are flagged accordingly.
+>   (The Home Dashboard **is** built — see section 2.11.)
 >
 > The provider inventory in section 2 lists the real declarations
 > (file path included). Where an idealised name from an earlier draft does
@@ -51,6 +51,40 @@ disposal behaviour, and where the provider is declared.
 state from leaking between screens and avoids unnecessary Firestore listener
 costs (SRS section 5.7 — maintainability; NFR-PE-03 — battery and data
 efficiency).
+
+### 1.1 Scoped Overrides and `dependencies`
+
+`currentUserIdProvider` is a **scoped root**: its declaration throws unless an
+ancestor `ProviderScope` overrides it. `main.dart` performs that override once, per
+authenticated arm, inside the authenticated shell's `ProviderScope`
+(`currentUserIdProvider.overrideWithValue(uid)`). Every authenticated read therefore
+sees a concrete uid, and an unauthenticated tree cannot construct these providers at
+all.
+
+Any provider whose value derives from a scoped override must declare a `dependencies`
+list so Riverpod can rebuild it under the correct scope. The rule — stated identically
+in the `feature-pr-conventions` guide (section 2) and the `review-pull-request`
+skill — is:
+
+> A provider that `ref.watch`es a **scoped** provider declares the
+> **directly-watched** scoped provider in its own `dependencies` list — **not** a
+> transitive root reached through it. Declaring the transitive root instead of the
+> direct dependency (or omitting the list) makes Riverpod throw the
+> *"... specified a `dependencies` list ..."* assertion on first read.
+
+Worked example (the FR-HD / FR-FR trap):
+
+- `friendsListProvider` watches `currentUserIdProvider` directly, so it declares
+  `dependencies: [currentUserIdProvider]`.
+- `overallNetBalanceProvider`, `topBalancesProvider`, `monthlySpendBreakdownProvider`
+  (FR-HD-01/02/03) and `friendCountProvider` (FR-PR-04) watch `friendsListProvider`,
+  **not** `currentUserIdProvider` directly, so each declares
+  `dependencies: [friendsListProvider]`. Adding the transitive `currentUserIdProvider`
+  here is the common mistake.
+- A provider that watches the scoped root itself (for example
+  `contactSupportControllerProvider`) declares `dependencies: [currentUserIdProvider]`.
+- Global, unscoped providers (for example `homeClockProvider`) are never named in any
+  `dependencies` list.
 
 ---
 
@@ -84,8 +118,9 @@ first introduced there; they are nonetheless shared by every feature via DI.
 |---|---|---|---|
 | `authStateProvider` | `StreamProvider<AuthState>` | `lib/features/auth/application/auth_state_provider.dart` | Drives the auth gate in `main.dart`; downstream providers that need a `userId` depend on the resolved state. |
 | `firebaseAuthProvider` | `Provider<FirebaseAuth>` | `lib/features/auth/application/auth_state_provider.dart` | DI seam; emulator override in tests (ADR-0013). |
-| `firebaseFirestoreProvider` | `Provider<FirebaseFirestore>` | `lib/features/auth/data/user_repository.dart` | Injected into all repositories; emulator override in tests. |
-| `firebaseStorageProvider` | `Provider<FirebaseStorage>` | `lib/features/auth/data/user_repository.dart` | Used by receipt and avatar upload services. |
+| `firebaseFirestoreProvider` | `Provider<FirebaseFirestore>` | `lib/core/providers/firebase_providers.dart` | Injected into all repositories; emulator override in tests. |
+| `firebaseStorageProvider` | `Provider<FirebaseStorage>` | `lib/core/providers/firebase_providers.dart` | Used by receipt and avatar upload services. |
+| `phoneAuthRepositoryProvider` | `Provider<PhoneAuthRepository>` | `lib/core/providers/phone_auth_provider.dart` | App-scoped DI seam wrapping `FirebasePhoneAuthRepository` (OTP send/verify/resend, plus re-auth for change-phone and account deletion). Consumed by auth, profile, and deletion; overridden with a fake in tests. |
 | `analyticsServiceProvider` | `Provider<AnalyticsService>` | `lib/features/auth/application/analytics_provider.dart` | Telemetry wrapper injected into controllers. |
 | `currentUserIdProvider` | `Provider<String>` | `lib/features/friends/application/friends_list_provider.dart` | Throws unless overridden; `main.dart` overrides it per authenticated gate arm with the signed-in uid. |
 | `connectivityCheckProvider` | `Provider<IsOnline>` | `lib/core/connectivity/connectivity_provider.dart` | One-shot reachability check (`typedef IsOnline = Future<bool> Function()`) read at write time. Not a stream. See `offline-and-sync.md`. |
@@ -101,15 +136,16 @@ File location: `lib/features/auth/`
 
 | Provider | Type | Scope | Notes |
 |---|---|---|---|
-| `phoneAuthRepositoryProvider` | `Provider<PhoneAuthRepository>` | Feature | Wraps `FirebaseAuth` phone verification (OTP send/verify, resend). Depends on `firebaseAuthProvider`. |
 | `userRepositoryProvider` | `Provider<UserRepository>` | Feature | Reads/writes `users/{uid}` and avatar uploads. Depends on `firebaseFirestoreProvider` and `firebaseStorageProvider`. |
 | `phoneEntryControllerProvider` | `StateNotifierProvider<PhoneEntryController, PhoneEntryState>` | Feature (not auto-dispose) | Phone-number input validation (`+91` locked, 10-digit rule), submission state, error feedback. Kept alive across the OTP round-trip. |
 | `otpEntryControllerProvider` | `StateNotifierProvider.autoDispose.family<OtpEntryController, OtpEntryState, …>` | Screen | 6-digit OTP field, resend cooldown timer, verification state (FR-AU-05). Auto-disposes on navigation away. |
 | `profileSetupControllerProvider` | `StateNotifierProvider.autoDispose<ProfileSetupController, ProfileSetupState>` | Screen | Display name and optional photo for first-login onboarding (FR-AU-06). Auto-disposes when setup completes. |
 
-`authStateProvider`, `firebaseAuthProvider`, `firebaseFirestoreProvider`,
-`firebaseStorageProvider`, and `analyticsServiceProvider` also live in this
-feature but are app-scoped (listed in 2.1).
+`authStateProvider`, `firebaseAuthProvider`, and `analyticsServiceProvider` also live
+in this feature but are app-scoped (listed in 2.1). The Firebase SDK handles
+(`firebaseFirestoreProvider`, `firebaseStorageProvider`) and
+`phoneAuthRepositoryProvider` were relocated to `lib/core/providers/` and are listed in
+2.1; the `PhoneAuthRepository` *class* still lives under `lib/features/auth/data/`.
 
 ### 2.3 Friends Feature
 
@@ -189,12 +225,17 @@ File location: `lib/features/profile/`
 | Provider | Type | Scope | Notes |
 |---|---|---|---|
 | `editProfileControllerProvider` | `StateNotifierProvider.autoDispose<EditProfileController, EditProfileState>` | Screen | Display name and photo edits (FR-PR-01); reuses `userRepositoryProvider` and `imagePickerServiceProvider`. Auto-disposes. |
+| `changePhoneControllerProvider` | `StateNotifierProvider.autoDispose<ChangePhoneController, ChangePhoneState>` | Screen | Change-phone re-verification (FR-PR-02): a two-OTP state machine — `reauthenticate` the current number, then verify the new one and write `users/{uid}.phoneNumber`. Reuses `phoneAuthRepositoryProvider` / `userRepositoryProvider`. Auto-disposes. |
 | `notificationPreferencesControllerProvider` | `StateNotifierProvider.autoDispose<NotificationPreferencesController, NotificationPreferencesState>` | Screen | Per-category notification preference toggles (FR-PR-03); writes to `users/{uid}` and surfaces the one-shot offline snackbar. Auto-disposes. |
+| `friendCountProvider` | `Provider<AsyncValue<int>>` | Feature | The "My Friends" stats count (FR-PR-04): a read-only projection of `friendsListProvider` into `items.length`. Declares `dependencies: [friendsListProvider]` (the directly-watched scoped provider, not the transitive `currentUserIdProvider`; see 1.1). Read-only over `simplifiedBalances` (Invariant 2). |
+| `contactSupportControllerProvider` | `Provider<ContactSupportController>` | Feature | Contact Support action (FR-PR-05 / FR-SH-03 / FR-SH-04): builds the diagnostic `mailto:` URI from Remote Config, launches the mail client, or returns a fallback result. Declares `dependencies: [currentUserIdProvider]` (it watches that scoped root; see 1.1). |
+| `deleteAccountControllerProvider` | `StateNotifierProvider.autoDispose<DeleteAccountController, DeleteAccountState>` | Screen | Account-deletion flow (FR-AU-09; SCR-28 Part B): the five-step state machine (warning → re-authentication → type-`DELETE` confirm → processing → success). Step B reuses `phoneAuthRepositoryProvider`; the final step calls the `deleteUserAccount` Cloud Function (ADR-0016). Auto-disposes. |
 
 Profile reads/writes go through `userRepositoryProvider` (auth feature); there
-is no dedicated `profileRepositoryProvider`. There is no `changePhone` flow in
-the client (FR-PR-02 is not implemented). `ProfileScreen` is the live screen;
-`ProfilePlaceholderScreen` is an unused stub.
+is no dedicated `profileRepositoryProvider`. Change-phone (FR-PR-02) **is**
+implemented via `changePhoneControllerProvider` (a full two-OTP re-verification state
+machine). `ProfileScreen` is the live screen; `ProfilePlaceholderScreen` is an unused
+stub.
 
 ### 2.9 Notifications Feature
 
@@ -222,6 +263,26 @@ File location: `lib/features/reminders/`
 There is no `presentation/` folder in `reminders`; its UI surface is the
 receiving-direction variant of `OBTSettleUpCard`, hosted by the `friends`
 feature.
+
+### 2.11 Home Dashboard Feature
+
+File location: `lib/features/home/`
+
+The dashboard providers are **read-only projections** that compose
+`friendsListProvider` (and, for the spend card, the expense repository); none writes
+`simplifiedBalances` (Invariant 2), and every monetary fold stays in integer paise
+(Invariant 1).
+
+| Provider | Type | Scope | Notes |
+|---|---|---|---|
+| `overallNetBalanceProvider` | `Provider<AsyncValue<int>>` | Feature | The user's overall net simplified balance in signed integer paise, folded across every friendship (FR-HD-01). Read-side reducer over `friendsListProvider`; declares `dependencies: [friendsListProvider]` (see 1.1). |
+| `topBalancesProvider` | `Provider<AsyncValue<List<FriendListItem>>>` | Feature | The top friendships by absolute balance (zero-excluded, absolute-descending, stable tie-break, capped at 5) for the "Top Balances" section (FR-HD-02). Read-side projection over `friendsListProvider`; declares `dependencies: [friendsListProvider]`. |
+| `monthlySpendBreakdownProvider` | `FutureProvider<MonthlySpendBreakdown>` | Screen (one-shot) | Current-month spend grouped by category, folded across all friendships over the IST month window (FR-HD-03). Awaits `friendsListProvider`, fans out per-friendship `expenses` reads, then reduces through the pure `aggregateMonthlySpend`. Declares `dependencies: [friendsListProvider]`. |
+| `homeClockProvider` | `Provider<DateTime Function()>` | App (global) | Injectable clock for the FR-HD-03 IST month window (production `DateTime.now`; month-boundary tests inject a fixed instant). Global and unscoped, so it is **not** listed in any provider's `dependencies` (see 1.1). |
+
+The group axis of FR-HD-02/03 is a forward-compatibility stub: these providers fold the
+friendship axis only, and the Sprint 3 Groups epic slots a second source into the same
+sections without changing their contracts.
 
 ---
 
@@ -288,19 +349,21 @@ Notes on reality:
 - The `reminders` feature has no `presentation/` folder; its UI is hosted by
   `friends`.
 
-App-scoped and core providers are not collected in a single `core/providers/`
-file. They live where they were introduced:
+App-scoped DI seams are collected under `lib/core/providers/`; the remaining
+core helpers live where they were introduced:
 
 ```
 lib/
   core/
+    providers/firebase_providers.dart         -- firebaseFirestoreProvider, firebaseStorageProvider
+    providers/phone_auth_provider.dart         -- phoneAuthRepositoryProvider
     connectivity/connectivity_provider.dart  -- connectivityCheckProvider (Provider<IsOnline>)
     services/image_picker_service.dart        -- imagePickerServiceProvider
     formatters/inr_formatter.dart             -- formatInrFromPaise (Invariant 1)
   features/auth/
     application/auth_state_provider.dart      -- authStateProvider, firebaseAuthProvider
     application/analytics_provider.dart        -- analyticsServiceProvider
-    data/user_repository.dart                  -- firebaseFirestoreProvider, firebaseStorageProvider
+    data/phone_auth_repository.dart            -- PhoneAuthRepository class (provider lives in core/providers)
   features/friends/
     application/friends_list_provider.dart     -- currentUserIdProvider (overridden in main.dart)
 ```
@@ -465,8 +528,8 @@ separate test DI configuration (ADR-0013).
 
 | SRS Requirement | Provider(s) |
 |---|---|
-| FR-AU-01 .. FR-AU-09 | `authStateProvider`, `phoneEntryControllerProvider`, `otpEntryControllerProvider`, `profileSetupControllerProvider`, `phoneAuthRepositoryProvider`, `userRepositoryProvider` |
-| FR-PR-01, FR-PR-03 | `editProfileControllerProvider`, `notificationPreferencesControllerProvider`, `userRepositoryProvider` (FR-PR-02 change-phone not implemented) |
+| FR-AU-01 .. FR-AU-09 | `authStateProvider`, `phoneEntryControllerProvider`, `otpEntryControllerProvider`, `profileSetupControllerProvider`, `phoneAuthRepositoryProvider`, `userRepositoryProvider`, `deleteAccountControllerProvider` (FR-AU-09) |
+| FR-PR-01 .. FR-PR-05 | `editProfileControllerProvider` (FR-PR-01), `changePhoneControllerProvider` (FR-PR-02), `notificationPreferencesControllerProvider` (FR-PR-03), `friendCountProvider` (FR-PR-04), `contactSupportControllerProvider` (FR-PR-05), `userRepositoryProvider` |
 | FR-FR-01 .. FR-FR-05 | `friendsListProvider`, `friendDetailProvider`, `userProfileProvider`, `contactPickerControllerProvider`, `matchAndInviteControllerProvider`, `friendshipRepositoryProvider`, `matchingRepositoryProvider`, `shareServiceProvider` |
 | FR-GR-01 .. FR-GR-07 | _Not implemented in client (see 2.4)._ |
 | FR-EX-01, FR-EX-05, FR-EX-06 | `addExpenseControllerProvider`, `expenseDetailProvider`, `expenseRepositoryProvider`, `receiptStorageServiceProvider` |
@@ -474,7 +537,8 @@ separate test DI configuration (ADR-0013).
 | FR-SE-09 | `sendReminderControllerProvider`, `reminderRepositoryProvider`, `reminderCooldownProvider` |
 | FR-AC-01, FR-AC-02 | `activityFeedProvider`, `activityFeedRepositoryProvider` |
 | FR-AC-03 .. FR-AC-05 | `firebaseMessagingProvider`, `fcmTokenServiceProvider`, `notificationPermissionControllerProvider`, `deepLinkHandlerProvider`, `pendingDeepLinkProvider` |
-| FR-HD-04 | shell nav (`lib/features/shell/`); Home Dashboard FR-HD-01..03 not implemented |
+| FR-HD-01 .. FR-HD-03 | `overallNetBalanceProvider` (FR-HD-01), `topBalancesProvider` (FR-HD-02), `monthlySpendBreakdownProvider` + `homeClockProvider` (FR-HD-03); see 2.11 |
+| FR-HD-04 | shell nav (`lib/features/shell/`) |
 | FR-SR-01, FR-SR-02 | _Not implemented in client (no search feature)._ |
 | FR-OF-01 | All `StreamProvider` instances (Firestore cache) |
 | FR-OF-02 | Repository write methods + `connectivityCheckProvider` (one-shot) for the offline snackbar |

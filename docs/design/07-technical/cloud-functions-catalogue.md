@@ -1,12 +1,12 @@
 # Cloud Functions Catalogue
 
-> **Document version:** 1.1
+> **Document version:** 1.2
 > **Status:** Current (reconciled with deployed code under `functions/src/`)
 > **Region:** All functions are deployed to `asia-south1` (Mumbai) per SRS section 5.2.
 > **Runtime:** Node 22, TypeScript, strict mode enabled. (Upgraded from Node 20 in PR #44 ahead of the 2026-10-31 Cloud Functions Gen 2 decommission cutoff; `firebase-functions` SDK upgraded to `^7.0.0` in the same PR.)
 > **Authoritative source:** `docs/OneByTwo_Requirements_Spec.md` v1.1, reconciled with `functions/src/index.ts`.
 
-This catalogue documents the **six** Cloud Functions currently exported from
+This catalogue documents the **seven** Cloud Functions currently exported from
 `functions/src/index.ts`. Functions specified in earlier drafts but not yet
 implemented are listed under [Deferred Functions](#deferred-functions). Shared
 server-side code that is not itself a deployed function is described under
@@ -22,6 +22,7 @@ server-side code that is not itself a deployed function is described under
 4. [onSettlementWrite](#4-onsettlementwrite)
 5. [sendReminderNotification](#5-sendremindernotification)
 6. [lookupUserByPhoneNumber](#6-lookupuserbyphonenumber)
+7. [deleteUserAccount](#7-deleteuseraccount)
 
 - [Deferred Functions](#deferred-functions)
 - [Shared Module: notifications](#shared-module-notifications)
@@ -466,7 +467,7 @@ as determined by the simplified balances. Rate-limited to one reminder per frien
 
 ### Trigger type
 
-**Callable** (`functions.https.onCall`).
+**HTTPS Callable** (`onCall`), region `asia-south1`.
 
 ### Input contract
 
@@ -671,6 +672,100 @@ ADR-0014 — Phone Number Lookup via Cloud Function.
 
 ---
 
+## 7. deleteUserAccount
+
+### Purpose
+
+Permanently deletes the authenticated caller's account (FR-AU-09) via a synchronous
+Admin-SDK cascade. Personal records are hard-deleted, the identity is anonymised by
+replacing `users/{uid}` with a PII-free tombstone, and all shared records — friendships,
+their expenses and settlements, receipts, and the surviving member's `simplifiedBalances`
+— are preserved untouched. (SRS section 4.1 FR-AU-09; SRS section 5.5 / DPDP Act 2023;
+ADR-0016. User flow: SCR-28 Part B.)
+
+### Trigger type
+
+**HTTPS Callable** (`onCall`), region `asia-south1`.
+
+### Input contract
+
+None. The subject is the caller's own `request.auth.uid`, so a user can only delete
+themselves — there is no request body.
+
+### Output contract
+
+```typescript
+interface DeleteUserAccountResponse {
+  success: true;
+}
+```
+
+**Data-fate matrix (ADR-0016) — what the cascade does to each record class:**
+
+| Fate | Records | Mechanism |
+|---|---|---|
+| **DELETE** (personal) | `activity/{uid}` + its `items/**`; `_rateLimits/{uid}/**`; the Storage object `avatars/{uid}`; the Firebase **Auth** record. | Hard delete. `recursiveDelete` (BulkWriter) for subtrees; `admin.auth().deleteUser(uid)` runs **last**. |
+| **TOMBSTONE** (identity) | `users/{uid}` | `set()` (no merge) **replaces** the document with `{ displayName: 'Deleted User', deletedAt: <serverTimestamp> }`, stripping `phoneNumber`, `photoUrl`, `fcmTokens`, `notificationPrefs`, and `locale`. This single write is the anonymisation. |
+| **PRESERVE / no-op** (shared) | `friendships/{*}` the user belongs to, their `expenses` subcollections, the related `settlements`, and `receipts/friendships/{fid}/{expenseId}`. | The function does nothing. The surviving member keeps their exact balance and history. |
+
+**Invariant 2 boundary (highest-risk regression).** The function runs under the Admin SDK
+and *could* write `simplifiedBalances`, but it **must never** recompute, zero, or strip it
+on a surviving friendship. The sole writer of `simplifiedBalances` values remains
+`recomputeAndWrite` (ADR-0021; Invariant 2). Anonymisation is delivered **entirely** by the
+users-doc tombstone — never by mutating any friendship, expense, settlement, or balance.
+
+### Re-authentication (defence-in-depth)
+
+The handler enforces a recent-login check **server-side**: the caller's
+`request.auth.token.auth_time` (refreshed by the SCR-28 Step B re-authentication) must be
+within a five-minute window, else it throws `REAUTH_REQUIRED`. A missing `auth_time` claim
+is treated as not-recently-authenticated. This makes the Step B re-auth gate
+defence-in-depth rather than client-only — a direct callable invocation with a stale (but
+unexpired) token cannot bypass it for this irreversible operation.
+
+### Idempotency strategy
+
+The client may time out or force-quit while the cascade runs server-side, so every step
+treats already-absent state as success: `recursiveDelete` no-ops on an absent path, the
+tombstone `set()` is repeatable, and an absent avatar object (404) and `auth/user-not-found`
+are swallowed. Step order is **Firestore → Storage → Auth last**: while the Auth record
+exists the caller can re-authenticate and retry; once it is gone the account is unreachable.
+A re-run therefore converges (SCR-28 edge cases 3 and 4).
+
+### Error semantics
+
+See `docs/design/07-technical/cloud-functions-error-codes.md` section 2.6 for the full
+catalogue. Summary:
+
+| Condition | Error Code |
+|---|---|
+| Unauthenticated caller (no `request.auth.uid`), checked first | `UNAUTHENTICATED` (`unauthenticated`) |
+| Last login not recent (`auth_time` older than 5 minutes, or absent) | `REAUTH_REQUIRED` (`failed-precondition`) |
+| Unexpected error during the cascade | `INTERNAL` (`internal`) |
+
+### Logging
+
+Structured, PII-safe events only: `delete_account_cascade_started` / `_succeeded` /
+`_failed`, `delete_account_reauth_required`, `delete_account_avatar_absent`,
+`delete_account_auth_absent`. The uid is logged only as `uidHash` (`hashId`,
+`functions/src/utils/id-hash.ts`); the raw uid is redacted from any SDK error message before
+logging (SRS section 5.4; ADR-0013).
+
+### Retry policy
+
+**Not auto-retried** (callable). The client may re-invoke after a transient failure; the
+cascade is idempotent, so a re-run converges.
+
+### Region
+
+`asia-south1`
+
+### ADR Reference
+
+ADR-0016 — Account Deletion Cascade (delete-vs-anonymise via a users-doc tombstone).
+
+---
+
 ## Deferred Functions
 
 The following functions appeared in earlier drafts but are **not implemented or
@@ -680,9 +775,8 @@ behaviour exists in the codebase.
 | Function | Trigger (planned) | Requirement | Status |
 |---|---|---|---|
 | `onExpenseWriteGroup` | Firestore `onDocumentWritten` `groups/{groupId}/expenses/{expenseId}` | FR-SE-03, FR-SE-04 | Deferred to the groups epic. The settlement trigger already handles group-context settlements via the doc-data discriminator; the group expense trigger is the remaining piece. |
-| `onUserDelete` (account deletion) | Callable / scheduled | FR-AU-09 | Not yet implemented. |
-| `acceptGroupInvite` | Callable | FR-GR-02, FR-GR-03 | Not yet implemented. |
-| `revokeGroupInvite` | Callable | FR-GR-03 | Not yet implemented. |
+| `acceptGroupInvite` | Callable | FR-GR-02, FR-GR-03 | Not yet implemented (Sprint 3). Adds the caller to `groups.memberIds` after validating a `groupInvites/{token}` invite (not expired, not revoked) — contract: ADR-0023. |
+| `revokeGroupInvite` | Callable | FR-GR-03 | Not yet implemented (Sprint 3). Admin-only flip of `groupInvites/{token}.revoked` — contract: ADR-0023. |
 
 ---
 
@@ -721,10 +815,11 @@ The six notification types are `expense_added`, `expense_edited`, `expense_delet
 | `recomputeSimplifiedBalances` | Callable (`onCall`) | No | `asia-south1` | shipped |
 | `lookupUserByPhoneNumber` | Callable (`onCall`) | No | `asia-south1` | shipped |
 | `sendReminderNotification` | Callable (`onCall`) | No | `asia-south1` | shipped |
+| `deleteUserAccount` | Callable (`onCall`) | No | `asia-south1` | shipped |
 | `onExpenseWriteFriendship` | Firestore `onDocumentWritten` `friendships/{id}/expenses/{id}` | Yes (`retry: true`) | `asia-south1` | shipped |
 | `onSettlementWrite` | Firestore `onDocumentWritten` `settlements/{id}` | Yes (`retry: true`) | `asia-south1` | shipped |
 
-Deferred (not deployed): `onExpenseWriteGroup`, `onUserDelete`, `acceptGroupInvite`,
+Deferred (not deployed): `onExpenseWriteGroup`, `acceptGroupInvite`,
 `revokeGroupInvite` — see [Deferred Functions](#deferred-functions).
 
 ---
@@ -749,6 +844,9 @@ functions/
     send-reminder-notification/
       index.ts                          — sendReminderNotification onCall registration
       function.ts                       — handler: precondition, rate limit, dispatch, activity
+    delete-user-account/
+      index.ts                          — deleteUserAccount onCall registration
+      function.ts                       — handler: auth check, re-auth recency, idempotent cascade (DELETE/TOMBSTONE/PRESERVE)
     triggers/
       on-expense-write/
         index.ts                        — onExpenseWriteFriendship onDocumentWritten registration
@@ -794,7 +892,7 @@ functions/
 | FR-AC-01 | `onExpenseWriteFriendship`, `onSettlementWrite` (activity items) |
 | FR-AC-03, FR-AC-04 | `onExpenseWriteFriendship`, `onSettlementWrite`, `sendReminderNotification` (FCM + prefs) |
 | FR-FR-01 | `lookupUserByPhoneNumber` |
-| FR-AU-09 | `onUserDelete` (deferred — not implemented) |
+| FR-AU-09 | `deleteUserAccount` |
 | FR-GR-02, FR-GR-03 | `acceptGroupInvite`, `revokeGroupInvite` (deferred — not implemented) |
 | SRS section 7.3 (Invariant 1) | All functions (integer paise) |
 | SRS section 7.3 (Invariant 2) | `recomputeAndWrite` (sole writer of `simplifiedBalances`) |

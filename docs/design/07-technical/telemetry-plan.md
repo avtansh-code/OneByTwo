@@ -21,9 +21,11 @@ below.
 > app-shell navigation events (`lib/features/shell/application/shell_telemetry.dart`),
 > the notification-preferences events
 > (`lib/features/profile/application/notification_preferences_telemetry.dart`), and the
-> friends events (e.g. `friend_row_tapped`). Groups events (SCR-13–18) and
-> account-lifecycle events (SCR-28) have **no producer yet** — those features are not
-> built (groups is data-layer-only; account deletion is unimplemented). The
+> friends events (e.g. `friend_row_tapped`). Groups events (SCR-13–18) have **no
+> producer yet** — that feature is data-layer-only. The account-lifecycle deletion
+> family (SCR-28: the `delete_account_*` events) **ships**: it is produced by
+> `lib/features/profile/application/delete_account_telemetry.dart` (driven by
+> `delete_account_controller.dart`) and catalogued in section 1.7. The
 > repositories also emit structured **parse-failure** diagnostics not listed in the
 > tables below: `friendship_parse_failure`, `settlement_parse_failure`, and
 > `activity_parse_failure`.
@@ -139,7 +141,7 @@ Source: `docs/design/06-screen-specs/09-12-friends.md`
 | `contact_permission_denied` | — | — | Contact permission denied or revoked | SCR-10 |
 | `friend_search_started` | — | — | User taps search field on add-friend screen | SCR-10 |
 | `contact_permission_granted` | — | — | User grants contact access on add-friend screen | SCR-10 |
-| `friend_detail_viewed` | `balance_state` | `string` (`owed` / `owes` / `settled`) | Friend detail screen becomes visible | SCR-11 |
+| `friend_detail_viewed` | `balance_state` | `string` (`owed` / `owes` / `settled`) | Friend detail screen becomes visible. `balance_state` is a PII-safe bucket derived from the sign of the net `simplifiedBalances` entry (positive → `owed`, negative → `owes`, zero → `settled`); it replaces the previously-emitted `friendship_id_hash`, which is no longer sent on this event (no document identifier is attached). | SCR-11 |
 | `settle_up_tapped` | `source` | `string` (`friend_detail`) | User taps the Settle Up CTA | SCR-11 |
 | `friend_history_tapped` | — | — | User taps View full history | SCR-11 |
 | `friend_delete_menu_tapped` | — | — | User taps Delete Friend in the overflow menu | SCR-11 |
@@ -226,7 +228,7 @@ Source: `docs/design/06-screen-specs/23-28-settle-activity-profile.md`
 | `settlement_history_viewed` | `context_type`, `item_count` | `string`, `int` | Settlement history screen loaded with data | SCR-24 |
 | `settlement_history_error` | `error_code`, `context_type` | `string`, `string` | Data fetch fails | SCR-24 |
 | `activity_feed_viewed` | `item_count` | `int` | Activity feed screen opened with populated data | SCR-25 |
-| `activity_item_tapped` | `event_type` | `string` | User taps an activity row | SCR-25 |
+| `activity_item_tapped` | `event_type`, `entity_id_hash` | `string`, `string` (16-hex SHA-256; see 2.2) | User taps an activity row. `entity_id_hash` is the hashed target document id — the referenced `expenseId` or `settlementId`, selected by `event_type` — hashed on both branches per ADR-0013; the raw id is never emitted. | SCR-25 |
 | `activity_feed_refreshed` | `success` | `bool` | Pull-to-refresh completed | SCR-25 |
 | `activity_feed_error` | `error_code` | `string` | Data fetch fails | SCR-25 |
 | `profile_viewed` | — | — | Profile View screen opened | SCR-26 |
@@ -311,8 +313,9 @@ raw identifier is never emitted in any build. There is no debug-only or
 production-stripped behaviour.
 
 The catalogue tables above already reflect this convention — see `friend_row_tapped`
-(`friendship_id_hash`) in section 1.4 and the expense and settlement event families,
-which carry `friendship_id_hash`, `expense_id_hash`, and `settlement_id_hash`.
+(`friendship_id_hash`) in section 1.4, `activity_item_tapped` (`entity_id_hash`) in
+section 1.7, and the expense and settlement event families, which carry
+`friendship_id_hash`, `expense_id_hash`, and `settlement_id_hash`.
 
 ---
 

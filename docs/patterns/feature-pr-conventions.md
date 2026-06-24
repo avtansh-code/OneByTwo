@@ -64,6 +64,15 @@ test/features/<feature>/
   - `FutureProvider` — one-shot async reads.
 - **Scoping:** Use `ProviderScope.overrides` in tests to inject fakes. Production
   providers should not depend on `BuildContext`.
+- **Scoped `dependencies`:** A provider that `ref.watch`es a **scoped** provider
+  (one that is overridden in a `ProviderScope`, such as `currentUserIdProvider`) must
+  declare the **directly-watched** scoped provider in its own `dependencies` list —
+  **not** a transitive root reached through it. For example, a provider that watches
+  `friendsListProvider` declares `dependencies: [friendsListProvider]`, not the
+  transitive `currentUserIdProvider`. Omitting the list, or naming the transitive root
+  instead of the direct dependency, makes Riverpod throw the
+  *"... specified a `dependencies` list ..."* assertion on first read. See
+  `state-management.md` section 1.1 for the worked FR-HD / FR-FR example.
 - **Code generation:** `riverpod_generator` and `riverpod_annotation` are available
   but optional. Manual provider declarations are acceptable.
 
