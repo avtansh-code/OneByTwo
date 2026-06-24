@@ -10,7 +10,7 @@ design phase has strengthened or weakened the original mitigation, identifies ne
 information that changes the likelihood or impact, and cites specific design
 artefacts that address the risk.
 
-Five new risks identified during the design phase are appended at the end.
+Seven new risks identified during the design phase are appended at the end.
 
 ---
 
@@ -470,6 +470,88 @@ Permission revocation during app use can cause crashes if not handled.
 
 ---
 
+### R-18: Invite-link security -- token unguessability, 7-day expiry, and admin revocation must be enforced server-side
+
+**Description:** FR-GR-02/03 introduce a shareable group invite link surfaced
+through the system share sheet (Invariant 3). The link carries an invite token
+(the SR4 model: `token`, `groupId`, `createdBy`, `expiresAt`, `revoked`). Three
+properties protect a leaked or stale link: the token must be unguessable, it must
+expire 7 days after creation (FR-GR-03), and the admin must be able to revoke it.
+If any of these is enforced only in the client UI -- for example, the app hides
+the join action after `expiresAt` but the server still accepts the token -- a
+crafted request that bypasses the UI could add a member using an expired, revoked,
+or guessed token. There is currently no invite-token schema or rules (audit SR4),
+so the enforcement point does not yet exist.
+
+**Impact:** High. An attacker who obtains or guesses a link could join a private
+group, see its expenses and member balances, and pollute its ledger. Trust in the
+invite mechanism would be undermined.
+
+**Likelihood:** Medium. Links are shared through arbitrary channels (the OS share
+sheet routes to any app), so leakage is normal; weak token generation or UI-only
+guards would make exploitation straightforward.
+
+**Mitigation:** The Architect drafts the invite-token model and a
+rules/expiry/revocation outline (plus an ADR) in the Sprint-2 boundary-cleanup PR
+(audit SR4), so FR-GR-02/03 build against a concrete server contract. Tokens must
+be generated with sufficient entropy to be unguessable; `expiresAt` must be
+server-set to creation time plus 7 days and never client-extensible; revocation
+must flip a server-read `revoked` flag. Both expiry and revocation must be
+enforced server-side -- Firestore Security Rules reading `expiresAt` / `revoked`,
+or a Cloud callable -- never UI-only. FR-GR-03 carries the negative acceptance
+criteria (expired token rejected, revoked token rejected, non-admin revoke
+rejected) and emulator-backed rules / callable tests.
+
+**Relevant artefacts:**
+- `docs/sprint-zero/stories/FR-GR-02-invite-members.md` and `docs/sprint-zero/stories/FR-GR-03-invite-link-expiry.md` -- server-side invite, expiry, and revocation acceptance criteria.
+- `docs/audits/sprint-2/05-sprint-3-readiness.md` -- SR4 (invite-token model) and SR9 (this risk).
+- `docs/design/06-screen-specs/13-18-groups.md` -- SCR-16 (link active / revoke states).
+- `.github/shared/invariants.md` -- Invariant 3 (system share sheet only).
+
+---
+
+### R-19: Zero-balance guards (remove member / leave group / delete group) must be enforced server-side, not UI-only
+
+**Description:** FR-GR-05 (admin removes a member), FR-GR-06 (a member leaves),
+and FR-GR-07 (admin deletes the group) are each gated by a zero-balance guard: the
+action is permitted only when the relevant `simplifiedBalances` are zero (the
+member is settled, or every member is settled for delete). The microcopy
+(`"[Name] must settle up before they can be removed."`, `"You must settle up
+before you can leave."`, `"Some members still have outstanding balances..."`)
+implies a client check, but if the guard is enforced only in the UI a crafted
+request could remove a member or delete a group while debts are outstanding --
+orphaning balances and corrupting the ledger. Today the group rules do not lock
+`memberIds` on update and `delete` is `allow delete: if false`, so the enforcement
+mechanism is undecided (audit SR5).
+
+**Impact:** High. Bypassing the guard could strand a non-zero debt with no member
+to attribute it to, breaking the simplified-debts property that balances net to
+zero and producing unrecoverable ledger states.
+
+**Likelihood:** Medium. The guard is conceptually simple but easy to implement
+UI-only; without a server check it is bypassable by anyone who can issue a direct
+write.
+
+**Mitigation:** The Architect decides the enforcement mechanism early, before
+FR-GR-05/06/07: either Firestore Security Rules that read `simplifiedBalances` and
+permit the membership change or delete only when the relevant entries are zero, or
+a Cloud callable that performs the guarded mutation transactionally. Because
+`simplifiedBalances` is server-maintained and client-read-only (Invariant 2), the
+guard's source of truth is already trustworthy. The chosen mechanism must be
+paired with negative tests (remove / leave / delete attempted with a non-zero
+balance is rejected server-side) and the admin-only membership guard noted in SR5.
+The `group_member_remove_blocked`, `group_leave_blocked`, and
+`group_delete_blocked` telemetry events already anticipate the blocked path.
+
+**Relevant artefacts:**
+- `docs/audits/sprint-2/05-sprint-3-readiness.md` -- SR5 (group rules incomplete; enforcement undecided) and SR9 (this risk).
+- `docs/design/06-screen-specs/13-18-groups.md` -- SCR-17 (remove / leave) and SCR-18 (delete) zero-balance guards and microcopy.
+- `firestore.rules` -- `groups/{groupId}` update / delete rules to be completed (Architect).
+- `.github/shared/invariants.md` -- Invariant 2 (`simplifiedBalances` server-maintained, client-read-only).
+- `docs/design/07-technical/telemetry-plan.md` -- `group_member_remove_blocked`, `group_leave_blocked`, `group_delete_blocked`.
+
+---
+
 ### Privacy Note — Contact Data Handling
 
 Contact data is processed client-side only. Phone numbers from the device
@@ -497,6 +579,8 @@ but are never stored in a contacts collection or transmitted to analytics.
 | R-15 | Telemetry volume | Medium | Review event utility after first month of production data. Document BigQuery export cost baseline. |
 | R-16 | Accessibility compliance gap | Low | Add manual screen-reader testing (VoiceOver + TalkBack) to the release readiness checklist. Execute walkthroughs before launch. |
 | R-17 | Contact permission platform fragility | Medium | Implement pre-permission rationale screen, manual-entry fallback, and permission-state checks in Sprint 2. Monitor grant rates via telemetry. |
+| R-18 | Invite-link security (unguessable token, 7-day expiry, admin revocation) | Medium | Architect drafts the invite-token model plus the server-side rules/callable outline and ADR (SR4) in the cleanup PR; FR-GR-03 adds expired, revoked, and non-admin-revoke negative tests against the emulator. |
+| R-19 | Zero-balance guards must be server-enforced | Medium | Architect decides rules-vs-callable enforcement before FR-GR-05/06/07; add server-side negative tests (remove/leave/delete with a non-zero balance rejected) and the admin-only membership guard (SR5). |
 
 ---
 
@@ -516,7 +600,9 @@ One risk (R-04, hot documents) has gained new information from the offline-and-s
 design that slightly increases its likelihood, warranting closer monitoring during
 performance testing.
 
-Five new risks (R-13 through R-17) have been identified. Of these, R-16
+Seven new risks (R-13 through R-19) have been identified. Of these, R-16
 (accessibility compliance gap) and R-17 (contact permission platform fragility)
 have the highest likelihood and should be prioritised for action before the v1.0
-launch.
+launch. R-18 (invite-link security) and R-19 (server-side zero-balance guards),
+surfaced by the Sprint-3 readiness audit (SR9), are both Groups risks that hinge
+on server-side enforcement rather than UI-only checks.
