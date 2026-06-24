@@ -218,13 +218,13 @@
 | Direction | Target |
 |---|---|
 | **Reachable from** | SCR-09 Friends List (tap a friend row); SCR-10 Add Friend (on successful add); Home Dashboard (tap a friend in the top-5 list). |
-| **Leads to** | Settle Up flow (tap Settle Up CTA in `OBTSettleUpCard`); Expense Detail (tap an expense row); Friend History `/friends/:friendshipId/history` (tap "View full history"); SCR-12 Delete Friend Dialog (tap "Delete Friend" in overflow menu); SCR-09 Friends List (back navigation). |
+| **Leads to** | Settle Up flow (tap Settle Up CTA in `OBTSettleUpCard`); Expense Detail (tap an expense row); Friend History `/friends/:friendshipId/history` (tap "View full history"); SCR-12 Delete Friend Dialog (tap "Delete Friend" in overflow menu -- **deferred with SCR-12 / FR-FR-05; not present in the shipped app bar**); SCR-09 Friends List (back navigation). |
 
 ### Components Used
 
 | Component | Catalogue Ref | Usage |
 |---|---|---|
-| `OBTAppBar` | 1 | Title: friend's display name; leading back button; trailing overflow menu (three-dot icon). |
+| `OBTAppBar` | 1 | Title: friend's display name; leading back button; trailing overflow menu (three-dot icon) -- **deferred (FR-FR-05): the shipped app bar has no overflow menu; ships with SCR-12 Delete Friend**. |
 | `OBTUserAvatar` | 11 | Large variant (80 dp) centred in the profile header. |
 | `OBTBalancePill` | 4 | Large variant below the avatar; colour-coded balance. |
 | `OBTSettleUpCard` | 13 | Pre-filled settlement card; rendered only when `balancePaise != 0`. |
@@ -239,7 +239,7 @@
 |---|---|---|---|---|
 | 1 | **Loading** | Friendship and expense data are being fetched. | Profile header: `OBTSkeletonLoader(type: profileHeader)`. Expense list: `OBTSkeletonLoader(type: listTile, itemCount: 3)`. App bar shows the friend's name if available from the navigation argument. | Transitions to Populated or Error on data arrival. |
 | 2 | **Populated (non-zero balance)** | Friendship data loaded; `simplifiedBalances` indicates a non-zero value. | Full layout: avatar, name, `OBTBalancePill`, `OBTSettleUpCard`, and up to 5 recent `OBTExpenseListTile` rows. "View full history" text link right-aligned above expense rows. | `OBTSettleUpCard` pre-fills the settlement amount from the simplified balance (FR-SE-05). Tapping the CTA opens the Settle Up flow. |
-| 3 | **Populated (settled up)** | Friendship data loaded; `simplifiedBalances` is zero. | Full layout without `OBTSettleUpCard`. `OBTBalancePill` shows "settled up" in muted `onSurface` colour. | Settle Up CTA hidden per FR-SE-07 (only shown for non-zero). Overflow menu still offers "Delete Friend" (FR-FR-05 -- deletion is permitted at zero balance). |
+| 3 | **Populated (settled up)** | Friendship data loaded; `simplifiedBalances` is zero. | Full layout without `OBTSettleUpCard`. `OBTBalancePill` shows "settled up" in muted `onSurface` colour. | Settle Up CTA hidden per FR-SE-07 (only shown for non-zero). Overflow menu still offers "Delete Friend" (FR-FR-05 -- deletion is permitted at zero balance) -- **deferred with SCR-12: the overflow menu and Delete Friend entry point are not in the shipped app bar**. |
 | 4 | **No expenses** | Friendship data loaded; expense query returns zero documents. | Profile header and balance pill render normally. Expense area shows `OBTEmptyState`. Title: "No expenses yet". Subtitle: "Add an expense with [Friend name] to start tracking." CTA: "Add Expense" (opens the Add Expense flow with this friend pre-selected). | Balance pill may show a non-zero value if a settlement was recorded without expenses (edge case). |
 | 5 | **Error** | Firestore read failure or network error. | `OBTErrorState` replaces the entire content area below the app bar. Title: "Something went wrong". Subtitle: "We could not load this friend's details. Please try again." Retry button and "Contact Support" link. | Retry re-fetches friendship and expense data. |
 | 6 | **Settling (transient)** | User taps Settle Up CTA and the Settle Up flow is in progress. | `OBTSettleUpCard` CTA button shows a loading indicator; card becomes non-interactive. | On settlement completion, balance updates in real time via the Firestore listener and the `OBTSettleUpCard` either updates its amount or disappears (if fully settled). |

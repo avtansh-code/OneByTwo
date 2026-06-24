@@ -6,7 +6,7 @@
 > **SRS baseline:** v1.1
 > **Last updated:** 2025-07-15
 
-> **Implementation status (verified against `lib/`, this pass).** SCR-23 Settle Up (bottom sheet), SCR-24 Settlement History, SCR-25 Activity Feed, SCR-26 Profile, SCR-27 Notification Prefs — implemented. **SCR-28 Support/Deletion: entries exist but are 'Coming soon' stubs** (mailto FR-SH-03/04 and FR-AU-09 not wired).
+> **Implementation status (verified against `lib/`, this pass).** SCR-23 Settle Up (bottom sheet), SCR-24 Settlement History, SCR-25 Activity Feed, SCR-26 Profile, SCR-27 Notification Prefs — implemented. **SCR-28 Support/Deletion implemented**: Contact Support is a working `mailto:` with a copy-address fallback dialog (FR-SH-03/04) and Account Deletion is the full 5-step flow (FR-AU-09); only this note previously lagged -- the SCR-28 body already matches the shipped behaviour.
 
 ---
 

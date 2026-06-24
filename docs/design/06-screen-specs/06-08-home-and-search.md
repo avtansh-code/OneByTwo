@@ -9,7 +9,7 @@ This document specifies three interconnected screens for One By Two v1.0: the Ho
 
 All monetary values are integer paise (Invariant 1, SRS section 7.3). Balance data is read from the `simplifiedBalances` field, which is server-maintained and client-read-only (Invariant 2, SRS sections 4.6, 7.3, 7.5). All outbound sharing uses the platform system share sheet only (Invariant 3, SRS sections 3.4, 4.11, 12.2).
 
-> **Implementation status (verified against `lib/`, this pass).** **SCR-06 Home = placeholder** (`HomeDashboardPlaceholder`); **SCR-07 Search not implemented**; **SCR-08 Add-Expense entry implemented** (`AddExpenseContextPickerSheet` → `AddExpenseBottomSheet`).
+> **Implementation status (verified against `lib/`, this pass).** **SCR-06 Home Dashboard implemented** (`HomeDashboardScreen` -- FR-HD-01 net balance, FR-HD-02 top balances, FR-HD-03 spend breakdown; no longer a placeholder); **SCR-07 Search not implemented**; **SCR-08 Add-Expense entry implemented** (`AddExpenseContextPickerSheet` → `AddExpenseBottomSheet`).
 
 ---
 
@@ -97,6 +97,8 @@ Displayed when the user has at least one non-zero simplified balance.
 
   Amount is rendered via `OBTRupeeText` with Indian numbering format (SRS section 5.9, FR-EX-09).
 
+  > **Implementation note (accepted, Bucket-C).** The shipped `NetBalanceHeaderCard` renders these tints via semantic `ColorScheme` roles -- `tertiaryContainer` (owed), `errorContainer` (owe), `surfaceContainerHighest` (settled) -- instead of the literal hex above, a deliberate dark-mode-correct choice; the header copy is unchanged (`net_balance_header_card.dart:47,53,59`).
+
 - **Top Balances Section:**
   - Section header: "Top Balances".
   - Up to 5 items (`OBTFriendListTile` or `OBTGroupListTile`), sorted by absolute balance descending (FR-HD-02).
@@ -108,7 +110,7 @@ Displayed when the user has at least one non-zero simplified balance.
 - **Category Breakdown Section (P1 -- FR-HD-03):**
   - Section header: "This Month" (`titleMedium`, `textPrimary`, `header` semantics).
   - **Breakdown card** (`surface`, `radiusXL` / 24 dp corner, `elevationLow`, 16 dp internal padding) presenting the signed-in user's **own** current-month spend (their `sharePaise`, summed per `ExpenseCategory`, current calendar month in IST per SRS section 5.9 -- never the full `amountPaise`) as a **donut chart + legend + month total**. The card is **non-interactive** in v1.0 (no per-segment drill-down -- see Edge Case 5).
-  - **Placement.** The card occupies the "This Month" slot in the Populated State (where `SpendingBreakdownPlaceholderCard` sits today, `home_dashboard_screen.dart:388`). Surfacing the breakdown inside the dashboard's settled/empty state is a tracked follow-up (FR-HD-03 story, Follow-up Issues) and is out of scope here.
+  - **Placement.** The card occupies the "This Month" slot in the Populated State, implemented as `SpendingBreakdownCard` (donut + legend + empty/error sub-states, FR-HD-03; `home_dashboard_screen.dart:388`). Surfacing the breakdown inside the dashboard's settled/empty state is a tracked follow-up (FR-HD-03 story, Follow-up Issues) and is out of scope here.
   - **Donut chart** (the recommended chart type over a horizontal bar -- a donut reads the part-to-whole month total at a glance and frees its centre for the total figure):
     - One segment per `ExpenseCategory` with non-zero current-month spend, **ordered by descending paise** (AC-10). A single-category month renders one full-circle segment at 100% (AC-11). `ExpenseCategory.other`, when it carries spend, is an ordinary segment ranked by its own paise -- never a synthetic tail bucket and never a "+N more" truncation (AC-12).
     - Geometry: outer diameter **160 dp** (matches the loading chart-skeleton, State 1, line 69); ring thickness **28 dp**; centre hole diameter **~104 dp** (in fl_chart terms: `centerSpaceRadius` ~= 52 dp, section `radius` ~= 28 dp). Segments are separated by a **2 dp gap rendered in the card `surface` colour** so each arc is visually bounded.
@@ -243,6 +245,8 @@ All events conform to SRS section 5.10 (Firebase Analytics).
 ---
 
 ## SCR-07: Search Overlay
+
+> **Status: deferred.** Search (SCR-07; FR-SR-01 search, FR-SR-02 filter) is **not implemented in v1.0 through Sprint 2** -- see the global status note (line 12). This section is retained as a forward-looking specification for a future release; nothing here ships in v1.0.
 
 ### Overview
 
@@ -521,7 +525,7 @@ All inputs below refer to the full Add Expense multi-step flow triggered by the 
 |---|---|---|---|---|
 | Context (friend/group) | `OBTFriendListTile` / `OBTGroupListTile` | Selection | Required. User must select exactly one friend or group. | "Please select a friend or group to split with." (shown if user attempts to proceed without selection) |
 | Amount | `OBTAmountInput` | Numeric (paise) | Required. Must be greater than 0 paise. Maximum: 99,99,999.99 rupees (9,99,99,99,999 paise). | "Please enter an amount." (if empty) / "Amount must be greater than zero." (if 0) / "Amount cannot exceed 99,99,999.99 rupees." (if over maximum) |
-| Description | Text field | Free text | Required. Minimum 1 character. Maximum 200 characters. | "Please add a description." (if empty) / "Description cannot exceed 200 characters." (if over maximum; shown with a character counter) |
+| Description | Text field | Free text | Required. Minimum 1 character. Maximum 100 characters. | "Please add a description." (if empty) / "Description cannot exceed 100 characters." (if over maximum; shown with a character counter) |
 | Date | Date picker | Date | Required. Defaults to today. Must not be in the future. Must not be more than 1 year in the past. | "Date cannot be in the future." / "Date cannot be more than a year ago." |
 | Category | `OBTCategoryChip` | Single selection | Required. Defaults to "Other" if not selected. | No error message; "Other" is auto-selected as fallback. |
 | Payer | Payer selector | Single selection | Required. Defaults to the current user ("You paid"). | No error message; defaults to current user. |
