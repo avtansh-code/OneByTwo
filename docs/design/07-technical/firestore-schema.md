@@ -160,6 +160,51 @@ document ID.
 
 ---
 
+### `groupInvites/{token}`
+
+> **Implementation status (design outline, Sprint 3):** This is a **forward design** for
+> the FR-GR-02 / FR-GR-03 invite-link flow (ADR-0023). The collection, its security
+> rules, and the `createGroupInvite` / `acceptGroupInvite` callables are **not present in
+> `firestore.rules` or the client in v1.0**; the shape below is ratified now so the
+> Sprint 3 groups epic is not designed blind. Documents are **server/admin-managed** —
+> created and revoked only through Cloud Functions acting for the group admin.
+
+The document ID **is** the invite `token`: a high-entropy, server-generated, URL-safe
+string embedded in the `/invite/group/:inviteToken` universal/App Link (ADR-0023). A
+top-level collection — rather than a `groups/{groupId}/invites/{token}` subcollection —
+is used deliberately: the invitee is a non-member who holds only the token and does not
+know the `groupId`, and reading the parent group is membership-gated, so the token must
+be resolvable without a group read (see ADR-0023).
+
+| Field | Type | Required | Default | Description | Indexed |
+|---|---|---|---|---|---|
+| `token` | `string` | Yes | — | The invite token; mirrors the document ID. High-entropy, server-generated, URL-safe. | No (the document ID is the lookup key) |
+| `groupId` | `string` | Yes | — | The target `groups/{groupId}` the token grants membership to. | No |
+| `createdBy` | `string` | Yes | — | UID of the group admin who minted the token. Must equal the group's `adminId` at creation. | No |
+| `createdAt` | `timestamp` | Yes | `request.time` at create | Token mint time. | No |
+| `expiresAt` | `timestamp` | Yes | `createdAt + 7 days` | Hard expiry; a token is invalid once `request.time >= expiresAt` (ADR-0023, 7-day window). | No |
+| `revoked` | `boolean` | Yes | `false` | Admin revocation flag. A revoked token is invalid regardless of `expiresAt`. | No |
+
+**Security rules summary (design outline — authoritative rules land in Sprint 3):**
+
+- **Read** is allowed to a signed-in user performing a **get by token** (the document ID
+  is the unguessable token) only while the token is live —
+  `resource.data.revoked == false && request.time < resource.data.expiresAt`. **List/query
+  is denied** so tokens cannot be enumerated.
+- **Create** is performed **server-side** by the `createGroupInvite` callable acting for
+  the group admin (`createdBy == adminId`), which sets `expiresAt = createdAt + 7 days`
+  and `revoked = false`. Direct client create is denied.
+- **Update** is limited to the admin flipping `revoked` to `true` (revocation); all other
+  field mutations are denied. Acceptance does **not** mutate the token — membership is
+  added to `groups/{groupId}.memberIds` by the `acceptGroupInvite` callable.
+- **Delete** is denied for all clients; expired tokens are reaped by a server-side
+  lifecycle task, not by client delete.
+
+See `firestore-security-rules.md` (`groupInvites/{token}`) for the matching rules outline
+and ADR-0023 for the full decision.
+
+---
+
 ### `friendships/{friendshipId}/expenses/{expenseId}`
 
 Subcollection of a friendship document. The schema is identical to group expenses.
@@ -354,7 +399,7 @@ Cloud Storage paths and constraints for user-uploaded binary assets.
 | Rule | Detail |
 |---|---|
 | **Orphaned file deletion** | **Not implemented in v1.0.** No scheduled Cloud Function exists to scan for and delete unreferenced files under `receipts/`. Documented as a future hardening task. |
-| **Avatar cleanup on account deletion** | **Not implemented in v1.0.** There is no account-deletion Cloud Function (no `onUserDelete`), so avatar files are not garbage-collected automatically. Deferred with the account-deletion epic. |
+| **Avatar cleanup on account deletion** | **Implemented.** The `deleteUserAccount` HTTPS callable (FR-AU-09, ADR-0016) deletes the caller's avatar object at `avatars/{uid}` idempotently as part of the deletion cascade (Firestore personal data → Storage avatar → Auth record last). Avatar garbage-collection on deletion is therefore covered; the orphaned-receipt sweep above remains a future task. |
 
 ---
 

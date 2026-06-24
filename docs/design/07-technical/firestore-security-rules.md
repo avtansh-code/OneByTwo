@@ -215,6 +215,53 @@ rules (with a bounded enumeration sized to the group-member cap) are a Sprint 3 
 
 ---
 
+## groupInvites/{token}
+
+> **Implementation status (design outline, Sprint 3):** This is a **forward design** for
+> the FR-GR-02 / FR-GR-03 invite-link flow (ADR-0023). **No `match` block for
+> `groupInvites/{token}` exists in `firestore.rules` in v1.0**, so under the top-of-file
+> default-deny all access is currently rejected. The outline below is the intended
+> Sprint 3 shape, ratified now (ADR-0023) so the groups epic is not designed blind. The
+> collection is **server/admin-managed** — see `firestore-schema.md`
+> (`groupInvites/{token}`) for the field-level model.
+
+The document ID **is** the invite token (high-entropy, server-generated). A token holder
+who is not yet a group member must be able to resolve the invite **without** reading the
+membership-gated group document, which is why this is a top-level collection keyed by the
+token rather than a `groups/{groupId}/invites/{token}` subcollection (ADR-0023).
+
+### Read
+
+- Allowed to any signed-in user performing a **get by token** (the document ID is the
+  unguessable token), but only while the token is **live**:
+  `resource.data.revoked == false && request.time < resource.data.expiresAt`
+  (the 7-day expiry check; ADR-0023).
+- **List/query is denied** (`allow list: if false`) so tokens cannot be enumerated; a
+  token can only be fetched by its exact id.
+
+### Create
+
+- **Denied to direct client writes.** Tokens are minted **server-side** by the
+  `createGroupInvite` callable acting for the group admin, which sets `createdBy` to the
+  caller (who must be the group's `adminId`), `createdAt == request.time`,
+  `expiresAt == createdAt + 7 days`, and `revoked == false`. Running the mint through a
+  callable keeps token entropy and the expiry window server-controlled.
+
+### Update
+
+- Limited to **revocation by the group admin**: the only permitted change is flipping
+  `revoked` from `false` to `true`, and only when `request.auth.uid` is the group's
+  `adminId`. `token`, `groupId`, `createdBy`, `createdAt`, and `expiresAt` are immutable.
+- Acceptance does **not** mutate the token — the `acceptGroupInvite` callable validates
+  liveness and adds the caller to `groups/{groupId}.memberIds` server-side.
+
+### Delete
+
+- Denied to all clients (`allow delete: if false`). Expired tokens are reaped by a
+  server-side lifecycle task, not by client delete.
+
+---
+
 ## settlements/{settlementId}
 
 ### Read
