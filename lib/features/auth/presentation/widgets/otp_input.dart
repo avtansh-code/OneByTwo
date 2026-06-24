@@ -167,37 +167,64 @@ class _OtpInputState extends State<OtpInput> {
     final theme = Theme.of(context);
     return Semantics(
       label: 'Enter 6-digit verification code',
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_cellCount, (index) {
-          return Padding(
-            padding: EdgeInsets.only(right: index < _cellCount - 1 ? 12 : 0),
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Semantics(
-                label: 'Digit ${index + 1} of $_cellCount',
-                child: TextField(
-                  controller: _controllers[index],
-                  focusNode: _focusNodes[index],
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge,
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: theme.colorScheme.outline),
-                    ),
-                    counterText: '',
-                  ),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (value) => _onChanged(index, value),
-                ),
-              ),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Responsive cell sizing: keep the 48 dp cell on phones that
+          // have room, but shrink to the available width on smaller
+          // devices (e.g. iPhone SE) so the six-cell row never overflows
+          // horizontally. The gap shrinks proportionally with the cell.
+          const maxCell = 48.0;
+          const maxGap = 12.0;
+          final available = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : maxCell * _cellCount + maxGap * (_cellCount - 1);
+          final gap =
+              (maxGap *
+                      (available /
+                          (maxCell * _cellCount + maxGap * (_cellCount - 1))))
+                  .clamp(4.0, maxGap);
+          final totalGap = gap * (_cellCount - 1);
+          final cell = ((available - totalGap) / _cellCount).clamp(
+            0.0,
+            maxCell,
           );
-        }),
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_cellCount, (index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index < _cellCount - 1 ? gap : 0,
+                ),
+                child: SizedBox(
+                  width: cell,
+                  height: maxCell,
+                  child: Semantics(
+                    label: 'Digit ${index + 1} of $_cellCount',
+                    child: TextField(
+                      controller: _controllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                        counterText: '',
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) => _onChanged(index, value),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          );
+        },
       ),
     );
   }

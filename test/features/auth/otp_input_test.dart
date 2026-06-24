@@ -40,6 +40,37 @@ void main() {
       expect(textFields, findsNWidgets(6));
     });
 
+    testWidgets('does not overflow horizontally on a small (320 dp) viewport', (
+      tester,
+    ) async {
+      // iPhone SE-class width: the six fixed 48 dp cells + gaps would
+      // exceed the screen, so the row must shrink responsively (no
+      // RenderFlex overflow). Regression for the Phase-10 a11y finding.
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(
+              // Mirror the OTP screen's horizontal padding.
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: OtpInput(
+                onDigitEntered: (_, _) {},
+                onCompleted: (_) {},
+                onBackspace: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(TextField), findsNWidgets(6));
+    });
+
     testWidgets('typing a digit moves focus to the next cell', (tester) async {
       await tester.pumpWidget(buildSubject());
 
