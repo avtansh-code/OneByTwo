@@ -34,8 +34,11 @@ class FakeFriendshipStore implements FriendshipStore {
   }
 
   @override
-  Future<bool> exists(String path) async {
-    return documents.containsKey(path);
+  Future<bool> existsForMember(String memberId, String friendshipId) async {
+    final data = documents[friendshipId];
+    if (data == null) return false;
+    final members = (data['memberIds'] as List?)?.cast<String>() ?? const [];
+    return members.contains(memberId);
   }
 
   @override
