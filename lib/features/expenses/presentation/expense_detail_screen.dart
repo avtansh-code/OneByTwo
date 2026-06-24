@@ -17,6 +17,7 @@ import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
+import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 
 /// Read-only detail screen for a single expense (SCR-22).
 ///
@@ -272,7 +273,17 @@ class _ExpenseDetailBody extends ConsumerWidget {
     final dateFmt = DateFormat.yMMMd();
     final amount = formatInrFromPaise(doc.amountPaise);
     final isMyExpense = doc.payerId == currentUserUid;
-    final payerLabel = isMyExpense ? 'You' : 'Friend';
+    // Resolve the other participant's display name; the friends-list
+    // listener keeps userProfileProvider warm so this is an instant
+    // cache read in practice. Falls back to "Friend" while loading or if
+    // the profile cannot be resolved (e.g. deleted account).
+    final friendName = ref
+        .watch(userProfileProvider(otherUserUid))
+        .maybeWhen(
+          data: (profile) => profile?.displayName ?? 'Friend',
+          orElse: () => 'Friend',
+        );
+    final payerLabel = isMyExpense ? 'You' : friendName;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -316,7 +327,7 @@ class _ExpenseDetailBody extends ConsumerWidget {
           const SizedBox(height: 8),
           for (final split in doc.splits)
             _DetailRow(
-              label: split.userId == currentUserUid ? 'You' : 'Friend',
+              label: split.userId == currentUserUid ? 'You' : friendName,
               value: formatInrFromPaise(split.sharePaise),
             ),
           // FR-EX-05: receipt thumbnail when present.
