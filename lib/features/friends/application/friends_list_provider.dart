@@ -19,6 +19,20 @@ final currentUserIdProvider = Provider<String>((ref) {
   );
 });
 
+/// Provides the current authenticated user's E.164 phone number
+/// (`+91...`).
+///
+/// Required by flows that must reason about the signed-in user's own
+/// number — notably the add-friend self-add guard (SCR-10). **Override
+/// in the widget tree** at the same authenticated-shell scope as
+/// [currentUserIdProvider]; tests override it directly.
+final currentUserPhoneProvider = Provider<String>((ref) {
+  throw UnimplementedError(
+    'currentUserPhoneProvider must be overridden with the signed-in '
+    "user's E.164 phone number before the add-friend flow is reached.",
+  );
+});
+
 /// Real-time projection of the current user's friendships into a
 /// `List<FriendListItem>` for the friends-list screen (FR-FR-03).
 ///

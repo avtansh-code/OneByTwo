@@ -120,6 +120,10 @@ When reviewing any pull request, verify:
    remainder is re-homed, and a sprint milestone is closed when its last issue
    closes, per `.github/shared/milestone-tracking.md`. A closed issue with no
    milestone is a tracking defect.
+8. Critical-journey reachability: a shipped feature is reachable from a
+   navigation entry point — no orphaned screen and no never-overridden provider —
+   and the journey is exercised by an executable end-to-end test, not only
+   isolated widget tests that pass each piece in isolation.
 
 ## Refusal Protocol
 

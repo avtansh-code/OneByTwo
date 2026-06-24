@@ -166,15 +166,18 @@ class OneBytwoApp extends ConsumerWidget {
         AuthUnauthenticated() => const PhoneEntryScreen(),
         AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
           ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
-        // Per-arm ProviderScope binds `currentUserIdProvider` to the
-        // signed-in UID for the lifetime of the AuthenticatedShell
-        // subtree. The override is dropped automatically on sign-out
-        // when the auth state transitions away from
-        // `AuthenticatedWithProfile`. See
+        // Per-arm ProviderScope binds `currentUserIdProvider` and
+        // `currentUserPhoneProvider` to the signed-in identity for the
+        // lifetime of the AuthenticatedShell subtree. The overrides are
+        // dropped automatically on sign-out when the auth state
+        // transitions away from `AuthenticatedWithProfile`. See
         // `docs/sprint-zero/stories/FR-HD-04-persistent-fab-and-context-picker.md`
         // Architect Notes §2.1.
-        AuthenticatedWithProfile(:final uid) => ProviderScope(
-          overrides: [currentUserIdProvider.overrideWithValue(uid)],
+        AuthenticatedWithProfile(:final uid, :final user) => ProviderScope(
+          overrides: [
+            currentUserIdProvider.overrideWithValue(uid),
+            currentUserPhoneProvider.overrideWithValue(user.phoneNumber),
+          ],
           child: const AuthenticatedShell(),
         ),
       },

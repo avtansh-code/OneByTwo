@@ -156,6 +156,7 @@ Widget _buildSubject({
     overrides: <Override>[
       analyticsServiceProvider.overrideWithValue(analytics),
       currentUserIdProvider.overrideWithValue(currentUid),
+      currentUserPhoneProvider.overrideWithValue('+919999999999'),
       // AddExpenseBottomSheet (mounted post friend-tap) watches the
       // family-provider `addExpenseControllerProvider(args)`, which
       // resolves `expenseRepositoryProvider` / `receiptStorageServiceProvider`

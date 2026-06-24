@@ -207,17 +207,12 @@ void main() {
       await tester.pump();
 
       expect(
-        fakeAnalytics.loggedEvents.any(
-          (e) =>
-              e.name == 'otp_screen_viewed' &&
-              e.parameters != null &&
-              e.parameters!.containsKey('phone_hash'),
-        ),
-        isTrue,
+        fakeAnalytics.loggedEvents.where((e) => e.name == 'otp_screen_viewed'),
+        hasLength(1),
       );
     });
 
-    testWidgets('telemetry: phone_hash is NOT the raw phone number', (
+    testWidgets('telemetry: otp_screen_viewed carries no phone PII', (
       tester,
     ) async {
       await tester.pumpWidget(buildSubject());
@@ -226,8 +221,10 @@ void main() {
       final viewedEvent = fakeAnalytics.loggedEvents.firstWhere(
         (e) => e.name == 'otp_screen_viewed',
       );
-      expect(viewedEvent.parameters?['phone_hash'], isNot('9876543210'));
-      expect(viewedEvent.parameters?['phone_hash'], isA<String>());
+      // T2: the event is parameter-free; neither the raw number nor a
+      // (reversible) hash of it may be attached.
+      final params = viewedEvent.parameters;
+      expect(params == null || params.isEmpty, isTrue);
     });
 
     testWidgets('heading has Semantics header annotation', (tester) async {

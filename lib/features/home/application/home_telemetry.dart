@@ -7,7 +7,7 @@
 /// `lib/core/telemetry/event_id_hash.dart` before emission. Per the
 /// parameter-key convention (ADR-0013) the key is suffixed `_hash` to
 /// make the hashing visible at the call site (e.g. `context_id_hash`).
-/// `net_balance_state`, `context_type`, `amount_paise`,
+/// `net_balance_state`, `context_type`, `amount_range`,
 /// `attempt_number`, and `error_code` are non-identifying values and
 /// require no hashing.
 ///
@@ -23,7 +23,7 @@ abstract final class HomeTelemetry {
   static const String viewed = 'home_viewed';
 
   /// User tapped "Settle Up" on a top-balances tile. Payload:
-  /// `context_type`, `context_id_hash`, `amount_paise`.
+  /// `context_type`, `context_id_hash`, `amount_range`.
   static const String settleUpTapped = 'home_settle_up_tapped';
 
   /// User tapped a top-balances tile (not the Settle Up button).
@@ -62,9 +62,12 @@ abstract final class HomeTelemetry {
   /// raw composite UID.
   static const String paramContextIdHash = 'context_id_hash';
 
-  /// Absolute balance amount in integer paise (invariant 1). A money
-  /// value, not an identifier — emitted raw.
-  static const String paramAmountPaise = 'amount_paise';
+  /// Bucketed absolute settle-up amount (privacy band, not raw paise).
+  /// Use `SettleUpTelemetry.amountRangeFor` (equivalently
+  /// `ExpenseTelemetry.amountRangeFor`) to derive the value — the band
+  /// definitions live there and MUST NOT be duplicated. Per telemetry
+  /// plan section 2.1 a raw `amount_paise` must never leave the device.
+  static const String paramAmountRange = 'amount_range';
 
   /// 1-based retry attempt counter for the error state.
   static const String paramAttemptNumber = 'attempt_number';

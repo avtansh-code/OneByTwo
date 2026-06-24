@@ -100,6 +100,7 @@ void main() {
         contactServiceProvider.overrideWithValue(contactService),
         friendsListProvider.overrideWith((ref) => streamController.stream),
         currentUserIdProvider.overrideWithValue('current_user_uid'),
+        currentUserPhoneProvider.overrideWithValue('+919999999999'),
         // Override the friend-detail family so the navigation tap doesn't
         // try to instantiate the production firebaseFirestoreProvider.
         friendDetailProvider.overrideWith(

@@ -1686,3 +1686,243 @@ is reinforced (the fan-out and all testing target the single project via the emu
     `KeyValueStore` seam and override with an `InMemoryKeyValueStore` fake instead.
 
   ---
+
+## ADR-0021: Simplified-Debts Recompute — Shared `recomputeAndWrite` Core With Three Entry Points
+
+**Status:** Accepted
+
+### Context
+
+ADR-0001 makes `simplifiedBalances` the sole debt mechanism, and Invariant 2 makes it
+server-maintained and client-read-only. Sprint 1 shipped the pure algorithm
+(`simplified-debts/algorithm.ts`) and the `recomputeSimplifiedBalances` callable boundary
+(ADR-0011), but left open *what invokes the recompute on every expense and settlement
+change* — the Sprint-1 audit (finding C1) recorded the trigger architecture as "planned for
+Sprint 2." Sprint 2 wired it and shipped it without an ADR. This record ratifies the shape
+that shipped.
+
+Four forces shaped it:
+
+- The field must be recomputed automatically whenever an expense
+  (`friendships/{id}/expenses/{id}`) or a settlement (`settlements/{id}`) is created, edited,
+  or soft-deleted — the client must never have to ask for it (ADR-0001; Invariant 2).
+- An on-demand recompute is still needed for backfill, repair, and tests.
+- Firestore `onDocumentWritten` triggers can be redelivered and, with `retry: true`, retried
+  indefinitely on failure — a poison-pill risk for a stale or permanently-failing event.
+- The recompute has *side-effects* (an activity-feed item and an FCM notification) that must
+  not corrupt or block the authoritative balance write.
+
+### Decision
+
+1. **One shared core.** `recomputeAndWrite` in `functions/src/simplified-debts/function.ts`
+   is the single function that reads the context's expenses/settlements, runs the pure
+   algorithm, and writes `simplifiedBalances` (plus `lastActivityAt`). It is the **sole
+   writer** of `simplifiedBalances` values (Invariant 2).
+
+2. **Three entry points invoke that one core:**
+   - the `recomputeSimplifiedBalances` **callable** (on-demand / repair);
+   - the `onExpenseWriteFriendship` **`onDocumentWritten`** trigger on
+     `friendships/{id}/expenses/{id}`;
+   - the `onSettlementWrite` **`onDocumentWritten`** trigger on `settlements/{id}`.
+
+   Both triggers are registered with `retry: true` so a transient failure is retried.
+
+3. **7-day stale-event guard.** A trigger whose event timestamp is older than seven days is
+   treated as terminal: it is logged and acknowledged (the handler returns without throwing)
+   rather than recomputed-and-retried. This bounds the `retry: true` blast radius so a
+   poison-pill or long-backlogged event cannot retry forever.
+
+4. **Monotonic `lastActivityAt`.** The core only ever moves `lastActivityAt` forward; an
+   out-of-order or replayed event never moves it backward, so the friendships-by-activity
+   ordering stays stable under redelivery.
+
+5. **Contained side-effects.** The activity-feed write and the FCM dispatch are wrapped so any
+   failure is **logged and swallowed, never rethrown**. A notification or activity failure
+   must not fail the balance write (the authoritative outcome) nor trigger a retry storm. The
+   balance write is the only failure that may surface to the retrying trigger.
+
+### Consequences
+
+- `simplifiedBalances` now has **three** write entry points but **one** writer
+  (`recomputeAndWrite`). The PR-template Invariant-2 wording that named a single
+  `recomputeSimplifiedBalances` writer is stale and is corrected separately (Phase-1 P1);
+  `invariants.md`, the Cloud Functions catalogue, and the schema already use the
+  three-entry-point / one-core wording.
+- Trigger handlers must stay idempotent: redelivery, the stale guard, and the monotonic
+  `lastActivityAt` together make a re-run converge.
+- Side-effect containment makes a missing activity item or notification a *soft* failure
+  visible only in structured logs, not a balance defect — monitored by logs, not retries.
+- `deleteUserAccount` deliberately does **not** invoke this core on a surviving friendship
+  (ADR-0016): account anonymisation must never recompute or zero a counterparty's balance.
+
+### Alternatives Considered
+
+- **Callable-only (client triggers recompute).** Rejected: it puts an Invariant-2-critical
+  write on the client's honesty and timing, and races with offline sync.
+- **Duplicated recompute logic per trigger.** Rejected: parallel copies drift; one shared
+  core is the ADR-0011 boundary pattern.
+- **`retry: false` on the triggers.** Rejected: a transient Firestore error would silently
+  drop a recompute. `retry: true` plus the 7-day stale guard keeps transient retries while
+  bounding poison pills.
+- **Rethrowing side-effect failures.** Rejected: a flaky FCM send would fail the balance
+  write and trigger endless retries; containment keeps the authoritative write clean.
+
+---
+
+## ADR-0022: Server-Maintained Projections Are Client-Read-Only (Generalisation of Invariant 2)
+
+**Status:** Accepted
+
+### Context
+
+Invariant 2 is written about one field: `simplifiedBalances` is server-maintained and
+client-read-only, enforced by the field-level `affectedKeys()` diff (ADR-0010). ADR-0012
+(Sprint-1 audit INV4) deliberately *declined* to promote the diff pattern to a fifth
+invariant while only one field relied on it.
+
+Sprint 2 added a **second** such field. `settlements.verificationStatus` (ARCH-EXT-06) is
+written once as the locked value `'unverified'` at create and is **read-only to clients on
+update**, enforced by the *same* `affectedKeys()` diff guard used for `simplifiedBalances`
+(`firestore.rules`; Phase-1 F2). There are now two instances of one pattern: a field whose
+*values* are owned by the server (the recompute core, or a future verification webhook) and
+which clients may read but never mutate.
+
+### Decision
+
+Record the **emerging general rule** without yet rewording Invariant 2 or adding a fifth
+invariant:
+
+> **Server-maintained projection and status fields are client-read-only.** Any field whose
+> authoritative value is produced server-side — a derived projection (`simplifiedBalances`)
+> or a server-owned status (`verificationStatus`) — is enforced as read-only to clients via
+> the `request.resource.data.diff(resource.data).affectedKeys().hasAny([...])` guard
+> (ADR-0010). The client may read it and, where the field is required at create, write a
+> single locked initial value; it may never change the value on update.
+
+Current members of the class:
+
+- `friendships.simplifiedBalances` — server-written, absent at create (Invariant 2).
+- `groups.simplifiedBalances` — same rule; not yet populated (no group trigger in v1.0).
+- `settlements.verificationStatus` — locked `'unverified'` at create, server-only on update.
+
+This stays an ADR (the durable record of the generalisation), **not** a reworded Invariant 2.
+Promotion to a standalone invariant is deferred until Sprint-3 groups bring
+`groups.simplifiedBalances` into live use, giving the class a third, *exercised* instance — at
+which point the ADR-0012/INV4 "premature until more collections rely on it" condition is met.
+
+### Consequences
+
+- New server-owned read-only fields (e.g. the future UPI `verificationStatus` transitions, or
+  a group rollup) follow this rule by default: enumerate the field in the collection's
+  `affectedKeys()` guard and add a negative rules test that a client update touching it is
+  rejected.
+- The review skill's architecture-conformance check (extension-point fields
+  `method` / `currency` / `verificationStatus`) and the schema's "Client-read-only"
+  annotations are instances of this one rule.
+- When the class is reworded into an invariant after Sprint 3, the PR template,
+  `invariants.md`, and this ADR are reconciled together; until then Invariant 2 stays scoped
+  to `simplifiedBalances` to avoid tooling churn.
+
+### Alternatives Considered
+
+- **Reword Invariant 2 now to cover all server-maintained fields.** Rejected for now: the
+  ADR-0012/INV4 reasoning holds — two instances are enough to *document* the pattern, but the
+  groups epic will exercise the third; rewording a load-bearing invariant mid-flight risks
+  template/tooling drift.
+- **Fold into ADR-0010.** Rejected: ADR-0010 is the *mechanism* (how to enforce field-level
+  read-only); this ADR is the *policy* (which class of fields must be enforced that way).
+  Keeping them separate keeps each single-purpose; ADR-0010 is cross-referenced.
+- **Do nothing (leave two ad-hoc rules).** Rejected: finding INV2c showed the generalisation
+  is real and load-bearing; recording it now stops a Sprint-3 reviewer treating
+  `verificationStatus` as a one-off.
+
+---
+
+## ADR-0023: Group Invite Tokens — Route-Based Universal/App Links With 7-Day Expiry and Admin Revocation
+
+**Status:** Accepted (design outline; full implementation Sprint 3)
+
+### Context
+
+FR-GR-02 (invite members) and FR-GR-03 (invite-link expiry + revocation) let a group admin
+share a link that adds the opener to the group. The telemetry plan already enumerates
+`invite_link_shared` / `invite_link_revoked`, and the risk register references the deep-link
+route `/invite/group/:inviteToken`, but **no data model, rules, or ADR existed** for the
+token itself — Phase-5 readiness finding SR4 flagged FR-GR-02/03 as "blind" without one.
+
+This ADR ratifies the invite-token approach so the dependent Sprint-3 stories have a target.
+It is a **design outline**: the schema fields and a rules/expiry/revocation outline ship in
+this cleanup PR (`firestore-schema.md`, `firestore-security-rules.md`); the callable
+implementation, the live `match` block, and the negative rules tests are Sprint 3.
+
+The defining constraint: **the invitee is not yet a group member.** They arrive holding only
+the token from a shared link — they do not know the `groupId`, and the group document is
+membership-gated (`groups` read requires `request.auth.uid in memberIds`). The model must let
+a non-member resolve and accept an invite from the token alone, without ever reading the group
+document directly.
+
+### Decision
+
+1. **Top-level `groupInvites/{token}` collection**, document ID = the token. Fields: `token`
+   (string, equals the doc ID), `groupId` (string), `createdBy` (admin UID), `createdAt`
+   (server `request.time`), `expiresAt` (`createdAt` + 7 days), `revoked` (bool, default
+   `false`). The collection is **server/admin-managed** (see rules below). A top-level
+   collection — not a `groups/{groupId}/invites/{token}` subcollection — because the invitee
+   holds only the token: a subcollection would require them to know the `groupId` and would be
+   shadowed by the membership-gated group read.
+
+2. **The token is a capability.** It is a high-entropy, unguessable, URL-safe random string
+   (≥128 bits); knowledge of the token *is* the authorisation to view and accept the invite.
+   Rules therefore allow a single-document `get` by token but **never** `list` (no
+   enumeration).
+
+3. **Route-based universal links / App Links** at `/invite/group/:inviteToken` (iOS universal
+   links, Android App Links), resolved by the existing deep-link handler. This is the
+   `go_router`-vs-imperative decision's first hard dependency (Phase-5 SR7) and is settled at
+   Sprint-3 kickoff before FR-GR-02/04.
+
+4. **7-day expiry, enforced server-side.** `expiresAt = createdAt + 7 days`. The rules deny a
+   read of an expired or revoked invite (`resource.data.expiresAt > request.time &&
+   resource.data.revoked == false`), and the `acceptGroupInvite` callable re-checks both
+   authoritatively. Expiry is not UI-only.
+
+5. **Admin creation and revocation.** Only the group admin (`createdBy == request.auth.uid`,
+   and admin of `groupId`) may create an invite or set `revoked = true`. Revocation is a flag
+   flip, not a delete, so the audit trail and a "this invite was revoked" message survive.
+
+6. **Acceptance mutates membership server-side only.** Opening a valid invite calls the
+   `acceptGroupInvite` Cloud Function (catalogued as deferred), which adds the caller to
+   `groups.memberIds` under the Admin SDK. The invitee never writes the group document
+   directly — this keeps the FR-GR-05 membership guard (SR5) and the zero-balance decisions
+   server-authoritative.
+
+### Consequences
+
+- `firestore-schema.md` gains a `groupInvites/{token}` section, and
+  `firestore-security-rules.md` gains an invite-token rules outline
+  (read-by-token-holder, create/revoke-by-admin, server-side expiry/revocation check); both
+  mark the collection server/admin-managed and Sprint-3-implemented.
+- `acceptGroupInvite` / `revokeGroupInvite` stay in the Cloud Functions "Deferred" set with
+  this ADR as their contract reference.
+- No composite index is required for the read-by-token path (lookup is by document ID). An
+  admin "list my group's active invites" query is a Sprint-3 concern and is not added to
+  `firestore.indexes.json` now.
+- The two Phase-5 Groups risks (SR9 — invite-link unguessability/expiry/revocation security,
+  and server-side guard enforcement) point at this ADR for their mitigation.
+
+### Alternatives Considered
+
+- **`groups/{groupId}/invites/{token}` subcollection.** Rejected: the invitee is a non-member
+  holding only the token, so a `groupId`-scoped, membership-gated path is unreadable to
+  exactly the user who needs it.
+- **Stateless signed-JWT invite link (no Firestore doc).** Rejected for v1.0: revocation
+  (FR-GR-03) needs server-side state to flip; a self-contained JWT cannot be revoked before
+  expiry without a denylist — which is the document we would have stored anyway.
+- **Client writes `groups.memberIds` on accept.** Rejected: it would force `memberIds`
+  client-writable, defeating the FR-GR-05 admin-only membership guard; membership mutation is
+  the `acceptGroupInvite` callable's job.
+- **Shorter/longer expiry.** Seven days matches FR-GR-03, the telemetry/risk references, and
+  the existing reminder-cooldown "stale after a week" posture; configurable expiry is
+  deferred.
+
+---

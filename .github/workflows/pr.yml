@@ -482,8 +482,9 @@ jobs:
 
   # ── Coverage Gate — authoritative SRS 5.7 enforcement ────────────────────
   # Runs after test jobs complete. Checks per-feature/per-module thresholds
-  # (>= 70%), overall thresholds (>= 50%), and simplified-debts 100% branch
-  # coverage. This is a required status check on main.
+  # (>= 70%) and overall thresholds (>= 50%), and emits an advisory
+  # simplified-debts branch metric; the canonical test matrix is authoritative.
+  # This is a required status check on main.
   coverage-gate:
     name: Coverage Gate (SRS 5.7)
     runs-on: ubuntu-latest

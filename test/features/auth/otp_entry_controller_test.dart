@@ -492,18 +492,17 @@ void main() {
       );
     });
 
-    test('otp_screen_viewed is logged at construction with '
-        'hashed phone', () {
-      expect(
-        fakeAnalytics.loggedEvents.any(
-          (e) =>
-              e.name == 'otp_screen_viewed' &&
-              e.parameters != null &&
-              e.parameters!.containsKey('phone_hash') &&
-              e.parameters!['phone_hash'] != '9876543210',
-        ),
-        isTrue,
-      );
+    test('otp_screen_viewed is logged at construction with no '
+        'parameters (no phone PII)', () {
+      final viewedEvents = fakeAnalytics.loggedEvents
+          .where((e) => e.name == 'otp_screen_viewed')
+          .toList();
+      expect(viewedEvents, hasLength(1));
+      // T2: the event is parameter-free. A hashed phone number is still
+      // reversible PII, so no `phone_hash` (or any phone value) may ride
+      // on the event.
+      final params = viewedEvents.single.parameters;
+      expect(params == null || params.isEmpty, isTrue);
     });
 
     test('digits list is unmodifiable', () {

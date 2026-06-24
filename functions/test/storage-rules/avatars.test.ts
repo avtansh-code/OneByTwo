@@ -64,6 +64,23 @@ describe("avatars/{userId} — write rules", () => {
       uploadBytes(avatarRef, TINY_PNG, {contentType: "image/png"})
     );
   });
+
+  it("rejects oversize avatar upload (> 5 MB) by the owner", async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    const avatarRef = ref(ctx.storage(), `avatars/${uid}`);
+    const oversize = Buffer.alloc(6 * 1024 * 1024, 0xff);
+    await assertFails(
+      uploadBytes(avatarRef, oversize, {contentType: "image/png"})
+    );
+  });
+
+  it("rejects unsupported MIME avatar upload (e.g. text/plain) by the owner", async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    const avatarRef = ref(ctx.storage(), `avatars/${uid}`);
+    await assertFails(
+      uploadBytes(avatarRef, Buffer.from("hello"), {contentType: "text/plain"})
+    );
+  });
 });
 
 describe("avatars/{userId} — read rules", () => {

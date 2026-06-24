@@ -202,7 +202,14 @@ class MatchAndInviteController extends StateNotifier<MatchAndInviteState> {
         _currentUserId,
         currentState.otherUserId,
       );
-      await _analyticsService.logEvent(name: 'friend_added');
+      // T4: segment the acquisition funnel by entry path. The method
+      // rides on the contact captured during performLookup; it is a
+      // non-identifying enum token, never PII.
+      final method = _lastContact?.method ?? AddFriendEntryMethod.contacts;
+      await _analyticsService.logEvent(
+        name: 'friend_added',
+        parameters: {'method': method.wireName},
+      );
     } on Exception {
       state = const MatchAndInviteError(message: 'Something went wrong');
     }

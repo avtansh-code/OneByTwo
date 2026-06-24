@@ -402,7 +402,7 @@ void main() {
         params[HomeTelemetry.paramContextIdHash],
         hashFriendshipId('uid-a_uid-me'),
       );
-      expect(params[HomeTelemetry.paramAmountPaise], 7500);
+      expect(params[HomeTelemetry.paramAmountRange], 'under_500');
     });
 
     testWidgets('settle-up sheet receives the home_dashboard source', (
