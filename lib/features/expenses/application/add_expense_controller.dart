@@ -927,36 +927,48 @@ class AddExpenseController extends StateNotifier<AddExpenseState> {
   ///
   /// No-op in create mode (the absence of an
   /// [initialExpenseId] means there is nothing to soft-delete).
-  Future<void> softDelete() async {
-    if (!isEditMode || initialExpenseId == null) return;
+  /// Soft-deletes the expense. Returns `true` when the delete succeeded
+  /// (the repository write completed), `false` on a delete error.
+  ///
+  /// The success/error [state] transition is best-effort: this is an
+  /// autoDispose+family controller, so if it is disposed during the
+  /// repository await the state is not updated — but the return value
+  /// still reflects the outcome, so the caller can navigate reliably
+  /// instead of re-reading a possibly-recreated provider state (D10).
+  Future<bool> softDelete() async {
+    if (!isEditMode || initialExpenseId == null) return false;
     final draft = _currentDraft();
-    if (draft == null) return;
+    if (draft == null) return false;
     state = Saving(draft: draft);
     try {
       await _repository.softDeleteExpense(
         friendshipId: friendshipId,
         expenseId: initialExpenseId!,
       );
-      if (!mounted) return;
+    } on ExpenseDeleteError catch (err) {
+      if (mounted) {
+        _emitDeleteFailed(err.type);
+        state = AddExpenseError(
+          draft: draft,
+          // Reuse the existing ExpenseCreateErrorType.unknown for the
+          // state-machine variant — the host widget displays the
+          // dedicated delete-failure message verbatim. The typed
+          // ExpenseDeleteErrorType already drove the telemetry payload
+          // above.
+          errorType: ExpenseCreateErrorType.unknown,
+          message: _kMsgDeleteFailure,
+        );
+      }
+      return false;
+    }
+    if (mounted) {
       _emitDeleteConfirmed(draft: draft);
       state = Success(
         expenseId: initialExpenseId!,
         action: SuccessAction.deleted,
       );
-    } on ExpenseDeleteError catch (err) {
-      if (!mounted) return;
-      _emitDeleteFailed(err.type);
-      state = AddExpenseError(
-        draft: draft,
-        // Reuse the existing ExpenseCreateErrorType.unknown for the
-        // state-machine variant — the host widget displays the
-        // dedicated delete-failure message verbatim. The typed
-        // ExpenseDeleteErrorType already drove the telemetry payload
-        // above.
-        errorType: ExpenseCreateErrorType.unknown,
-        message: _kMsgDeleteFailure,
-      );
     }
+    return true;
   }
 
   /// Returns the current draft from any non-terminal state, or null.

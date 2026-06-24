@@ -192,17 +192,19 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
       initialExpenseId: widget.expenseId,
     );
     final controller = ref.read(addExpenseControllerProvider(args).notifier);
-    await controller.softDelete();
+    final deleted = await controller.softDelete();
     if (!mounted) return;
-    final state = ref.read(addExpenseControllerProvider(args));
     final messenger = ScaffoldMessenger.maybeOf(context);
-    if (state is Success && state.action == SuccessAction.deleted) {
+    if (deleted) {
       messenger?.showSnackBar(
         const SnackBar(content: Text('Expense deleted.')),
       );
       await Navigator.of(context).maybePop();
-    } else if (state is AddExpenseError) {
-      messenger?.showSnackBar(SnackBar(content: Text(state.message)));
+    } else {
+      final state = ref.read(addExpenseControllerProvider(args));
+      if (state is AddExpenseError) {
+        messenger?.showSnackBar(SnackBar(content: Text(state.message)));
+      }
     }
   }
 }

@@ -12,6 +12,22 @@ abstract class AnalyticsService {
   });
 }
 
+/// Coerces analytics parameter values into Firebase-acceptable types.
+///
+/// Firebase Analytics only accepts `String` or `num` parameter values; a
+/// `bool` throws an assertion in debug builds (breaking the calling flow)
+/// and is rejected in release. This coerces any `bool` to its `String`
+/// form so semantic boolean params (e.g. `payer_is_self`, `has_receipt`)
+/// are recorded as `"true"`/`"false"` rather than crashing the caller
+/// (defect D11). All other values pass through unchanged.
+Map<String, Object>? sanitiseAnalyticsParameters(
+  Map<String, Object>? parameters,
+) {
+  return parameters?.map(
+    (key, value) => MapEntry(key, value is bool ? value.toString() : value),
+  );
+}
+
 /// Production implementation that delegates to [FirebaseAnalytics].
 class FirebaseAnalyticsService implements AnalyticsService {
   /// Creates a [FirebaseAnalyticsService] backed by the given instance.
@@ -24,7 +40,10 @@ class FirebaseAnalyticsService implements AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) {
-    return _analytics.logEvent(name: name, parameters: parameters);
+    return _analytics.logEvent(
+      name: name,
+      parameters: sanitiseAnalyticsParameters(parameters),
+    );
   }
 }
 
