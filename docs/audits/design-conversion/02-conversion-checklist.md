@@ -36,9 +36,12 @@ its Haldi target ("Direction A — Haldi") into one of five buckets:
 **Scope discipline.** This conversion is **visual/UX only**. No data path, provider
 contract, repository, Firestore read/write, Cloud Function call, or domain model
 changes. Every row below rides on top of Sprint 3 PR #1 (the token + type
-foundation from `03-foundation-plan.md`); once `AppTheme`, `OBTColors`,
-`OBTRadii` and the Bricolage/Hanken type ramp land, the bulk of the work is
-mechanical swap-and-verify. The integer-paise pipeline, `simplifiedBalances`
+foundation from `03-foundation-plan.md`), **delivered by DC-01 (#113)**: the Haldi
+`ColorScheme` (marigold `primary`, ink `onPrimary`), the `OBTColors` theme
+extension, the named `AppTheme` radius scale + soft-warm shadow + motion tokens,
+the Bricolage/Hanken type ramp, and the `OBTText.amount` / `OBTText.amountHero`
+helpers have landed, so the bulk of the work below is mechanical swap-and-verify.
+The integer-paise pipeline, `simplifiedBalances`
 read-only contract, OS share sheet, and single-Firebase-project rules are untouched
 (see §E).
 
