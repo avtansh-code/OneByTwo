@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 
 /// Settle Up CTA card (FR-SE-07 / SCR-23 / design-system §13) — with
 /// the FR-SE-09 receiving-direction variant.
@@ -162,7 +165,9 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -192,15 +197,18 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
             const SizedBox(height: 8),
             Text(
               formatInrFromPaise(widget.suggestedAmountPaise),
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: OBTText.amount(context),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: ctaOnPressed,
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusButton),
+                  ),
+                ),
                 icon: Icon(ctaIcon),
                 label: Text(ctaLabel),
               ),
@@ -210,7 +218,9 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
               Text(
                 _cooldownCaption(),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color:
+                      theme.extension<OBTColors>()?.textTertiary ??
+                      theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

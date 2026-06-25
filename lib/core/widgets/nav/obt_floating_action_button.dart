@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/app/theme.dart';
+
 /// Design-system primitive for the One By Two persistent Add-Expense
 /// Floating Action Button. See `docs/design/02-design-system/components.md §3
 /// OBTFloatingActionButton`.
 ///
-/// **Visual contract:** circular FAB with `Icons.add`,
-/// `backgroundColor: Theme.colorScheme.secondary` (Saffron/Marigold),
-/// `foregroundColor: Colors.white`, tooltip + semantic label
+/// **Visual contract:** rounded FAB (corner radius [AppTheme.radiusPill])
+/// with `Icons.add`, `backgroundColor: Theme.colorScheme.primary` (Haldi
+/// marigold), `foregroundColor: Theme.colorScheme.onPrimary` (ink — never
+/// white; white on marigold fails WCAG 2.1 AA), tooltip + semantic label
 /// `"Add new expense"`, tap target 56×56 dp, always-active on the
 /// authenticated shell's primary tabs.
 ///
@@ -41,8 +44,11 @@ class OBTFloatingActionButton extends StatelessWidget {
     return FloatingActionButton(
       heroTag: heroTag,
       onPressed: onPressed,
-      backgroundColor: colorScheme.secondary,
-      foregroundColor: Colors.white,
+      backgroundColor: colorScheme.primary,
+      foregroundColor: colorScheme.onPrimary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusPill)),
+      ),
       tooltip: 'Add new expense',
       child: const Icon(Icons.add, semanticLabel: 'Add new expense'),
     );

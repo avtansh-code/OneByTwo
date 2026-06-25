@@ -5,8 +5,9 @@
 // asserts the design contract from
 // `docs/design/02-design-system/components.md §3 OBTFloatingActionButton`:
 //   - icon `Icons.add`
-//   - `backgroundColor: Theme.colorScheme.secondary`
-//   - `foregroundColor: Colors.white`
+//   - `backgroundColor: Theme.colorScheme.primary` (Haldi marigold)
+//   - `foregroundColor: Theme.colorScheme.onPrimary` (ink, never white)
+//   - shape `RoundedRectangleBorder` at radius `AppTheme.radiusPill`
 //   - semantic label "Add new expense"
 //   - tooltip "Add new expense"
 //   - tap target ≥ 56 dp on both axes
@@ -21,6 +22,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 
 void main() {
@@ -39,12 +41,12 @@ void main() {
       expect(icon.icon, Icons.add);
     });
 
-    testWidgets('backgroundColor resolves to Theme.colorScheme.secondary', (
+    testWidgets('backgroundColor resolves to Theme.colorScheme.primary', (
       tester,
     ) async {
-      const customSecondary = Color(0xFFCAFE00);
+      const customPrimary = Color(0xFFCAFE00);
       final theme = ThemeData.from(
-        colorScheme: const ColorScheme.light(secondary: customSecondary),
+        colorScheme: const ColorScheme.light(primary: customPrimary),
       );
 
       await tester.pumpWidget(
@@ -59,10 +61,41 @@ void main() {
       final fab = tester.widget<FloatingActionButton>(
         find.byType(FloatingActionButton),
       );
-      expect(fab.backgroundColor, customSecondary);
+      expect(fab.backgroundColor, customPrimary);
     });
 
-    testWidgets('foregroundColor is Colors.white', (tester) async {
+    testWidgets('foregroundColor is Theme.colorScheme.onPrimary (ink), never '
+        'white', (tester) async {
+      const customOnPrimary = Color(0xFF2A211B); // Haldi ink.
+      final theme = ThemeData.from(
+        colorScheme: const ColorScheme.light(onPrimary: customOnPrimary),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            floatingActionButton: OBTFloatingActionButton(onPressed: () {}),
+          ),
+        ),
+      );
+
+      final fab = tester.widget<FloatingActionButton>(
+        find.byType(FloatingActionButton),
+      );
+      expect(fab.foregroundColor, customOnPrimary);
+      expect(
+        fab.foregroundColor,
+        isNot(Colors.white),
+        reason:
+            'White on marigold measures ~2.5:1 and fails WCAG 2.1 AA; '
+            'the glyph must be ink (onPrimary).',
+      );
+    });
+
+    testWidgets('shape is a RoundedRectangleBorder at the pill radius', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -74,7 +107,8 @@ void main() {
       final fab = tester.widget<FloatingActionButton>(
         find.byType(FloatingActionButton),
       );
-      expect(fab.foregroundColor, Colors.white);
+      final shape = fab.shape! as RoundedRectangleBorder;
+      expect(shape.borderRadius, BorderRadius.circular(AppTheme.radiusPill));
     });
 
     testWidgets('semantic label "Add new expense" is exposed on the icon', (

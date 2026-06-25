@@ -17,6 +17,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 
 const _kCap = 999999999; // paise — equal to ₹99,99,999.99 (AC-2)
@@ -234,6 +235,26 @@ void main() {
     ) async {
       await _pumpInput(tester, onChanged: (_) {});
       expect(find.text('₹'), findsOneWidget);
+    });
+  });
+
+  group('OBTAmountInput — Haldi token reskin (DC-02)', () {
+    testWidgets('amount uses Bricolage tabular figures and the field uses the '
+        'chip/input radius', (tester) async {
+      await _pumpInput(tester, onChanged: (_) {});
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(
+        field.style?.fontFeatures,
+        contains(const FontFeature.tabularFigures()),
+        reason: 'Amounts use Bricolage tabular figures (OBTText.amount).',
+      );
+      final border = field.decoration?.border;
+      expect(border, isA<OutlineInputBorder>());
+      expect(
+        (border! as OutlineInputBorder).borderRadius,
+        BorderRadius.circular(AppTheme.radiusChipInput),
+      );
     });
   });
 }

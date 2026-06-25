@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/widgets/nav/obt_bottom_nav.dart';
 
 Widget _host({
@@ -248,6 +249,40 @@ void main() {
         reason:
             'Active tab must carry isSelected: true for accessibility '
             'frameworks to announce "Selected".',
+      );
+    });
+  });
+
+  group('OBTBottomNav — Haldi token reskin (DC-02)', () {
+    testWidgets('tab labels use the Hanken caption (bodySmall) with the '
+        'scheme colours', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: const Center(child: Text('body')),
+            bottomNavigationBar: OBTBottomNav(
+              currentIndex: 0,
+              onTabSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(BottomNavigationBar));
+      final theme = Theme.of(context);
+      final nav = tester.widget<BottomNavigationBar>(
+        find.byType(BottomNavigationBar),
+      );
+      expect(
+        nav.selectedLabelStyle,
+        theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+      );
+      expect(
+        nav.unselectedLabelStyle,
+        theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       );
     });
   });
