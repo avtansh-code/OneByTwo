@@ -90,6 +90,7 @@ class OBTConfirmationDialog extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusCard)),
       ),
+      titleTextStyle: theme.textTheme.headlineMedium,
       title: Semantics(header: true, child: Text(title)),
       content: Text(body),
       actions: [

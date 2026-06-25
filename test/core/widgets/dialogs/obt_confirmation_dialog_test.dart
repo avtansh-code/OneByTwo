@@ -291,7 +291,8 @@ void main() {
   });
 
   group('OBTConfirmationDialog — Haldi token reskin (DC-02)', () {
-    testWidgets('dialog shape uses the card radius', (tester) async {
+    testWidgets('dialog shape uses the card radius and the title uses the '
+        'Bricolage heading slot', (tester) async {
       await tester.pumpWidget(
         _host(
           const OBTConfirmationDialog(
@@ -302,9 +303,11 @@ void main() {
         ),
       );
 
+      final context = tester.element(find.byType(AlertDialog));
       final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
       final shape = dialog.shape! as RoundedRectangleBorder;
       expect(shape.borderRadius, BorderRadius.circular(AppTheme.radiusCard));
+      expect(dialog.titleTextStyle, Theme.of(context).textTheme.headlineMedium);
     });
   });
 }
