@@ -1036,7 +1036,10 @@ void main() {
     test('softDelete() calls ExpenseRepository.softDeleteExpense and '
         'transitions to Success(action: deleted)', () async {
       final controller = buildEditController();
-      await controller.softDelete();
+      final deleted = await controller.softDelete();
+      // D10: the return value drives the caller's navigation, independent
+      // of the (autoDispose) state.
+      expect(deleted, isTrue);
       expect(repo.deleteCalled, isTrue);
       expect(repo.deletedFriendshipId, _friendshipId);
       expect(repo.deletedExpenseId, initialId);
@@ -1065,7 +1068,8 @@ void main() {
         type: ExpenseDeleteErrorType.permissionDenied,
       );
       final controller = buildEditController();
-      await controller.softDelete();
+      final deleted = await controller.softDelete();
+      expect(deleted, isFalse); // D10: error returns false
       final s = controller.state;
       expect(s, isA<AddExpenseError>());
       expect(analytics.hasEvent(ExpenseTelemetry.deleteFailed), isTrue);
@@ -1078,7 +1082,8 @@ void main() {
       'softDelete() is a no-op in create mode (no initialExpenseId)',
       () async {
         final controller = buildController(repo: repo, analytics: analytics);
-        await controller.softDelete();
+        final deleted = await controller.softDelete();
+        expect(deleted, isFalse); // D10: no-op returns false
         expect(repo.deleteCalled, isFalse);
         controller.dispose();
       },

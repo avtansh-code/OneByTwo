@@ -41,7 +41,8 @@ class BoundaryCapturingStore implements FriendshipStore {
   }
 
   @override
-  Future<bool> exists(String path) async => false;
+  Future<bool> existsForMember(String memberId, String friendshipId) async =>
+      false;
 
   @override
   Future<Map<String, dynamic>?> get(String path) async => null;

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/features/friends/application/match_and_invite_controller.dart';
+import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 import 'package:onebytwo/features/friends/presentation/match_and_invite_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -244,5 +245,95 @@ void main() {
 
       expect(controller.performLookupCalled, isTrue);
     });
+
+    testWidgets(
+      'Added state pops the route, shows the confirmation snackbar, and '
+      'invalidates the added friend profile cache (D5/D6)',
+      (tester) async {
+        final controller = FakeMatchAndInviteController(
+          const MatchAndInviteMatchFound(
+            displayName: 'Priya Sharma',
+            photoUrl: null,
+            otherUserId: 'uid-xyz',
+          ),
+        );
+
+        // Counts how many times the added friend's profile is resolved.
+        // The screen's `ref.invalidate(userProfileProvider('uid-xyz'))`
+        // disposes the cached value; the persistent Home consumer below
+        // re-watches it, so a successful invalidation produces a second
+        // resolve (D6).
+        var profileResolveCount = 0;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              matchAndInviteControllerProvider.overrideWith((_) => controller),
+              userProfileProvider('uid-xyz').overrideWith((ref) async {
+                profileResolveCount++;
+                return null;
+              }),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Home'),
+                      // Keeps userProfileProvider('uid-xyz') alive so an
+                      // invalidate triggers an observable refetch.
+                      Consumer(
+                        builder: (context, ref, _) {
+                          ref.watch(userProfileProvider('uid-xyz'));
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const MatchAndInviteScreen(),
+                          ),
+                        ),
+                        child: const Text('Open'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+        // The match-and-invite screen is on top of Home.
+        expect(find.text('Add Friend'), findsOneWidget);
+
+        final resolvesBeforeAdd = profileResolveCount;
+
+        // Drive the success transition the screen listens for.
+        controller.setState(
+          const MatchAndInviteAdded(
+            friendshipId: 'uid-aaa_uid-xyz',
+            otherUserId: 'uid-xyz',
+            displayName: 'Priya Sharma',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // D5: the route popped back to Home.
+        expect(find.text('Add Friend'), findsNothing);
+        expect(find.text('Home'), findsOneWidget);
+
+        // D5: a confirmation snackbar names the new friend.
+        expect(find.text('Priya Sharma added as a friend'), findsOneWidget);
+
+        // D6: the added friend's cached profile was invalidated, forcing a
+        // fresh resolve so the friends list shows their name immediately.
+        expect(profileResolveCount, greaterThan(resolvesBeforeAdd));
+      },
+    );
   });
 }

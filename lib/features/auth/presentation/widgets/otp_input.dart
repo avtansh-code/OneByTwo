@@ -13,8 +13,16 @@ class OtpInput extends StatefulWidget {
     required this.onDigitEntered,
     required this.onCompleted,
     required this.onBackspace,
+    this.digits,
     super.key,
   });
+
+  /// The authoritative digit values from the controller, when the caller
+  /// tracks them. When supplied and they become all-empty (e.g. the
+  /// controller resets them after an invalid code), the widget clears its own
+  /// cells so the user can retype (SCR-04). When `null`, the widget is fully
+  /// self-managed (callers that only need `onCompleted`).
+  final List<String>? digits;
 
   /// Called when a digit is entered at the given index.
   final void Function(int index, String digit) onDigitEntered;
@@ -57,6 +65,27 @@ class _OtpInputState extends State<OtpInput> {
       n.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(OtpInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // SCR-04 (D3): when the caller tracks digits and the controller resets
+    // every one to empty — e.g. after an invalid code — clear the visual
+    // cells and refocus the first one so the user can retype. Programmatic
+    // controller edits do not fire `onChanged`, so there is no feedback loop.
+    final tracked = widget.digits;
+    final controllerCleared =
+        tracked != null && tracked.every((d) => d.isEmpty);
+    final cellsHaveContent = _controllers.any((c) => c.text.isNotEmpty);
+    if (controllerCleared && cellsHaveContent) {
+      for (final c in _controllers) {
+        c.clear();
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNodes.first.requestFocus();
+      });
+    }
   }
 
   void _onChanged(int index, String value) {
@@ -138,37 +167,64 @@ class _OtpInputState extends State<OtpInput> {
     final theme = Theme.of(context);
     return Semantics(
       label: 'Enter 6-digit verification code',
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_cellCount, (index) {
-          return Padding(
-            padding: EdgeInsets.only(right: index < _cellCount - 1 ? 12 : 0),
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Semantics(
-                label: 'Digit ${index + 1} of $_cellCount',
-                child: TextField(
-                  controller: _controllers[index],
-                  focusNode: _focusNodes[index],
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge,
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: theme.colorScheme.outline),
-                    ),
-                    counterText: '',
-                  ),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (value) => _onChanged(index, value),
-                ),
-              ),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Responsive cell sizing: keep the 48 dp cell on phones that
+          // have room, but shrink to the available width on smaller
+          // devices (e.g. iPhone SE) so the six-cell row never overflows
+          // horizontally. The gap shrinks proportionally with the cell.
+          const maxCell = 48.0;
+          const maxGap = 12.0;
+          final available = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : maxCell * _cellCount + maxGap * (_cellCount - 1);
+          final gap =
+              (maxGap *
+                      (available /
+                          (maxCell * _cellCount + maxGap * (_cellCount - 1))))
+                  .clamp(4.0, maxGap);
+          final totalGap = gap * (_cellCount - 1);
+          final cell = ((available - totalGap) / _cellCount).clamp(
+            0.0,
+            maxCell,
           );
-        }),
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_cellCount, (index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index < _cellCount - 1 ? gap : 0,
+                ),
+                child: SizedBox(
+                  width: cell,
+                  height: maxCell,
+                  child: Semantics(
+                    label: 'Digit ${index + 1} of $_cellCount',
+                    child: TextField(
+                      controller: _controllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                        counterText: '',
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) => _onChanged(index, value),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          );
+        },
       ),
     );
   }

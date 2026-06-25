@@ -85,6 +85,26 @@ class MatchAndInviteDuplicateFriendship extends MatchAndInviteState {
   final String existingFriendshipId;
 }
 
+/// The friendship was created successfully (D5: drives confirmation +
+/// navigation; D6: drives the friend-profile cache refresh).
+class MatchAndInviteAdded extends MatchAndInviteState {
+  /// Creates a [MatchAndInviteAdded].
+  const MatchAndInviteAdded({
+    required this.friendshipId,
+    required this.otherUserId,
+    required this.displayName,
+  });
+
+  /// The created friendship's deterministic ID.
+  final String friendshipId;
+
+  /// The added friend's UID.
+  final String otherUserId;
+
+  /// The added friend's display name (for the confirmation message).
+  final String displayName;
+}
+
 // ---------------------------------------------------------------------------
 // Controller
 // ---------------------------------------------------------------------------
@@ -198,10 +218,12 @@ class MatchAndInviteController extends StateNotifier<MatchAndInviteState> {
     if (currentState is! MatchAndInviteMatchFound) return;
 
     try {
-      await _friendshipRepository.createFriendship(
-        _currentUserId,
-        currentState.otherUserId,
-      );
+      final friendshipId =
+          await _friendshipRepository.createFriendship(
+                _currentUserId,
+                currentState.otherUserId,
+              )
+              as String;
       // T4: segment the acquisition funnel by entry path. The method
       // rides on the contact captured during performLookup; it is a
       // non-identifying enum token, never PII.
@@ -209,6 +231,13 @@ class MatchAndInviteController extends StateNotifier<MatchAndInviteState> {
       await _analyticsService.logEvent(
         name: 'friend_added',
         parameters: {'method': method.wireName},
+      );
+      // D5: emit a success state so the screen can confirm + navigate
+      // (previously the state stayed MatchFound and the UI did nothing).
+      state = MatchAndInviteAdded(
+        friendshipId: friendshipId,
+        otherUserId: currentState.otherUserId,
+        displayName: currentState.displayName,
       );
     } on Exception {
       state = const MatchAndInviteError(message: 'Something went wrong');

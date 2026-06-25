@@ -487,10 +487,18 @@ service cloud.firestore {
           && prev.deleted == false;
       }
 
-      // Read: either party may read.
+      // Read: any member of the parent context (friendship/group) may read.
+      // For a friendship the two context members are exactly fromUserId and
+      // toUserId, so this preserves the prior "either party" semantics while
+      // also authorising the contextId-filtered list query (watchByContext,
+      // SCR-11 Friend Detail). Per-doc and list reads both resolve through
+      // the contextType/contextId equality filters.
       allow read: if request.auth != null
-        && (request.auth.uid == resource.data.fromUserId
-            || request.auth.uid == resource.data.toUserId);
+        && isContextMember(
+          resource.data.contextType,
+          resource.data.contextId,
+          request.auth.uid
+        );
 
       // Create: caller MUST be the fromUserId (Invariant per SRS 7.5).
       allow create: if request.auth != null

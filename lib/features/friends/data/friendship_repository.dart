@@ -15,8 +15,23 @@ abstract class FriendshipStore {
   /// Writes [data] to the document at [path].
   Future<void> set(String path, Map<String, dynamic> data);
 
-  /// Returns whether a document exists at [path].
-  Future<bool> exists(String path);
+  /// Returns whether a friendship document [friendshipId] exists and
+  /// includes [memberId] in its `memberIds`. [memberId] must be the
+  /// authenticated caller's UID.
+  ///
+  /// Implemented as a membership query (`memberIds array-contains
+  /// memberId`) resolved from the locally-cached snapshot, never a `get`
+  /// of [friendshipId]. A `get` of the deterministic document is the
+  /// wrong tool here for two reasons (defect D9):
+  ///  - For a non-existent friendship the rules deny the `get` (Null
+  ///    value error on `resource.data.memberIds`); the mobile SDK does
+  ///    not fail-fast on that denial.
+  ///  - Against the Firestore emulator on the iOS simulator a one-shot
+  ///    server `get` stalls ~90s, whereas the cached membership query
+  ///    resolves in ~2ms.
+  /// The membership query is always allowed for the caller's own
+  /// friendships and returns an accurate empty result when none exists.
+  Future<bool> existsForMember(String memberId, String friendshipId);
 
   /// Returns the document data at [path], or null if it does not exist.
   Future<Map<String, dynamic>?> get(String path);
@@ -95,9 +110,22 @@ class FirestoreFriendshipStore implements FriendshipStore {
   }
 
   @override
-  Future<bool> exists(String path) async {
-    final snapshot = await _collection.doc(path).get();
-    return snapshot.exists;
+  Future<bool> existsForMember(String memberId, String friendshipId) async {
+    // Membership query over the caller's own friendships — always allowed
+    // by the rules. Resolved via a one-shot listener (`.snapshots().first`)
+    // rather than `.get()`:
+    //  - The local cache is kept fresh by the always-on friends-list
+    //    listener (`watchByMember`), so the first snapshot is an accurate,
+    //    instant read of the caller's current friendships (and is
+    //    offline-resilient).
+    //  - It avoids a redundant server `.get()` round-trip, which against
+    //    the Firestore emulator on the iOS simulator stalls ~90s for a
+    //    one-shot server fetch (defect D9), versus ~2ms for the listener.
+    final snapshot = await _collection
+        .where('memberIds', arrayContains: memberId)
+        .snapshots()
+        .first;
+    return snapshot.docs.any((doc) => doc.id == friendshipId);
   }
 
   @override
@@ -176,10 +204,16 @@ class FriendshipRepository {
   }
 
   /// Returns whether a friendship exists between the two users.
+  ///
+  /// [userId1] must be the authenticated caller's UID: existence is
+  /// resolved via a membership query over the caller's own friendships
+  /// (see [FriendshipStore.existsForMember]), never a `get` of the
+  /// deterministic document (which the rules deny for a non-existent
+  /// friendship, hanging the mobile SDK for ~2 minutes — defect D9).
   Future<bool> friendshipExists(String userId1, String userId2) async {
     final sorted = [userId1, userId2]..sort();
     final friendshipId = '${sorted[0]}_${sorted[1]}';
-    return _store.exists(friendshipId);
+    return _store.existsForMember(userId1, friendshipId);
   }
 
   /// Watches all friendships the given user is a member of, ordered

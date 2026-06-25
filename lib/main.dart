@@ -166,23 +166,32 @@ class OneBytwoApp extends ConsumerWidget {
         AuthUnauthenticated() => const PhoneEntryScreen(),
         AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
           ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
-        // Per-arm ProviderScope binds `currentUserIdProvider` and
-        // `currentUserPhoneProvider` to the signed-in identity for the
-        // lifetime of the AuthenticatedShell subtree. The overrides are
-        // dropped automatically on sign-out when the auth state
-        // transitions away from `AuthenticatedWithProfile`. See
-        // `docs/sprint-zero/stories/FR-HD-04-persistent-fab-and-context-picker.md`
-        // Architect Notes §2.1.
-        AuthenticatedWithProfile(:final uid, :final user) => ProviderScope(
-          overrides: [
-            currentUserIdProvider.overrideWithValue(uid),
-            currentUserPhoneProvider.overrideWithValue(user.phoneNumber),
-          ],
-          child: const AuthenticatedShell(),
-        ),
+        // The per-arm currentUserId / currentUserPhone overrides are applied
+        // in MaterialApp.builder (ABOVE the root Navigator), not here, so that
+        // root-Navigator modals (e.g. the add-expense context picker) inherit
+        // the scope (D8 / FR-HD-04). See `scopeOverrides` below.
+        AuthenticatedWithProfile() => const AuthenticatedShell(),
       },
       loading: () => const SplashScreen(),
       error: (_, __) => const SplashScreen(),
+    );
+
+    // D8 / FR-HD-04: bind `currentUserIdProvider` and `currentUserPhoneProvider`
+    // for the authenticated session ABOVE the root Navigator (applied in the
+    // builder below), so root-Navigator modals — notably the add-expense
+    // context picker — inherit the scope rather than reading the unscoped
+    // providers (which throw). The overrides are dropped automatically on
+    // sign-out when the auth state leaves `AuthenticatedWithProfile`.
+    final scopeOverrides = authState.maybeWhen<List<Override>>(
+      data: (state) => state is AuthenticatedWithProfile
+          ? [
+              currentUserIdProvider.overrideWithValue(state.uid),
+              currentUserPhoneProvider.overrideWithValue(
+                state.user.phoneNumber,
+              ),
+            ]
+          : const [],
+      orElse: () => const [],
     );
 
     return MaterialApp(
@@ -193,9 +202,11 @@ class OneBytwoApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       home: home,
       builder: (context, child) {
-        return NotificationsLifecycleHost(
-          child: child ?? const SizedBox.shrink(),
-        );
+        final content = child ?? const SizedBox.shrink();
+        final scoped = scopeOverrides.isEmpty
+            ? content
+            : ProviderScope(overrides: scopeOverrides, child: content);
+        return NotificationsLifecycleHost(child: scoped);
       },
     );
   }

@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/expenses/application/expense_detail_provider.dart';
 import 'package:onebytwo/features/expenses/application/expense_telemetry.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
@@ -27,6 +28,7 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/expense_detail_screen.dart';
+import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 
 import 'helpers/fake_services.dart';
 
@@ -150,6 +152,7 @@ Widget _buildHost({
   required FakeExpenseRepository repo,
   required FakeAnalyticsService analytics,
   required Override detailOverride,
+  List<Override> extraOverrides = const [],
 }) {
   return ProviderScope(
     overrides: [
@@ -160,6 +163,7 @@ Widget _buildHost({
       ),
       imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
       detailOverride,
+      ...extraOverrides,
     ],
     child: const MaterialApp(
       home: ExpenseDetailScreen(
@@ -254,6 +258,37 @@ void main() {
       expect(find.text('Group dinner'), findsOneWidget);
       expect(find.text('₹500.00'), findsOneWidget);
     });
+
+    testWidgets(
+      'resolves the friend display name (not "Friend") in paid-by/split rows',
+      (tester) async {
+        final friend = UserModel(
+          phoneNumber: '+919988776655',
+          displayName: 'Bob',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        );
+        await tester.pumpWidget(
+          _buildHost(
+            repo: repo,
+            analytics: analytics,
+            detailOverride: expenseDetailProvider.overrideWith(
+              (ref, args) async => _buildExpense(),
+            ),
+            extraOverrides: [
+              userProfileProvider(
+                _friendUid,
+              ).overrideWith((ref) async => friend),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+        // The friend's split row shows the resolved name, never the
+        // generic "Friend" placeholder.
+        expect(find.text('Bob'), findsWidgets);
+        expect(find.text('Friend'), findsNothing);
+      },
+    );
   });
 
   group('ExpenseDetailScreen — AppBar actions visibility', () {

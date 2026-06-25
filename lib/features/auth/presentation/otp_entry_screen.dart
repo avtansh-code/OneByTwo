@@ -75,7 +75,7 @@ class OtpEntryScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,6 +107,7 @@ class OtpEntryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
               OtpInput(
+                digits: state.digits,
                 onDigitEntered: controller.setDigit,
                 onCompleted: (_) => controller.submit(),
                 onBackspace: controller.clearDigit,
