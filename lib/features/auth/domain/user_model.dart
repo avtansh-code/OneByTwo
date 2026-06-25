@@ -27,11 +27,16 @@ class UserModel {
     return UserModel(
       // FR-AU-09 (D13): the account-deletion tombstone replaces the doc
       // with a PII-free shell ({displayName: "Deleted User", deletedAt}),
-      // so phoneNumber is absent. Tolerate it (default to '') instead of
-      // a hard cast that throws and makes the friend render as "Unknown"
-      // rather than the intended "Deleted User".
+      // so only `phoneNumber` is absent. Tolerate that single field
+      // (default to '') instead of a hard cast that throws and makes the
+      // friend render as "Unknown" rather than the intended "Deleted User".
+      //
+      // `displayName` keeps the non-nullable cast: both document creation
+      // (toCreateMap) and the tombstone always set it, so a doc missing it
+      // is genuinely malformed and should fail loudly rather than silently
+      // render as a blank name.
       phoneNumber: data['phoneNumber'] as String? ?? '',
-      displayName: data['displayName'] as String? ?? '',
+      displayName: data['displayName'] as String,
       photoUrl: data['photoUrl'] as String?,
       fcmTokens: List<String>.from(data['fcmTokens'] as List? ?? []),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

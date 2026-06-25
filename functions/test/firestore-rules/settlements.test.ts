@@ -22,18 +22,24 @@ import {
   assertFails,
   assertSucceeds,
   initializeTestEnvironment,
+  type RulesTestContext,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {readFileSync} from "fs";
 import {resolve} from "path";
 import {
+  collection,
   doc,
   setDoc,
   updateDoc,
   deleteDoc,
   getDoc,
+  getDocs,
+  orderBy,
+  query,
   serverTimestamp,
   setLogLevel,
+  where,
 } from "firebase/firestore";
 
 const PROJECT_ID = "demo-onebytwo";
@@ -233,6 +239,70 @@ describe("settlements/{sid} — read rules (AC-2)", () => {
     await assertFails(
       getDoc(doc(ctx.firestore(), `settlements/${SETTLEMENT_ID}`)),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AC-2 — READ tests: contextId LIST query (D7 regression guard)
+//
+// SettlementRepository.watchByContext (lib/features/settlements/data/
+// settlement_repository.dart; SCR-11 Friend Detail) lists settlements with
+// `where(contextType ==) + where(contextId ==) + orderBy(date)`. The D7 fix
+// moved the read rule from `uid == fromUserId || uid == toUserId` to
+// `isContextMember(...)`, which is what authorises that contextId-filtered
+// LIST query for context members.
+//
+// The read rule references BOTH `resource.data.contextType` and
+// `resource.data.contextId`, so a list query must constrain BOTH with
+// equality filters for the rule to resolve — exactly what watchByContext
+// does. These tests exercise that list path; the single-doc getDoc tests
+// above pass unchanged even if the list-read path regresses, so without
+// these a green rules job would NOT lock in the D7 fix.
+// ---------------------------------------------------------------------------
+
+describe("settlements/{sid} — contextId list-read rules (D7)", () => {
+  /** Mirrors SettlementRepository.watchByContext for the friendship FID. */
+  function listSettlementsByContext(
+    firestore: ReturnType<RulesTestContext["firestore"]>,
+  ) {
+    return getDocs(
+      query(
+        collection(firestore, "settlements"),
+        where("contextType", "==", "friendship"),
+        where("contextId", "==", FID),
+        orderBy("date", "desc"),
+      ),
+    );
+  }
+
+  beforeEach(async () => {
+    await seedFriendship(testEnv);
+    await seedSettlement(testEnv);
+    await seedSettlement(testEnv, `${SETTLEMENT_ID}-2`);
+  });
+
+  it("allows a context member to list settlements by contextId", async () => {
+    const ctx = testEnv.authenticatedContext(memberA);
+    const snap = await assertSucceeds(
+      listSettlementsByContext(ctx.firestore()),
+    );
+    expect(snap.size).toBe(2);
+  });
+
+  it("allows the other context member to list settlements by "
+    + "contextId", async () => {
+    const ctx = testEnv.authenticatedContext(memberB);
+    await assertSucceeds(listSettlementsByContext(ctx.firestore()));
+  });
+
+  it("rejects a non-member's identical contextId list query", async () => {
+    const ctx = testEnv.authenticatedContext(outsider);
+    await assertFails(listSettlementsByContext(ctx.firestore()));
+  });
+
+  it("rejects an unauthenticated contextId list query", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(listSettlementsByContext(ctx.firestore()));
   });
 });
 
