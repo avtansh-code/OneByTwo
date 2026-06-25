@@ -92,7 +92,7 @@ Supporting rules:
 
 ### 3b. §6.3 Core Screens (proposed replacement)
 
-> The canonical screen catalogue is now the **30-screen Haldi set** at `design_handoff_one_by_two/`
+> The canonical screen catalogue is now the **30-screen Haldi set** (plus the FR-PR-02 change-phone flow, Phase3g) at `design_handoff_one_by_two/`
 > (grouped by flow below). Each screen has, where relevant, four states — populated, empty
 > (friendly + CTA), loading (skeleton, not spinners), error (Retry + Contact support). Hero
 > screens (★) ship light **and** dark.
@@ -104,7 +104,7 @@ Supporting rules:
 **Expenses:** 21. Add expense — 3-step bottom sheet ★ · 22. View expense (detail) + edit/delete
 **Settle up & settlements:** 23. Settle up ★ · 24. Settlement history (+ reminder compose)
 **Activity & notifications:** 25. Activity feed ★ · 26. Push notifications
-**Profile & settings:** 27. Profile view + edit · 28. Notification preferences · 29. Contact support · 30. Delete account
+**Profile & settings:** 27. Profile view + edit · 28. Notification preferences · 29. Contact support · 30. Delete account · **Change Phone (Phase3g — FR-PR-02 re-verification; added after the initial 30)**
 
 Plus **global overlays** (design once, reuse): add-expense sheet, settle-up sheet, delete
 confirmations, sign-out confirmation, offline banner, snackbars/toasts.
@@ -113,8 +113,9 @@ confirmations, sign-out confirmation, offline banner, snackbars/toasts.
 list & Friend detail", "Groups list & Group detail", "Profile & Settings"). The Haldi catalogue
 expands these into discrete screens and adds states the prior list left implicit (search, friend/
 group history, remove/leave/delete confirmations, view-expense detail, push-notification surface,
-contact support, delete account), giving **30 screens**. No screen from the prior list is removed;
-each maps forward into the Haldi set.
+contact support, delete account), giving **30 screens**; a 31st — the FR-PR-02 change-phone
+re-verification flow — was added as **Phase3g** on 2026-06-25. No screen from the prior list is
+removed; each maps forward into the Haldi set.
 
 ---
 

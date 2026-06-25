@@ -403,7 +403,7 @@ class Component extends DCLogic {
     else if(S==='profileEdit'){
       body=sub(null, box({display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 22px 0'},tap(()=>this.back(),{},ms('close',26,T.ink)),h('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:18,color:T.ink}},'Edit profile'),tap(()=>{this.back();this.toast('Profile saved');},{fontSize:14,fontWeight:700,color:T.link},'Save')),
         box({display:'flex',flexDirection:'column',alignItems:'center',padding:'22px 22px 0'},box({position:'relative'},av('P',null,96,1),box({position:'absolute',right:-4,bottom:-4,width:34,height:34,borderRadius:'50%',background:T.ink,border:'3px solid '+T.bg,display:'flex',alignItems:'center',justifyContent:'center'},ms('photo_camera',18,T.bg))),h('div',{style:{fontSize:13,color:T.link,fontWeight:700,marginTop:12}},'Change photo')),
-        box({padding:'26px 22px 0'},h('div',{style:{fontSize:11,fontWeight:700,color:T.t2,marginBottom:8}},'DISPLAY NAME'),field(null,'Priya Nair',{focus:1,val:1}),h('div',{style:{fontSize:11,fontWeight:700,color:T.t2,margin:'20px 0 8px'}},'MOBILE NUMBER'),box({display:'flex',alignItems:'center',minHeight:52,background:T.sv,border:'1.5px solid '+T.out,borderRadius:14,padding:'0 14px'},h('span',{style:{flex:1,fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:16,color:T.t2}},'+91 99887 76655'),ms('lock',20,T.t3)),h('div',{style:{fontSize:11.5,color:T.t3,marginTop:7}},"Your number verifies your account and can't be changed.")));
+        box({padding:'26px 22px 0'},h('div',{style:{fontSize:11,fontWeight:700,color:T.t2,marginBottom:8}},'DISPLAY NAME'),field(null,'Priya Nair',{focus:1,val:1}),h('div',{style:{fontSize:11,fontWeight:700,color:T.t2,margin:'20px 0 8px'}},'MOBILE NUMBER'),tap(()=>this.go('cpIntro'),{display:'flex',alignItems:'center',minHeight:52,background:T.sv,border:'1.5px solid '+T.out,borderRadius:14,padding:'0 14px'},h('span',{style:{flex:1,fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:16,color:T.ink}},'+91 99887 76655'),h('span',{style:{fontSize:12.5,fontWeight:700,color:T.link,marginRight:8}},'Change'),ms('chevron_right',20,T.t3)),h('div',{style:{fontSize:11.5,color:T.t3,marginTop:7}},"Changing your number needs a quick re-verify of both numbers.")));
     }
     else if(S==='notifPrefs'){
       const tg=(on)=>box({width:44,height:26,borderRadius:999,background:on?T.pos:(T.k==='light'?'#D8CFC0':T.out),position:'relative',flex:'none'},box({position:'absolute',top:3,[on?'right':'left']:3,width:20,height:20,borderRadius:'50%',background:'#fff'}));
@@ -424,6 +424,51 @@ class Component extends DCLogic {
         box({padding:'18px 22px 0',display:'flex',flexDirection:'column',gap:11},[['visibility_off',T.warnInk,'In shared groups, your past expenses stay but are anonymised to “Former member”.'],['schedule',T.warnInk,'Your personal data is fully removed within 30 days.'],['block',T.neg,"You'll be signed out everywhere and this can't be undone."]].map((r,i)=>box({key:i,display:'flex',gap:11,alignItems:'flex-start'},ms(r[0],20,r[1]),h('div',{style:{fontSize:13,color:T.ink,lineHeight:1.45}},r[2])))),
         box({margin:'18px 22px 0',display:'flex',alignItems:'center',gap:11,background:T.surf,border:'1.5px solid '+T.out,borderRadius:13,padding:13},box({width:24,height:24,borderRadius:7,background:T.neg,display:'flex',alignItems:'center',justifyContent:'center'},ms('check',17,'#fff')),h('span',{style:{flex:1,fontSize:12.5,color:T.ink,fontWeight:600}},'I understand and want to delete my account.')),
         box({position:'absolute',left:22,right:22,bottom:30},btn('Delete my account',()=>this.openSheet('deleteAccountConfirm'),{kind:'danger'}),box({marginTop:6},btn('Cancel',()=>this.back(),{kind:'ghost'}))));
+    }
+
+    // ===== CHANGE PHONE (FR-PR-02) =====
+    else if(S==='cpIntro'||S==='cpReauthOtp'||S==='cpReauthErr'||S==='cpNew'||S==='cpNewOtp'||S==='cpRecovery'||S==='cpSuccess'){
+      const stepIdx={cpIntro:0,cpReauthOtp:1,cpReauthErr:1,cpNew:2,cpNewOtp:3,cpRecovery:3}[S];
+      const steps=box({display:'flex',gap:5,padding:'16px 24px 0'}, [0,1,2,3].map(i=>h('div',{key:i,style:{flex:1,height:4,borderRadius:2,background:i<=stepIdx?T.pri:(T.k==='light'?'#EFE0C6':T.out)}})));
+      const cpHead=(disabled)=>box({display:'flex',alignItems:'center',gap:12,padding:'6px 20px 0'}, tap(disabled?()=>{}:()=>this.back(),{},ms('arrow_back',26,disabled?(T.k==='light'?'#D8CFC0':'#4a4239'):T.ink)), h('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:20,color:T.ink}},'Change number'));
+      const otpRow=(digits,err)=>box({display:'flex',gap:9,marginTop:24}, [0,1,2,3,4,5].map(i=>{const focus=!err&&i===digits.length;return box({key:i,width:46,height:56,borderRadius:14,border:'1.5px solid '+(err?T.neg:(focus?T.pri:T.out)),background:err?T.negBg:T.surf,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:24,color:err?T.neg:T.ink,boxShadow:focus?'0 0 0 3px '+T.pri+'33':'none'}, err?'123456'[i]:(digits[i]||(focus?h('span',{style:{width:2,height:24,background:T.pri,display:'inline-block'}}):'')));}));
+
+      if(S==='cpIntro'){
+        body=sub(null, cpHead(), steps,
+          box({display:'flex',flexDirection:'column',alignItems:'center',padding:'36px 30px 0',textAlign:'center'}, box({width:84,height:84,borderRadius:26,background:T.sv,display:'flex',alignItems:'center',justifyContent:'center'},ms('shield_person',42,T.pri)), h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:24,color:T.ink,marginTop:20}},'Verify your current number'), h('div',{style:{fontSize:14.5,color:T.t2,marginTop:10,lineHeight:1.55}},"For your security, confirm the number on your account before you change it. We'll send a 6-digit code.")),
+          box({margin:'28px 24px 0',background:T.surf,border:'1.5px solid '+T.out,borderRadius:16,padding:'15px 16px',display:'flex',alignItems:'center',gap:12}, ms('smartphone',22,T.t3), box({flex:1},h('div',{style:{fontSize:11,color:T.t3,fontWeight:600}},'Current number'),h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:17,color:T.ink}},'+91 99887 76655')), ms('lock',20,T.t3)),
+          box({position:'absolute',left:24,right:24,bottom:42},btn('Send verification code',()=>this.go('cpReauthOtp'),{icon:'sms'})));
+      }
+      else if(S==='cpReauthOtp'||S==='cpReauthErr'){
+        const err=S==='cpReauthErr';
+        body=sub(null, cpHead(), steps,
+          box({padding:'24px 28px 0'}, h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:25,color:T.ink}},"Confirm it's you"), h('div',{style:{fontSize:14.5,color:T.t2,marginTop:8,lineHeight:1.5}},'Enter the code sent to ',h('b',{style:{color:T.ink}},'+91 ••••• •1234')), otpRow(err?[]:['4','1','9'],err),
+            err?box({fontSize:12.5,color:T.neg,marginTop:14,display:'flex',alignItems:'center',gap:5},ms('error',16,T.neg),'Incorrect code — 2 of 3 tries left.'):box({fontSize:12.5,color:T.t3,marginTop:16,display:'flex',alignItems:'center',gap:6},ms('schedule',16,T.t3),'Resend code in 0:24 · 3 tries left'),
+            err?box({fontSize:12.5,color:T.link,marginTop:16,fontWeight:700,display:'flex',alignItems:'center',gap:6},ms('refresh',16,T.link),'Resend code'):null),
+          box({position:'absolute',left:24,right:24,bottom:42}, btn('Verify & continue',()=>this.go('cpNew')), box({display:'flex',justifyContent:'center',marginTop:12},tap(()=>this.go(err?'cpReauthOtp':'cpReauthErr'),{fontSize:12,fontWeight:700,color:T.link},err?'Correct code ›':'See error state ›'))));
+      }
+      else if(S==='cpNew'){
+        body=sub(null, cpHead(), steps,
+          box({padding:'24px 28px 0'}, h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:25,color:T.ink}},'Your new number'), h('div',{style:{fontSize:14.5,color:T.t2,marginTop:8,lineHeight:1.5}},"We'll send a code to confirm it. India numbers only."), h('div',{style:{fontSize:11,fontWeight:700,color:T.t2,margin:'24px 0 8px'}},'NEW MOBILE NUMBER'),
+            box({display:'flex',alignItems:'center',minHeight:54,background:T.surf,border:'1.5px solid '+T.pri,borderRadius:14,overflow:'hidden',boxShadow:'0 0 0 3px '+T.pri+'29'}, box({padding:'0 14px',height:54,display:'flex',alignItems:'center',gap:6,background:T.sv,fontWeight:700,fontSize:16,color:T.ink,borderRight:'1.5px solid '+T.out},'🇮🇳 +91'), h('span',{style:{flex:1,padding:'0 14px',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:18,color:T.ink}},'98765 43210')),
+            h('div',{style:{fontSize:12,color:T.t3,marginTop:8}},'Must differ from your current number.')),
+          box({position:'absolute',left:24,right:24,bottom:42},btn('Send code',()=>this.go('cpNewOtp'),{icon:'arrow_forward'})));
+      }
+      else if(S==='cpNewOtp'){
+        body=sub(null, cpHead(), steps,
+          box({padding:'24px 28px 0'}, h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:25,color:T.ink}},'Verify your new number'), h('div',{style:{fontSize:14.5,color:T.t2,marginTop:8,lineHeight:1.5}},'Enter the code sent to ',h('b',{style:{color:T.ink}},'+91 ••••• •3210')), otpRow(['7','3'],false), box({display:'flex',alignItems:'center',gap:8,marginTop:18,background:T.posBg,padding:'9px 13px',borderRadius:11,width:'fit-content'},ms('sms',18,T.pos),h('span',{style:{fontSize:12.5,color:T.pos,fontWeight:600}},'Auto-detecting code from SMS…'))),
+          box({position:'absolute',left:24,right:24,bottom:42}, btn('Update my number',()=>this.go('cpSuccess')), box({display:'flex',justifyContent:'center',marginTop:12},tap(()=>this.go('cpRecovery'),{fontSize:12,fontWeight:700,color:T.link},'Simulate sync failure ›'))));
+      }
+      else if(S==='cpRecovery'){
+        body=sub(null, cpHead(1), steps,
+          box({display:'flex',flexDirection:'column',alignItems:'center',padding:'32px 30px 0',textAlign:'center'}, box({width:88,height:88,borderRadius:'50%',background:T.warnBg,display:'flex',alignItems:'center',justifyContent:'center'},ms('sync_problem',44,T.warnInk)), h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:22,color:T.ink,marginTop:20}},'Almost there — syncing'), h('div',{style:{fontSize:14,color:T.t2,marginTop:10,lineHeight:1.55}},"Your number was verified, but saving it to your profile didn't finish. Your account is safe — just tap to finish the sync.")),
+          box({margin:'24px 24px 0',background:T.warnBg,borderRadius:14,padding:'13px 15px',display:'flex',gap:10,alignItems:'flex-start'}, ms('info',20,T.warnInk), h('div',{style:{fontSize:12,color:T.warnInk,lineHeight:1.45}},'Verified with +91 ••••• •3210. No code re-entry needed — this is a one-tap retry.')),
+          box({position:'absolute',left:24,right:24,bottom:42}, btn('Try again',()=>this.go('cpSuccess'),{icon:'refresh'}), box({marginTop:6},btn('Contact support',()=>this.go('contactSupport'),{kind:'ghost'}))));
+      }
+      else if(S==='cpSuccess'){
+        body=box({position:'absolute',inset:0,background:'radial-gradient(130% 90% at 50% 24%, #ECA64A, #D97A1E 84%)'}, box({display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 26px 4px',fontSize:14,fontWeight:700,color:'#FFF7E8'},h('span',null,'9:41'),box({display:'flex',gap:6,alignItems:'center'},box({width:17,height:11,borderRadius:2,background:'currentColor',opacity:.9}),box({width:15,height:11,border:'1.5px solid currentColor',borderRadius:3}))),
+          box({position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 40px',textAlign:'center'}, box({width:104,height:104,borderRadius:'50%',background:'#FFF7E8',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 16px 40px -10px rgba(0,0,0,.3)',animation:'pop .4s ease-out'},ms('check',60,T.pos,true)), h('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:25,color:'#FFF7E8',marginTop:26}},'Phone number updated'), h('div',{style:{fontSize:14,color:'rgba(255,247,232,.92)',marginTop:10,lineHeight:1.5}},"You'll sign in with +91 ••••• •3210 from now on."), tap(()=>this.jump('profile',{tab:'profile'}),{marginTop:30,minWidth:200,minHeight:50,borderRadius:15,background:'#FFF7E8',color:T.ink,fontWeight:700,fontSize:15,display:'flex',alignItems:'center',justifyContent:'center'},'Back to Profile')));
+      }
     }
 
     // fallback
@@ -475,7 +520,8 @@ class Component extends DCLogic {
         ['Expenses',[['add1','Add · amount'],['add2','Add · split'],['add2Error','Add · split error'],['add3','Add · confirm'],['viewExpense','View expense'],['editExpense','Edit expense']]],
         ['Settle',[['settle','Settle up'],['settleSuccess','Settle · success'],['settlementHistory','Settlement history']]],
         ['Activity',[['activity','Activity'],['activityEmpty','· empty'],['notifications','Push notifications']]],
-        ['Profile',[['profile','Profile'],['profileEdit','Edit profile'],['notifPrefs','Notif prefs'],['contactSupport','Contact support'],['deleteAccount','Delete account']]]];
+        ['Profile',[['profile','Profile'],['profileEdit','Edit profile'],['notifPrefs','Notif prefs'],['contactSupport','Contact support'],['deleteAccount','Delete account']]],
+        ['Change phone (FR-PR-02)',[['cpIntro','Re-auth intro'],['cpReauthOtp','Re-auth OTP'],['cpReauthErr','Re-auth · error'],['cpNew','New number'],['cpNewOtp','New OTP'],['cpRecovery','Recovery · sync'],['cpSuccess','Success']]]];
       menuEl=box({position:'fixed',inset:0,zIndex:50,display:'flex',justifyContent:'center',alignItems:'flex-start',padding:'40px 16px',background:'rgba(20,16,10,.4)',overflow:'auto'},
         tap(()=>this.setState({menu:false}),{position:'fixed',inset:0}),
         box({position:'relative',width:'100%',maxWidth:720,background:'#FBF6EE',borderRadius:24,padding:'24px 26px 30px',boxShadow:'0 30px 70px rgba(20,16,10,.4)'},

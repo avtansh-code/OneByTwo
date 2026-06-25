@@ -103,7 +103,7 @@ and **internal** rows (detailed with recommendations in §C).
 
 | surface | app screen / FR | status |
 |---|---|---|
-| Change-phone OTP re-verification | `profile/presentation/change_phone_screen.dart` (FR-PR-02) | built-not-yet-designed |
+| Change-phone OTP re-verification | `profile/presentation/change_phone_screen.dart` (FR-PR-02) → Haldi **Phase3g** (added 2026-06-25) | covered |
 | Orphaned auth placeholder | `auth/presentation/authenticated_screen.dart` (no FR; unreferenced) | internal — no design |
 | Superseded profile stub | `profile/presentation/profile_placeholder_screen.dart` (no FR; superseded by Haldi 27) | internal — no design |
 | Groups tab stub | `shell/presentation/groups_list_placeholder.dart` (no FR; replaced by Haldi 14) | internal — no design |
@@ -112,21 +112,20 @@ and **internal** rows (detailed with recommendations in §C).
 
 ---
 
-## C. The "needs newly-commissioned design" list
+## C. Surfaces assessed for a newly-commissioned design (the one gap is now resolved)
 
 Every current-or-required app surface that the 30-screen Haldi handoff does **not** cover,
 each verified by reading the file, with a recommendation of **commission new Haldi design**
 vs **reuse existing Haldi screen N** vs **internal — no design needed**.
 
 1. **Change-phone OTP re-verification flow** — `profile/presentation/change_phone_screen.dart`
-   (FR-PR-02). *Verified:* the screen is a real, two-OTP flow ("re-verify the CURRENT
-   number, then verify the NEW number", switching body by `ChangePhoneStep`). *Why
-   uncovered:* the Haldi handoff **locks `+91`** in Profile edit (screen 27 — "name + photo;
-   +91 locked") and ships **no** change-number / re-verification screen anywhere in the 30.
-   So a built P1 requirement has no Haldi target to convert to. → **Commission new Haldi
-   design.** (It can lean heavily on the already-designed auth Phone-entry (3) and OTP (4)
-   screens, but the two-step "verify current → verify new" chrome, intro/warning copy, and
-   success state are new and must be specified.)
+   (FR-PR-02). **RESOLVED (2026-06-25):** the Haldi **Change Phone** design has been added to
+   the handoff (`design_handoff_one_by_two/screens/Phase3g - Change Phone.dc.html`; README
+   "Phase3g"). It specifies the security-gated two-OTP flow (re-auth intro → re-auth OTP →
+   new-phone entry → new-phone OTP → success), the ADR-0015 **"sync pending → Try again"**
+   recovery (warning, not danger), and the loading / wrong-code states, light + dark, masked,
+   +91-only — leaning on the auth Phone-entry (3) and OTP (4) chrome. The built screen now has
+   a Haldi target and converts as a **reskin** within DC-10; no commission is outstanding.
 
 2. **Orphaned auth placeholder** — `auth/presentation/authenticated_screen.dart`. *Verified:*
    its own doc comment says "replaced by the profile setup flow in PR #8", and a repo-wide
@@ -164,9 +163,11 @@ vs **reuse existing Haldi screen N** vs **internal — no design needed**.
    them directly in Haldi in the later feature sprints — Groups in Sprint 4, the rest in
    Sprint 5/6). **No new design needed.**
 
-**Net result:** exactly **one** surface needs a newly-commissioned Haldi design — the
-**change-phone OTP re-verification flow (FR-PR-02)**. Three surfaces are internal throwaways
-(no design; delete), and the remaining uncovered items reuse existing Haldi screens/overlays.
+**Net result (updated 2026-06-25):** **zero** surfaces now need a newly-commissioned Haldi
+design — the single gap, the **change-phone OTP re-verification flow (FR-PR-02)**, has been
+designed (Haldi **Phase3g**) and converts as a reskin within DC-10. Three surfaces are internal
+throwaways (no design; delete), and the remaining uncovered items reuse existing Haldi
+screens/overlays.
 
 ---
 
@@ -176,14 +177,12 @@ Sprint 3 (Design Conversion) reskins **already-built** screens onto Haldi. A bui
 only be converted if it has a Haldi target to convert *to*. The dependency therefore lands
 on exactly one item:
 
-- **Blocked:** the **Profile & Settings conversion story** — specifically the
-  `change_phone_screen.dart` sub-task — is **blocked until the new change-phone Haldi design
-  lands** (§C item 1). The rest of that story (`profile_screen`, `edit_profile_screen`,
-  `notification_preferences_screen`, `delete_account_screen`, contact-support) is **not**
-  blocked; their Haldi targets (27, 28, 30, 29) already exist. **Recommendation:** commission
-  the change-phone Haldi screen in the same window as "Sprint 3 PR #1 — design-token
-  foundation" so the Profile-cluster conversion is not held; if it slips, convert the rest of
-  the cluster and carry `change_phone` as a tracked follow-up.
+- **Resolved (2026-06-25 — was blocked):** the **Profile & Settings conversion story** is now
+  **fully unblocked**. Its one dependency — the `change_phone_screen.dart` sub-task — is cleared:
+  the Haldi **Change Phone** design (Phase3g) has landed, so the whole cluster (`profile_screen`,
+  `edit_profile_screen`, `change_phone_screen`, `notification_preferences_screen`,
+  `delete_account_screen`, contact-support) has Haldi targets (27, Phase3g, 28, 30, 29) and
+  converts in DC-10 with no carried follow-up.
 - **Not blocked (delete, do not convert):** `authenticated_screen.dart`,
   `profile_placeholder_screen.dart`, `groups_list_placeholder.dart` — handled by the Phase 2
   conversion checklist as deletions; no design dependency.
@@ -198,8 +197,8 @@ Jakarta tokens) and §6.3 (the 11-screen "Core Screens" list) conflict with the 
 (marigold `#E0922E` + ink `#2A211B`, Bricolage Grotesque + Hanken Grotesk, 30 screens). This
 is expected and is resolved by the **PM's `update-srs` proposal**
 (`docs/sprint-zero/srs-update-proposal-haldi.md`). I do **not** author that proposal; this
-document only records the conflict so the PM can fold §6.2/§6.3 and the FR-PR-02 design gap
-into it.
+document only records the conflict so the PM can fold §6.2/§6.3 into it (the FR-PR-02 design
+gap is now closed by Phase3g; the SRS screen catalogue reflects the addition).
 
 ---
 

@@ -88,6 +88,10 @@ currently-numbered sprint shifts forward by one.
 | 28 | Notification preferences | |
 | 29 | Contact support | |
 | 30 | Delete account | |
+| Phase3g | Change Phone (FR-PR-02 re-verification — added 2026-06-25) | |
+
+> Note: the **Change Phone** flow (Phase3g) was added to the handoff on 2026-06-25, after the
+> initial 30 screens, resolving the one coverage gap (FR-PR-02). See `01-coverage-gap.md`.
 
 Plus **global overlays** (design once, reuse): add-expense sheet, settle-up sheet, delete
 confirmations, sign-out confirmation, offline banner, snackbars/toasts.

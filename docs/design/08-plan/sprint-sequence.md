@@ -188,9 +188,9 @@ figure, or backend contract changes.
 
 1. **PR #1 is the token + type foundation** (`lib/app/theme.dart` → Haldi) and blocks every
    other conversion story; it is the critical path.
-2. One built surface needs a newly-commissioned Haldi design before it can be converted — the
-   change-phone OTP re-verification flow (FR-PR-02); see
-   `docs/audits/design-conversion/01-coverage-gap.md`.
+2. Every built surface now has a Haldi target — the change-phone OTP re-verification flow
+   (FR-PR-02) was designed as Haldi Phase3g (2026-06-25), closing the last gap; it converts
+   within DC-10. See `docs/audits/design-conversion/01-coverage-gap.md`.
 3. The not-yet-built screens (Groups 14–20, Search, Onboarding) are **not** converted here;
    they are built directly in Haldi in the feature sprints that own them (Groups in Sprint 4).
 
@@ -361,9 +361,9 @@ The home dashboard displays the user's overall net simplified balance and the to
 > those converted Haldi surfaces and the Sprint 3 shared component library (offline /
 > pending-sync banner, empty-state scaffold, category chip). Every story builds on the
 > Sprint 3 Haldi token + component foundation (`docs/sprint-zero/sprint-3-plan.md`); no
-> story opens until that foundation is on `main`. **One surface — change-phone OTP
-> re-verification (FR-PR-02) — needs a newly-commissioned Haldi design** before it can be
-> built; it is the Sprint 3 blocked item carried forward
+> story opens until that foundation is on `main`. The **change-phone OTP re-verification
+> (FR-PR-02) Haldi design landed** (Phase3g, 2026-06-25); it is converted in Sprint 3
+> (DC-10), and its FR-PR-02 behaviour lands here on the converted surface
 > (`docs/audits/design-conversion/01-coverage-gap.md` §C/§D). The technical artefacts
 > below (offline-and-sync, error/empty-state taxonomy, Cloud Functions catalogue,
 > accessibility spec) are **unchanged**.
@@ -375,7 +375,7 @@ The home dashboard displays the user's overall net simplified balance and the to
 | Haldi screen — Search & filters | `design_handoff_one_by_two/` screen 7 — focused field, date / group / category filters, recent searches → category-icon result rows (FR-SR-01 / FR-SR-02) |
 | Haldi screen — Monthly-spend chart | `design_handoff_one_by_two/` screen 6 — current-month spend donut + 6-category legend (FR-HD-03) |
 | Haldi screen — Receipt attachment | `design_handoff_one_by_two/` screen 21 (step 3) + 22 — receipt thumbnail / fullscreen viewer (FR-EX-05) |
-| Change-phone OTP re-verification — NEW Haldi design required | Not covered by the 30 Haldi screens (FR-PR-02). Commission the new Haldi change-phone screen first; it reuses the auth Phone-entry (3) + OTP (4) chrome but needs the two-step "verify current → verify new" flow specified. Carried from the Sprint 3 blocked item (`docs/audits/design-conversion/01-coverage-gap.md` §C item 1 / §D) |
+| Change-phone OTP re-verification | `design_handoff_one_by_two/` **Phase3g** (Change Phone — added 2026-06-25): security-gated two-OTP flow (re-auth → new-phone → success) + "sync pending → Try again" recovery, masked, +91-only. Converted in Sprint 3 (DC-10); FR-PR-02 behaviour lands here on the converted surface (`docs/audits/design-conversion/01-coverage-gap.md`) |
 | Offline and sync technical design | `docs/design/07-technical/offline-and-sync.md` |
 | Error and empty state taxonomy | `docs/design/07-technical/error-and-empty-state-taxonomy.md` |
 | Cloud Functions catalogue (account deletion, reminders) | `docs/design/07-technical/cloud-functions-catalogue.md` |

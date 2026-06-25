@@ -8,8 +8,8 @@ Companion documents (binding context):
 
 - `README.md` — canonical framing, the four invariants, the 30 Haldi screens and
   their numbering, the renumber mapping.
-- `01-coverage-gap.md` — Designer's Phase-1 coverage matrix, the single "needs new
-  design" item (change-phone, FR-PR-02), and the three throwaways to delete.
+- `01-coverage-gap.md` — Designer's Phase-1 coverage matrix, the (now-resolved)
+  change-phone gap (FR-PR-02 → Haldi Phase3g), and the three throwaways to delete.
 - `03-foundation-plan.md` — Architect's Phase-3 token/type swap, the six `OBT*`
   reskins, and the thirteen new components.
 - `design_handoff_one_by_two/README.md` — the Haldi per-screen spec and states.
@@ -146,7 +146,7 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 |---|---|---|---|---|---|
 | `profile/presentation/profile_screen.dart` | 27 | reskin | Marigold tokens + type; avatar fallback → primaryContainer ink; rows → Hanken; inline sign-out `AlertDialog` → `OBTConfirmationDialog`; delete → error token. (`_ShimmerEffect` loading already present.) | — | M |
 | `profile/presentation/edit_profile_screen.dart` | 27 | reskin | Marigold tokens + type; camera badge → onPrimary ink; field radius → 12; Save → marigold. **Updates direct `AppTheme.radiusLarge`/`radiusXL` references to the new radius scale.** | — | M |
-| `profile/presentation/change_phone_screen.dart` | FR-PR-02 | **blocked** | **Awaiting new Haldi design** (per `01-coverage-gap` §C item 1 / §D). The real two-OTP re-auth flow exists and reuses `OtpInput`; carry as a tracked follow-up — do not convert until the Haldi change-phone screen lands. | (deferred) | M (blocked) |
+| `profile/presentation/change_phone_screen.dart` | Phase3g | **reskin** | Haldi **Change Phone** design landed (Phase3g). Marigold tokens + Bricolage/Hanken across the five states; reuses the reskinned `OtpInput` + phone input; masked-number styling; the "sync pending → Try again" recovery uses the **warning** token (not danger); +91 stays locked. | sync-pending recovery state styled | M |
 | `profile/presentation/notification_preferences_screen.dart` | 28 | reskin | Marigold tokens + type; toggles → marigold; OS-permission banner → warm tonal; **add the inert "Language" extension slot** (Coming soon); loading spinner → skeleton/simple. | loading-skeleton (replace spinner) | M |
 | `profile/presentation/delete_account_screen.dart` | 30 | reskin | Marigold tokens + type; destructive warning → error token; re-auth `OtpInput` reskin; success-state Haldi treatment; update `AppTheme.radius*` references. | — | M |
 | `profile/presentation/contact_support_fallback_dialog.dart` | 29 | reskin | Dialog radius → 20; selectable email → link token; buttons → Hanken/marigold. | — | S |
@@ -232,10 +232,10 @@ greenfield.
 | classification | count |
 |---|---|
 | conform | 3 |
-| reskin | 45 |
+| reskin | 46 |
 | rebuild | 4 |
 | delete | 3 |
-| blocked | 1 |
+| blocked | 0 |
 | **total** | **56** |
 
 - **conform (3):** `add_friend_flow.dart`, `notifications_lifecycle_host.dart`,
@@ -245,7 +245,8 @@ greenfield.
   validation), `settle_up_bottom_sheet.dart` (UPI slot + success moment).
 - **delete (3):** `authenticated_screen.dart`, `profile_placeholder_screen.dart`,
   `groups_list_placeholder.dart`.
-- **blocked (1):** `change_phone_screen.dart` (FR-PR-02 — awaiting Haldi design).
+- **blocked (0):** none — the former blocker, `change_phone_screen.dart` (FR-PR-02), now has
+  its Haldi design (**Phase3g**, added 2026-06-25) and converts as a **reskin** within DC-10.
 
 ### Total rough effort feel
 

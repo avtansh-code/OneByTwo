@@ -37,8 +37,9 @@ A DC story may be started only when:
    Indigo/Plus-Jakarta skin (an un-reviewable mixed state) — see
    `docs/audits/design-conversion/03-foundation-plan.md` §0.
 2. **Haldi target exists.** The screen or component has a Haldi design to convert *to*
-   (per `docs/audits/design-conversion/02-conversion-checklist.md`). The single
-   exception — change-phone (FR-PR-02) — is tracked as **blocked** (see DC-10).
+   (per `docs/audits/design-conversion/02-conversion-checklist.md`). Every built
+   screen now has a Haldi target — the change-phone flow (FR-PR-02) was designed as
+   Haldi **Phase3g** on 2026-06-25 (see DC-10), closing the last gap.
 3. **Acceptance criteria agreed.** At least three Given/When/Then criteria, including
    at least one negative case, are written and reviewed.
 4. **Invariant check done.** The story is confirmed not to weaken any of the four
@@ -398,12 +399,11 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 - **Responsible Agents:** Flutter Dev, Designer, QA.
 - **Story Points:** 3
 
-#### DC-10: Profile and Settings conversion (Haldi 27, 28, 29, 30; change-phone BLOCKED)
+#### DC-10: Profile and Settings conversion (Haldi 27, Phase3g, 28, 29, 30)
 
 - **SRS / Source:** FR-PR-01..05, FR-SH-03/04, FR-AU-09; Haldi screens 27, 28, 29, 30;
   `02-conversion-checklist.md` §B (Profile).
-- **Priority:** P1 — Should have (non-hero cluster; the descope-eligible buffer; it
-  carries the one blocked sub-task).
+- **Priority:** P1 — Should have (non-hero cluster; the descope-eligible buffer).
 - **User Story:** As a user, I want my profile, notification preferences, contact
   support, and delete-account screens in the Haldi visual language so that settings
   are consistent and on-brand.
@@ -416,23 +416,22 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
      `OBTConfirmationDialog`, notification preferences gains the inert "Language" slot
      ("Coming soon"), and direct `AppTheme.radiusLarge`/`radiusXL` references are
      updated to the new radius scale; `+91` stays **locked** in edit.
-  2. **Given** `change_phone_screen.dart` (FR-PR-02), **When** conversion is
-     attempted, **Then** it is **BLOCKED, not converted** — it awaits a
-     newly-commissioned Haldi change-phone design (`01-coverage-gap.md` §C item 1 /
-     §D) and is tracked as a follow-up; its two-OTP re-auth behaviour is unchanged
-     (negative case — converting it before the design lands, or weakening the re-auth
-     flow, is a defect).
+  2. **Given** `change_phone_screen.dart` (FR-PR-02), **When** it is converted to the
+     Haldi **Change Phone** design (Phase3g, added 2026-06-25), **Then** all five states
+     (re-auth intro → re-auth OTP → new-phone entry → new-phone OTP → success) plus the
+     "sync pending → Try again" recovery use Haldi tokens/type, masked numbers, and `+91`
+     locked, while the two-OTP re-auth **behaviour is unchanged** (negative case —
+     weakening or bypassing the re-auth flow, or showing an unmasked number, is a defect).
   3. **Given** `profile_placeholder_screen.dart` (superseded by Haldi 27), **When**
      conversion runs, **Then** it is **deleted, not converted**.
 - **Definition of Done:** the standard checklist; the "Language" slot ships inert; one
-  throwaway (`profile_placeholder_screen.dart`) deleted here; the change-phone
-  follow-up is filed and milestoned (see Milestone Ownership).
+  throwaway (`profile_placeholder_screen.dart`) deleted here; change-phone (Phase3g) is
+  converted within this story — no carried follow-up.
 - **Invariant Compliance:** No money path changes (Invariant 1); no projection write
   (Invariant 2); contact-support uses the device mail client / copy fallback, not a
   single-app target (Invariant 3); delete-account anonymisation is server-driven and
   unchanged on a single project (Invariant 4).
-- **Responsible Agents:** Flutter Dev, Designer, QA, PM (carries the change-phone
-  design commission and the blocked follow-up).
+- **Responsible Agents:** Flutter Dev, Designer, QA.
 - **Story Points:** 5
 
 ---
@@ -564,7 +563,7 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 | DC-07 | 5 | Add-expense hero ★ (sheet shell + step-2 **rebuild** + step-3 additive) + detail + context picker. |
 | DC-08 | 3 | Settle-up hero ★ **rebuild** (UPI slot + success moment via component) + history. |
 | DC-09 | 3 | Activity hero ★ + shimmer + in-app banner / pre-permission reskins. |
-| DC-10 | 5 | Profile cluster (five reskins + photo picker) + one delete; one sub-task **blocked**. |
+| DC-10 | 5 | Profile cluster — six reskins (incl. change-phone, Haldi Phase3g, which reuses the reskinned `OtpInput` / phone input) + photo picker + one delete. |
 | DC-11 | 5 | Bespoke dark-hero verification across six heroes. |
 | DC-12 | 3 | Contrast gate + dynamic-type 2.0× + balance-trio + reduced-motion checks. |
 | DC-13 | 5 | Golden harness + baselines for 6 widgets + 11 components + heroes, light + dark. |
@@ -581,10 +580,9 @@ exactly one milestone at creation:
   with a one-line rationale comment.
 - **`Sprint 4`** (Groups and Settlements) is open as the next sprint; **`Post-v1.0`**
   exists.
-- The **change-phone conversion follow-up** (DC-10, blocked on the new Haldi design)
-  is filed under `Sprint 3` as blocked; if the design slips and it is not converted
-  by sprint end, it is re-homed to the next sprint per the milestone-reconcile rule,
-  blocked on the design commission, and the move is commented for audit.
+- The **change-phone conversion** (DC-10) is **unblocked** — its Haldi design landed
+  (Phase3g, 2026-06-25), so it converts within DC-10 under `Sprint 3` with no carried
+  follow-up.
 - Milestones are reconciled with each passing PR (verify the closed issue's milestone,
   re-home any re-scoped remainder, close the milestone when the last issue closes).
 
@@ -608,12 +606,11 @@ skin is new.
 
 ## Risks and Notes
 
-1. **Change-phone design dependency (DC-10).** The change-phone OTP re-verification
-   flow (FR-PR-02) is the **one** built surface with no Haldi target. Its conversion is
-   **blocked** until a new Haldi screen is commissioned (`01-coverage-gap.md` §C/§D).
-   *Mitigation:* commission the change-phone Haldi screen in the same window as PR #1
-   so the Profile cluster is not held; if it slips, convert the rest of the cluster
-   and carry change-phone as a tracked, re-homed follow-up.
+1. **Change-phone design dependency (DC-10) — RESOLVED 2026-06-25.** The change-phone
+   OTP re-verification flow (FR-PR-02) was the one built surface with no Haldi target;
+   its Haldi **Change Phone** design has since landed (Phase3g), so DC-10 is fully
+   unblocked and change-phone converts as a normal reskin within the cluster. No
+   commission or carried follow-up remains.
 2. **`google_fonts` exposure of Bricolage / Hanken.** PR #1 depends on the pinned
    `google_fonts` version exposing `bricolageGrotesque` and `hankenGrotesk`.
    *Mitigation:* if either is unavailable, bundle the `.ttf` fallback per
