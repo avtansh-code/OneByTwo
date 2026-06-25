@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ margin-top:12px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .mph{ border-radius:34px; border:7px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 24px 50px -16px rgba(20,16,10,.45); }
+  .av{ border-radius:12px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; flex:none; }
+  .pill{ display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:999px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:11px; white-space:nowrap; }
+  .badge{ display:inline-flex; align-items:center; gap:9px; background:#2A211B; color:#FBF6EE; border-radius:13px; padding:9px 16px; }
+  .badge .ms{ font-size:26px; }
+  .badge .t{ display:flex; flex-direction:column; line-height:1.1; text-align:left; }
+  .badge .t small{ font-size:9px; opacity:.8; font-weight:600; }
+  .badge .t b{ font-size:15px; font-family:'Bricolage Grotesque'; }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:1000px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · Phase 4</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Marketing &amp; store assets</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:820px;">Store screenshots (light + dark mix), Play feature graphic 1024×500, social square &amp; story, a landing-page hero, and the full store listing copy.</div>
+</div>
+
+<!-- ============ STORE SCREENSHOTS ============ -->
+
+<!-- SS1 -->
+<div style="position:absolute; left:80px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 1</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:radial-gradient(120% 80% at 50% 0%, #F2B45C, #D97A1E 85%);">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#FFF7E8; line-height:1.1; letter-spacing:-.01em;">Know who owes who — at a glance</div>
+      <div style="font-size:15px; color:rgba(255,247,232,.9); margin-top:12px;">One clear number. No spreadsheets, no awkward maths.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:#FBF6EE; position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="padding:18px 18px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><div><div style="font-size:11px; color:#9A8F82; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">Priya</div></div><div class="av" style="width:34px; height:34px; border-radius:11px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:13px;">P</div></div>
+        <div style="margin-top:14px; background:linear-gradient(150deg,#fff,#FFF4E2); border-radius:22px; padding:20px; box-shadow:0 12px 26px -12px rgba(224,146,46,.3);">
+          <div style="display:flex; align-items:center; gap:6px; color:#0F7D6B; font-weight:700; font-size:12px;"><span class="ms" style="font-size:16px;">arrow_upward</span>Overall, you are owed</div>
+          <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:38px; color:#0F7D6B; margin-top:8px; line-height:1;">₹12,450<span style="font-size:18px; opacity:.55;">.00</span></div>
+        </div>
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:14px; padding:10px 12px;"><div class="av" style="width:34px; height:34px; background:#FCEBCF; color:#9a5a13; font-size:13px;">R</div><div style="flex:1;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Rahul</div><div style="font-size:10px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:12px;">arrow_upward</span>₹4,250.00</span></div>
+          <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:14px; padding:10px 12px;"><div class="av" style="width:34px; height:34px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:16px;">flight</span></div><div style="flex:1;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Goa Trip</div><div style="font-size:10px; color:#9A8F82;">you owe</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030;"><span class="ms" style="font-size:12px;">arrow_downward</span>₹2,100.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Hero · the net simplified balance, the app's single most important signal.</div>
+</div>
+
+<!-- SS2 -->
+<div style="position:absolute; left:520px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 2</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:#FBF6EE;">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; line-height:1.1; letter-spacing:-.01em;">Split any bill, <span style="color:#E0922E;">any way</span></div>
+      <div style="font-size:15px; color:#6F6557; margin-top:12px;">Equally, by shares, percentages or exact rupees — it always adds up.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:#fff; position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="padding:20px 18px 0;">
+        <div style="text-align:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">₹3,200.00 <span style="font-size:11px; color:#9A8F82;">· 5 people</span></div>
+        <div style="display:flex; background:#EFE6D6; border-radius:12px; padding:3px; gap:2px; margin-top:14px;"><span style="flex:1; text-align:center; padding:7px 2px; border-radius:9px; font-size:11px; font-weight:700; background:#E0922E; color:#2A211B;">Equally</span><span style="flex:1; text-align:center; padding:7px 2px; font-size:11px; font-weight:700; color:#6F6557;">%</span><span style="flex:1; text-align:center; padding:7px 2px; font-size:11px; font-weight:700; color:#6F6557;">Shares</span><span style="flex:1; text-align:center; padding:7px 2px; font-size:11px; font-weight:700; color:#6F6557;">Exact</span></div>
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:11px;">
+          <div style="display:flex; align-items:center; gap:9px;"><span class="ms msf" style="font-size:20px; color:#0F7D6B;">check_circle</span><div class="av" style="width:30px; height:30px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:12px;">P</div><span style="flex:1; font-size:13px; font-weight:600; color:#2A211B;">You</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px;">₹640.00</span></div>
+          <div style="display:flex; align-items:center; gap:9px;"><span class="ms msf" style="font-size:20px; color:#0F7D6B;">check_circle</span><div class="av" style="width:30px; height:30px; background:#FCEBCF; color:#9a5a13; font-size:12px;">R</div><span style="flex:1; font-size:13px; font-weight:600; color:#2A211B;">Rahul</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px;">₹640.00</span></div>
+          <div style="display:flex; align-items:center; gap:9px;"><span class="ms msf" style="font-size:20px; color:#0F7D6B;">check_circle</span><div class="av" style="width:30px; height:30px; background:#E7EEF6; color:#2E6F9E; font-size:12px;">A</div><span style="flex:1; font-size:13px; font-weight:600; color:#2A211B;">Aditya</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px;">₹640.00</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; background:#E2F2EE; color:#0F7D6B; border-radius:11px; padding:9px 12px; font-size:11.5px; font-weight:700; margin-top:16px;"><span class="ms" style="font-size:16px;">check_circle</span>₹3,200.00 of ₹3,200.00 · adds up</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Split methods with live “adds up” validation.</div>
+</div>
+
+<!-- SS3 -->
+<div style="position:absolute; left:960px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 3</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:linear-gradient(160deg,#0F7D6B,#0a5a4d);">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#EAF7F3; line-height:1.1; letter-spacing:-.01em;">Settle up in a single tap</div>
+      <div style="font-size:15px; color:rgba(234,247,243,.85); margin-top:12px;">Simplified debts mean the fewest payments to clear everything.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:radial-gradient(120% 80% at 50% 24%, #ECA64A, #D97A1E 86%); position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 32px; text-align:center;">
+        <div style="width:90px; height:90px; border-radius:50%; background:#FFF7E8; display:flex; align-items:center; justify-content:center; box-shadow:0 14px 34px -10px rgba(0,0,0,.3);"><span class="ms msf" style="font-size:54px; color:#0F7D6B;">check</span></div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#FFF7E8; margin-top:22px;">You're all settled up — high five!</div>
+        <div style="font-size:13px; color:rgba(255,247,232,.9); margin-top:10px;">₹2,100.00 paid to Rahul.</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">The payoff moment — a delightful, on-brand success.</div>
+</div>
+
+<!-- SS4 -->
+<div style="position:absolute; left:1400px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 4</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:#FBF6EE;">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; line-height:1.1; letter-spacing:-.01em;">Trips, flats, family — all sorted</div>
+      <div style="font-size:15px; color:#6F6557; margin-top:12px;">A group for every crew, with simplified balances baked in.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:#FBF6EE; position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="padding:20px 16px 0; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:12px;"><div class="av" style="width:42px; height:42px; border-radius:13px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:22px;">flight</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Goa Trip 2026</div><div style="font-size:10.5px; color:#9A8F82;">5 members</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030;"><span class="ms" style="font-size:12px;">arrow_downward</span>₹2,100</span></div>
+        <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:12px;"><div class="av" style="width:42px; height:42px; border-radius:13px; background:#6C4FC91A; color:#6C4FC9;"><span class="ms msf" style="font-size:22px;">home</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Flatmates</div><div style="font-size:10.5px; color:#9A8F82;">3 members</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:12px;">arrow_upward</span>₹3,400</span></div>
+        <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:12px;"><div class="av" style="width:42px; height:42px; border-radius:13px; background:#D94F871A; color:#D94F87;"><span class="ms msf" style="font-size:22px;">favorite</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Home — Mum &amp; Dad</div><div style="font-size:10.5px; color:#9A8F82;">3 members</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030;"><span class="ms" style="font-size:12px;">arrow_downward</span>₹1,200</span></div>
+        <div style="display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:12px;"><div class="av" style="width:42px; height:42px; border-radius:13px; background:#E8762B1A; color:#E8762B;"><span class="ms msf" style="font-size:22px;">restaurant</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Office Lunch Club</div><div style="font-size:10.5px; color:#9A8F82;">8 members</div></div><span class="pill" style="background:#EFE9DD; color:#6F6557;"><span class="ms" style="font-size:12px;">check</span>Settled</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Groups for every context, balance-first.</div>
+</div>
+
+<!-- SS5 -->
+<div style="position:absolute; left:1840px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 5</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:#2A211B;">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#FBF6EE; line-height:1.1; letter-spacing:-.01em;">Every rupee, beautifully tracked</div>
+      <div style="font-size:15px; color:#B9AE9D; margin-top:12px;">See where your month went, by category, at a glance.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:#FBF6EE; position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="padding:22px 18px 0;">
+        <div style="font-weight:700; font-size:15px; color:#2A211B; margin-bottom:16px;">This month <span style="color:#9A8F82; font-weight:600; font-size:11px;">· Jun 2026</span></div>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="position:relative; width:128px; height:128px; flex:none;"><div style="width:128px; height:128px; border-radius:50%; background:conic-gradient(#E8762B 0 30%,#6C4FC9 30% 56%,#2E78C9 56% 70%,#4FA13E 70% 82%,#D94F87 82% 92%,#8A7B6B 92% 100%);"></div><div style="position:absolute; inset:18px; border-radius:50%; background:#FBF6EE; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div style="font-size:10px; color:#9A8F82; font-weight:600;">Spent</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px;">₹38,640</div></div></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:9px; font-size:12px; font-weight:600; color:#6F6557;"><div><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#E8762B;margin-right:7px;"></span>Food</div><div><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#6C4FC9;margin-right:7px;"></span>Rent</div><div><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#2E78C9;margin-right:7px;"></span>Transport</div><div><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#4FA13E;margin-right:7px;"></span>Groceries</div></div>
+        </div>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:13px; padding:10px 12px;"><div class="av" style="width:32px; height:32px; border-radius:10px; background:#E8762B1A; color:#E8762B;"><span class="ms" style="font-size:18px;">restaurant</span></div><span style="flex:1; font-size:13px; font-weight:600; color:#2A211B;">Food &amp; Drink</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px;">₹11,592</span></div>
+          <div style="display:flex; align-items:center; gap:10px; background:#fff; border-radius:13px; padding:10px 12px;"><div class="av" style="width:32px; height:32px; border-radius:10px; background:#6C4FC91A; color:#6C4FC9;"><span class="ms" style="font-size:18px;">home</span></div><span style="flex:1; font-size:13px; font-weight:600; color:#2A211B;">Rent &amp; Housing</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px;">₹10,099</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Monthly spend, broken down by the 8-colour category palette.</div>
+</div>
+
+<!-- SS6 -->
+<div style="position:absolute; left:2280px; top:170px; width:400px;">
+  <div class="label" data-drags-parent="1">Store screenshot 6</div>
+  <div style="height:846px; border-radius:30px; overflow:hidden; position:relative; background:#1A1510;">
+    <div style="padding:48px 36px 0; text-align:center;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#F3EBDD; line-height:1.1; letter-spacing:-.01em;">Stunning in dark mode, too</div>
+      <div style="font-size:15px; color:#8A7E6E; margin-top:12px;">A true dark theme that's easy on the eyes, day or night.</div>
+    </div>
+    <div class="mph" style="width:310px; height:540px; background:#1A1510; position:absolute; left:50%; bottom:-30px; transform:translateX(-50%); border-bottom:none; border-radius:34px 34px 0 0;">
+      <div style="padding:18px 18px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><div><div style="font-size:11px; color:#8A7E6E; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#F3EBDD;">Priya</div></div><div class="av" style="width:34px; height:34px; border-radius:11px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:13px;">P</div></div>
+        <div style="margin-top:14px; background:linear-gradient(150deg,#2A2218,#241D16); border:1px solid #3A322A; border-radius:22px; padding:20px;">
+          <div style="display:flex; align-items:center; gap:6px; color:#34C0A4; font-weight:700; font-size:12px;"><span class="ms" style="font-size:16px;">arrow_upward</span>Overall, you are owed</div>
+          <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:38px; color:#34C0A4; margin-top:8px; line-height:1;">₹12,450<span style="font-size:18px; opacity:.6;">.00</span></div>
+        </div>
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:center; gap:11px; background:#241D16; border-radius:14px; padding:10px 12px;"><div class="av" style="width:34px; height:34px; background:#2E2620; color:#EAA24A; font-size:13px;">R</div><div style="flex:1;"><div style="font-weight:700; font-size:13px; color:#F3EBDD;">Rahul</div><div style="font-size:10px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:12px;">arrow_upward</span>₹4,250.00</span></div>
+          <div style="display:flex; align-items:center; gap:11px; background:#241D16; border-radius:14px; padding:10px 12px;"><div class="av" style="width:34px; height:34px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:16px;">flight</span></div><div style="flex:1;"><div style="font-weight:700; font-size:13px; color:#F3EBDD;">Goa Trip</div><div style="font-size:10px; color:#8A7E6E;">you owe</div></div><span class="pill" style="background:rgba(242,133,107,.16); color:#F2856B;"><span class="ms" style="font-size:12px;">arrow_downward</span>₹2,100.00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Dark-mode showcase · the theme is a first-class citizen, not an afterthought.</div>
+</div>
+
+<!-- ============ FEATURE GRAPHIC ============ -->
+<div style="position:absolute; left:80px; top:1180px; width:1024px;">
+  <div class="label" data-drags-parent="1">Google Play feature graphic · 1024×500</div>
+  <div style="width:1024px; height:500px; border-radius:20px; overflow:hidden; position:relative; background:radial-gradient(100% 140% at 18% 20%, #F2B45C, #D97A1E 80%);">
+    <div style="position:absolute; left:64px; top:0; bottom:0; display:flex; flex-direction:column; justify-content:center; width:560px;">
+      <div style="display:flex; align-items:center; gap:14px;"><div style="width:56px; height:56px; border-radius:17px; background:#FFF7E8; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#D97A1E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#D97A1E"/><circle cx="50" cy="73" r="9" fill="#D97A1E"/></svg></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#FFF7E8;">One<span style="opacity:.78;">By</span>Two</div></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:48px; color:#FFF7E8; line-height:1.05; margin-top:24px; letter-spacing:-.01em;">Split it. Settle it.<br>Simple.</div>
+      <div style="font-size:18px; color:rgba(255,247,232,.9); margin-top:16px;">India's friendliest way to share expenses &amp; settle up.</div>
+    </div>
+    <div class="mph" style="width:230px; height:430px; background:#FBF6EE; position:absolute; right:90px; top:90px; transform:rotate(6deg);">
+      <div style="padding:16px 14px 0;">
+        <div style="background:linear-gradient(150deg,#fff,#FFF4E2); border-radius:18px; padding:16px;"><div style="display:flex; align-items:center; gap:5px; color:#0F7D6B; font-weight:700; font-size:11px;"><span class="ms" style="font-size:14px;">arrow_upward</span>You are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:30px; color:#0F7D6B; margin-top:6px;">₹12,450</div></div>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:7px;"><div style="background:#fff; border-radius:12px; height:42px;"></div><div style="background:#fff; border-radius:12px; height:42px;"></div><div style="background:#fff; border-radius:12px; height:42px;"></div></div>
+      </div>
+    </div>
+    <div class="mph" style="width:210px; height:400px; background:#1A1510; position:absolute; right:-20px; top:130px; transform:rotate(-7deg); opacity:.96;">
+      <div style="padding:16px 14px 0;"><div style="background:#241D16; border:1px solid #3A322A; border-radius:18px; padding:16px;"><div style="color:#34C0A4; font-weight:700; font-size:11px;">Settled up</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#F3EBDD; margin-top:6px;">₹0.00</div></div></div>
+    </div>
+  </div>
+  <div class="cap">Landscape store banner · logo, brand promise, and a light + dark phone pair.</div>
+</div>
+
+<!-- ============ LISTING COPY ============ -->
+<div style="position:absolute; left:1180px; top:1180px; width:640px;">
+  <div class="label" data-drags-parent="1">Store listing copy</div>
+  <div style="background:#FBF6EE; border-radius:20px; padding:30px 32px; font-family:'Hanken Grotesk';">
+    <div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#C75D3C;">Tagline</div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; color:#2A211B; margin-top:6px;">Split it. Settle it. Simple.</div>
+    <div style="font-size:13px; color:#6F6557; margin-top:3px;">Share expenses with friends, flatmates &amp; family — the India-first way.</div>
+
+    <div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#C75D3C; margin-top:22px;">Long description</div>
+    <div style="font-size:13.5px; color:#2A211B; line-height:1.6; margin-top:8px;">One By Two makes shared spending effortless. Track who paid for what, split any bill — equally, by shares, percentages or exact rupees — and always know your balance at a glance: <b>you're owed</b>, <b>you owe</b>, or <b>all settled up</b>.<br><br>When it's time to square up, we use <b>simplified debts</b> to suggest the fewest payments to clear everyone. Built for India: rupees in lakh/crore formatting, +91 sign-in, and a warm design that's a joy to open.<br><br>• Friends &amp; groups for trips, flats and family<br>• Simplified settle-up with pre-filled amounts<br>• Monthly spend insights by category<br>• Reminders, activity feed &amp; a gorgeous dark mode<br>• Private &amp; secure — your data stays yours</div>
+
+    <div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#C75D3C; margin-top:22px;">Keywords</div>
+    <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;">
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">expense splitter</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">split bills</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">settle up</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">shared expenses</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">flatmate budget</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">trip expenses</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">group money</span>
+      <span style="background:#FFF6E6; color:#6F6557; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px;">IOU tracker</span>
+    </div>
+  </div>
+  <div class="cap">Friendly-but-clear voice, India-first framing, ASO keyword set.</div>
+</div>
+
+<!-- ============ SOCIAL SQUARE ============ -->
+<div style="position:absolute; left:80px; top:1820px; width:1080px;">
+  <div class="label" data-drags-parent="1">Social — square 1080×1080</div>
+  <div style="width:1080px; height:1080px; border-radius:24px; overflow:hidden; position:relative; background:radial-gradient(100% 80% at 50% 12%, #F2B45C, #C75D3C 92%);">
+    <div style="padding:90px 90px 0; text-align:center;">
+      <div style="display:inline-flex; align-items:center; gap:16px; background:rgba(255,247,232,.16); padding:14px 24px; border-radius:999px;"><svg width="30" height="30" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#FFF7E8;">One By Two</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:78px; color:#FFF7E8; line-height:1.04; margin-top:40px; letter-spacing:-.02em;">Split it.<br>Settle it.<br>Simple.</div>
+      <div style="font-size:24px; color:rgba(255,247,232,.92); margin-top:28px;">Now live on iOS &amp; Android 🇮🇳</div>
+    </div>
+    <div class="mph" style="width:340px; height:380px; background:#FBF6EE; position:absolute; left:50%; bottom:-40px; transform:translateX(-50%); border-bottom:none; border-radius:40px 40px 0 0; border-width:9px;">
+      <div style="padding:22px 20px 0;"><div style="background:linear-gradient(150deg,#fff,#FFF4E2); border-radius:22px; padding:22px;"><div style="display:flex; align-items:center; gap:6px; color:#0F7D6B; font-weight:700; font-size:14px;"><span class="ms" style="font-size:18px;">arrow_upward</span>You are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:44px; color:#0F7D6B; margin-top:8px;">₹12,450.00</div></div></div>
+    </div>
+  </div>
+  <div class="cap">Instagram/feed square · bold brand promise + product peek.</div>
+</div>
+
+<!-- ============ SOCIAL STORY ============ -->
+<div style="position:absolute; left:1240px; top:1820px; width:1080px;">
+  <div class="label" data-drags-parent="1">Social — story 1080×1920</div>
+  <div style="width:1080px; height:1920px; border-radius:24px; overflow:hidden; position:relative; background:linear-gradient(170deg,#1A1510 0%,#2A1c10 55%, #D97A1E 140%);">
+    <div style="padding:150px 90px 0; text-align:center;">
+      <div style="display:inline-flex; align-items:center; gap:16px;"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#EAA24A"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#EAA24A"/><circle cx="50" cy="73" r="9" fill="#EAA24A"/></svg><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#F3EBDD;">One<span style="color:#EAA24A;">By</span>Two</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:84px; color:#F3EBDD; line-height:1.05; margin-top:60px; letter-spacing:-.02em;">The money app<br>your group<br>actually <span style="color:#EAA24A;">enjoys</span></div>
+      <div style="font-size:26px; color:#B9AE9D; margin-top:32px; line-height:1.5;">Track shared spends. Split any way.<br>Settle up in a tap.</div>
+    </div>
+    <div class="mph" style="width:440px; height:760px; background:#FBF6EE; position:absolute; left:50%; bottom:-60px; transform:translateX(-50%); border-radius:54px 54px 0 0; border-width:11px;">
+      <div style="padding:30px 26px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><div><div style="font-size:15px; color:#9A8F82; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#2A211B;">Priya</div></div><div class="av" style="width:46px; height:46px; border-radius:15px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:18px;">P</div></div>
+        <div style="margin-top:22px; background:linear-gradient(150deg,#fff,#FFF4E2); border-radius:28px; padding:28px; box-shadow:0 16px 36px -14px rgba(224,146,46,.3);"><div style="display:flex; align-items:center; gap:8px; color:#0F7D6B; font-weight:700; font-size:17px;"><span class="ms" style="font-size:22px;">arrow_upward</span>Overall, you are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:60px; color:#0F7D6B; margin-top:14px; line-height:1;">₹12,450<span style="font-size:28px; opacity:.55;">.00</span></div></div>
+        <div style="margin-top:18px; display:flex; flex-direction:column; gap:12px;"><div style="background:#fff; border-radius:18px; height:62px;"></div><div style="background:#fff; border-radius:18px; height:62px;"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Vertical story · dark→marigold gradient, big claim, full hero screen.</div>
+</div>
+
+<!-- ============ LANDING HERO ============ -->
+<div style="position:absolute; left:80px; top:3960px; width:1440px;">
+  <div class="label" data-drags-parent="1">Landing page — hero section</div>
+  <div style="width:1440px; height:820px; border-radius:24px; overflow:hidden; position:relative; background:#FBF6EE;">
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:30px 56px;">
+      <div style="display:flex; align-items:center; gap:12px;"><div style="width:42px; height:42px; border-radius:13px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B;">One<span style="color:#E0922E;">By</span>Two</span></div>
+      <div style="display:flex; align-items:center; gap:34px; font-size:15px; font-weight:600; color:#6F6557;"><span>Features</span><span>How it works</span><span>Pricing</span><button style="border:none; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; padding:12px 22px; border-radius:13px;">Get the app</button></div>
+    </div>
+    <!-- hero body -->
+    <div style="display:flex; align-items:center; padding:36px 56px 0;">
+      <div style="width:660px;">
+        <div style="display:inline-flex; align-items:center; gap:8px; background:#FFF6E6; padding:8px 15px; border-radius:999px; font-size:13px; font-weight:700; color:#A35E16;"><span class="ms" style="font-size:17px;">favorite</span>Made in India, for India</div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:64px; color:#2A211B; line-height:1.04; margin-top:22px; letter-spacing:-.02em;">Sharing money with friends, finally made <span style="color:#E0922E;">simple</span>.</div>
+        <div style="font-size:19px; color:#6F6557; margin-top:22px; line-height:1.55; max-width:540px;">Track shared expenses, split any bill, and settle up in a tap — with the fewest payments, always in clean rupees.</div>
+        <div style="display:flex; gap:14px; margin-top:32px;">
+          <div class="badge"><span class="ms">phone_iphone</span><div class="t"><small>Download on the</small><b>App Store</b></div></div>
+          <div class="badge"><span class="ms">android</span><div class="t"><small>Get it on</small><b>Google Play</b></div></div>
+        </div>
+        <div style="font-size:13px; color:#9A8F82; margin-top:16px;">Free to use · +91 sign-in · iOS &amp; Android</div>
+      </div>
+      <div style="flex:1; position:relative; height:480px;">
+        <div class="mph" style="width:268px; height:520px; background:#FBF6EE; position:absolute; left:130px; top:-10px; transform:rotate(-5deg);">
+          <div style="padding:18px 16px 0;"><div style="background:linear-gradient(150deg,#fff,#FFF4E2); border-radius:20px; padding:18px;"><div style="display:flex; align-items:center; gap:5px; color:#0F7D6B; font-weight:700; font-size:12px;"><span class="ms" style="font-size:15px;">arrow_upward</span>You are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:34px; color:#0F7D6B; margin-top:6px;">₹12,450.00</div></div><div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;"><div style="background:#fff; border-radius:13px; height:48px;"></div><div style="background:#fff; border-radius:13px; height:48px;"></div><div style="background:#fff; border-radius:13px; height:48px;"></div></div></div>
+        </div>
+        <div class="mph" style="width:248px; height:480px; background:#1A1510; position:absolute; right:60px; top:30px; transform:rotate(6deg);">
+          <div style="padding:18px 16px 0;"><div style="background:#241D16; border:1px solid #3A322A; border-radius:20px; padding:18px;"><div style="color:#34C0A4; font-weight:700; font-size:12px;">All settled up</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:34px; color:#F3EBDD; margin-top:6px;">₹0.00</div></div><div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;"><div style="background:#241D16; border-radius:13px; height:48px;"></div><div style="background:#241D16; border-radius:13px; height:48px;"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Landing hero · nav, headline + subcopy, store badges (placeholder marks), light + dark app mockups.</div>
+</div>
+
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#E0922E"/><circle cx="50" cy="34" r="6.5" fill="#FFF7E8"/><rect x="31" y="46.5" width="38" height="6.5" rx="3.25" fill="#FFF7E8"/><circle cx="50" cy="66" r="6.5" fill="#FFF7E8"/></svg></template></x-dc>
+</body>
+</html>

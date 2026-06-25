@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .phone{ width:390px; height:844px; border-radius:46px; border:9px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 40px 80px -20px rgba(20,16,10,.4), 0 8px 24px -8px rgba(20,16,10,.25); }
+  .sb{ display:flex; justify-content:space-between; align-items:center; padding:15px 28px 4px; font-size:14px; font-weight:700; }
+  .sb .bars{ display:flex; gap:6px; align-items:center; }
+  .sb .bars i{ width:17px; height:11px; border-radius:2px; background:currentColor; opacity:.9; display:inline-block; }
+  .sb .bars u{ width:15px; height:11px; border:1.5px solid currentColor; border-radius:3px; display:inline-block; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ width:390px; margin-top:14px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .row{ display:flex; align-items:center; gap:12px; }
+  .av{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; flex:none; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:999px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; white-space:nowrap; }
+  .ni{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; font-size:10px; font-weight:600; }
+  .nav{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(255,253,248,.96); border-top:1px solid #EFE6D6; padding:10px 12px 24px; }
+  .fab{ position:absolute; right:20px; bottom:100px; width:56px; height:56px; border-radius:19px; background:#E0922E; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -6px rgba(224,146,46,.6); }
+  .sk{ background:linear-gradient(90deg,#EFE6D6 25%,#F7F0E3 37%,#EFE6D6 63%); background-size:720px 100%; animation:shimmer 1.3s infinite linear; border-radius:7px; }
+  @keyframes shimmer{ 0%{ background-position:-360px 0;} 100%{ background-position:360px 0;} }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:900px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · Phase 3c</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Friends</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:760px;">Friends list (light + dark, empty, skeleton) · add friend with system-share invite · friend detail &amp; history · delete confirmation (allowed + blocked when a balance is owed).</div>
+</div>
+
+<!-- ========== ROW 1: LIST STATES ========== -->
+
+<!-- LIST LIGHT -->
+<div style="position:absolute; left:80px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>09 · Friends — light</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#2A211B;">search</span><div style="display:flex; gap:14px;"><span class="ms" style="font-size:25px; color:#2A211B;">person_add</span></div></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:6px 22px 0; letter-spacing:-.01em;">Friends</div>
+    <div style="display:flex; gap:10px; padding:14px 18px 4px;">
+      <div style="flex:1; background:#E2F2EE; border-radius:14px; padding:11px 13px;"><div style="font-size:11px; color:#0F7D6B; font-weight:600;">You are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#0F7D6B; margin-top:2px;">₹6,950.00</div></div>
+      <div style="flex:1; background:#FBE6DC; border-radius:14px; padding:11px 13px;"><div style="font-size:11px; color:#BC4030; font-weight:600;">You owe</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#BC4030; margin-top:2px;">₹2,100.00</div></div>
+    </div>
+    <div style="padding:8px 18px 0; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#FCEBCF; color:#9a5a13;">R</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#2A211B;">Rahul Sharma</div><div style="font-size:11.5px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹4,250.00</span></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">A</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#2A211B;">Aditya Menon</div><div style="font-size:11.5px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,200.00</span></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#F3E1EC; color:#B5489B;">N</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#2A211B;">Neha Kapoor</div><div style="font-size:11.5px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,500.00</span></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#EADFF6; color:#6C4FC9;">V</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#2A211B;">Vikram Rao</div><div style="font-size:11.5px; color:#9A8F82;">you owe</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030;"><span class="ms" style="font-size:14px;">arrow_downward</span>₹2,100.00</span></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#E2F2EE; color:#0F7D6B;">S</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#2A211B;">Sara Iyer</div><div style="font-size:11.5px; color:#9A8F82;">settled up</div></div><span class="pill" style="background:#EFE9DD; color:#6F6557;"><span class="ms" style="font-size:14px;">check</span>Settled</span></div>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">★ Owed/owe summary, then friends sorted by absolute balance — each row the positive/negative/settled signal.</div>
+</div>
+
+<!-- LIST DARK -->
+<div style="position:absolute; left:590px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>09 · Friends — dark</div>
+  <div class="phone" style="background:#1A1510;">
+    <div class="sb" style="color:#F3EBDD;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#F3EBDD;">search</span><span class="ms" style="font-size:25px; color:#F3EBDD;">person_add</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#F3EBDD; padding:6px 22px 0; letter-spacing:-.01em;">Friends</div>
+    <div style="display:flex; gap:10px; padding:14px 18px 4px;">
+      <div style="flex:1; background:rgba(52,192,164,.16); border-radius:14px; padding:11px 13px;"><div style="font-size:11px; color:#34C0A4; font-weight:600;">You are owed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#34C0A4; margin-top:2px;">₹6,950.00</div></div>
+      <div style="flex:1; background:rgba(242,133,107,.16); border-radius:14px; padding:11px 13px;"><div style="font-size:11px; color:#F2856B; font-weight:600;">You owe</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#F2856B; margin-top:2px;">₹2,100.00</div></div>
+    </div>
+    <div style="padding:8px 18px 0; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div class="av" style="background:#2E2620; color:#EAA24A;">R</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#F3EBDD;">Rahul Sharma</div><div style="font-size:11.5px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹4,250.00</span></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div class="av" style="background:#2E2620; color:#7AA7E0;">A</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#F3EBDD;">Aditya Menon</div><div style="font-size:11.5px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,200.00</span></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div class="av" style="background:#2E2620; color:#D470BC;">N</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#F3EBDD;">Neha Kapoor</div><div style="font-size:11.5px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,500.00</span></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div class="av" style="background:#2E2620; color:#9079E6;">V</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#F3EBDD;">Vikram Rao</div><div style="font-size:11.5px; color:#8A7E6E;">you owe</div></div><span class="pill" style="background:rgba(242,133,107,.16); color:#F2856B;"><span class="ms" style="font-size:14px;">arrow_downward</span>₹2,100.00</span></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div class="av" style="background:#2E2620; color:#34C0A4;">S</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14.5px; color:#F3EBDD;">Sara Iyer</div><div style="font-size:11.5px; color:#8A7E6E;">settled up</div></div><span class="pill" style="background:rgba(255,255,255,.07); color:#A99C8C;"><span class="ms" style="font-size:14px;">check</span>Settled</span></div>
+    </div>
+    <div class="fab" style="background:#EAA24A; box-shadow:0 12px 24px -6px rgba(234,162,74,.5);"><span class="ms" style="font-size:30px; color:#1A1510;">add</span></div>
+    <div class="nav" style="background:rgba(26,21,16,.97); border-top:1px solid #3A322A;"><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#EAA24A;"><span class="ms msf" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">★ Dark theme · summary chips and pills use the brightened dark balance tokens.</div>
+</div>
+
+<!-- LIST EMPTY -->
+<div style="position:absolute; left:1100px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">09 · Friends — empty</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#2A211B;">search</span><span class="ms" style="font-size:25px; color:#2A211B;">person_add</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:6px 22px 0; letter-spacing:-.01em;">Friends</div>
+    <div style="position:absolute; left:0; right:0; top:300px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 42px;">
+      <div style="width:110px; height:110px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; position:relative;"><span class="ms" style="font-size:54px; color:#E0922E;">group</span><div style="position:absolute; right:10px; bottom:10px; width:34px; height:34px; border-radius:50%; background:#0F7D6B; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:20px; color:#fff;">add</span></div></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B; margin-top:20px;">No friends yet</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">Add a friend and you can start splitting bills together.</div>
+      <button style="min-height:50px; padding:0 26px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk'; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">person_add</span>Add a friend</button>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Empty · friendly illustration + single clear CTA.</div>
+</div>
+
+<!-- LIST SKELETON -->
+<div style="position:absolute; left:80px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">09 · Friends — loading</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#2A211B;">search</span><span class="ms" style="font-size:25px; color:#2A211B;">person_add</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:6px 22px 0; letter-spacing:-.01em;">Friends</div>
+    <div style="display:flex; gap:10px; padding:14px 18px 4px;"><div class="sk" style="flex:1; height:62px; border-radius:14px;"></div><div class="sk" style="flex:1; height:62px; border-radius:14px;"></div></div>
+    <div style="padding:8px 18px 0; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:13px;"><div class="sk" style="width:44px; height:44px; border-radius:14px; flex:none;"></div><div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:55%; height:12px;"></div><div class="sk" style="width:30%; height:9px;"></div></div><div class="sk" style="width:70px; height:24px; border-radius:999px;"></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:13px;"><div class="sk" style="width:44px; height:44px; border-radius:14px; flex:none;"></div><div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:48%; height:12px;"></div><div class="sk" style="width:34%; height:9px;"></div></div><div class="sk" style="width:70px; height:24px; border-radius:999px;"></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:13px;"><div class="sk" style="width:44px; height:44px; border-radius:14px; flex:none;"></div><div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:60%; height:12px;"></div><div class="sk" style="width:28%; height:9px;"></div></div><div class="sk" style="width:70px; height:24px; border-radius:999px;"></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:13px;"><div class="sk" style="width:44px; height:44px; border-radius:14px; flex:none;"></div><div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:50%; height:12px;"></div><div class="sk" style="width:32%; height:9px;"></div></div><div class="sk" style="width:70px; height:24px; border-radius:999px;"></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:13px;"><div class="sk" style="width:44px; height:44px; border-radius:14px; flex:none;"></div><div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:44%; height:12px;"></div><div class="sk" style="width:30%; height:9px;"></div></div><div class="sk" style="width:70px; height:24px; border-radius:999px;"></div></div>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Loading · shimmer skeleton that mirrors the row layout (no spinners).</div>
+</div>
+
+<!-- ========== ROW 2: ADD / SHARE / DETAIL / HISTORY ========== -->
+
+<!-- ADD FRIEND -->
+<div style="position:absolute; left:590px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">10 · Add friend</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Add a friend</span></div>
+    <div style="padding:18px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:8px;">BY MOBILE NUMBER</label>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; display:flex; align-items:center; min-height:50px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; overflow:hidden;"><div style="padding:0 12px; height:50px; display:flex; align-items:center; gap:5px; background:#FFF6E6; color:#2A211B; font-weight:700; font-size:15px; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div><span style="flex:1; padding:0 12px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#9A8F82;">10-digit number</span></div>
+        <button style="width:60px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:14px;">Add</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; padding:20px 22px 4px;"><div style="flex:1; height:1px; background:#E7DDCD;"></div><span style="font-size:12px; color:#9A8F82; font-weight:600;">or pick from contacts</span><div style="flex:1; height:1px; background:#E7DDCD;"></div></div>
+    <div style="padding:8px 22px 0;"><div style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; padding:0 13px; min-height:44px;"><span class="ms" style="font-size:20px; color:#9A8F82;">search</span><span style="flex:1; font-size:14px; color:#9A8F82;">Search contacts</span></div></div>
+    <div style="padding:14px 22px 0; display:flex; flex-direction:column; gap:4px;">
+      <div class="row" style="padding:8px 0;"><div class="av" style="background:#FCEBCF; color:#9a5a13;">K</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Karan Bhatia</div><div style="font-size:11.5px; color:#0F7D6B; font-weight:600;">On One By Two</div></div><button style="border:none; background:#E0922E; color:#2A211B; font-weight:700; font-size:13px; padding:8px 16px; border-radius:999px;">Add</button></div>
+      <div class="row" style="padding:8px 0;"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">M</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Meera Joshi</div><div style="font-size:11.5px; color:#9A8F82;">+91 90123 45678</div></div><button style="border:1.5px solid #E7DDCD; background:transparent; color:#A35E16; font-weight:700; font-size:13px; padding:7px 15px; border-radius:999px; display:flex; align-items:center; gap:5px;"><span class="ms" style="font-size:16px;">ios_share</span>Invite</button></div>
+      <div class="row" style="padding:8px 0;"><div class="av" style="background:#EADFF6; color:#6C4FC9;">T</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Tanvi Desai</div><div style="font-size:11.5px; color:#9A8F82;">+91 93456 78901</div></div><button style="border:1.5px solid #E7DDCD; background:transparent; color:#A35E16; font-weight:700; font-size:13px; padding:7px 15px; border-radius:999px; display:flex; align-items:center; gap:5px;"><span class="ms" style="font-size:16px;">ios_share</span>Invite</button></div>
+    </div>
+  </div>
+  <div class="cap">Enter +91 number or pick a contact · existing users get “Add”, others get “Invite” → OS share sheet.</div>
+</div>
+
+<!-- INVITE / SHARE SHEET -->
+<div style="position:absolute; left:1100px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">10 · Invite — system share sheet</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:brightness(.96); opacity:.5; pointer-events:none;">
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Add a friend</span></div>
+      <div style="padding:18px 22px 0;"><div style="height:50px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px;"></div></div>
+    </div>
+    <div style="position:absolute; left:0; right:0; bottom:0; background:#F2ECE0; border-radius:24px 24px 0 0; padding:10px 20px 30px; box-shadow:0 -12px 30px rgba(20,16,10,.18);">
+      <div style="width:40px; height:5px; border-radius:3px; background:#D8CFC0; margin:4px auto 16px;"></div>
+      <div style="background:#fff; border-radius:16px; padding:14px; display:flex; align-items:center; gap:12px;">
+        <div style="width:46px; height:46px; border-radius:13px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+        <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Join me on One By Two</div><div style="font-size:11.5px; color:#9A8F82; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">onebytwo.app/i/9fK2x · expires in 7 days</div></div>
+      </div>
+      <div style="font-size:11px; color:#9A8F82; text-align:center; margin:16px 0 12px; font-weight:600;">Shared via your device — One By Two doesn't target any single app.</div>
+      <div style="display:flex; justify-content:space-around;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:7px;"><div style="width:54px; height:54px; border-radius:16px; background:#E2DACd; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:26px; color:#6F6557;">content_copy</span></div><span style="font-size:10px; color:#6F6557;">Copy link</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:7px;"><div style="width:54px; height:54px; border-radius:16px; background:#E2DACd;"></div><span style="font-size:10px; color:#6F6557;">App</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:7px;"><div style="width:54px; height:54px; border-radius:16px; background:#E2DACd;"></div><span style="font-size:10px; color:#6F6557;">App</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:7px;"><div style="width:54px; height:54px; border-radius:16px; background:#E2DACd; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:26px; color:#6F6557;">more_horiz</span></div><span style="font-size:10px; color:#6F6557;">More</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Generic OS share sheet (grabber + abstract targets) · 7-day expiring link · no app-specific buttons.</div>
+</div>
+
+<!-- FRIEND DETAIL -->
+<div style="position:absolute; left:80px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">11 · Friend detail</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span class="ms" style="font-size:26px; color:#2A211B;">more_horiz</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:10px 22px 0;">
+      <div class="av" style="width:64px; height:64px; border-radius:20px; background:#FCEBCF; color:#9a5a13; font-size:24px;">R</div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; color:#2A211B; margin-top:10px;">Rahul Sharma</div>
+      <div style="display:flex; align-items:center; gap:6px; color:#0F7D6B; font-weight:700; font-size:14px; margin-top:4px;"><span class="ms" style="font-size:17px;">arrow_upward</span>Rahul owes you ₹4,250.00</div>
+      <div style="display:flex; gap:10px; margin-top:16px; width:100%;">
+        <button style="flex:1; min-height:46px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; gap:7px;"><span class="ms" style="font-size:19px;">payments</span>Settle up</button>
+        <button style="flex:1; min-height:46px; border:1.5px solid #E7DDCD; border-radius:14px; background:transparent; color:#2A211B; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; gap:7px;"><span class="ms" style="font-size:19px;">notifications</span>Remind</button>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 22px 8px;"><span style="font-weight:700; font-size:14px; color:#2A211B;">Transactions</span><span style="font-size:12px; color:#A35E16; font-weight:700;">History</span></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Dinner at Bombay Canteen</div><div style="font-size:11px; color:#9A8F82;">You paid ₹3,200 · 22 Jun 2026</div></div><div style="text-align:right;"><div style="font-size:10px; color:#9A8F82;">lent</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#0F7D6B;">₹1,600.00</div></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#2E78C91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#2E78C9;">directions_car</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Airport cab</div><div style="font-size:11px; color:#9A8F82;">Rahul paid ₹900 · 20 Jun 2026</div></div><div style="text-align:right;"><div style="font-size:10px; color:#9A8F82;">borrowed</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#BC4030;">₹450.00</div></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#E2F2EE; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#0F7D6B;">payments</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Rahul paid you</div><div style="font-size:11px; color:#9A8F82;">Settlement · 12 Jun 2026</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#0F7D6B;">₹500.00</div></div>
+    </div>
+  </div>
+  <div class="cap">Net balance + Settle Up (non-zero) &amp; Remind · transactions (expenses + settlements), reverse-chronological.</div>
+</div>
+
+<!-- FRIEND HISTORY -->
+<div style="position:absolute; left:590px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">12 · Friend history</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">History</div><div style="font-size:11.5px; color:#9A8F82;">with Rahul Sharma</div></div></div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:16px 22px 8px;">June 2026</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:14px; padding:10px 13px;"><div style="width:36px; height:36px; border-radius:11px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:19px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Dinner at Bombay Canteen</div><div style="font-size:10.5px; color:#9A8F82;">22 Jun · you lent ₹1,600</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#0F7D6B;">+₹1,600</div></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:10px 13px;"><div style="width:36px; height:36px; border-radius:11px; background:#2E78C91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:19px; color:#2E78C9;">directions_car</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Airport cab</div><div style="font-size:10.5px; color:#9A8F82;">20 Jun · you borrowed ₹450</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#BC4030;">−₹450</div></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:10px 13px;"><div style="width:36px; height:36px; border-radius:11px; background:#E2F2EE; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:19px; color:#0F7D6B;">payments</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Rahul paid you</div><div style="font-size:10.5px; color:#9A8F82;">12 Jun · settlement</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#0F7D6B;">+₹500</div></div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:16px 22px 8px;">May 2026</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:14px; padding:10px 13px;"><div style="width:36px; height:36px; border-radius:11px; background:#D94F871A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:19px; color:#D94F87;">shopping_bag</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Concert tickets</div><div style="font-size:10.5px; color:#9A8F82;">28 May · you lent ₹2,600</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#0F7D6B;">+₹2,600</div></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:10px 13px;"><div style="width:36px; height:36px; border-radius:11px; background:#4FA13E1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:19px; color:#4FA13E;">local_grocery_store</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; color:#2A211B;">Groceries</div><div style="font-size:10.5px; color:#9A8F82;">14 May · you borrowed ₹300</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#BC4030;">−₹300</div></div>
+    </div>
+  </div>
+  <div class="cap">Full reverse-chronological log · grouped by month, signed amounts keep colour + sign.</div>
+</div>
+
+<!-- ========== ROW 3: DELETE CONFIRM ========== -->
+
+<!-- DELETE ALLOWED -->
+<div style="position:absolute; left:1100px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">13 · Remove friend — allowed (settled)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 0;"><span class="ms" style="font-size:26px;">arrow_back</span><span class="ms" style="font-size:26px;">more_horiz</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; padding:10px 22px 0;"><div class="av" style="width:64px; height:64px; border-radius:20px; background:#E2F2EE; color:#0F7D6B; font-size:24px;">S</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; margin-top:10px;">Sara Iyer</div></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.45);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FBE6DC; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#BC4030;">person_remove</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Remove Sara Iyer?</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5;">You're all settled up. They'll be removed from your friends — you can always add them back later.</div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button style="flex:1; min-height:48px; border:1.5px solid #E7DDCD; border-radius:14px; background:transparent; color:#2A211B; font-weight:700; font-size:15px;">Cancel</button>
+        <button style="flex:1; min-height:48px; border:none; border-radius:14px; background:#BC4030; color:#fff; font-weight:700; font-size:15px;">Remove</button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Allowed only when settled · destructive confirm dialog over a dimmed detail.</div>
+</div>
+
+<!-- DELETE BLOCKED -->
+<div style="position:absolute; left:80px; top:3240px; width:390px;">
+  <div class="label" data-drags-parent="1">13 · Remove friend — blocked (owes)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 0;"><span class="ms" style="font-size:26px;">arrow_back</span><span class="ms" style="font-size:26px;">more_horiz</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; padding:10px 22px 0;"><div class="av" style="width:64px; height:64px; border-radius:20px; background:#FCEBCF; color:#9a5a13; font-size:24px;">R</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; margin-top:10px;">Rahul Sharma</div></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.45);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FBEFD6; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#A35E16;">lock</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Settle up first</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5;">Rahul still owes you <b style="color:#2A211B;">₹4,250.00</b>. Clear the balance before removing them as a friend.</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+        <button style="min-height:48px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; gap:7px;"><span class="ms" style="font-size:19px;">payments</span>Settle up now</button>
+        <button style="min-height:46px; border:none; border-radius:14px; background:transparent; color:#6F6557; font-weight:700; font-size:14px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Blocked when a balance is outstanding · explains why, routes to Settle up instead of allowing removal.</div>
+</div>
+
+
+<!-- ========== ROW 4: ADD-FRIEND LOOKUP FLOW ========== -->
+<div style="position:absolute; left:80px; top:4270px; width:900px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">10 · Add friend — backend lookup</div>
+  <div style="font-size:14px; color:#6f6557; margin-top:5px; max-width:760px;">Enter a number or pick a contact → look the user up → branch into: found (confirm add), already friends, that's your own number, or no account (invite).</div>
+</div>
+
+<!-- A · LOOKING UP -->
+<div style="position:absolute; left:80px; top:4380px; width:390px;">
+  <div class="label" data-drags-parent="1">10a · Looking up…</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Add a friend</span></div>
+    <div style="padding:18px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:8px;">BY MOBILE NUMBER</label>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; display:flex; align-items:center; min-height:50px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; overflow:hidden;"><div style="padding:0 12px; height:50px; display:flex; align-items:center; gap:5px; background:#FFF6E6; color:#2A211B; font-weight:700; font-size:15px; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div><span style="flex:1; padding:0 12px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#2A211B;">98765 43210</span></div>
+        <button style="width:60px; border:none; border-radius:14px; background:#E4DCCE; color:#B8AC9B; font-weight:700; font-size:14px;">Add</button>
+      </div>
+    </div>
+    <div style="padding:34px 22px 0; display:flex; flex-direction:column; align-items:center;">
+      <div style="display:flex; align-items:center; gap:8px; color:#9A8F82; font-size:13px; font-weight:600;"><span class="ms" style="font-size:18px;">sync</span>Looking up this number…</div>
+      <div style="width:100%; margin-top:18px; background:#fff; border-radius:16px; padding:14px; display:flex; align-items:center; gap:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+        <div class="sk" style="width:48px; height:48px; border-radius:15px; flex:none;"></div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:8px;"><div class="sk" style="width:55%; height:13px;"></div><div class="sk" style="width:38%; height:10px;"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="cap">After “Add”, the app checks the backend for an account on that number (skeleton, not a spinner).</div>
+</div>
+
+<!-- B · USER FOUND -->
+<div style="position:absolute; left:590px; top:4380px; width:390px;">
+  <div class="label" data-drags-parent="1">10b · User found — confirm add</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px;">Add a friend</span></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.4);"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; background:#FBF6EE; border-radius:26px 26px 0 0; padding:8px 22px 32px; box-shadow:0 -12px 30px rgba(20,16,10,.2);">
+      <div style="width:40px; height:5px; border-radius:3px; background:#D8CFC0; margin:4px auto 8px;"></div>
+      <div style="text-align:center; font-size:12px; font-weight:700; color:#0F7D6B; display:flex; align-items:center; justify-content:center; gap:6px;"><span class="ms" style="font-size:17px;">check_circle</span>We found them on One By Two</div>
+      <div style="display:flex; flex-direction:column; align-items:center; margin-top:16px;">
+        <div class="av" style="width:74px; height:74px; border-radius:24px; background:#FCEBCF; color:#9a5a13; font-size:28px;">R</div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; color:#2A211B; margin-top:12px;">Rahul Sharma</div>
+        <div style="font-size:13px; color:#9A8F82; margin-top:3px;">+91 98765 43210</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; background:#FFF6E6; padding:6px 13px; border-radius:999px; margin-top:12px; font-size:12px; font-weight:600; color:#6F6557;"><span class="ms" style="font-size:16px; color:#E0922E;">groups</span>2 mutual groups</div>
+      </div>
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; margin-top:24px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">person_add</span>Add as friend</button>
+      <button style="width:100%; min-height:46px; border:none; border-radius:15px; background:transparent; color:#6F6557; font-weight:700; font-size:14px; margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+  <div class="cap">Account found · shows the fetched profile + mutual context, then a clear confirm before adding.</div>
+</div>
+
+<!-- C · ALREADY FRIENDS -->
+<div style="position:absolute; left:1100px; top:4380px; width:390px;">
+  <div class="label" data-drags-parent="1">10c · Already friends</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px;">Add a friend</span></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.4);"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; background:#FBF6EE; border-radius:26px 26px 0 0; padding:8px 22px 32px; box-shadow:0 -12px 30px rgba(20,16,10,.2);">
+      <div style="width:40px; height:5px; border-radius:3px; background:#D8CFC0; margin:4px auto 14px;"></div>
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="position:relative;"><div class="av" style="width:74px; height:74px; border-radius:24px; background:#FCEBCF; color:#9a5a13; font-size:28px;">R</div><div style="position:absolute; right:-4px; bottom:-4px; width:30px; height:30px; border-radius:50%; background:#0F7D6B; border:3px solid #FBF6EE; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:17px; color:#fff;">check</span></div></div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B; margin-top:14px;">You're already friends</div>
+        <div style="font-size:13.5px; color:#6F6557; margin-top:8px; text-align:center; line-height:1.5;">You and <b style="color:#2A211B;">Rahul Sharma</b> are already connected — no need to add them again.</div>
+      </div>
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">person</span>View Rahul</button>
+      <button style="width:100%; min-height:46px; border:none; border-radius:15px; background:transparent; color:#6F6557; font-weight:700; font-size:14px; margin-top:8px;">Close</button>
+    </div>
+  </div>
+  <div class="cap">Validation · existing friendship is detected and surfaced, with a shortcut to their profile.</div>
+</div>
+
+<!-- D · THAT'S YOU -->
+<div style="position:absolute; left:80px; top:5410px; width:390px;">
+  <div class="label" data-drags-parent="1">10d · That's your number</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Add a friend</span></div>
+    <div style="padding:18px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#BC4030; margin-bottom:8px;">BY MOBILE NUMBER</label>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; display:flex; align-items:center; min-height:50px; background:#fff; border:1.5px solid #BC4030; border-radius:14px; overflow:hidden;"><div style="padding:0 12px; height:50px; display:flex; align-items:center; gap:5px; background:#FFF6E6; color:#2A211B; font-weight:700; font-size:15px; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div><span style="flex:1; padding:0 12px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#2A211B;">99887 76655</span></div>
+        <button style="width:60px; border:none; border-radius:14px; background:#E4DCCE; color:#B8AC9B; font-weight:700; font-size:14px;">Add</button>
+      </div>
+      <div style="font-size:12.5px; color:#BC4030; margin-top:8px; display:flex; align-items:center; gap:5px;"><span class="ms" style="font-size:16px;">info</span>That's your own number.</div>
+    </div>
+    <div style="padding:30px 30px 0; display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <div style="width:96px; height:96px; border-radius:50%; background:#FBEFD6; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:48px; color:#A35E16;">sentiment_satisfied</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B; margin-top:18px;">That's you!</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">You can't add yourself as a friend. Try a friend's number instead.</div>
+    </div>
+  </div>
+  <div class="cap">Self-add guard · the entered number matches the signed-in user — blocked with a light, friendly note.</div>
+</div>
+
+<!-- E · NOT FOUND → INVITE -->
+<div style="position:absolute; left:590px; top:5410px; width:390px;">
+  <div class="label" data-drags-parent="1">10e · No account — invite</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Add a friend</span></div>
+    <div style="padding:18px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:8px;">BY MOBILE NUMBER</label>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; display:flex; align-items:center; min-height:50px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; overflow:hidden;"><div style="padding:0 12px; height:50px; display:flex; align-items:center; gap:5px; background:#FFF6E6; color:#2A211B; font-weight:700; font-size:15px; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div><span style="flex:1; padding:0 12px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#2A211B;">90123 45678</span></div>
+        <button style="width:60px; border:none; border-radius:14px; background:#E4DCCE; color:#B8AC9B; font-weight:700; font-size:14px;">Add</button>
+      </div>
+    </div>
+    <div style="padding:30px 30px 0; display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <div style="width:96px; height:96px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; position:relative;"><span class="ms" style="font-size:46px; color:#E0922E;">person_search</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B; margin-top:18px;">Not on One By Two yet</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">No account found for <b style="color:#2A211B;">+91 90123 45678</b>. Send them an invite to get started together.</div>
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">ios_share</span>Invite to One By Two</button>
+      <div style="font-size:11.5px; color:#9A8F82; margin-top:12px;">Opens your device's share sheet with a one-time invite link.</div>
+    </div>
+  </div>
+  <div class="cap">Invite only appears <i>after</i> lookup fails · single CTA hands off to the OS share sheet.</div>
+</div>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#E0922E"/><circle cx="50" cy="34" r="6.5" fill="#FFF7E8"/><rect x="31" y="46.5" width="38" height="6.5" rx="3.25" fill="#FFF7E8"/><circle cx="50" cy="66" r="6.5" fill="#FFF7E8"/></svg></template></x-dc>
+</body>
+</html>

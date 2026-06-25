@@ -18,16 +18,27 @@ unambiguous owning sprint. Do **not** reintroduce per-sprint labels; the legacy
 
 | Milestone | Theme |
 |---|---|
-| `Sprint 3` | Groups and Settlements |
-| `Sprint 4` | Notifications, Activity, Dashboard |
-| `Sprint 5` | Polish, Support, Offline, Search |
-| `Sprint 6` | QA, Performance, Release Prep (v1.0 release candidate) |
+| `Sprint 3` | Design Conversion (Haldi visual system) |
+| `Sprint 4` | Groups and Settlements |
+| `Sprint 5` | Notifications, Activity, Dashboard |
+| `Sprint 6` | Polish, Support, Offline, Search |
+| `Sprint 7` | QA, Performance, Release Prep (v1.0 release candidate) |
 | `Post-v1.0` | Deferred beyond the v1.0 release; post-launch enhancements and optimisations |
 
 Sprint themes are authoritative in `docs/design/08-plan/sprint-sequence.md`.
 `Post-v1.0` is reserved for work a source explicitly places outside v1.0 (for
 example an issue body stating the work is "none of which are in v1.0"); never force
 such work into a numbered sprint.
+
+> **Renumber (2026-06-25).** A Design Conversion sprint (migration to the "Direction A —
+> Haldi" visual system, `design_handoff_one_by_two/`, ADR-0024) was inserted as the new
+> **Sprint 3**; every later sprint shifted forward by one (Groups and Settlements → Sprint 4,
+> Notifications/Activity/Dashboard → Sprint 5, Polish/Support/Offline/Search → Sprint 6,
+> QA/Performance/Release Prep → Sprint 7). DevOps renumbered the live GitHub milestones to
+> match by renaming each milestone id top-down (id 4 → "Sprint 7", id 3 → "Sprint 6", id 2 →
+> "Sprint 5", id 1 → "Sprint 4") and creating a fresh `Sprint 3`, so every open issue
+> re-homed atomically with its milestone and none was left unmilestoned. See
+> `docs/audits/design-conversion/`.
 
 Completed sprints retain a **closed** milestone as a historical record — for
 example `Sprint 2` (Friends and Core Expenses), closed at 100% with its 13 closed
@@ -41,7 +52,7 @@ action — no issue is left unmilestoned.
 
 - **User stories** (`new-user-story`): assign to the sprint that owns the
   requirement per `sprint-sequence.md`. The current next active sprint is
-  `Sprint 3`.
+  `Sprint 3` (Design Conversion).
 - **Bugs** (`triage-bug`): assign by SLA — S1/S2 to the current active sprint
   (same-day / 3-day fix), S3 to the next sprint, S4 to `Post-v1.0` unless a sprint
   is already committed.
@@ -76,7 +87,7 @@ by title:
 ```sh
 # Create a milestone
 gh api repos/{owner}/{repo}/milestones -f title="Sprint 3" -f state="open" \
-  -f description="Groups and Settlements"
+  -f description="Design Conversion (Haldi visual system)"
 
 # Assign an issue to a milestone (by title)
 gh issue edit <issue-number> --milestone "Sprint 3"

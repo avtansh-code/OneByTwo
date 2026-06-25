@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#E0922E"/><circle cx="50" cy="34" r="6.5" fill="#FFF7E8"/><rect x="31" y="46.5" width="38" height="6.5" rx="3.25" fill="#FFF7E8"/><circle cx="50" cy="66" r="6.5" fill="#FFF7E8"/></svg></template>
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .phone{ width:390px; height:844px; border-radius:46px; border:9px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 40px 80px -20px rgba(20,16,10,.4), 0 8px 24px -8px rgba(20,16,10,.25); }
+  .sb{ display:flex; justify-content:space-between; align-items:center; padding:15px 28px 4px; font-size:14px; font-weight:700; }
+  .sb .bars{ display:flex; gap:6px; align-items:center; }
+  .sb .bars i{ width:17px; height:11px; border-radius:2px; background:currentColor; opacity:.9; display:inline-block; }
+  .sb .bars u{ width:15px; height:11px; border:1.5px solid currentColor; border-radius:3px; display:inline-block; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ width:390px; margin-top:14px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .otp{ width:46px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:24px; }
+  .step{ display:flex; gap:5px; }
+  .step span{ flex:1; height:4px; border-radius:2px; }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:980px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · FR-PR-02</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Change phone &amp; re-verify</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:820px;">A security-gated, two-OTP flow (re-verify current number → verify new number) reached from Profile → the locked +91 row. Built on Haldi auth screens, plus the ADR-0015 “sync pending → Try again” recovery state. Numbers are masked everywhere except the locked current-number field.</div>
+</div>
+
+<!-- ROW 1 : the 5 happy-path states -->
+
+<!-- 1 RE-AUTH INTRO -->
+<div style="position:absolute; left:80px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">1 · Re-auth intro</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#EFE0C6;"></span><span style="background:#EFE0C6;"></span><span style="background:#EFE0C6;"></span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:36px 30px 0; text-align:center;">
+      <div style="width:84px; height:84px; border-radius:26px; background:#FFF6E6; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:42px; color:#E0922E;">shield_person</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:24px; color:#2A211B; margin-top:20px;">Verify your current number</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:10px; line-height:1.55;">For your security, confirm the number on your account before you change it. We'll send a 6-digit code.</div>
+    </div>
+    <div style="margin:28px 24px 0; background:#fff; border:1.5px solid #E7DDCD; border-radius:16px; padding:15px 16px; display:flex; align-items:center; gap:12px;">
+      <span class="ms" style="font-size:22px; color:#9A8F82;">smartphone</span>
+      <div style="flex:1;"><div style="font-size:11px; color:#9A8F82; font-weight:600;">Current number</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:17px; color:#2A211B; letter-spacing:.02em;">+91 99887 76655</div></div>
+      <span class="ms" style="font-size:20px; color:#9A8F82;">lock</span>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;">
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Hanken Grotesk';"><span class="ms" style="font-size:20px;">sms</span>Send verification code</button>
+    </div>
+  </div>
+  <div class="cap">Re-auth intro · protective copy, current number shown locked (the one place it's unmasked). New intro card on Haldi tokens.</div>
+</div>
+
+<!-- 2 RE-AUTH OTP -->
+<div style="position:absolute; left:590px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">2 · Re-auth OTP (current number)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#EFE0C6;"></span><span style="background:#EFE0C6;"></span></div>
+    <div style="padding:24px 28px 0;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#2A211B;">Confirm it's you</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:8px; line-height:1.5;">Enter the code sent to <b style="color:#2A211B;">+91 ••••• •1234</b></div>
+      <div style="display:flex; gap:9px; margin-top:24px;">
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff; color:#2A211B;">4</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff; color:#2A211B;">1</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff; color:#2A211B;">9</div>
+        <div class="otp" style="border:1.5px solid #E0922E; background:#fff; box-shadow:0 0 0 3px rgba(224,146,46,.2);"><span style="width:2px; height:24px; background:#E0922E; display:inline-block;"></span></div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff;"></div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff;"></div>
+      </div>
+      <div style="font-size:12.5px; color:#9A8F82; margin-top:16px; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:16px;">schedule</span>Resend code in <b style="color:#6F6557;">0:24</b> · 3 tries left</div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; font-family:'Hanken Grotesk';">Verify &amp; continue</button></div>
+  </div>
+  <div class="cap">Re-auth OTP · 6-box, masked current number, 30s cooldown, max 3 tries / 10 min. Mirrors Haldi screen 4.</div>
+</div>
+
+<!-- 3 NEW-PHONE ENTRY -->
+<div style="position:absolute; left:1100px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">3 · New-phone entry</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#EFE0C6;"></span></div>
+    <div style="padding:24px 28px 0;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#2A211B;">Your new number</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:8px; line-height:1.5;">We'll send a code to confirm it. India numbers only.</div>
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin:24px 0 8px;">NEW MOBILE NUMBER</label>
+      <div style="display:flex; align-items:center; min-height:54px; background:#fff; border:1.5px solid #E0922E; border-radius:14px; overflow:hidden; box-shadow:0 0 0 3px rgba(224,146,46,.18);">
+        <div style="padding:0 14px; height:54px; display:flex; align-items:center; gap:6px; background:#FFF6E6; color:#2A211B; font-weight:700; font-size:16px; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div>
+        <span style="flex:1; padding:0 14px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">98765 43210<span style="display:inline-block; width:2px; height:22px; background:#E0922E; vertical-align:-3px; margin-left:2px;"></span></span>
+      </div>
+      <div style="font-size:12px; color:#9A8F82; margin-top:8px;">Must differ from your current number.</div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Hanken Grotesk';">Send code <span class="ms" style="font-size:20px;">arrow_forward</span></button></div>
+  </div>
+  <div class="cap">New-phone entry · locked +91, 10-digit field, focus ring. Reuses Haldi screen 3 + validateIndianMobile.</div>
+</div>
+
+<!-- ROW 2 -->
+
+<!-- 4 NEW-PHONE OTP -->
+<div style="position:absolute; left:80px; top:1100px; width:390px;">
+  <div class="label" data-drags-parent="1">4 · New-phone OTP</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span></div>
+    <div style="padding:24px 28px 0;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#2A211B;">Verify your new number</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:8px; line-height:1.5;">Enter the code sent to <b style="color:#2A211B;">+91 ••••• •3210</b> &nbsp;<span style="color:#A35E16; font-weight:700; text-decoration:underline;">Edit</span></div>
+      <div style="display:flex; gap:9px; margin-top:24px;">
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff; color:#2A211B;">7</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff; color:#2A211B;">3</div>
+        <div class="otp" style="border:1.5px solid #E0922E; background:#fff; box-shadow:0 0 0 3px rgba(224,146,46,.2);"><span style="width:2px; height:24px; background:#E0922E; display:inline-block;"></span></div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff;"></div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff;"></div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#fff;"></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:18px; background:#E2F2EE; padding:9px 13px; border-radius:11px; width:fit-content;"><span class="ms" style="font-size:18px; color:#0F7D6B;">sms</span><span style="font-size:12.5px; color:#0F7D6B; font-weight:600;">Auto-detecting code from SMS…</span></div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; font-family:'Hanken Grotesk';">Update my number</button></div>
+  </div>
+  <div class="cap">New-phone OTP · masked new number, auto-read hint. Haldi screen 4 pattern.</div>
+</div>
+
+<!-- 4b RECOVERY: sync pending -->
+<div style="position:absolute; left:590px; top:1100px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E8A33D;color:#2A211B;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">!</span>4b · Recovery — sync pending (ADR-0015)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#D8CFC0;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:32px 30px 0; text-align:center;">
+      <div style="width:88px; height:88px; border-radius:50%; background:#FBEFD6; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:44px; color:#A35E16;">sync_problem</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B; margin-top:20px;">Almost there — syncing</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:10px; line-height:1.55;">Your number was verified, but saving it to your profile didn't finish. Your account is safe — just tap to finish the sync.</div>
+    </div>
+    <div style="margin:24px 24px 0; background:#FBEFD6; border-radius:14px; padding:13px 15px; display:flex; gap:10px; align-items:flex-start;">
+      <span class="ms" style="font-size:20px; color:#A35E16;">info</span>
+      <div style="font-size:12px; color:#9a5a13; line-height:1.45;">Verified with <b>+91 ••••• •3210</b>. No code re-entry needed — this is a one-tap retry.</div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;">
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Hanken Grotesk';"><span class="ms" style="font-size:20px;">refresh</span>Try again</button>
+      <button style="width:100%; min-height:46px; border:none; border-radius:15px; background:transparent; color:#6F6557; font-weight:700; font-size:14px; margin-top:6px; font-family:'Hanken Grotesk';">Contact support</button>
+    </div>
+  </div>
+  <div class="cap">Unique to this flow · Auth updated but profile save failed — a recoverable retry (not a hard error). Warning, not danger; one-tap “Try again”, no re-entry.</div>
+</div>
+
+<!-- 5 SUCCESS -->
+<div style="position:absolute; left:1100px; top:1100px; width:390px;">
+  <div class="label" data-drags-parent="1">5 · Success</div>
+  <div class="phone" style="background:radial-gradient(130% 90% at 50% 24%, #ECA64A, #D97A1E 84%);">
+    <div class="sb" style="color:#FFF7E8;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 40px; text-align:center;">
+      <div style="width:104px; height:104px; border-radius:50%; background:#FFF7E8; display:flex; align-items:center; justify-content:center; box-shadow:0 16px 40px -10px rgba(0,0,0,.3);"><span class="ms msf" style="font-size:60px; color:#0F7D6B;">check</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#FFF7E8; margin-top:26px;">Phone number updated</div>
+      <div style="font-size:14px; color:rgba(255,247,232,.92); margin-top:10px; line-height:1.5;">You'll sign in with <b>+91 ••••• •3210</b> from now on.</div>
+      <button style="margin-top:30px; min-width:200px; min-height:50px; border:none; border-radius:15px; background:#FFF7E8; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk';">Back to Profile</button>
+    </div>
+  </div>
+  <div class="cap">Success · brand moment (Haldi settle-up pattern). Returns to Profile showing the new masked number.</div>
+</div>
+
+<!-- ROW 3 : cross-cutting + dark -->
+
+<!-- ERROR -->
+<div style="position:absolute; left:80px; top:2050px; width:390px;">
+  <div class="label" data-drags-parent="1">Cross-cutting · Wrong code (error)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#EFE0C6;"></span><span style="background:#EFE0C6;"></span></div>
+    <div style="padding:24px 28px 0;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#2A211B;">Confirm it's you</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:8px; line-height:1.5;">Enter the code sent to <b style="color:#2A211B;">+91 ••••• •1234</b></div>
+      <div style="display:flex; gap:9px; margin-top:24px;">
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">1</div>
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">2</div>
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">3</div>
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">4</div>
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">5</div>
+        <div class="otp" style="border:1.5px solid #BC4030; background:#FBE6DC; color:#BC4030;">6</div>
+      </div>
+      <div style="font-size:12.5px; color:#BC4030; margin-top:14px; display:flex; align-items:center; gap:5px;"><span class="ms" style="font-size:16px;">error</span>Incorrect code — 2 of 3 tries left.</div>
+      <div style="font-size:12.5px; color:#A35E16; margin-top:16px; font-weight:700; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:16px;">refresh</span>Resend code</div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; font-family:'Hanken Grotesk';">Verify &amp; continue</button></div>
+  </div>
+  <div class="cap">Error · danger colour + error icon + try-counter (validation vs server error use the same treatment). Applies to either OTP step.</div>
+</div>
+
+<!-- LOADING -->
+<div style="position:absolute; left:590px; top:2050px; width:390px;">
+  <div class="label" data-drags-parent="1">Cross-cutting · Loading (in flight)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0; opacity:.5;"><span class="ms" style="font-size:26px; color:#D8CFC0;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#E0922E;"></span><span style="background:#E0922E;"></span><span style="background:#EFE0C6;"></span><span style="background:#EFE0C6;"></span></div>
+    <div style="padding:24px 28px 0; opacity:.55; pointer-events:none;">
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:25px; color:#2A211B;">Confirm it's you</div>
+      <div style="font-size:14.5px; color:#6F6557; margin-top:8px;">Enter the code sent to <b style="color:#2A211B;">+91 ••••• •1234</b></div>
+      <div style="display:flex; gap:9px; margin-top:24px;">
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">4</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">1</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">9</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">8</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">2</div>
+        <div class="otp" style="border:1.5px solid #E7DDCD; background:#F4ECDC; color:#9A8F82;">6</div>
+      </div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#C77F22; color:#2A211B; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:9px; font-family:'Hanken Grotesk';"><span style="width:17px; height:17px; border-radius:50%; border:2.5px solid rgba(42,33,27,.35); border-top-color:#2A211B; display:inline-block; animation:spin .7s linear infinite;"></span>Verifying…</button></div>
+    <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+  </div>
+  <div class="cap">Loading · inputs locked, spinner in the CTA, back button disabled while the request is in flight.</div>
+</div>
+
+<!-- DARK : intro + reauth OTP -->
+<div style="position:absolute; left:1100px; top:2050px; width:390px;">
+  <div class="label" data-drags-parent="1">Dark · Re-auth intro</div>
+  <div class="phone" style="background:#1A1510;">
+    <div class="sb" style="color:#F3EBDD;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#F3EBDD;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#F3EBDD;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#EAA24A;"></span><span style="background:#3A322A;"></span><span style="background:#3A322A;"></span><span style="background:#3A322A;"></span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:36px 30px 0; text-align:center;">
+      <div style="width:84px; height:84px; border-radius:26px; background:#2E2620; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:42px; color:#EAA24A;">shield_person</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:24px; color:#F3EBDD; margin-top:20px;">Verify your current number</div>
+      <div style="font-size:14.5px; color:#B9AE9D; margin-top:10px; line-height:1.55;">For your security, confirm the number on your account before you change it.</div>
+    </div>
+    <div style="margin:28px 24px 0; background:#241D16; border:1.5px solid #3A322A; border-radius:16px; padding:15px 16px; display:flex; align-items:center; gap:12px;">
+      <span class="ms" style="font-size:22px; color:#8A7E6E;">smartphone</span>
+      <div style="flex:1;"><div style="font-size:11px; color:#8A7E6E; font-weight:600;">Current number</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:17px; color:#F3EBDD; letter-spacing:.02em;">+91 99887 76655</div></div>
+      <span class="ms" style="font-size:20px; color:#8A7E6E;">lock</span>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#EAA24A; color:#1A1510; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Hanken Grotesk';"><span class="ms" style="font-size:20px;">sms</span>Send verification code</button></div>
+  </div>
+  <div class="cap">Dark theme · same flow on the dark tokens (brightened marigold, ink-on-primary CTA).</div>
+</div>
+
+<!-- DARK : recovery -->
+<div style="position:absolute; left:1610px; top:2050px; width:390px;">
+  <div class="label" data-drags-parent="1">Dark · Recovery (sync pending)</div>
+  <div class="phone" style="background:#1A1510;">
+    <div class="sb" style="color:#F3EBDD;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:6px 20px 0;"><span class="ms" style="font-size:26px; color:#4a4239;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#F3EBDD;">Change number</span></div>
+    <div class="step" style="padding:16px 24px 0;"><span style="background:#EAA24A;"></span><span style="background:#EAA24A;"></span><span style="background:#EAA24A;"></span><span style="background:#EAA24A;"></span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:32px 30px 0; text-align:center;">
+      <div style="width:88px; height:88px; border-radius:50%; background:rgba(232,163,61,.16); display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:44px; color:#F2B863;">sync_problem</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#F3EBDD; margin-top:20px;">Almost there — syncing</div>
+      <div style="font-size:14px; color:#B9AE9D; margin-top:10px; line-height:1.55;">Your number was verified, but saving it to your profile didn't finish. Your account is safe — tap to finish.</div>
+    </div>
+    <div style="margin:24px 24px 0; background:rgba(232,163,61,.16); border-radius:14px; padding:13px 15px; display:flex; gap:10px; align-items:flex-start;">
+      <span class="ms" style="font-size:20px; color:#F2B863;">info</span>
+      <div style="font-size:12px; color:#F2B863; line-height:1.45;">Verified with <b>+91 ••••• •3210</b>. No code re-entry needed.</div>
+    </div>
+    <div style="position:absolute; left:24px; right:24px; bottom:42px;">
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#EAA24A; color:#1A1510; font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; gap:8px; font-family:'Hanken Grotesk';"><span class="ms" style="font-size:20px;">refresh</span>Try again</button>
+      <button style="width:100%; min-height:46px; border:none; border-radius:15px; background:transparent; color:#B9AE9D; font-weight:700; font-size:14px; margin-top:6px; font-family:'Hanken Grotesk';">Contact support</button>
+    </div>
+  </div>
+  <div class="cap">Dark theme recovery · the ADR-0015 path on dark tokens.</div>
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; background:#E7DFCF; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .scr{ animation:scrin .24s ease-out; }
+  @keyframes scrin{ from{ opacity:0; transform:translateX(10px);} to{ opacity:1; transform:translateX(0);} }
+  @keyframes fadein{ from{ opacity:0;} to{ opacity:1;} }
+  @keyframes pop{ 0%{ transform:scale(.6); opacity:0;} 60%{ transform:scale(1.08);} 100%{ transform:scale(1); opacity:1;} }
+  @keyframes toastin{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:translateY(0);} }
+  [data-tap]{ cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  [data-tap]:active{ filter:brightness(.96); }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:30px 0; font-family:'Hanken Grotesk',sans-serif;">
+  {{ app }}
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { screen:'splash', slide:0, tab:'home', toast:null, ctx:'Goa Trip 2026', friend:null };
+
+  componentDidMount(){
+    this._t = setTimeout(()=>{ if(this.state.screen==='splash') this.go('onboard'); }, 1500);
+  }
+  componentWillUnmount(){ clearTimeout(this._t); clearTimeout(this._tt); }
+
+  go(s, extra){ this.setState(Object.assign({ screen:s }, extra||{})); }
+  toast(msg){ this.setState({ toast:msg }); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:null}), 2600); }
+
+  renderVals(){
+    const T = { pri:'#E0922E', onPri:'#2A211B', ink:'#2A211B', t2:'#6F6557', t3:'#9A8F82', bg:'#FBF6EE', surf:'#FFFFFF', sv:'#FFF6E6', pos:'#0F7D6B', posBg:'#E2F2EE', neg:'#BC4030', negBg:'#FBE6DC', zero:'#6F6557', zeroBg:'#EFE9DD', out:'#E7DDCD', link:'#A35E16' };
+    const e = React.createElement;
+    const ms=(n,sz,c,fill)=>e('span',{className:'ms'+(fill?' msf':''), style:{fontSize:sz,color:c}}, n);
+    const av=(init,bg,c,sz)=>e('div',{style:{width:sz||42,height:sz||42,borderRadius:14,background:bg,color:c,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:(sz?sz*0.36:15),flex:'none'}}, init);
+    const pill=(kind,val)=>{ const m={pos:[T.posBg,T.pos,'arrow_upward'],neg:[T.negBg,T.neg,'arrow_downward'],zero:[T.zeroBg,T.zero,'check']}[kind]; return e('span',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'5px 11px',borderRadius:999,background:m[0],color:m[1],fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:13,whiteSpace:'nowrap'}}, ms(m[2],14,m[1]), val); };
+    const btn=(label,onClick,opt={})=>e('button',{'data-tap':1,onClick,style:Object.assign({width:'100%',minHeight:52,border:'none',borderRadius:15,background:T.pri,color:T.onPri,fontFamily:'Hanken Grotesk',fontWeight:700,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',gap:8,cursor:'pointer'},opt.style||{})}, opt.icon?ms(opt.icon,20,opt.style&&opt.style.color||T.onPri):null, label);
+    const sbar=(color)=>e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px 28px 4px',fontSize:14,fontWeight:700,color:color||T.ink}}, e('span',null,'9:41'), e('span',{style:{display:'flex',gap:6,alignItems:'center'}}, e('span',{style:{width:17,height:11,borderRadius:2,background:'currentColor',opacity:.9}}), e('span',{style:{width:15,height:11,border:'1.5px solid currentColor',borderRadius:3}})));
+
+    const FRIENDS=[['Rahul Sharma','#FCEBCF','#9a5a13','R','pos','₹4,250.00','owes you'],['Aditya Menon','#E7EEF6','#2E6F9E','A','pos','₹1,200.00','owes you'],['Vikram Rao','#EADFF6','#6C4FC9','V','neg','₹2,100.00','you owe'],['Sara Iyer','#E2F2EE','#0F7D6B','S','zero','Settled','settled up']];
+
+    const navBar=(active)=>e('div',{style:{position:'absolute',left:0,right:0,bottom:0}},
+      e('div',{'data-tap':1,onClick:()=>this.go('addPicker'),style:{position:'absolute',right:20,bottom:90,width:56,height:56,borderRadius:19,background:T.pri,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 12px 24px -6px rgba(224,146,46,.6)',cursor:'pointer'}}, ms('add',30,T.onPri)),
+      e('div',{style:{display:'flex',justifyContent:'space-around',alignItems:'center',background:'rgba(255,253,248,.97)',borderTop:'1px solid #EFE6D6',padding:'10px 12px 24px'}},
+        [['home','Home'],['group','Friends'],['groups','Groups'],['bolt','Activity'],['person','Profile']].map(it=>{
+          const on=active===it[0]; return e('div',{key:it[0],'data-tap':1,onClick:()=>this.go(it[0]),style:{display:'flex',flexDirection:'column',alignItems:'center',gap:3,minWidth:48,cursor:'pointer'}}, ms(it[0],24,on?T.pri:T.t3,on), e('span',{style:{fontSize:10,fontWeight:600,color:on?T.pri:T.t3}},it[1]));
+        })));
+
+    const topbar=(title,onBack,right)=>e('div',{style:{display:'flex',alignItems:'center',gap:12,padding:'8px 20px 0'}}, onBack?e('span',{'data-tap':1,onClick:onBack,style:{cursor:'pointer'}},ms('arrow_back',26,T.ink)):null, e('span',{style:{flex:1,fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:20,color:T.ink}},title), right||null);
+
+    // ---------- SCREENS ----------
+    const S = this.state.screen;
+    let body;
+
+    if(S==='splash'){
+      body = e('div',{'data-tap':1,onClick:()=>this.go('onboard'),style:{position:'absolute',inset:0,background:'radial-gradient(130% 100% at 50% 26%, #ECA64A, #D97A1E 84%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,cursor:'pointer'}},
+        e('div',{dangerouslySetInnerHTML:{__html:'<svg width="74" height="74" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>'}}),
+        e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:30,color:'#FFF7E8'}}, 'One', e('span',{style:{opacity:.78}},'By'),'Two'),
+        e('div',{style:{position:'absolute',bottom:54,fontSize:13.5,color:'rgba(255,247,232,.85)'}},'Tap to begin'));
+    }
+    else if(S==='onboard'){
+      const slides=[['Track every shared spend','Log who paid for what in seconds.','receipt_long','#0F7D6B'],['Split it any way you like','Equally, by shares, % or exact ₹.','call_split','#E0922E'],['Settle up in a single tap','The fewest payments to clear everyone.','check','#0F7D6B']];
+      const sl=slides[this.state.slide];
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}},
+        sbar(),
+        e('div',{style:{display:'flex',justifyContent:'flex-end',padding:'6px 24px'}}, e('span',{'data-tap':1,onClick:()=>this.go('phone'),style:{fontSize:13,fontWeight:700,color:T.t3,cursor:'pointer'}},'Skip')),
+        e('div',{key:this.state.slide,className:'scr',style:{margin:'24px 28px 0',height:280,background:T.sv,borderRadius:28,display:'flex',alignItems:'center',justifyContent:'center'}}, e('div',{style:{width:96,height:96,borderRadius:'50%',background:sl[3],display:'flex',alignItems:'center',justifyContent:'center'}}, ms(sl[2],52,'#fff',true))),
+        e('div',{style:{padding:'30px 30px 0'}}, e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:26,color:T.ink}},sl[0]), e('div',{style:{fontSize:15,color:T.t2,marginTop:10,lineHeight:1.5}},sl[1])),
+        e('div',{style:{position:'absolute',bottom:40,left:30,right:30,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          e('div',{style:{display:'flex',gap:7}}, [0,1,2].map(i=>e('span',{key:i,style:{width:i===this.state.slide?26:8,height:8,borderRadius:4,background:i===this.state.slide?T.pri:'#E0C8A0'}}))),
+          e('div',{'data-tap':1,onClick:()=>{ this.state.slide<2?this.setState({slide:this.state.slide+1}):this.go('phone'); },style:{width:54,height:54,borderRadius:18,background:T.pri,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:'0 10px 22px -6px rgba(224,146,46,.6)'}}, ms(this.state.slide<2?'arrow_forward':'check',28,T.onPri))));
+    }
+    else if(S==='phone'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(), topbar('',()=>this.go('onboard')),
+        e('div',{style:{padding:'8px 28px 0'}},
+          e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:28,color:T.ink}},"What's your number?"),
+          e('div',{style:{fontSize:14.5,color:T.t2,marginTop:8}},"We'll text a 6-digit code to verify it's you."),
+          e('div',{style:{fontSize:11,fontWeight:700,color:T.t2,margin:'26px 0 8px'}},'MOBILE NUMBER'),
+          e('div',{style:{display:'flex',alignItems:'center',minHeight:54,background:T.surf,border:'1.5px solid '+T.pri,borderRadius:14,overflow:'hidden',boxShadow:'0 0 0 3px rgba(224,146,46,.16)'}},
+            e('div',{style:{padding:'0 14px',height:54,display:'flex',alignItems:'center',gap:6,background:T.sv,fontWeight:700,fontSize:16,color:T.ink,borderRight:'1.5px solid '+T.out}},'🇮🇳 +91'),
+            e('span',{style:{flex:1,padding:'0 14px',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:18,color:T.ink}},'98765 43210'))),
+        e('div',{style:{position:'absolute',left:26,right:26,bottom:44}}, btn('Send OTP',()=>this.go('otp'),{icon:'arrow_forward'})));
+    }
+    else if(S==='otp'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(), topbar('',()=>this.go('phone')),
+        e('div',{style:{padding:'8px 28px 0'}},
+          e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:28,color:T.ink}},'Verify your number'),
+          e('div',{style:{fontSize:14.5,color:T.t2,marginTop:8}},'Code sent to +91 98765 43210'),
+          e('div',{style:{display:'flex',gap:9,marginTop:26}}, ['9','2','4','1','8','6'].map((d,i)=>e('div',{key:i,style:{width:46,height:56,borderRadius:14,border:'1.5px solid '+T.out,background:T.surf,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:24,color:T.ink}},d))),
+          e('div',{style:{fontSize:12.5,color:T.t3,marginTop:16}},'Resend code in 0:24')),
+        e('div',{style:{position:'absolute',left:26,right:26,bottom:44}}, btn('Verify',()=>this.go('profileSetup'))));
+    }
+    else if(S==='profileSetup'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(), topbar('',()=>this.go('otp')),
+        e('div',{style:{padding:'8px 28px 0'}},
+          e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:28,color:T.ink}},'Set up your profile'),
+          e('div',{style:{fontSize:14.5,color:T.t2,marginTop:8}},'This is how friends will recognise you.'),
+          e('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',marginTop:30}},
+            e('div',{style:{width:100,height:100,borderRadius:'50%',background:'linear-gradient(135deg,#ECA64A,#C75D3C)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:38}},'P')),
+          e('div',{style:{fontSize:11,fontWeight:700,color:T.t2,margin:'26px 0 8px'}},'DISPLAY NAME'),
+          e('div',{style:{display:'flex',alignItems:'center',minHeight:54,background:T.surf,border:'1.5px solid '+T.pri,borderRadius:14,padding:'0 14px',boxShadow:'0 0 0 3px rgba(224,146,46,.16)'}}, e('span',{style:{flex:1,fontSize:16,fontWeight:600,color:T.ink}},'Priya Nair'), ms('check_circle',20,T.pos))),
+        e('div',{style:{position:'absolute',left:26,right:26,bottom:44}}, btn('Finish setup',()=>this.go('home',{tab:'home'}))));
+    }
+    else if(S==='home'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 22px 2px'}}, e('div',null, e('div',{style:{fontSize:13,color:T.t3,fontWeight:600}},'Namaste,'), e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:22,color:T.ink}},'Priya')), av('P','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff',38)),
+        e('div',{style:{margin:'12px 18px 0',background:'linear-gradient(150deg,#fff,#FFF4E2)',borderRadius:26,padding:22,boxShadow:'0 14px 30px -12px rgba(224,146,46,.3)'}},
+          e('div',{style:{display:'flex',alignItems:'center',gap:7}}, ms('arrow_upward',18,T.pos), e('span',{style:{fontSize:13,fontWeight:700,color:T.pos}},'Overall, you are owed')),
+          e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:46,color:T.pos,marginTop:12,lineHeight:1}},'₹12,450',e('span',{style:{fontSize:23,opacity:.55}},'.00')),
+          e('div',{style:{fontSize:12.5,color:T.t3,marginTop:9}},'across 6 friends · 3 groups')),
+        e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 22px 8px'}}, e('span',{style:{fontWeight:700,fontSize:15,color:T.ink}},'Top balances'), e('span',{'data-tap':1,onClick:()=>this.go('group'),style:{fontSize:12.5,fontWeight:700,color:T.link,cursor:'pointer'}},'See all')),
+        e('div',{style:{padding:'0 18px',display:'flex',flexDirection:'column',gap:8}}, FRIENDS.slice(0,3).map((f,i)=>e('div',{key:i,'data-tap':1,onClick:()=>this.go('friendDetail',{friend:f}),style:{display:'flex',alignItems:'center',gap:12,background:T.surf,borderRadius:16,padding:'11px 13px',boxShadow:'0 1px 3px rgba(42,33,27,.05)',cursor:'pointer'}}, av(f[3],f[1],f[2]), e('div',{style:{flex:1,minWidth:0}}, e('div',{style:{fontWeight:700,fontSize:14,color:T.ink}},f[0]), e('div',{style:{fontSize:11.5,color:T.t3}},f[6])), pill(f[4],f[5])))),
+        e('div',{style:{textAlign:'center',fontSize:11.5,color:T.t3,marginTop:18}},'Tap a friend to settle · tap ＋ to add an expense'),
+        navBar('home'));
+    }
+    else if(S==='group'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:32,color:T.ink,padding:'8px 22px 4px'}},'Friends'),
+        e('div',{style:{padding:'8px 18px 0',display:'flex',flexDirection:'column',gap:8}}, FRIENDS.map((f,i)=>e('div',{key:i,'data-tap':1,onClick:()=>this.go('friendDetail',{friend:f}),style:{display:'flex',alignItems:'center',gap:12,background:T.surf,borderRadius:16,padding:'11px 13px',boxShadow:'0 1px 3px rgba(42,33,27,.05)',cursor:'pointer'}}, av(f[3],f[1],f[2]), e('div',{style:{flex:1,minWidth:0}}, e('div',{style:{fontWeight:700,fontSize:14.5,color:T.ink}},f[0]), e('div',{style:{fontSize:11.5,color:T.t3}},f[6])), pill(f[4],f[5])))),
+        navBar('group'));
+    }
+    else if(S==='groups'){
+      const G=[['Goa Trip 2026','flight','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff','neg','₹2,100','5 members'],['Flatmates','home','#6C4FC91A','#6C4FC9','pos','₹3,400','3 members'],['Office Lunch Club','restaurant','#E8762B1A','#E8762B','zero','Settled','8 members']];
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:32,color:T.ink,padding:'8px 22px 4px'}},'Groups'),
+        e('div',{style:{padding:'8px 18px 0',display:'flex',flexDirection:'column',gap:10}}, G.map((g,i)=>e('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,background:T.surf,borderRadius:18,padding:13,boxShadow:'0 1px 3px rgba(42,33,27,.05)'}}, e('div',{style:{width:48,height:48,borderRadius:15,background:g[2],color:g[3],display:'flex',alignItems:'center',justifyContent:'center'}},ms(g[1],24,g[3],true)), e('div',{style:{flex:1}}, e('div',{style:{fontWeight:700,fontSize:15,color:T.ink}},g[0]), e('div',{style:{fontSize:11,color:T.t3,marginTop:3}},g[6])), pill(g[4],g[5])))),
+        navBar('groups'));
+    }
+    else if(S==='bolt'){
+      const A=[['Priya','added Dinner at Bombay Canteen','restaurant','#E8762B','Goa Trip · 2h ago'],['Aditya','paid you ₹500.00','payments','#0F7D6B','Office Lunch · 5h ago'],['Rahul','added Beach resort','hotel','#6C4FC9','Goa Trip · 23 Jun'],['Vikram','sent you a reminder','notifications','#A35E16','Flatmates · 23 Jun']];
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:32,color:T.ink,padding:'8px 22px 4px'}},'Activity'),
+        e('div',{style:{padding:'10px 18px 0',display:'flex',flexDirection:'column',gap:7}}, A.map((a,i)=>e('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,background:T.surf,borderRadius:15,padding:'11px 13px'}}, e('div',{style:{width:38,height:38,borderRadius:12,background:a[3]+'1A',display:'flex',alignItems:'center',justifyContent:'center'}},ms(a[2],20,a[3])), e('div',{style:{flex:1,minWidth:0}}, e('div',{style:{fontSize:13,color:T.ink,lineHeight:1.35}},e('b',null,a[0]),' '+a[1]), e('div',{style:{fontSize:10.5,color:T.t3,marginTop:1}},a[4])), ms('chevron_right',20,'#C1B6A4')))),
+        navBar('bolt'));
+    }
+    else if(S==='person'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',padding:'14px 22px 0'}}, av('P','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff',80), e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:22,color:T.ink,marginTop:12}},'Priya Nair'), e('div',{style:{fontSize:13,color:T.t3,marginTop:2}},'+91 99887 76655')),
+        e('div',{style:{display:'flex',gap:10,padding:'18px 18px 0'}}, [['group','6','Friends',T.pri],['groups','4','Groups','#6C4FC9']].map((s,i)=>e('div',{key:i,style:{flex:1,background:T.surf,borderRadius:16,padding:12,display:'flex',alignItems:'center',gap:10,boxShadow:'0 1px 3px rgba(42,33,27,.05)'}}, ms(s[0],22,s[3]), e('div',null,e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:17,color:T.ink}},s[1]),e('div',{style:{fontSize:11,color:T.t3}},s[2]))))),
+        e('div',{style:{margin:'16px 18px 0',borderRadius:16,overflow:'hidden',boxShadow:'0 1px 3px rgba(42,33,27,.05)'}}, [['notifications','Notifications'],['dark_mode','Appearance'],['help','Help & support'],['shield','Privacy & terms']].map((r,i)=>e('div',{key:i,style:{display:'flex',alignItems:'center',gap:13,padding:'14px 15px',background:T.surf,borderBottom:i<3?'1px solid #EFE6D6':'none'}}, ms(r[0],22,T.t2), e('span',{style:{flex:1,fontSize:14,fontWeight:600,color:T.ink}},r[1]), ms('chevron_right',20,'#C1B6A4')))),
+        navBar('person'));
+    }
+    else if(S==='addPicker'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 22px 2px'}}, e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:22,color:T.ink}},'Add an expense'), e('span',{'data-tap':1,onClick:()=>this.go(this.state.tab),style:{cursor:'pointer'}},ms('close',26,T.ink))),
+        e('div',{style:{fontSize:13.5,color:T.t2,padding:'2px 22px 0'}},"Who's it with? Pick a friend or group."),
+        e('div',{style:{padding:'18px 22px 8px',fontSize:11,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:T.t3}},'Groups'),
+        e('div',{style:{padding:'0 18px',display:'flex',flexDirection:'column',gap:8}}, [['Goa Trip 2026','flight','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff','5 members'],['Flatmates','home','#6C4FC91A','#6C4FC9','3 members']].map((g,i)=>e('div',{key:i,'data-tap':1,onClick:()=>this.go('add1',{ctx:g[0]}),style:{display:'flex',alignItems:'center',gap:12,padding:'6px 4px',cursor:'pointer'}}, e('div',{style:{width:42,height:42,borderRadius:14,background:g[2],color:g[3],display:'flex',alignItems:'center',justifyContent:'center'}},ms(g[1],20,g[3],true)), e('div',{style:{flex:1}}, e('div',{style:{fontWeight:700,fontSize:14,color:T.ink}},g[0]), e('div',{style:{fontSize:11.5,color:T.t3}},g[4])), ms('chevron_right',22,'#C1B6A4')))),
+        e('div',{style:{padding:'14px 22px 8px',fontSize:11,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:T.t3}},'Friends'),
+        e('div',{style:{padding:'0 18px',display:'flex',flexDirection:'column',gap:8}}, FRIENDS.slice(0,3).map((f,i)=>e('div',{key:i,'data-tap':1,onClick:()=>this.go('add1',{ctx:f[0]}),style:{display:'flex',alignItems:'center',gap:12,padding:'6px 4px',cursor:'pointer'}}, av(f[3],f[1],f[2]), e('div',{style:{flex:1}}, e('div',{style:{fontWeight:700,fontSize:14,color:T.ink}},f[0])), ms('chevron_right',22,'#C1B6A4')))));
+    }
+    else if(S==='add1'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 20px 0'}}, e('span',{'data-tap':1,onClick:()=>this.go('addPicker'),style:{cursor:'pointer'}},ms('close',24,T.ink)), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:17,color:T.ink}},'Add expense'), e('span',{style:{width:24}})),
+        e('div',{style:{display:'flex',justifyContent:'center',padding:'12px 0 4px'}}, e('div',{style:{display:'flex',gap:6}}, [1,0,0].map((a,i)=>e('span',{key:i,style:{width:a?22:7,height:7,borderRadius:4,background:a?T.pri:'#E0C8A0'}})))),
+        e('div',{style:{display:'flex',justifyContent:'center'}}, e('span',{style:{display:'inline-flex',alignItems:'center',gap:6,background:T.sv,padding:'6px 12px',borderRadius:999,fontSize:12,fontWeight:700,color:T.link}}, ms('flight',16,T.link,true),'in '+this.state.ctx)),
+        e('div',{style:{textAlign:'center',padding:'24px 0 8px'}}, e('div',{style:{fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:T.t3}},'Amount'), e('div',{style:{marginTop:8}}, e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:30,color:T.t2}},'₹'), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:50,color:T.ink}},'3,200'), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:28,color:T.t3}},'.00'))),
+        e('div',{style:{padding:'8px 20px 0',display:'flex',flexDirection:'column',gap:11}},
+          e('div',{style:{display:'flex',alignItems:'center',gap:9,background:T.surf,border:'1.5px solid '+T.out,borderRadius:13,padding:'0 13px',minHeight:48}}, ms('edit',20,T.t3), e('span',{style:{flex:1,fontSize:15,fontWeight:600,color:T.ink}},'Dinner at Bombay Canteen')),
+          e('div',{style:{display:'flex',gap:11}}, e('div',{style:{flex:1,display:'flex',alignItems:'center',gap:9,background:T.surf,border:'1.5px solid '+T.out,borderRadius:13,padding:'0 13px',minHeight:48}}, ms('calendar_today',20,T.t3), e('span',{style:{fontSize:14,color:T.ink}},'24 Jun 2026')), e('div',{style:{flex:1,display:'flex',alignItems:'center',gap:9,background:T.surf,border:'1.5px solid '+T.out,borderRadius:13,padding:'0 13px',minHeight:48}}, ms('restaurant',20,'#E8762B'), e('span',{style:{fontSize:14,color:T.ink}},'Food')))),
+        e('div',{style:{position:'absolute',left:20,right:20,bottom:30}}, btn('Next: Split',()=>this.go('add2'),{icon:'arrow_forward'})));
+    }
+    else if(S==='add2'){
+      const SP=[['You','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff','P'],['Rahul','#FCEBCF','#9a5a13','R'],['Aditya','#E7EEF6','#2E6F9E','A'],['Neha','#F3E1EC','#B5489B','N'],['Vikram','#EADFF6','#6C4FC9','V']];
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 20px 0'}}, e('span',{'data-tap':1,onClick:()=>this.go('add1'),style:{cursor:'pointer'}},ms('arrow_back',24,T.ink)), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:17,color:T.ink}},'Split'), e('span',{style:{width:24}})),
+        e('div',{style:{display:'flex',justifyContent:'center',padding:'12px 0 8px'}}, e('div',{style:{display:'flex',gap:6}}, [0,1,0].map((a,i)=>e('span',{key:i,style:{width:a?22:7,height:7,borderRadius:4,background:a?T.pri:'#E0C8A0'}})))),
+        e('div',{style:{textAlign:'center',fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:20,color:T.ink}},'₹3,200.00 ',e('span',{style:{fontSize:13,color:T.t3,fontWeight:600}},'· 5 people')),
+        e('div',{style:{padding:'14px 20px 0'}}, e('div',{style:{display:'flex',background:'#EFE6D6',borderRadius:13,padding:3,gap:2}}, ['Equally','Unequal','%','Shares','Exact'].map((o,i)=>e('span',{key:i,style:{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:10,fontSize:12,fontWeight:700,color:i===0?T.onPri:T.t2,background:i===0?T.pri:'transparent'}},o)))),
+        e('div',{style:{padding:'14px 20px 0',display:'flex',flexDirection:'column',gap:9}}, SP.map((p,i)=>e('div',{key:i,style:{display:'flex',alignItems:'center',gap:9}}, ms('check_circle',22,T.pos,true), av(p[3],p[1],p[2],32), e('span',{style:{flex:1,fontSize:14,fontWeight:600,color:T.ink}},p[0]), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:14,color:T.ink}},'₹640.00')))),
+        e('div',{style:{position:'absolute',left:20,right:20,bottom:30}}, e('div',{style:{display:'flex',alignItems:'center',gap:7,background:T.posBg,color:T.pos,borderRadius:12,padding:'10px 14px',fontSize:12.5,fontWeight:700,marginBottom:12}}, ms('check_circle',18,T.pos),'₹3,200.00 of ₹3,200.00 · adds up'), btn('Next: Confirm',()=>this.go('add3'))));
+    }
+    else if(S==='add3'){
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 20px 0'}}, e('span',{'data-tap':1,onClick:()=>this.go('add2'),style:{cursor:'pointer'}},ms('arrow_back',24,T.ink)), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:17,color:T.ink}},'Confirm'), e('span',{style:{width:24}})),
+        e('div',{style:{display:'flex',justifyContent:'center',padding:'12px 0 12px'}}, e('div',{style:{display:'flex',gap:6}}, [0,0,1].map((a,i)=>e('span',{key:i,style:{width:a?22:7,height:7,borderRadius:4,background:a?T.pri:'#E0C8A0'}})))),
+        e('div',{style:{padding:'0 20px'}}, e('div',{style:{background:T.surf,borderRadius:18,padding:16,boxShadow:'0 1px 3px rgba(42,33,27,.05)'}},
+          e('div',{style:{display:'flex',alignItems:'center',gap:12}}, e('div',{style:{width:42,height:42,borderRadius:13,background:'#E8762B1A',display:'flex',alignItems:'center',justifyContent:'center'}},ms('restaurant',22,'#E8762B')), e('div',{style:{flex:1}}, e('div',{style:{fontWeight:700,fontSize:15,color:T.ink}},'Dinner at Bombay Canteen'), e('div',{style:{fontSize:11.5,color:T.t3}},this.state.ctx+' · 24 Jun 2026')), e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:18,color:T.ink}},'₹3,200.00')),
+          e('div',{style:{height:1,background:'#EFE6D6',margin:'12px 0'}}),
+          e('div',{style:{display:'flex',justifyContent:'space-between',fontSize:12.5}}, e('span',{style:{color:T.t3}},'Split'), e('span',{style:{fontWeight:600,color:T.ink}},'Equally · ₹640.00 each')))),
+        e('div',{style:{margin:'14px 20px 0',border:'1.5px dashed '+T.out,borderRadius:14,padding:13,display:'flex',alignItems:'center',gap:10,opacity:.85}}, ms('event_repeat',22,T.t3), e('div',{style:{flex:1}}, e('div',{style:{fontSize:13.5,fontWeight:700,color:T.t2}},'Make recurring ',e('span',{style:{fontSize:9.5,fontWeight:700,color:T.link,background:T.sv,padding:'2px 7px',borderRadius:6}},'SOON'))), e('div',{style:{width:40,height:24,borderRadius:999,background:'#E4DCCE',position:'relative'}},e('div',{style:{position:'absolute',left:3,top:3,width:18,height:18,borderRadius:'50%',background:'#fff'}}))),
+        e('div',{style:{position:'absolute',left:20,right:20,bottom:30}}, btn('Add expense',()=>{ this.go('home',{tab:'home'}); this.toast('Expense added to '+this.state.ctx); },{icon:'check'})));
+    }
+    else if(S==='friendDetail'){
+      const f=this.state.friend||FRIENDS[0]; const owe=f[4]==='neg';
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        topbar('',()=>this.go(this.state.tab), ms('more_horiz',26,T.ink)),
+        e('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',padding:'10px 22px 0'}}, av(f[3],f[1],f[2],64), e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:21,color:T.ink,marginTop:10}},f[0]),
+          e('div',{style:{display:'flex',alignItems:'center',gap:6,color:f[4]==='zero'?T.zero:(owe?T.neg:T.pos),fontWeight:700,fontSize:14,marginTop:4}}, ms(f[4]==='zero'?'check':(owe?'arrow_downward':'arrow_upward'),17,f[4]==='zero'?T.zero:(owe?T.neg:T.pos)), f[4]==='zero'?'All settled up':(owe?('You owe '+f[5]):(f[0].split(' ')[0]+' owes you '+f[5]))),
+          f[4]!=='zero'?e('div',{style:{display:'flex',gap:10,marginTop:16,width:'100%'}}, btn('Settle up',()=>this.go('settle'),{icon:'payments',style:{flex:1}}), e('button',{'data-tap':1,style:{flex:1,minHeight:46,border:'1.5px solid '+T.out,borderRadius:14,background:'transparent',color:T.ink,fontWeight:700,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',gap:7,cursor:'pointer'}},ms('notifications',19,T.ink),'Remind')):null),
+        e('div',{style:{padding:'20px 22px 8px',fontWeight:700,fontSize:14,color:T.ink}},'Transactions'),
+        e('div',{style:{padding:'0 18px',display:'flex',flexDirection:'column',gap:8}}, [['restaurant','#E8762B','Dinner at Bombay Canteen','You paid ₹3,200 · 22 Jun','₹1,600.00',T.pos],['directions_car','#2E78C9','Airport cab','Rahul paid ₹900 · 20 Jun','₹450.00',T.neg]].map((x,i)=>e('div',{key:i,style:{display:'flex',alignItems:'center',gap:12,background:T.surf,borderRadius:16,padding:'11px 13px'}}, e('div',{style:{width:40,height:40,borderRadius:13,background:x[1]+'1A',display:'flex',alignItems:'center',justifyContent:'center'}},ms(x[0],21,x[1])), e('div',{style:{flex:1,minWidth:0}}, e('div',{style:{fontWeight:700,fontSize:13.5,color:T.ink}},x[2]), e('div',{style:{fontSize:11,color:T.t3}},x[3])), e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:13.5,color:x[5]}},x[4])))));
+    }
+    else if(S==='settle'){
+      const f=this.state.friend||FRIENDS[0];
+      body = e('div',{style:{position:'absolute',inset:0,background:T.bg}}, sbar(),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 22px 0'}}, e('span',{'data-tap':1,onClick:()=>this.go('friendDetail'),style:{cursor:'pointer'}},ms('close',26,T.ink)), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:18,color:T.ink}},'Settle up'), e('span',{style:{width:26}})),
+        e('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:14,padding:'24px 0 6px'}}, av('You','linear-gradient(135deg,#ECA64A,#C75D3C)','#fff',54), ms('arrow_forward',26,T.pri), av(f[3],f[1],f[2],54)),
+        e('div',{style:{textAlign:'center'}}, e('div',{style:{fontSize:13,color:T.t2}},'You pay ',e('b',{style:{color:T.ink}},f[0])), e('div',{style:{display:'inline-flex',alignItems:'center',gap:6,background:T.sv,padding:'5px 12px',borderRadius:999,marginTop:8,fontSize:11.5,fontWeight:700,color:T.link}}, ms('auto_awesome',15,T.link),'Suggested from simplified debts')),
+        e('div',{style:{textAlign:'center',padding:'20px 0 8px'}}, e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:30,color:T.t2}},'₹'), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:50,color:T.ink}},f[4]==='neg'?f[5].replace('₹','').replace('.00',''):'2,100'), e('span',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:28,color:T.t3}},'.00')),
+        e('div',{style:{padding:'8px 22px 0',display:'flex',flexDirection:'column',gap:11}}, e('div',{style:{display:'flex',alignItems:'center',gap:9,background:T.surf,border:'1.5px solid '+T.out,borderRadius:13,padding:'0 13px',minHeight:48}}, ms('calendar_today',20,T.t3), e('span',{style:{fontSize:14,color:T.ink}},'24 Jun 2026')), e('div',{style:{border:'1.5px dashed '+T.out,borderRadius:13,padding:'12px 13px',display:'flex',alignItems:'center',gap:10,opacity:.9}}, ms('account_balance',21,T.t3), e('div',{style:{flex:1}}, e('div',{style:{fontSize:13.5,fontWeight:700,color:T.t2}},'Pay via UPI ',e('span',{style:{fontSize:9.5,fontWeight:700,color:T.link,background:T.sv,padding:'2px 7px',borderRadius:6}},'SOON'))))),
+        e('div',{style:{position:'absolute',left:22,right:22,bottom:40}}, btn('Record payment',()=>this.go('success'))));
+    }
+    else if(S==='success'){
+      body = e('div',{style:{position:'absolute',inset:0,background:'radial-gradient(130% 90% at 50% 24%, #ECA64A, #D97A1E 84%)'}}, sbar('#FFF7E8'),
+        e('div',{style:{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 40px',textAlign:'center'}},
+          e('div',{style:{width:104,height:104,borderRadius:'50%',background:'#FFF7E8',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 16px 40px -10px rgba(0,0,0,.3)',animation:'pop .4s ease-out'}}, ms('check',62,T.pos,true)),
+          e('div',{style:{fontFamily:'Bricolage Grotesque',fontWeight:700,fontSize:25,color:'#FFF7E8',marginTop:26}},"You're all settled up — high five!"),
+          e('div',{style:{fontSize:14,color:'rgba(255,247,232,.9)',marginTop:10,lineHeight:1.5}},'Payment recorded. You\u2019re square now.'),
+          e('button',{'data-tap':1,onClick:()=>this.go('home',{tab:'home'}),style:{marginTop:30,minWidth:200,minHeight:50,border:'none',borderRadius:15,background:'#FFF7E8',color:T.ink,fontWeight:700,fontSize:15,cursor:'pointer'}},'Done')));
+    }
+
+    const toastEl = this.state.toast ? e('div',{style:{position:'absolute',left:16,right:16,bottom:92,background:'#2A211B',color:'#FBF6EE',borderRadius:14,padding:'13px 16px',display:'flex',alignItems:'center',gap:10,boxShadow:'0 10px 24px -8px rgba(0,0,0,.4)',animation:'toastin .25s ease-out',zIndex:5}}, ms('check_circle',20,'#34C0A4',true), e('span',{style:{flex:1,fontSize:13}},this.state.toast)) : null;
+
+    const phone = e('div',{style:{width:390,height:844,borderRadius:46,border:'9px solid #221b14',overflow:'hidden',position:'relative',boxShadow:'0 40px 80px -20px rgba(20,16,10,.45), 0 8px 24px -8px rgba(20,16,10,.25)',fontFamily:'Hanken Grotesk'}}, e('div',{key:S,className:'scr',style:{position:'absolute',inset:0}}, body), toastEl);
+
+    const restart = e('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+      e('button',{'data-tap':1,onClick:()=>this.setState({screen:'splash',slide:0,tab:'home',toast:null}),style:{border:'1.5px solid #C9BCA4',background:'#FBF6EE',color:'#6F6557',fontWeight:700,fontSize:13,padding:'9px 16px',borderRadius:999,cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontFamily:'Hanken Grotesk'}}, ms('restart_alt',17,'#6F6557'),'Restart flow'),
+      e('span',{style:{fontSize:12.5,color:'#8A7E6E'}},'Interactive — tap hotspots, FAB, nav & rows'));
+
+    return { app: e('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:16}}, phone, restart) };
+  }
+}
+</script>
+</body>
+</html>
