@@ -1,0 +1,10 @@
+tags:
+  golden:
+    # Golden pixel-comparison tests. Cross-platform byte-sensitive, so
+    # baselines are authored on ubuntu-latest by the DC-13
+    # golden-a11y-checks job (docs/audits/design-conversion/
+    # 04-qa-test-strategy.md sections A.2.2 and E), not from a local run.
+  a11y-contrast:
+    # WCAG 2.1 contrast-ratio gate (04-qa-test-strategy.md section B).
+  a11y-dynamic-type:
+    # Dynamic-type 2.0x overflow + reduced-motion gate (section C).

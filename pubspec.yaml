@@ -30,7 +30,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^2.6.1 # State management (ADR-0004)
-  google_fonts: ^6.2.1 # Plus Jakarta Sans + Inter (tokens.md)
+  google_fonts: ^6.2.1 # Bricolage Grotesque + Hanken Grotesk (03-foundation-plan.md §3)
   image_picker: ^1.1.2 # Profile photo selection (FR-AU-06)
   intl: ^0.20.2 # Localisation (SRS 5.9)
   package_info_plus: ^9.0.1 # App version + build for Contact Support body (FR-PR-05)
