@@ -116,5 +116,75 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text(amountStr), findsOneWidget);
     });
+
+    testWidgets('page transition collapses to the child unwrapped', (
+      tester,
+    ) async {
+      final builder =
+          AppTheme.light.pageTransitionsTheme.builders[TargetPlatform.android]!;
+      final route = MaterialPageRoute<void>(builder: (_) => const SizedBox());
+      const child = SizedBox(key: Key('page-child'));
+      late BuildContext capturedContext;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: Builder(
+              builder: (context) {
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+
+      final result = builder.buildTransitions<void>(
+        route,
+        capturedContext,
+        const AlwaysStoppedAnimation<double>(0.5),
+        const AlwaysStoppedAnimation<double>(0),
+        child,
+      );
+
+      // Under reduced motion the transition is an instant cross-fade: the
+      // builder returns the child unwrapped (no Fade/Slide).
+      expect(result, same(child));
+    });
+
+    testWidgets('page transition animates (slide + fade) when enabled', (
+      tester,
+    ) async {
+      final builder =
+          AppTheme.light.pageTransitionsTheme.builders[TargetPlatform.android]!;
+      final route = MaterialPageRoute<void>(builder: (_) => const SizedBox());
+      const child = SizedBox(key: Key('page-child'));
+      late BuildContext capturedContext;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(),
+            child: Builder(
+              builder: (context) {
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+
+      final result = builder.buildTransitions<void>(
+        route,
+        capturedContext,
+        const AlwaysStoppedAnimation<double>(0.5),
+        const AlwaysStoppedAnimation<double>(0),
+        child,
+      );
+
+      expect(result, isA<FadeTransition>());
+    });
   });
 }

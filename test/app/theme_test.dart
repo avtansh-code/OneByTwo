@@ -210,6 +210,25 @@ void main() {
     });
   });
 
+  group('Page transitions (AC #2 motion, section 2.3)', () {
+    test('Haldi page transition installed on both themes', () {
+      for (final theme in <ThemeData>[lightTheme, darkTheme]) {
+        final builders = theme.pageTransitionsTheme.builders;
+        expect(
+          builders.keys,
+          containsAll(<TargetPlatform>[
+            TargetPlatform.android,
+            TargetPlatform.iOS,
+          ]),
+        );
+        expect(
+          builders[TargetPlatform.android]!.transitionDuration,
+          AppTheme.motionDurationMedium,
+        );
+      }
+    });
+  });
+
   group('Typography — Bricolage + Hanken (AC #1, section 3.3)', () {
     test('display + headline slots are Bricolage', () {
       expect(textTheme.displayLarge!.fontFamily, headingFamily);

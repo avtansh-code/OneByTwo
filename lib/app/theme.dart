@@ -88,14 +88,26 @@ class AppTheme {
 
   // ── Motion (foundation plan section 2.3) ─────────────────────────────
 
-  /// Short transition (taps, toggles).
+  /// Short transition for component-level micro-interactions (taps,
+  /// toggles, chip / switch state). Consumed at widget sites (DC-02 onward).
   static const motionDurationShort = Duration(milliseconds: 200);
 
-  /// Default page / sheet transition.
+  /// Default page / sheet transition; consumed by the page-transition
+  /// default below.
   static const motionDurationMedium = Duration(milliseconds: 280);
 
-  /// Default easing curve.
+  /// Default easing curve; consumed by the page-transition default below.
   static const motionCurve = Curves.easeInOut;
+
+  /// The Haldi page-transition default (section 2.3): a gentle slide + fade
+  /// over [motionDurationMedium] using [motionCurve], collapsing to an
+  /// instant cross-fade under reduced motion. Installed on [light] + [dark].
+  static const _pageTransitions = PageTransitionsTheme(
+    builders: <TargetPlatform, PageTransitionsBuilder>{
+      TargetPlatform.android: _HaldiPageTransitionsBuilder(),
+      TargetPlatform.iOS: _HaldiPageTransitionsBuilder(),
+    },
+  );
 
   // ── Typography (Bricolage Grotesque + Hanken Grotesk) ────────────────
 
@@ -244,6 +256,7 @@ class AppTheme {
           borderRadius: BorderRadius.all(Radius.circular(radiusCard)),
         ),
       ),
+      pageTransitionsTheme: _pageTransitions,
       extensions: const <ThemeExtension<dynamic>>[OBTColors.light],
     );
   }
@@ -282,7 +295,47 @@ class AppTheme {
           borderRadius: BorderRadius.all(Radius.circular(radiusCard)),
         ),
       ),
+      pageTransitionsTheme: _pageTransitions,
       extensions: const <ThemeExtension<dynamic>>[OBTColors.dark],
+    );
+  }
+}
+
+/// The Haldi page transition (foundation plan section 2.3): a gentle upward
+/// slide + fade over [AppTheme.motionDurationMedium] using
+/// [AppTheme.motionCurve]. Under reduced motion
+/// ([MediaQueryData.disableAnimations]) it collapses to an instant
+/// cross-fade — an accessibility requirement, not a nicety.
+class _HaldiPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _HaldiPageTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => AppTheme.motionDurationMedium;
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      return child;
+    }
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: AppTheme.motionCurve,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.02),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
     );
   }
 }
