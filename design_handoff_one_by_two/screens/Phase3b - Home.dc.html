@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .phone{ width:390px; height:844px; border-radius:46px; border:9px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 40px 80px -20px rgba(20,16,10,.4), 0 8px 24px -8px rgba(20,16,10,.25); }
+  .sb{ display:flex; justify-content:space-between; align-items:center; padding:15px 28px 4px; font-size:14px; font-weight:700; }
+  .sb .bars{ display:flex; gap:6px; align-items:center; }
+  .sb .bars i{ width:17px; height:11px; border-radius:2px; background:currentColor; opacity:.9; display:inline-block; }
+  .sb .bars u{ width:15px; height:11px; border:1.5px solid currentColor; border-radius:3px; display:inline-block; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ width:390px; margin-top:14px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .row{ display:flex; align-items:center; gap:12px; }
+  .av{ width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; flex:none; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:999px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; white-space:nowrap; }
+  .ni{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; font-size:10px; font-weight:600; }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:900px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · Phase 3b</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Home &amp; search</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:760px;">The hero dashboard in light + dark, the new-user empty state, the search overlay (initial + results), and the add-expense context picker.</div>
+</div>
+
+<!-- ================= ROW 1: HOME ================= -->
+
+<!-- HOME LIGHT (hero) -->
+<div style="position:absolute; left:80px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>06 · Home — light · populated</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 2px;">
+      <div><div style="font-size:13px; color:#9A8F82; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B;">Priya</div></div>
+      <div style="display:flex; gap:10px; align-items:center;"><div style="width:38px; height:38px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(42,33,27,.08);"><span class="ms" style="font-size:21px; color:#2A211B;">search</span></div><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;">P</div></div>
+    </div>
+    <!-- net hero -->
+    <div style="margin:12px 18px 0; background:linear-gradient(150deg,#FFFFFF,#FFF4E2); border-radius:26px; padding:22px; box-shadow:0 14px 30px -12px rgba(224,146,46,.3);">
+      <div style="display:flex; align-items:center; gap:7px;"><span style="width:19px; height:19px; border-radius:50%; background:#0F7D6B; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px;"><span class="ms" style="font-size:13px;">arrow_upward</span></span><span style="font-size:13px; font-weight:700; color:#0F7D6B;">Overall, you are owed</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:46px; line-height:1; margin-top:12px; color:#0F7D6B;">₹12,450<span style="font-size:23px; opacity:.55;">.00</span></div>
+      <div style="font-size:12.5px; color:#9A8F82; margin-top:9px;">across 6 friends · 3 groups</div>
+    </div>
+    <!-- top balances -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 22px 8px;"><span style="font-weight:700; font-size:15px; color:#2A211B;">Top balances</span><span style="font-size:12.5px; font-weight:700; color:#A35E16;">See all 5</span></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:10px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#FCEBCF; color:#9a5a13;">R</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Rahul Sharma</div><div style="font-size:11.5px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹4,250.00</span></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:10px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:20px;">flight</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Goa Trip 2026</div><div style="font-size:11.5px; color:#9A8F82;">you owe</div></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;"><span class="pill" style="background:#FBE6DC; color:#BC4030;"><span class="ms" style="font-size:14px;">arrow_downward</span>₹2,100.00</span><span style="font-size:11px; font-weight:700; color:#A35E16;">Settle up ›</span></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:10px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">A</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Aditya Menon</div><div style="font-size:11.5px; color:#9A8F82;">owes you</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,200.00</span></div>
+    </div>
+    <!-- spend donut -->
+    <div style="margin:14px 18px 0; background:#fff; border-radius:22px; padding:16px; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><span style="font-weight:700; font-size:14px; color:#2A211B;">This month</span><span style="font-size:11.5px; color:#9A8F82;">Jun 2026</span></div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="position:relative; width:104px; height:104px; flex:none;"><div style="width:104px; height:104px; border-radius:50%; background:conic-gradient(#E8762B 0 30%,#6C4FC9 30% 56%,#2E78C9 56% 70%,#4FA13E 70% 82%,#D94F87 82% 92%,#8A7B6B 92% 100%);"></div><div style="position:absolute; inset:15px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div style="font-size:9px; color:#9A8F82; font-weight:600;">Spent</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#2A211B;">₹38,640</div></div></div>
+        <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:7px 8px; font-size:11px; font-weight:600; color:#6F6557;"><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#E8762B;margin-right:6px;"></span>Food</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#6C4FC9;margin-right:6px;"></span>Rent</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#2E78C9;margin-right:6px;"></span>Transport</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#4FA13E;margin-right:6px;"></span>Grocery</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#D94F87;margin-right:6px;"></span>Shopping</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#8A7B6B;margin-right:6px;"></span>Other</div></div>
+      </div>
+    </div>
+    <!-- FAB + nav -->
+    <div style="position:absolute; right:20px; bottom:100px; width:56px; height:56px; border-radius:19px; background:#E0922E; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -6px rgba(224,146,46,.6);"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(255,253,248,.96); border-top:1px solid #EFE6D6; padding:10px 12px 24px;">
+      <div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div>
+    </div>
+  </div>
+  <div class="cap">★ Hero · net simplified balance, top balances with quick Settle, monthly spend donut, persistent FAB, 5-tab nav.</div>
+</div>
+
+<!-- HOME DARK (hero) -->
+<div style="position:absolute; left:590px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>06 · Home — dark · populated</div>
+  <div class="phone" style="background:#1A1510;">
+    <div class="sb" style="color:#F3EBDD;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 2px;">
+      <div><div style="font-size:13px; color:#8A7E6E; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#F3EBDD;">Priya</div></div>
+      <div style="display:flex; gap:10px; align-items:center;"><div style="width:38px; height:38px; border-radius:12px; background:#241D16; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:21px; color:#F3EBDD;">search</span></div><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;">P</div></div>
+    </div>
+    <div style="margin:12px 18px 0; background:linear-gradient(150deg,#2A2218,#241D16); border-radius:26px; padding:22px; border:1px solid #3A322A;">
+      <div style="display:flex; align-items:center; gap:7px;"><span style="width:19px; height:19px; border-radius:50%; background:#34C0A4; color:#1A1510; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:13px;">arrow_upward</span></span><span style="font-size:13px; font-weight:700; color:#34C0A4;">Overall, you are owed</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:46px; line-height:1; margin-top:12px; color:#34C0A4;">₹12,450<span style="font-size:23px; opacity:.6;">.00</span></div>
+      <div style="font-size:12.5px; color:#8A7E6E; margin-top:9px;">across 6 friends · 3 groups</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 22px 8px;"><span style="font-weight:700; font-size:15px; color:#F3EBDD;">Top balances</span><span style="font-size:12.5px; font-weight:700; color:#EAA24A;">See all 5</span></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#241D16; border-radius:16px; padding:10px 13px;"><div class="av" style="background:#2E2620; color:#EAA24A;">R</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#F3EBDD;">Rahul Sharma</div><div style="font-size:11.5px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹4,250.00</span></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:10px 13px;"><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:20px;">flight</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#F3EBDD;">Goa Trip 2026</div><div style="font-size:11.5px; color:#8A7E6E;">you owe</div></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;"><span class="pill" style="background:rgba(242,133,107,.16); color:#F2856B;"><span class="ms" style="font-size:14px;">arrow_downward</span>₹2,100.00</span><span style="font-size:11px; font-weight:700; color:#EAA24A;">Settle up ›</span></div></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:10px 13px;"><div class="av" style="background:#2E2620; color:#7AA7E0;">A</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#F3EBDD;">Aditya Menon</div><div style="font-size:11.5px; color:#8A7E6E;">owes you</div></div><span class="pill" style="background:rgba(52,192,164,.16); color:#34C0A4;"><span class="ms" style="font-size:14px;">arrow_upward</span>₹1,200.00</span></div>
+    </div>
+    <div style="margin:14px 18px 0; background:#241D16; border-radius:22px; padding:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><span style="font-weight:700; font-size:14px; color:#F3EBDD;">This month</span><span style="font-size:11.5px; color:#8A7E6E;">Jun 2026</span></div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="position:relative; width:104px; height:104px; flex:none;"><div style="width:104px; height:104px; border-radius:50%; background:conic-gradient(#F59A52 0 30%,#9079E6 30% 56%,#5B9BE8 56% 70%,#73C463 70% 82%,#F074A6 82% 92%,#A99986 92% 100%);"></div><div style="position:absolute; inset:15px; border-radius:50%; background:#241D16; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div style="font-size:9px; color:#8A7E6E; font-weight:600;">Spent</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#F3EBDD;">₹38,640</div></div></div>
+        <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:7px 8px; font-size:11px; font-weight:600; color:#B9AE9D;"><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#F59A52;margin-right:6px;"></span>Food</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#9079E6;margin-right:6px;"></span>Rent</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#5B9BE8;margin-right:6px;"></span>Transport</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#73C463;margin-right:6px;"></span>Grocery</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#F074A6;margin-right:6px;"></span>Shopping</div><div><span style="display:inline-block;width:8px;height:8px;border-radius:3px;background:#A99986;margin-right:6px;"></span>Other</div></div>
+      </div>
+    </div>
+    <div style="position:absolute; right:20px; bottom:100px; width:56px; height:56px; border-radius:19px; background:#EAA24A; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -6px rgba(234,162,74,.5);"><span class="ms" style="font-size:30px; color:#1A1510;">add</span></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(26,21,16,.97); border-top:1px solid #3A322A; padding:10px 12px 24px;">
+      <div class="ni" style="color:#EAA24A;"><span class="ms msf" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">person</span>Profile</div>
+    </div>
+  </div>
+  <div class="cap">★ Same hero, true dark · brightened balance teal &amp; donut hues for legibility on near-black.</div>
+</div>
+
+<!-- HOME EMPTY -->
+<div style="position:absolute; left:1100px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">06 · Home — empty (new user)</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 2px;">
+      <div><div style="font-size:13px; color:#9A8F82; font-weight:600;">Namaste,</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B;">Priya</div></div>
+      <div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;">P</div>
+    </div>
+    <div style="margin:12px 18px 0; background:#EFE9DD; border-radius:26px; padding:22px;">
+      <div style="display:flex; align-items:center; gap:7px; color:#6F6557; font-weight:700; font-size:13px;"><span class="ms" style="font-size:18px;">check_circle</span>You're all settled up</div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:42px; line-height:1; margin-top:12px; color:#6F6557;">₹0.00</div>
+      <div style="font-size:12.5px; color:#9A8F82; margin-top:9px;">No balances yet — add your first expense.</div>
+    </div>
+    <div style="margin:40px 30px 0; display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <div style="width:120px; height:120px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; position:relative;"><span class="ms" style="font-size:56px; color:#E0922E;">receipt_long</span><div style="position:absolute; right:14px; bottom:14px; width:34px; height:34px; border-radius:50%; background:#0F7D6B; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:20px; color:#fff;">add</span></div></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B; margin-top:20px;">Let's split your first bill</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">Add an expense or invite a friend, and balances will show up right here.</div>
+      <button style="width:100%; min-height:50px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk'; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">add</span>Add an expense</button>
+      <button style="width:100%; min-height:50px; border:1.5px solid #E7DDCD; border-radius:15px; background:transparent; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk'; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">person_add</span>Invite a friend</button>
+    </div>
+    <div style="position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(255,253,248,.96); border-top:1px solid #EFE6D6; padding:10px 12px 24px;">
+      <div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div>
+    </div>
+  </div>
+  <div class="cap">First-run empty · settled-up zero state, friendly illustration, dual CTA (add expense / invite).</div>
+</div>
+
+<!-- ================= ROW 2: SEARCH + PICKER ================= -->
+
+<!-- SEARCH INITIAL -->
+<div style="position:absolute; left:80px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">07 · Search — initial</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:10px; padding:8px 18px 0;">
+      <div style="flex:1; display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E0922E; border-radius:14px; padding:0 13px; min-height:46px; box-shadow:0 0 0 3px rgba(224,146,46,.16);"><span class="ms" style="font-size:21px; color:#9A8F82;">search</span><span style="flex:1; font-size:15px; color:#9A8F82;">Search expenses…<span style="display:inline-block; width:2px; height:18px; background:#E0922E; vertical-align:-3px; margin-left:2px;"></span></span></div>
+      <span style="font-size:14px; font-weight:700; color:#A35E16;">Cancel</span>
+    </div>
+    <div style="display:flex; gap:8px; padding:14px 18px 0; overflow:hidden;">
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; font-size:12px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:15px;">calendar_today</span>Date<span class="ms" style="font-size:15px; color:#9A8F82;">expand_more</span></span>
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; font-size:12px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:15px;">groups</span>Group<span class="ms" style="font-size:15px; color:#9A8F82;">expand_more</span></span>
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; font-size:12px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:15px;">category</span>Category</span>
+    </div>
+    <div style="padding:24px 22px 0;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82; margin-bottom:12px;">Recent searches</div>
+      <div style="display:flex; flex-wrap:wrap; gap:9px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:999px; background:#FFF6E6; font-size:13px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:16px; color:#9A8F82;">history</span>Goa Trip</span>
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:999px; background:#FFF6E6; font-size:13px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:16px; color:#9A8F82;">history</span>Dinner</span>
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:999px; background:#FFF6E6; font-size:13px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:16px; color:#9A8F82;">history</span>Rahul</span>
+      </div>
+    </div>
+    <div style="position:absolute; left:0; right:0; top:380px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 40px;">
+      <div style="width:84px; height:84px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:42px; color:#E0922E;">search</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:17px; color:#2A211B; margin-top:16px;">Find any expense</div>
+      <div style="font-size:13px; color:#6F6557; margin-top:6px; line-height:1.5;">Search by description, amount, category or member.</div>
+    </div>
+  </div>
+  <div class="cap">Initial state · focused field, filter chips (date / group / category), recent searches + empty prompt.</div>
+</div>
+
+<!-- SEARCH RESULTS -->
+<div style="position:absolute; left:590px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">07 · Search — results</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:10px; padding:8px 18px 0;">
+      <div style="flex:1; display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E0922E; border-radius:14px; padding:0 13px; min-height:46px;"><span class="ms" style="font-size:21px; color:#9A8F82;">search</span><span style="flex:1; font-size:15px; color:#2A211B; font-weight:600;">din</span><span class="ms" style="font-size:19px; color:#9A8F82;">cancel</span></div>
+      <span style="font-size:14px; font-weight:700; color:#A35E16;">Cancel</span>
+    </div>
+    <div style="display:flex; gap:8px; padding:14px 18px 0; overflow:hidden;">
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#E0922E; font-size:12px; font-weight:700; color:#2A211B;"><span class="ms" style="font-size:15px;">calendar_today</span>This month</span>
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; font-size:12px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:15px;">groups</span>Group</span>
+      <span style="display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; font-size:12px; font-weight:600; color:#2A211B;"><span class="ms" style="font-size:15px;">category</span>Food</span>
+    </div>
+    <div style="font-size:12px; color:#9A8F82; padding:18px 22px 8px; font-weight:600;">3 results</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div style="width:40px; height:40px; border-radius:13px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Dinner at Bombay Canteen</div><div style="font-size:11.5px; color:#9A8F82;">Goa Trip · 22 Jun 2026</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; color:#2A211B;">₹3,200.00</div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div style="width:40px; height:40px; border-radius:13px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Diner — office lunch</div><div style="font-size:11.5px; color:#9A8F82;">Flatmates · 18 Jun 2026</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; color:#2A211B;">₹560.00</div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div style="width:40px; height:40px; border-radius:13px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Birthday dinner</div><div style="font-size:11.5px; color:#9A8F82;">Aditya · 09 Jun 2026</div></div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; color:#2A211B;">₹1,800.00</div></div>
+    </div>
+  </div>
+  <div class="cap">Results · live query “din”, active filter chip, category-icon result rows with amount, source &amp; IST date.</div>
+</div>
+
+<!-- ADD-EXPENSE CONTEXT PICKER -->
+<div style="position:absolute; left:1100px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">08 · Add expense — context picker</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 2px;"><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B;">Add an expense</span><span class="ms" style="font-size:26px; color:#2A211B;">close</span></div>
+    <div style="font-size:13.5px; color:#6F6557; padding:2px 22px 0;">Who's it with? Pick a friend or a group.</div>
+    <div style="padding:16px 18px 0;"><div style="display:flex; align-items:center; gap:8px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; padding:0 13px; min-height:46px;"><span class="ms" style="font-size:21px; color:#9A8F82;">search</span><span style="flex:1; font-size:15px; color:#9A8F82;">Search friends &amp; groups</span></div></div>
+    <div style="padding:20px 22px 8px;"><div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82;">Groups</div></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="padding:6px 4px;"><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:20px;">flight</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Goa Trip 2026</div><div style="font-size:11.5px; color:#9A8F82;">5 members</div></div><span class="ms" style="font-size:22px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="padding:6px 4px;"><div class="av" style="background:#6C4FC91A; color:#6C4FC9;"><span class="ms msf" style="font-size:20px;">home</span></div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Flatmates</div><div style="font-size:11.5px; color:#9A8F82;">3 members</div></div><span class="ms" style="font-size:22px; color:#C1B6A4;">chevron_right</span></div>
+    </div>
+    <div style="padding:18px 22px 8px;"><div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82;">Friends</div></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="padding:6px 4px;"><div class="av" style="background:#FCEBCF; color:#9a5a13;">R</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Rahul Sharma</div><div style="font-size:11.5px; color:#9A8F82;">+91 98765 43210</div></div><span class="ms" style="font-size:22px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="padding:6px 4px;"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">A</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Aditya Menon</div><div style="font-size:11.5px; color:#9A8F82;">+91 91234 56789</div></div><span class="ms" style="font-size:22px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="padding:6px 4px;"><div class="av" style="background:#E2F2EE; color:#0F7D6B;">N</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Neha Kapoor</div><div style="font-size:11.5px; color:#9A8F82;">+91 99887 76655</div></div><span class="ms" style="font-size:22px; color:#C1B6A4;">chevron_right</span></div>
+    </div>
+  </div>
+  <div class="cap">FAB → context picker · search + Groups/Friends sections; picking one opens the multi-step add-expense sheet (Phase 3e).</div>
+</div>
+
+</x-dc>
+</body>
+</html>

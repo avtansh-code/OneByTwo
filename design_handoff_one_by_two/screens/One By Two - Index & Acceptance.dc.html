@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; background:#EFE7D8; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .wrap{ max-width:980px; margin:0 auto; }
+  .sec{ background:#FBF6EE; border-radius:28px; padding:38px 42px; margin:22px 0; }
+  .kicker{ font-family:'Hanken Grotesk'; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#C75D3C; }
+  .h2{ font-family:'Bricolage Grotesque'; font-weight:700; font-size:28px; color:#2A211B; margin:8px 0 4px; letter-spacing:-.01em; }
+  .lead{ font-family:'Hanken Grotesk'; font-size:15px; line-height:1.55; color:#6F6557; max-width:680px; }
+  a{ text-decoration:none; }
+</style>
+</helmet>
+
+<div style="font-family:'Hanken Grotesk',sans-serif; padding:36px 24px 70px;">
+<div class="wrap">
+
+  <div style="display:flex; align-items:center; gap:22px; margin-bottom:4px;">
+    <div style="width:72px; height:72px; border-radius:22px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 10px 26px -8px rgba(217,122,30,.55);"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+    <div>
+      <div class="kicker">One By Two</div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:38px; color:#2A211B; line-height:1.05; margin-top:4px;">Project index &amp; acceptance</div>
+      <div class="lead" style="margin-top:6px;">The complete visual system, UI &amp; launch assets — Direction A, <b style="color:#2A211B;">Haldi</b>. Split it. Settle it. Simple.</div>
+    </div>
+  </div>
+
+  <!-- INDEX -->
+  <div class="sec">
+    <div class="kicker">Deliverables</div>
+    <div class="h2">Everything in this project</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" id="idx"></div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="sec">
+    <div class="kicker">Acceptance checklist</div>
+    <div class="h2">Every requirement, confirmed</div>
+    <div style="display:flex; flex-direction:column; gap:2px; margin-top:18px;" id="chk"></div>
+  </div>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){
+    const files = [
+      ["Phase0 - Directions.dc.html","Phase 0","Three visual directions, Home hero each","palette"],
+      ["Phase1 - Foundations.dc.html","Phase 1","Logo, icon, splash, colour, type, motion","brush"],
+      ["Phase2 - Components.dc.html","Phase 2","Full component library, all states, L+D","widgets"],
+      ["Phase3a - Auth.dc.html","Phase 3a","Splash, onboarding, +91 phone, OTP, profile","login"],
+      ["Phase3b - Home.dc.html","Phase 3b","Home dashboard, search, add-expense picker","home"],
+      ["Phase3c - Friends.dc.html","Phase 3c","Friends list, add/lookup, detail, history","group"],
+      ["Phase3d - Groups.dc.html","Phase 3d","Groups, create, detail, members, history","groups"],
+      ["Phase3e - Expenses.dc.html","Phase 3e","Add expense, split, settle up, reminders","receipt_long"],
+      ["Phase3f - Profile.dc.html","Phase 3f","Activity, push, profile, settings, delete","person"],
+      ["Phase4 - Marketing.dc.html","Phase 4","Store screenshots, socials, landing, copy","campaign"],
+    ];
+    document.getElementById("idx").innerHTML = files.map(f=>`
+      <a href="${encodeURI(f[0])}" style="display:flex; align-items:center; gap:14px; background:#fff; border-radius:16px; padding:15px 16px; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+        <div style="width:44px; height:44px; border-radius:13px; background:#FFF6E6; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:23px; color:#E0922E;">${f[3]}</span></div>
+        <div style="flex:1; min-width:0;"><div style="font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#C75D3C;">${f[1]}</div><div style="font-weight:700; font-size:14px; color:#2A211B; margin-top:2px;">${f[2]}</div></div>
+        <span class="ms" style="font-size:20px; color:#C1B6A4;">arrow_outward</span>
+      </a>`).join("");
+
+    const checks = [
+      ["Light + dark themes","Both delivered across foundations, components and every hero screen — AA/AAA contrast tabled in Phase 1."],
+      ["Empty / loading / error states","Friends, Groups, Activity, Search empties; shimmer skeletons; error state with Retry + Contact support."],
+      ["₹ Indian number formatting","Lakh/crore grouping, ₹ prefix, two decimals — worked examples ₹0.00 → ₹5,00,00,000.00 in Phase 1."],
+      ["Balance = colour + text + icon","Owed (teal ↑) / owe (rust ↓) / settled (neutral ✓) always paired with label + arrow — never colour alone."],
+      ["+91 phone lock","Locked +91 prefix, 10-digit field, 6-digit OTP throughout auth and add-friend."],
+      ["System share sheet only","Invites hand off to a generic OS sheet with abstract targets — no WhatsApp/SMS or any single-app buttons."],
+      ["No raw debt graph","Settle-up always shows one pre-filled simplified-debt suggestion; group balances are simplified."],
+      ["WCAG AA contrast","Key foreground/background pairings measured and noted; ink-on-marigold used to clear AA on buttons."],
+      ["Large-type safe","Generous tap targets (≥44pt), flexible rows and wrapping layouts that survive dynamic type."],
+      ["Extension slots marked","“Pay via UPI” (Settle up), “Make recurring” (Add expense), and “Language” (Profile) all present &amp; tagged Coming Soon."],
+      ["IST dates","Absolute “24 Jun 2026” + relative “2h ago / Yesterday” used consistently."],
+      ["Friendly microcopy","“You're all settled up — high five!”, reminder nudges, and light playful tone throughout."],
+    ];
+    document.getElementById("chk").innerHTML = checks.map(c=>`
+      <div style="display:flex; align-items:flex-start; gap:13px; padding:13px 0; border-bottom:1px solid #EFE6D6;">
+        <span class="ms" style="font-size:24px; color:#0F7D6B; flex:none;">check_circle</span>
+        <div><div style="font-weight:700; font-size:15px; color:#2A211B;">${c[0]}</div><div style="font-size:13px; color:#6F6557; margin-top:2px; line-height:1.5;">${c[1]}</div></div>
+      </div>`).join("");
+  }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

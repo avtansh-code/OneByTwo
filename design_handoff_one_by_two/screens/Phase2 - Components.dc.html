@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; background:#EFE7D8; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; font-style:normal; line-height:1; display:inline-block; white-space:nowrap; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .wrap{ max-width:1080px; margin:0 auto; }
+  .sec{ background:#FBF6EE; border-radius:28px; padding:34px 38px; margin:22px 0; box-shadow:0 1px 2px rgba(42,33,27,.04); }
+  .kicker{ font-family:'Hanken Grotesk',sans-serif; font-weight:700; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#C75D3C; }
+  .h2{ font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:26px; color:#2A211B; margin:6px 0 4px; letter-spacing:-.01em; }
+  .lead{ font-family:'Hanken Grotesk',sans-serif; font-size:14px; line-height:1.5; color:#6F6557; max-width:720px; }
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px; }
+  .thlabel{ font-family:'Hanken Grotesk'; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  @keyframes shimmer{ 0%{ background-position:-360px 0;} 100%{ background-position:360px 0;} }
+</style>
+</helmet>
+
+<div style="font-family:'Hanken Grotesk',sans-serif; padding:34px 24px 70px;">
+<div class="wrap">
+  <div style="display:flex; align-items:center; gap:22px; margin-bottom:6px;">
+    <div style="width:64px; height:64px; border-radius:20px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 10px 26px -8px rgba(217,122,30,.55);">
+      <svg width="34" height="34" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>
+    </div>
+    <div>
+      <div class="kicker">One By Two · Phase 2</div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#2A211B; line-height:1.05; margin-top:4px;">Component library</div>
+      <div class="lead" style="margin-top:6px;">Every reusable piece, in all states, light &amp; dark. Tap targets ≥44pt · pressed/disabled/loading shown · built from the Haldi tokens.</div>
+    </div>
+  </div>
+  <div id="lib"></div>
+  <div style="text-align:center; font-size:12.5px; color:#9A8F82; font-family:'Hanken Grotesk';">Phase 2 of 5 · Components — next: <b style="color:#C75D3C;">Phase 3, all screens</b>.</div>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){
+    const L = { k:'l', bg:'#FBF6EE', surf:'#FFFFFF', sv:'#FFF6E6', text:'#2A211B', t2:'#6F6557', t3:'#9A8F82', out:'#E7DDCD', pri:'#E0922E', priP:'#C77F22', onPri:'#2A211B', sec:'#C75D3C', link:'#A35E16', pos:'#0F7D6B', posBg:'#E2F2EE', neg:'#BC4030', negBg:'#FBE6DC', zero:'#6F6557', zeroBg:'#EFE9DD', dis:'#E4DCCE', disT:'#B8AC9B', shadow:'0 6px 18px -8px rgba(42,33,27,.18)', sk1:'#EFE6D6', sk2:'#F7F0E3' };
+    const D = { k:'d', bg:'#1A1510', surf:'#241D16', sv:'#2E2620', text:'#F3EBDD', t2:'#B9AE9D', t3:'#8A7E6E', out:'#3A322A', pri:'#EAA24A', priP:'#D08F3C', onPri:'#1A1510', sec:'#E07A55', link:'#EAA24A', pos:'#34C0A4', posBg:'rgba(52,192,164,.16)', neg:'#F2856B', negBg:'rgba(242,133,107,.16)', zero:'#A99C8C', zeroBg:'rgba(255,255,255,.07)', dis:'#332B23', disT:'#6B6053', shadow:'0 8px 22px -10px rgba(0,0,0,.6)', sk1:'#2A2218', sk2:'#352B20' };
+
+    const ms=(n,sz,c,fill)=>`<span class="ms${fill?' msf':''}" style="font-size:${sz}px;color:${c};">${n}</span>`;
+    const spinner=(c)=>`<span style="width:15px;height:15px;border-radius:50%;border:2px solid ${c}55;border-top-color:${c};display:inline-block;animation:spin .7s linear infinite;"></span>`;
+
+    // ---------- BUTTONS ----------
+    const btn=(t,kind,label,state,icon)=>{
+      let s=`min-height:44px;padding:0 18px;border-radius:14px;font-family:'Hanken Grotesk';font-weight:700;font-size:14px;letter-spacing:.01em;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid transparent;cursor:pointer;box-sizing:border-box;`;
+      let txt=t.onPri, ic=t.onPri;
+      if(kind==='filled'){ s+=`background:${t.pri};color:${t.onPri};`; ic=t.onPri; }
+      if(kind==='tonal'){ s+=`background:${t.sv};color:${t.link};`; txt=ic=t.link; }
+      if(kind==='outlined'){ s+=`background:transparent;border-color:${t.out};color:${t.text};`; txt=ic=t.text; }
+      if(kind==='text'){ s+=`background:transparent;color:${t.link};`; txt=ic=t.link; }
+      if(kind==='destructive'){ s+=`background:${t.neg};color:#fff;`; txt=ic='#fff'; }
+      if(state==='pressed'){ s+=`background:${kind==='filled'?t.priP:(kind==='destructive'?'#9c3326':t.sv)};transform:scale(.97);filter:brightness(.97);`; }
+      if(state==='disabled'){ s=`min-height:44px;padding:0 18px;border-radius:14px;font-family:'Hanken Grotesk';font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px;box-sizing:border-box;background:${t.dis};color:${t.disT};border:1.5px solid transparent;`; txt=ic=t.disT; }
+      const inner = state==='loading' ? `${spinner(txt)}<span>${label}</span>` : `${icon?ms(icon,18,ic):''}<span>${label}</span>`;
+      return `<button style="${s}">${inner}</button>`;
+    };
+    const buttonsPanel=(t)=>`
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        ${btn(t,'filled','Add expense','default','add')}
+        ${btn(t,'tonal','Settle up','default')}
+        ${btn(t,'outlined','Invite','default','ios_share')}
+        ${btn(t,'text','See all','default')}
+        ${btn(t,'destructive','Delete','default','delete')}
+      </div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">States · filled</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <div style="text-align:center;">${btn(t,'filled','Add','default','add')}<div style="font-size:9px;color:${t.t3};margin-top:5px;">default</div></div>
+        <div style="text-align:center;">${btn(t,'filled','Add','pressed','add')}<div style="font-size:9px;color:${t.t3};margin-top:5px;">pressed</div></div>
+        <div style="text-align:center;">${btn(t,'filled','Adding','loading')}<div style="font-size:9px;color:${t.t3};margin-top:5px;">loading</div></div>
+        <div style="text-align:center;">${btn(t,'filled','Add','disabled','add')}<div style="font-size:9px;color:${t.t3};margin-top:5px;">disabled</div></div>
+      </div>`;
+
+    // ---------- PILLS / AVATARS / CHIPS ----------
+    const pill=(t,kind)=>{
+      const map={pos:[t.posBg,t.pos,'arrow_upward','₹350.00'],neg:[t.negBg,t.neg,'arrow_downward','₹2,100.00'],zero:[t.zeroBg,t.zero,'check','Settled']};
+      const [bg,c,ic,v]=map[kind];
+      return `<span style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:999px;background:${bg};color:${c};font-family:'Bricolage Grotesque';font-weight:700;font-size:13px;">${ms(ic,15,c)}${v}</span>`;
+    };
+    const av=(t,c,bg,init)=>`<div style="width:42px;height:42px;border-radius:14px;background:${bg};color:${c};display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque';font-weight:700;font-size:15px;flex:none;">${init}</div>`;
+    const stacked=(t)=>`<div style="display:flex;align-items:center;">${['#FCEBCF;#9a5a13;R','#E7EEF6;#2E6F9E;P','#E2F2EE;#0F7D6B;A','#FBE6DC;#BC4030;+3'].map((x,i)=>{const[bg,c,n]=x.split(';');return `<div style="width:34px;height:34px;border-radius:11px;background:${t.k==='d'?t.sv:bg};color:${t.k==='d'?t.text:c};display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque';font-weight:700;font-size:12px;border:2px solid ${t.surf};margin-left:${i?-10:0}px;">${n}</div>`;}).join('')}</div>`;
+    const chip=(t,c,ic,label,active)=>`<span style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:${active?c:(t.k==='d'?t.sv:c+'1A')};color:${active?'#fff':c};font-weight:600;font-size:12.5px;border:1.5px solid ${active?c:'transparent'};">${ms(ic,16,active?'#fff':c)}${label}</span>`;
+    const pacPanel=(t)=>`
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">Balance pills</div><div style="display:flex;gap:9px;flex-wrap:wrap;">${pill(t,'pos')}${pill(t,'neg')}${pill(t,'zero')}</div></div>
+        <div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">Avatars · single &amp; stacked</div><div style="display:flex;gap:12px;align-items:center;">${av(t,'#fff','#E0922E','P')}${av(t,t.k==='d'?'#EAA24A':'#9a5a13',t.k==='d'?t.sv:'#FCEBCF','R')}<div style="width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#ECA64A,#C75D3C);"></div>${stacked(t)}</div></div>
+        <div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">Category chips · default &amp; selected</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${chip(t,'#E8762B','restaurant','Food',true)}${chip(t,'#2E78C9','directions_bus','Transport',false)}${chip(t,'#4FA13E','local_grocery_store','Groceries',false)}${chip(t,'#6C4FC9','home','Rent',false)}</div></div>
+      </div>`;
+
+    // ---------- LIST TILES ----------
+    const friendRow=(t)=>`<div style="display:flex;align-items:center;gap:13px;background:${t.surf};border-radius:18px;padding:12px 14px;box-shadow:${t.shadow};">${av(t,t.k==='d'?'#EAA24A':'#9a5a13',t.k==='d'?t.sv:'#FCEBCF','R')}<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14.5px;color:${t.text};">Rahul Sharma</div><div style="font-size:12px;color:${t.t3};">owes you</div></div>${pill(t,'pos')}</div>`;
+    const groupRow=(t)=>`<div style="display:flex;align-items:center;gap:13px;background:${t.surf};border-radius:18px;padding:12px 14px;box-shadow:${t.shadow};"><div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#ECA64A,#C75D3C);display:flex;align-items:center;justify-content:center;flex:none;">${ms('flight',22,'#fff',true)}</div><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14.5px;color:${t.text};">Goa Trip 2026</div><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:${t.t3};">${stackedSmall(t)} 5 members</div></div>${pill(t,'neg')}</div>`;
+    function stackedSmall(t){return `<span style="display:inline-flex;">${['#ECA64A','#0F7D6B','#2E6F9E'].map((c,i)=>`<span style="width:16px;height:16px;border-radius:5px;background:${c};border:1.5px solid ${t.surf};margin-left:${i?-5:0}px;display:inline-block;"></span>`).join('')}</span>`;}
+    const actRow=(t)=>`<div style="display:flex;align-items:flex-start;gap:13px;background:${t.surf};border-radius:18px;padding:12px 14px;box-shadow:${t.shadow};"><div style="width:38px;height:38px;border-radius:12px;background:${t.k==='d'?t.sv:'#FFF6E6'};display:flex;align-items:center;justify-content:center;flex:none;">${ms('receipt_long',20,t.pri)}</div><div style="flex:1;min-width:0;"><div style="font-size:13.5px;color:${t.text};line-height:1.4;"><b>Priya</b> added <b>Dinner at Bombay Canteen</b></div><div style="font-size:11.5px;color:${t.t3};margin-top:2px;">Goa Trip · 2h ago</div></div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:14px;color:${t.text};">₹3,200.00</div></div>`;
+    const tilesPanel=(t)=>`<div style="display:flex;flex-direction:column;gap:10px;">${friendRow(t)}${groupRow(t)}${actRow(t)}</div>`;
+
+    // ---------- APP BAR + NAV + FAB ----------
+    const appbar=(t)=>`<div style="background:${t.bg};border-radius:16px 16px 0 0;padding:14px 16px 12px;border:1px solid ${t.out};border-bottom:none;"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:10px;">${ms('arrow_back',22,t.text)}<span style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;color:${t.text};">Friends</span></div><div style="display:flex;gap:14px;">${ms('search',22,t.text)}${ms('add',22,t.text)}</div></div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:30px;color:${t.text};margin-top:10px;letter-spacing:-.01em;">Friends</div></div>`;
+    const nav=(t)=>{const items=[['home','Home',1],['group','Friends',0],['groups','Groups',0],['bolt','Activity',0],['person','Profile',0]];return `<div style="background:${t.surf};border:1px solid ${t.out};border-top:none;border-radius:0 0 16px 16px;padding:10px 12px 12px;"><div style="display:flex;justify-content:space-around;align-items:center;">${items.map(it=>{const on=it[2]===1;return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;">${ms(it[0],24,on?t.pri:t.t3,on)}<span style="font-size:10px;font-weight:600;color:${on?t.pri:t.t3};">${it[1]}</span></div>`;}).join('')}</div></div>`;};
+    const barPanel=(t)=>`<div style="position:relative;">${appbar(t)}<div style="height:46px;background:${t.surf};border-left:1px solid ${t.out};border-right:1px solid ${t.out};"></div>${nav(t)}<div style="position:absolute;right:16px;bottom:82px;width:56px;height:56px;border-radius:19px;background:${t.pri};display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px -6px ${t.pri}99;">${ms('add',30,t.onPri)}</div></div>`;
+
+    // ---------- INPUTS ----------
+    const field=(t,label,val,state,icon)=>{
+      let bc=t.out,lc=t.t2,bg=t.surf;
+      if(state==='focused'){bc=t.pri;lc=t.pri;}
+      if(state==='error'){bc=t.neg;lc=t.neg;}
+      if(state==='disabled'){bg=t.dis;}
+      return `<div><label style="font-size:11px;font-weight:700;color:${lc};display:block;margin-bottom:6px;">${label}</label><div style="display:flex;align-items:center;gap:9px;min-height:50px;background:${bg};border:1.5px solid ${bc};border-radius:14px;padding:0 14px;">${icon?ms(icon,20,t.t3):''}<span style="flex:1;font-size:15px;color:${val?t.text:t.t3};">${val||'Placeholder'}</span>${state==='focused'?`<span style="width:2px;height:20px;background:${t.pri};"></span>`:''}${state==='error'?ms('error',20,t.neg):''}</div>${state==='error'?`<div style="font-size:11.5px;color:${t.neg};margin-top:5px;display:flex;align-items:center;gap:4px;">${ms('info',14,t.neg)}Splits must add up to the total</div>`:''}</div>`;
+    };
+    const phoneField=(t)=>`<div><label style="font-size:11px;font-weight:700;color:${t.t2};display:block;margin-bottom:6px;">Mobile number</label><div style="display:flex;align-items:center;min-height:50px;background:${t.surf};border:1.5px solid ${t.out};border-radius:14px;overflow:hidden;"><div style="padding:0 14px;height:50px;display:flex;align-items:center;gap:6px;background:${t.sv};color:${t.text};font-weight:700;font-size:15px;border-right:1.5px solid ${t.out};">🇮🇳 +91</div><span style="flex:1;padding:0 14px;font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;letter-spacing:.02em;color:${t.text};">98765 43210</span></div></div>`;
+    const otp=(t)=>`<div><label style="font-size:11px;font-weight:700;color:${t.t2};display:block;margin-bottom:8px;">Enter 6-digit code</label><div style="display:flex;gap:9px;">${['5','4','2','','','' ].map((d,i)=>`<div style="width:46px;height:54px;border-radius:14px;border:1.5px solid ${i===3?t.pri:t.out};background:${t.surf};display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;color:${t.text};box-shadow:${i===3?`0 0 0 3px ${t.pri}33`:'none'};">${d||(i===3?`<span style='width:2px;height:24px;background:${t.pri};display:inline-block;'></span>`:'')}</div>`).join('')}</div><div style="font-size:11.5px;color:${t.t3};margin-top:8px;">Resend code in 0:24 · Auto-fills on Android</div></div>`;
+    const amountInput=(t)=>`<div style="background:${t.sv};border-radius:18px;padding:20px;text-align:center;"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${t.t3};">Amount</div><div style="display:inline-flex;align-items:baseline;gap:4px;margin-top:8px;"><span style="font-family:'Bricolage Grotesque';font-weight:700;font-size:30px;color:${t.t2};">₹</span><span style="font-family:'Bricolage Grotesque';font-weight:700;font-size:46px;color:${t.text};letter-spacing:-.01em;">3,200</span><span style="font-family:'Bricolage Grotesque';font-weight:700;font-size:30px;color:${t.t3};">.00</span><span style="width:3px;height:42px;background:${t.pri};display:inline-block;margin-left:2px;border-radius:2px;"></span></div></div>`;
+    const inputsPanel=(t)=>`<div style="display:flex;flex-direction:column;gap:14px;">${amountInput(t)}${phoneField(t)}<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${field(t,'Description','Dinner','focused','edit')}${field(t,'Note','','default','sticky_note_2')}</div>${field(t,'Your share','₹1,600.00','error','currency_rupee')}${otp(t)}</div>`;
+
+    // ---------- SEGMENTED + STEPPER + SLIDER ----------
+    const segmented=(t)=>{const opts=['Equally','Unequal','%','Shares','Exact'];return `<div style="display:inline-flex;background:${t.sv};border-radius:14px;padding:4px;gap:2px;flex-wrap:wrap;">${opts.map((o,i)=>`<span style="padding:8px 13px;border-radius:11px;font-size:12.5px;font-weight:700;color:${i===0?t.onPri:t.t2};background:${i===0?t.pri:'transparent'};">${o}</span>`).join('')}</div>`;};
+    const stepper=(t)=>`<div style="display:flex;align-items:center;gap:14px;"><span style="font-size:13px;color:${t.t2};">Shares</span><div style="display:flex;align-items:center;gap:0;border:1.5px solid ${t.out};border-radius:12px;overflow:hidden;"><span style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:${t.text};">${ms('remove',20,t.text)}</span><span style="width:40px;text-align:center;font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;color:${t.text};">2</span><span style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:${t.sv};">${ms('add',20,t.pri)}</span></div></div>`;
+    const slider=(t)=>`<div><div style="display:flex;justify-content:space-between;font-size:12px;color:${t.t2};margin-bottom:8px;"><span>Priya's split</span><span style="font-family:'Bricolage Grotesque';font-weight:700;color:${t.text};">60%</span></div><div style="position:relative;height:6px;border-radius:3px;background:${t.out};"><div style="position:absolute;left:0;top:0;bottom:0;width:60%;background:${t.pri};border-radius:3px;"></div><div style="position:absolute;left:60%;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:${t.pri};border:3px solid ${t.surf};box-shadow:${t.shadow};"></div></div></div>`;
+    const contactRow=(t)=>`<div style="display:flex;align-items:center;gap:13px;padding:8px 2px;">${av(t,'#fff','#2E6F9E','A')}<div style="flex:1;"><div style="font-weight:700;font-size:14px;color:${t.text};">Aditya Menon</div><div style="font-size:12px;color:${t.t3};">+91 91234 56789</div></div><span style="width:24px;height:24px;border-radius:7px;background:${t.pri};display:flex;align-items:center;justify-content:center;">${ms('check',16,t.onPri)}</span></div>`;
+    const controlsPanel=(t)=>`<div style="display:flex;flex-direction:column;gap:18px;"><div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">Split method · segmented</div>${segmented(t)}</div><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">${stepper(t)}</div>${slider(t)}<div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:4px;">Contact picker row</div>${contactRow(t)}</div></div>`;
+
+    // ---------- SETTLE CARD + SHEET + DIALOG ----------
+    const settleCard=(t)=>`<div style="background:${t.surf};border-radius:22px;padding:20px;box-shadow:${t.shadow};border:1px solid ${t.out};"><div style="font-size:12px;color:${t.t3};font-weight:600;">Suggested payment · simplified</div><div style="display:flex;align-items:center;gap:12px;margin:14px 0;">${av(t,'#fff','#E0922E','You')}<div style="flex:1;height:2px;border-top:2px dashed ${t.out};position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:${t.surf};padding:0 6px;">${ms('arrow_forward',18,t.pri)}</span></div>${av(t,'#fff','#2E6F9E','R')}</div><div style="text-align:center;"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:32px;color:${t.text};">₹2,100.00</div><div style="font-size:12.5px;color:${t.t2};margin-top:2px;">You pay Rahul</div></div><div style="margin-top:14px;padding:11px;border:1.5px dashed ${t.out};border-radius:13px;display:flex;align-items:center;justify-content:center;gap:8px;color:${t.t3};font-size:12px;">${ms('payments',18,t.t3)}Pay via UPI<span style="font-size:10px;background:${t.sv};padding:2px 7px;border-radius:6px;">SOON</span></div></div>`;
+    const sheet=(t)=>`<div style="background:${t.surf};border-radius:22px 22px 0 0;padding:8px 18px 20px;box-shadow:${t.shadow};border:1px solid ${t.out};"><div style="width:38px;height:4px;border-radius:2px;background:${t.out};margin:6px auto 16px;"></div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:19px;color:${t.text};">Add expense</div><div style="font-size:12.5px;color:${t.t3};margin-top:4px;">Step 1 of 3 · Amount &amp; details</div><div style="display:flex;gap:5px;margin-top:12px;">${[1,0,0].map(a=>`<div style="flex:1;height:4px;border-radius:2px;background:${a?t.pri:t.out};"></div>`).join('')}</div></div>`;
+    const dialog=(t)=>`<div style="background:${t.surf};border-radius:22px;padding:22px;box-shadow:${t.shadow};text-align:center;border:1px solid ${t.out};"><div style="width:48px;height:48px;border-radius:50%;background:${t.negBg};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ms('delete',24,t.neg)}</div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;color:${t.text};">Delete this expense?</div><div style="font-size:13px;color:${t.t2};margin-top:6px;line-height:1.45;">This can't be undone. Balances for everyone in Goa Trip will update.</div><div style="display:flex;gap:10px;margin-top:18px;">${btn(t,'outlined','Cancel','default')}<div style="flex:1;">${btn(t,'destructive','Delete','default')}</div></div></div>`;
+    const overlayPanel=(t)=>`<div style="display:flex;flex-direction:column;gap:14px;">${settleCard(t)}${sheet(t)}${dialog(t)}</div>`;
+
+    // ---------- FEEDBACK: toast / banner / empty / error / skeleton ----------
+    const toast=(t)=>`<div style="display:flex;align-items:center;gap:10px;background:${t.k==='d'?'#3a3128':'#2A211B'};color:#FBF6EE;border-radius:14px;padding:13px 16px;box-shadow:${t.shadow};">${ms('check_circle',20,'#34C0A4',true)}<span style="flex:1;font-size:13px;">Expense added to Goa Trip</span><span style="font-weight:700;font-size:13px;color:${t.pri};">Undo</span></div>`;
+    const banner=(t)=>`<div style="display:flex;align-items:center;gap:10px;background:${t.k==='d'?'rgba(232,163,61,.16)':'#FBEFD6'};color:${t.k==='d'?'#F2B863':'#9a5a13'};border-radius:12px;padding:11px 14px;">${ms('wifi_off',20,t.k==='d'?'#F2B863':'#9a5a13')}<span style="flex:1;font-size:12.5px;font-weight:600;">You're offline — changes will sync when you're back.</span></div>`;
+    const empty=(t)=>`<div style="background:${t.surf};border-radius:18px;padding:24px 18px;text-align:center;border:1px solid ${t.out};"><div style="width:60px;height:60px;border-radius:50%;background:${t.sv};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ms('group',30,t.pri)}</div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;color:${t.text};">No friends yet</div><div style="font-size:12.5px;color:${t.t2};margin:6px 0 14px;">Add a friend to start splitting bills.</div>${btn(t,'filled','Add a friend','default','person_add')}</div>`;
+    const errorState=(t)=>`<div style="background:${t.surf};border-radius:18px;padding:24px 18px;text-align:center;border:1px solid ${t.out};"><div style="width:60px;height:60px;border-radius:50%;background:${t.negBg};display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ms('cloud_off',30,t.neg)}</div><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;color:${t.text};">Couldn't load</div><div style="font-size:12.5px;color:${t.t2};margin:6px 0 14px;">Something went wrong on our end.</div><div style="display:flex;gap:10px;justify-content:center;">${btn(t,'filled','Retry','default','refresh')}${btn(t,'text','Contact support','default')}</div></div>`;
+    const skel=(t)=>{const bar=(w,h)=>`<div style="height:${h}px;width:${w};border-radius:7px;background:linear-gradient(90deg,${t.sk1} 25%,${t.sk2} 37%,${t.sk1} 63%);background-size:720px 100%;animation:shimmer 1.3s infinite linear;"></div>`;return `<div style="background:${t.surf};border-radius:18px;padding:14px;border:1px solid ${t.out};display:flex;flex-direction:column;gap:14px;">${[0,1,2].map(()=>`<div style="display:flex;align-items:center;gap:12px;"><div style="width:42px;height:42px;border-radius:14px;flex:none;background:linear-gradient(90deg,${t.sk1} 25%,${t.sk2} 37%,${t.sk1} 63%);background-size:720px 100%;animation:shimmer 1.3s infinite linear;"></div><div style="flex:1;display:flex;flex-direction:column;gap:7px;">${bar('55%',11)}${bar('35%',9)}</div>${bar('60px',22)}</div>`).join('')}</div>`;};
+    const feedbackPanel=(t)=>`<div style="display:flex;flex-direction:column;gap:14px;">${toast(t)}${banner(t)}<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${empty(t)}${errorState(t)}</div><div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${t.t3};margin-bottom:9px;">Skeleton loader</div>${skel(t)}</div></div>`;
+
+    // ---------- ASSEMBLE ----------
+    const sections=[
+      ['Actions','Buttons',buttonsPanel,'Filled · tonal · outlined · text · destructive. Ink-on-marigold for AA. States: default, pressed, loading, disabled.'],
+      ['Signals','Balance pills, avatars &amp; chips',pacPanel,'The positive / negative / settled trio + identity and category atoms.'],
+      ['Lists','List tiles',tilesPanel,'Friend, group and activity rows — the spine of every list screen.'],
+      ['Navigation','App bar, bottom nav &amp; FAB',barPanel,'Large-title header; 5-tab bottom nav (Home · Friends · Groups · Activity · Profile) with a floating FAB.'],
+      ['Inputs','Fields, amount, phone &amp; OTP',inputsPanel,'Big ₹ amount, locked +91, 6-box OTP with auto-advance, inline validation.'],
+      ['Inputs','Split controls',controlsPanel,'Segmented split methods, stepper for shares, percentage slider, contact picker.'],
+      ['Surfaces','Settle card, sheet &amp; dialog',overlayPanel,'Pre-filled simplified settle-up (with UPI slot), multi-step sheet with grabber, confirmation dialog.'],
+      ['Feedback','Toast, banner &amp; states',feedbackPanel,'Snackbar, offline banner, empty, error (Retry + Support) and skeleton.'],
+    ];
+    const panelWrap=(t,inner)=>`<div style="background:${t.bg};border-radius:18px;padding:18px;"><div class="thlabel" style="color:${t.t3};"><span style="width:10px;height:10px;border-radius:3px;background:${t.k==='l'?'#FFFFFF':'#241D16'};border:1px solid ${t.out};display:inline-block;"></span>${t.k==='l'?'Light':'Dark'}</div>${inner}</div>`;
+    document.getElementById('lib').innerHTML = sections.map(s=>`
+      <div class="sec">
+        <div class="kicker">${s[0]}</div>
+        <div class="h2">${s[1]}</div>
+        <div class="lead">${s[3]}</div>
+        <div class="cols">${panelWrap(L,s[2](L))}${panelWrap(D,s[2](D))}</div>
+      </div>`).join('');
+  }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

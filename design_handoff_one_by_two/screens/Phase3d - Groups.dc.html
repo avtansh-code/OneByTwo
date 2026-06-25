@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .phone{ width:390px; height:844px; border-radius:46px; border:9px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 40px 80px -20px rgba(20,16,10,.4), 0 8px 24px -8px rgba(20,16,10,.25); }
+  .sb{ display:flex; justify-content:space-between; align-items:center; padding:15px 28px 4px; font-size:14px; font-weight:700; }
+  .sb .bars{ display:flex; gap:6px; align-items:center; }
+  .sb .bars i{ width:17px; height:11px; border-radius:2px; background:currentColor; opacity:.9; display:inline-block; }
+  .sb .bars u{ width:15px; height:11px; border:1.5px solid currentColor; border-radius:3px; display:inline-block; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ width:390px; margin-top:14px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .row{ display:flex; align-items:center; gap:12px; }
+  .av{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; flex:none; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:999px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; white-space:nowrap; }
+  .ni{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; font-size:10px; font-weight:600; }
+  .nav{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(255,253,248,.96); border-top:1px solid #EFE6D6; padding:10px 12px 24px; }
+  .fab{ position:absolute; right:20px; bottom:100px; width:56px; height:56px; border-radius:19px; background:#E0922E; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -6px rgba(224,146,46,.6); }
+  .stk{ display:inline-flex; }
+  .stk span{ width:22px; height:22px; border-radius:7px; border:2px solid #fff; display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; font-family:'Bricolage Grotesque'; }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:900px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · Phase 3d</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Groups</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:760px;">Groups list (populated + empty) · create group with type · group detail ★ (light + dark) · invite via share · members &amp; admin actions · leave/delete blocked states · group history.</div>
+</div>
+
+<!-- ========== ROW 1 ========== -->
+
+<!-- GROUPS LIST -->
+<div style="position:absolute; left:80px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">14 · Groups — populated</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#2A211B;">search</span><span class="ms" style="font-size:25px; color:#2A211B;">add</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:6px 22px 4px; letter-spacing:-.01em;">Groups</div>
+    <div style="padding:10px 18px 0; display:flex; flex-direction:column; gap:10px;">
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="width:48px; height:48px; border-radius:15px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:24px;">flight</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Goa Trip 2026</div><div class="stk" style="margin-top:5px;"><span style="background:#ECA64A; color:#fff; margin-left:0;">P</span><span style="background:#0F7D6B; color:#fff; margin-left:-7px;">R</span><span style="background:#2E6F9E; color:#fff; margin-left:-7px;">A</span><span style="background:#EFE6D6; color:#6F6557; margin-left:-7px;">+2</span></div></div><div style="text-align:right;"><div style="font-size:11px; color:#9A8F82;">you owe</div><span class="pill" style="background:#FBE6DC; color:#BC4030; margin-top:2px;"><span class="ms" style="font-size:13px;">arrow_downward</span>₹2,100.00</span></div></div>
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="width:48px; height:48px; border-radius:15px; background:#6C4FC91A; color:#6C4FC9;"><span class="ms msf" style="font-size:24px;">home</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Flatmates</div><div class="stk" style="margin-top:5px;"><span style="background:#ECA64A; color:#fff; margin-left:0;">P</span><span style="background:#6C4FC9; color:#fff; margin-left:-7px;">V</span><span style="background:#B5489B; color:#fff; margin-left:-7px;">N</span></div></div><div style="text-align:right;"><div style="font-size:11px; color:#9A8F82;">you are owed</div><span class="pill" style="background:#E2F2EE; color:#0F7D6B; margin-top:2px;"><span class="ms" style="font-size:13px;">arrow_upward</span>₹3,400.00</span></div></div>
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="width:48px; height:48px; border-radius:15px; background:#E8762B1A; color:#E8762B;"><span class="ms msf" style="font-size:24px;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Office Lunch Club</div><div class="stk" style="margin-top:5px;"><span style="background:#2E6F9E; color:#fff; margin-left:0;">A</span><span style="background:#0F7D6B; color:#fff; margin-left:-7px;">S</span><span style="background:#EFE6D6; color:#6F6557; margin-left:-7px;">+6</span></div></div><div style="text-align:right;"><span class="pill" style="background:#EFE9DD; color:#6F6557;"><span class="ms" style="font-size:13px;">check</span>Settled</span></div></div>
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="width:48px; height:48px; border-radius:15px; background:#D94F871A; color:#D94F87;"><span class="ms msf" style="font-size:24px;">favorite</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Home — Mum &amp; Dad</div><div class="stk" style="margin-top:5px;"><span style="background:#ECA64A; color:#fff; margin-left:0;">P</span><span style="background:#C75D3C; color:#fff; margin-left:-7px;">M</span><span style="background:#0F7D6B; color:#fff; margin-left:-7px;">D</span></div></div><div style="text-align:right;"><div style="font-size:11px; color:#9A8F82;">you owe</div><span class="pill" style="background:#FBE6DC; color:#BC4030; margin-top:2px;"><span class="ms" style="font-size:13px;">arrow_downward</span>₹1,200.00</span></div></div>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Each group: type icon, stacked members, and your simplified net balance in the group.</div>
+</div>
+
+<!-- GROUPS EMPTY -->
+<div style="position:absolute; left:590px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">14 · Groups — empty</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 22px 0;"><span class="ms" style="font-size:25px; color:#2A211B;">search</span><span class="ms" style="font-size:25px; color:#2A211B;">add</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:6px 22px 4px; letter-spacing:-.01em;">Groups</div>
+    <div style="position:absolute; left:0; right:0; top:300px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 42px;">
+      <div style="width:110px; height:110px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; position:relative;"><span class="ms" style="font-size:54px; color:#E0922E;">groups</span><div style="position:absolute; right:8px; bottom:10px; width:34px; height:34px; border-radius:50%; background:#0F7D6B; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:20px; color:#fff;">add</span></div></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B; margin-top:20px;">No groups yet</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">Create a group for a trip, your flat, or family to track shared spends together.</div>
+      <button style="min-height:50px; padding:0 26px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk'; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">add</span>Create a group</button>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Empty · suggests the three common group types right in the copy.</div>
+</div>
+
+<!-- CREATE GROUP -->
+<div style="position:absolute; left:1100px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">15 · Create group</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">close</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">New group</span><span style="font-size:14px; font-weight:700; color:#C1B6A4;">Create</span></div>
+    <div style="padding:18px 22px 0; display:flex; flex-direction:column; align-items:center;">
+      <div style="width:84px; height:84px; border-radius:24px; background:#FFF6E6; border:1.5px dashed #E0C8A0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"><span class="ms" style="font-size:26px; color:#E0922E;">add_a_photo</span></div>
+      <div style="font-size:12px; color:#9A8F82; margin-top:8px;">Add a cover (optional)</div>
+    </div>
+    <div style="padding:18px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:8px;">GROUP NAME</label>
+      <div style="display:flex; align-items:center; min-height:52px; background:#fff; border:1.5px solid #E0922E; border-radius:14px; padding:0 14px; box-shadow:0 0 0 3px rgba(224,146,46,.16);"><span style="flex:1; font-size:16px; font-weight:600; color:#2A211B;">Goa Trip 2026<span style="display:inline-block; width:2px; height:20px; background:#E0922E; vertical-align:-3px; margin-left:2px;"></span></span></div>
+    </div>
+    <div style="padding:20px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:10px;">GROUP TYPE</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:13px; border-radius:14px; background:#FFF4E2; border:1.5px solid #E0922E;"><span class="ms" style="font-size:22px; color:#E0922E;">flight</span><span style="font-weight:700; font-size:14px; color:#2A211B;">Trip</span><span class="ms" style="font-size:18px; color:#E0922E; margin-left:auto;">check_circle</span></div>
+        <div style="display:flex; align-items:center; gap:10px; padding:13px; border-radius:14px; background:#fff; border:1.5px solid #E7DDCD;"><span class="ms" style="font-size:22px; color:#6C4FC9;">home</span><span style="font-weight:700; font-size:14px; color:#2A211B;">Home</span></div>
+        <div style="display:flex; align-items:center; gap:10px; padding:13px; border-radius:14px; background:#fff; border:1.5px solid #E7DDCD;"><span class="ms" style="font-size:22px; color:#D94F87;">favorite</span><span style="font-weight:700; font-size:14px; color:#2A211B;">Couple</span></div>
+        <div style="display:flex; align-items:center; gap:10px; padding:13px; border-radius:14px; background:#fff; border:1.5px solid #E7DDCD;"><span class="ms" style="font-size:22px; color:#8A7B6B;">category</span><span style="font-weight:700; font-size:14px; color:#2A211B;">Other</span></div>
+      </div>
+    </div>
+    <div style="position:absolute; left:22px; right:22px; bottom:40px;"><button style="width:100%; min-height:52px; border:none; border-radius:16px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px; font-family:'Hanken Grotesk';">Create group</button></div>
+  </div>
+  <div class="cap">Optional cover, name (validated), and the four group types — Trip / Home / Couple / Other.</div>
+</div>
+
+<!-- INVITE MEMBERS -->
+<div style="position:absolute; left:80px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">17 · Invite members</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Invite members</div><div style="font-size:11.5px; color:#9A8F82;">to Goa Trip 2026</div></div></div>
+    <div style="padding:16px 22px 0;">
+      <div style="display:flex; align-items:center; gap:12px; background:#FFF6E6; border-radius:16px; padding:14px;"><div style="width:42px; height:42px; border-radius:13px; background:#E0922E; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:22px; color:#2A211B;">link</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Share invite link</div><div style="font-size:11px; color:#9A8F82;">Expires in 7 days · revocable by admin</div></div><span class="ms" style="font-size:24px; color:#A35E16;">ios_share</span></div>
+    </div>
+    <div style="padding:16px 22px 0;">
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; display:flex; align-items:center; min-height:48px; background:#fff; border:1.5px solid #E7DDCD; border-radius:14px; overflow:hidden;"><div style="padding:0 11px; height:48px; display:flex; align-items:center; gap:4px; background:#FFF6E6; font-weight:700; font-size:14px; color:#2A211B; border-right:1.5px solid #E7DDCD;">🇮🇳 +91</div><span style="flex:1; padding:0 11px; font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; color:#9A8F82;">Add by number</span></div>
+        <button style="width:54px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:13px;">Add</button>
+      </div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82; padding:20px 22px 6px;">From contacts</div>
+    <div style="padding:0 22px; display:flex; flex-direction:column; gap:2px;">
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#FCEBCF; color:#9a5a13;">K</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Karan Bhatia</div><div style="font-size:11px; color:#0F7D6B; font-weight:600;">On One By Two</div></div><span style="width:26px; height:26px; border-radius:8px; background:#E0922E; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:18px; color:#2A211B;">check</span></span></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">M</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Meera Joshi</div><div style="font-size:11px; color:#9A8F82;">+91 90123 45678</div></div><span style="width:26px; height:26px; border-radius:8px; border:1.5px solid #D8CFC0;"></span></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#EADFF6; color:#6C4FC9;">T</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Tanvi Desai</div><div style="font-size:11px; color:#9A8F82;">+91 93456 78901</div></div><span style="width:26px; height:26px; border-radius:8px; border:1.5px solid #D8CFC0;"></span></div>
+    </div>
+    <div style="position:absolute; left:22px; right:22px; bottom:40px;"><button style="width:100%; min-height:50px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk';">Invite 1 member</button></div>
+  </div>
+  <div class="cap">Share link (7-day, admin-revocable) via OS sheet, +91 entry, or multi-select contacts.</div>
+</div>
+
+<!-- ========== ROW 2 ========== -->
+
+<!-- GROUP DETAIL LIGHT -->
+<div style="position:absolute; left:590px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>16 · Group detail — light</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div style="background:linear-gradient(140deg,#ECA64A,#C75D3C); padding:0 0 18px;">
+      <div class="sb" style="color:#FFF7E8;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 22px 0;"><span class="ms" style="font-size:26px; color:#FFF7E8;">arrow_back</span><span class="ms" style="font-size:26px; color:#FFF7E8;">more_horiz</span></div>
+      <div style="padding:14px 22px 0;">
+        <div style="display:flex; align-items:center; gap:8px;"><span class="ms msf" style="font-size:22px; color:#FFF7E8;">flight</span><span style="font-size:12px; font-weight:700; color:rgba(255,247,232,.85); text-transform:uppercase; letter-spacing:.08em;">Trip · 5 members</span></div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#FFF7E8; margin-top:6px;">Goa Trip 2026</div>
+      </div>
+    </div>
+    <div style="margin:-12px 18px 0; background:#fff; border-radius:20px; padding:16px; box-shadow:0 8px 20px -8px rgba(42,33,27,.18); position:relative;">
+      <div style="display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:12px; color:#9A8F82; font-weight:600;">Your balance</div><div style="display:flex; align-items:center; gap:5px; color:#BC4030; font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; margin-top:2px;"><span class="ms" style="font-size:18px;">arrow_downward</span>₹2,100.00</div></div><button style="border:none; border-radius:13px; background:#E0922E; color:#2A211B; font-weight:700; font-size:14px; padding:11px 18px; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:18px;">payments</span>Settle up</button></div>
+    </div>
+    <div style="display:flex; gap:8px; padding:16px 18px 4px;"><span style="padding:8px 15px; border-radius:999px; background:#E0922E; color:#2A211B; font-weight:700; font-size:12.5px;">Expenses</span><span style="padding:8px 15px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; color:#6F6557; font-weight:600; font-size:12.5px;">Balances</span><span style="padding:8px 15px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; color:#6F6557; font-weight:600; font-size:12.5px;">Activity</span></div>
+    <div style="padding:8px 18px 0; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Dinner at Bombay Canteen</div><div style="font-size:11px; color:#9A8F82;">Priya paid · 22 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹3,200.00</div><div style="font-size:10px; color:#BC4030;">your share ₹640</div></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#6C4FC91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#6C4FC9;">hotel</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Beach resort — 2 nights</div><div style="font-size:11px; color:#9A8F82;">Rahul paid · 21 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹18,000.00</div><div style="font-size:10px; color:#BC4030;">your share ₹3,600</div></div></div>
+      <div class="row" style="background:#fff; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:#2E78C91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#2E78C9;">directions_car</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Scooter rentals</div><div style="font-size:11px; color:#9A8F82;">Aditya paid · 21 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹2,400.00</div><div style="font-size:10px; color:#0F7D6B;">you lent ₹480</div></div></div>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+  </div>
+  <div class="cap">★ Cover header by type, your simplified balance + Settle Up, Expenses/Balances/Activity tabs, FAB.</div>
+</div>
+
+<!-- GROUP DETAIL DARK -->
+<div style="position:absolute; left:1100px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>16 · Group detail — dark</div>
+  <div class="phone" style="background:#1A1510;">
+    <div style="background:linear-gradient(140deg,#C77F2E,#9c4329); padding:0 0 18px;">
+      <div class="sb" style="color:#FFF7E8;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 22px 0;"><span class="ms" style="font-size:26px; color:#FFF7E8;">arrow_back</span><span class="ms" style="font-size:26px; color:#FFF7E8;">more_horiz</span></div>
+      <div style="padding:14px 22px 0;">
+        <div style="display:flex; align-items:center; gap:8px;"><span class="ms msf" style="font-size:22px; color:#FFF7E8;">flight</span><span style="font-size:12px; font-weight:700; color:rgba(255,247,232,.85); text-transform:uppercase; letter-spacing:.08em;">Trip · 5 members</span></div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#FFF7E8; margin-top:6px;">Goa Trip 2026</div>
+      </div>
+    </div>
+    <div style="margin:-12px 18px 0; background:#241D16; border-radius:20px; padding:16px; border:1px solid #3A322A; position:relative;">
+      <div style="display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:12px; color:#8A7E6E; font-weight:600;">Your balance</div><div style="display:flex; align-items:center; gap:5px; color:#F2856B; font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; margin-top:2px;"><span class="ms" style="font-size:18px;">arrow_downward</span>₹2,100.00</div></div><button style="border:none; border-radius:13px; background:#EAA24A; color:#1A1510; font-weight:700; font-size:14px; padding:11px 18px; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:18px;">payments</span>Settle up</button></div>
+    </div>
+    <div style="display:flex; gap:8px; padding:16px 18px 4px;"><span style="padding:8px 15px; border-radius:999px; background:#EAA24A; color:#1A1510; font-weight:700; font-size:12.5px;">Expenses</span><span style="padding:8px 15px; border-radius:999px; background:#241D16; border:1.5px solid #3A322A; color:#B9AE9D; font-weight:600; font-size:12.5px;">Balances</span><span style="padding:8px 15px; border-radius:999px; background:#241D16; border:1.5px solid #3A322A; color:#B9AE9D; font-weight:600; font-size:12.5px;">Activity</span></div>
+    <div style="padding:8px 18px 0; display:flex; flex-direction:column; gap:8px;">
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:rgba(245,154,82,.18); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#F59A52;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#F3EBDD;">Dinner at Bombay Canteen</div><div style="font-size:11px; color:#8A7E6E;">Priya paid · 22 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#F3EBDD;">₹3,200.00</div><div style="font-size:10px; color:#F2856B;">your share ₹640</div></div></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:rgba(144,121,230,.18); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#9079E6;">hotel</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#F3EBDD;">Beach resort — 2 nights</div><div style="font-size:11px; color:#8A7E6E;">Rahul paid · 21 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#F3EBDD;">₹18,000.00</div><div style="font-size:10px; color:#F2856B;">your share ₹3,600</div></div></div>
+      <div class="row" style="background:#241D16; border-radius:16px; padding:11px 13px;"><div style="width:40px; height:40px; border-radius:13px; background:rgba(91,155,232,.18); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:21px; color:#5B9BE8;">directions_car</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#F3EBDD;">Scooter rentals</div><div style="font-size:11px; color:#8A7E6E;">Aditya paid · 21 Jun 2026</div></div><div style="text-align:right;"><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#F3EBDD;">₹2,400.00</div><div style="font-size:10px; color:#34C0A4;">you lent ₹480</div></div></div>
+    </div>
+    <div class="fab" style="background:#EAA24A; box-shadow:0 12px 24px -6px rgba(234,162,74,.5);"><span class="ms" style="font-size:30px; color:#1A1510;">add</span></div>
+  </div>
+  <div class="cap">★ Dark theme · same structure, brightened balance &amp; category hues on near-black surfaces.</div>
+</div>
+
+<!-- GROUP MEMBERS -->
+<div style="position:absolute; left:80px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">18 · Group members &amp; admin actions</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Members</div><div style="font-size:11.5px; color:#9A8F82;">Goa Trip 2026 · 5 people</div></div></div>
+    <div style="padding:16px 22px 0;"><button style="width:100%; min-height:46px; border:1.5px dashed #E0C8A0; border-radius:14px; background:#FFF6E6; color:#A35E16; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">person_add</span>Invite members</button></div>
+    <div style="padding:14px 22px 0; display:flex; flex-direction:column; gap:2px;">
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;">P</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Priya (You) <span style="font-size:10px; font-weight:700; color:#A35E16; background:#FFF6E6; padding:2px 7px; border-radius:6px; margin-left:4px;">ADMIN</span></div><div style="font-size:11px; color:#9A8F82;">settled within group</div></div></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#FCEBCF; color:#9a5a13;">R</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Rahul Sharma</div><div style="font-size:11px; color:#BC4030; font-weight:600;">owes the group ₹2,100</div></div><span class="ms" style="font-size:22px; color:#D8CFC0;" title="Settle first to remove">lock</span></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#E7EEF6; color:#2E6F9E;">A</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Aditya Menon</div><div style="font-size:11px; color:#0F7D6B; font-weight:600;">all settled</div></div><span class="ms" style="font-size:22px; color:#BC4030;">person_remove</span></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#F3E1EC; color:#B5489B;">N</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Neha Kapoor</div><div style="font-size:11px; color:#9A8F82;">owes the group ₹900</div></div><span class="ms" style="font-size:22px; color:#D8CFC0;">lock</span></div>
+      <div class="row" style="padding:9px 0;"><div class="av" style="background:#EADFF6; color:#6C4FC9;">V</div><div style="flex:1;"><div style="font-weight:700; font-size:14px; color:#2A211B;">Vikram Rao</div><div style="font-size:11px; color:#0F7D6B; font-weight:600;">all settled</div></div><span class="ms" style="font-size:22px; color:#BC4030;">person_remove</span></div>
+    </div>
+    <div style="margin:18px 22px 0; background:#FFF6E6; border-radius:14px; padding:12px 14px; display:flex; gap:9px; font-size:11.5px; color:#6F6557; line-height:1.4;"><span class="ms" style="font-size:18px; color:#A35E16;">info</span>Admins can remove a member only once their balance is zero.</div>
+  </div>
+  <div class="cap">Admin badge · settled members are removable (red), owing members locked until they settle.</div>
+</div>
+
+<!-- GROUP HISTORY -->
+<div style="position:absolute; left:590px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">20 · Group history</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Activity</div><div style="font-size:11.5px; color:#9A8F82;">Goa Trip 2026</div></div></div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:16px 22px 6px;">Today</div>
+    <div style="padding:0 22px; display:flex; flex-direction:column; gap:14px;">
+      <div class="row" style="align-items:flex-start; gap:11px;"><div style="width:34px; height:34px; border-radius:11px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:18px; color:#E8762B;">receipt_long</span></div><div style="flex:1;"><div style="font-size:13px; color:#2A211B; line-height:1.4;"><b>Priya</b> added <b>Dinner at Bombay Canteen</b></div><div style="font-size:11px; color:#9A8F82; margin-top:1px;">₹3,200.00 · 2h ago</div></div></div>
+      <div class="row" style="align-items:flex-start; gap:11px;"><div style="width:34px; height:34px; border-radius:11px; background:#E2F2EE; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:18px; color:#0F7D6B;">payments</span></div><div style="flex:1;"><div style="font-size:13px; color:#2A211B; line-height:1.4;"><b>Aditya</b> paid <b>Rahul</b> ₹1,200.00</div><div style="font-size:11px; color:#9A8F82; margin-top:1px;">Settlement · 5h ago</div></div></div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:18px 22px 6px;">Yesterday</div>
+    <div style="padding:0 22px; display:flex; flex-direction:column; gap:14px;">
+      <div class="row" style="align-items:flex-start; gap:11px;"><div style="width:34px; height:34px; border-radius:11px; background:#6C4FC91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:18px; color:#6C4FC9;">hotel</span></div><div style="flex:1;"><div style="font-size:13px; color:#2A211B; line-height:1.4;"><b>Rahul</b> added <b>Beach resort — 2 nights</b></div><div style="font-size:11px; color:#9A8F82; margin-top:1px;">₹18,000.00 · 23 Jun 2026</div></div></div>
+      <div class="row" style="align-items:flex-start; gap:11px;"><div style="width:34px; height:34px; border-radius:11px; background:#EFE9DD; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:18px; color:#6F6557;">edit</span></div><div style="flex:1;"><div style="font-size:13px; color:#2A211B; line-height:1.4;"><b>Aditya</b> edited <b>Scooter rentals</b></div><div style="font-size:11px; color:#9A8F82; margin-top:1px;">₹2,400.00 · 23 Jun 2026</div></div></div>
+      <div class="row" style="align-items:flex-start; gap:11px;"><div style="width:34px; height:34px; border-radius:11px; background:#FFF6E6; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:18px; color:#E0922E;">group_add</span></div><div style="flex:1;"><div style="font-size:13px; color:#2A211B; line-height:1.4;"><b>Neha</b> joined the group</div><div style="font-size:11px; color:#9A8F82; margin-top:1px;">22 Jun 2026</div></div></div>
+    </div>
+  </div>
+  <div class="cap">Chronological group log · expenses, edits, settlements and membership changes with relative + IST dates.</div>
+</div>
+
+<!-- ========== ROW 3 ========== -->
+
+<!-- LEAVE GROUP BLOCKED -->
+<div style="position:absolute; left:1100px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">19 · Leave group — blocked</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="background:linear-gradient(140deg,#ECA64A,#C75D3C); height:120px; border-radius:0;"></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.45);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FBEFD6; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#A35E16;">lock</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Settle before you leave</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5;">You still owe <b style="color:#2A211B;">₹2,100.00</b> in Goa Trip 2026. Clear your balance, then you can leave the group.</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+        <button style="min-height:48px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; gap:7px;"><span class="ms" style="font-size:19px;">payments</span>Settle up now</button>
+        <button style="min-height:46px; border:none; border-radius:14px; background:transparent; color:#6F6557; font-weight:700; font-size:14px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Leaving allowed only when your balance is zero · explains the blocker, routes to Settle up.</div>
+</div>
+
+<!-- DELETE GROUP BLOCKED -->
+<div style="position:absolute; left:80px; top:3240px; width:390px;">
+  <div class="label" data-drags-parent="1">19 · Delete group — admin, blocked</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.9); opacity:.4; pointer-events:none;">
+      <div style="background:linear-gradient(140deg,#ECA64A,#C75D3C); height:120px;"></div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.45);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FBE6DC; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#BC4030;">delete_forever</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B; text-align:center;">Can't delete yet</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5; text-align:center;">Everyone must be settled before a group is deleted. <b style="color:#2A211B;">3 balances</b> are still outstanding:</div>
+      <div style="margin-top:14px; display:flex; flex-direction:column; gap:7px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius:11px; padding:9px 12px;"><span style="font-size:13px; font-weight:600; color:#2A211B;">Rahul</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#BC4030;">owes ₹2,100.00</span></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius:11px; padding:9px 12px;"><span style="font-size:13px; font-weight:600; color:#2A211B;">Neha</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#BC4030;">owes ₹900.00</span></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius:11px; padding:9px 12px;"><span style="font-size:13px; font-weight:600; color:#2A211B;">You</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; color:#0F7D6B;">are owed ₹3,000.00</span></div>
+      </div>
+      <button style="width:100%; min-height:48px; border:none; border-radius:14px; background:transparent; color:#6F6557; font-weight:700; font-size:14px; margin-top:16px;">Got it</button>
+    </div>
+  </div>
+  <div class="cap">Admin delete blocked until all balances are zero · lists exactly who's outstanding.</div>
+</div>
+
+
+<!-- GROUP DETAIL — BALANCES TAB -->
+<div style="position:absolute; left:590px; top:3240px; width:390px;">
+  <div class="label" data-drags-parent="1">16 · Group detail — Balances tab</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div style="background:linear-gradient(140deg,#ECA64A,#C75D3C); padding:0 0 18px;">
+      <div class="sb" style="color:#FFF7E8;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 22px 0;"><span class="ms" style="font-size:26px; color:#FFF7E8;">arrow_back</span><span class="ms" style="font-size:24px; color:#FFF7E8;">group</span></div>
+      <div style="padding:14px 22px 0;">
+        <div style="display:flex; align-items:center; gap:8px;"><span class="ms msf" style="font-size:22px; color:#FFF7E8;">flight</span><span style="font-size:12px; font-weight:700; color:rgba(255,247,232,.85); text-transform:uppercase; letter-spacing:.08em;">Trip · 5 members</span></div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:26px; color:#FFF7E8; margin-top:6px;">Goa Trip 2026</div>
+      </div>
+    </div>
+    <div style="margin:-12px 18px 0; background:#fff; border-radius:20px; padding:16px; box-shadow:0 8px 20px -8px rgba(42,33,27,.18);">
+      <div style="display:flex; align-items:center; justify-content:space-between;"><div><div style="font-size:12px; color:#9A8F82; font-weight:600;">Your balance</div><div style="display:flex; align-items:center; gap:5px; color:#BC4030; font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; margin-top:2px;"><span class="ms" style="font-size:18px;">arrow_downward</span>₹2,100.00</div></div><button style="border:none; border-radius:13px; background:#E0922E; color:#2A211B; font-weight:700; font-size:14px; padding:11px 18px; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:18px;">payments</span>Settle up</button></div>
+    </div>
+    <div style="display:flex; gap:8px; padding:16px 18px 6px;"><span style="padding:8px 15px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; color:#6F6557; font-weight:600; font-size:12.5px;">Expenses</span><span style="padding:8px 15px; border-radius:999px; background:#E0922E; color:#2A211B; font-weight:700; font-size:12.5px;">Balances</span><span style="padding:8px 15px; border-radius:999px; background:#fff; border:1.5px solid #E7DDCD; color:#6F6557; font-weight:600; font-size:12.5px;">Activity</span></div>
+
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:8px 22px 8px;">Net balances</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:36px; height:36px; border-radius:12px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:13px;">P</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">You</div><div style="font-size:11px; color:#9A8F82;">you owe</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030; font-size:12px;"><span class="ms" style="font-size:13px;">arrow_downward</span>₹2,100.00</span></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:36px; height:36px; border-radius:12px; background:#F3E1EC; color:#B5489B; font-size:13px;">N</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Neha</div><div style="font-size:11px; color:#9A8F82;">owes the group</div></div><span class="pill" style="background:#FBE6DC; color:#BC4030; font-size:12px;"><span class="ms" style="font-size:13px;">arrow_downward</span>₹900.00</span></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:36px; height:36px; border-radius:12px; background:#FCEBCF; color:#9a5a13; font-size:13px;">R</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Rahul</div><div style="font-size:11px; color:#9A8F82;">gets back</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B; font-size:12px;"><span class="ms" style="font-size:13px;">arrow_upward</span>₹1,620.00</span></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:36px; height:36px; border-radius:12px; background:#E7EEF6; color:#2E6F9E; font-size:13px;">A</div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13.5px; color:#2A211B;">Aditya</div><div style="font-size:11px; color:#9A8F82;">gets back</div></div><span class="pill" style="background:#E2F2EE; color:#0F7D6B; font-size:12px;"><span class="ms" style="font-size:13px;">arrow_upward</span>₹1,380.00</span></div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:7px; padding:16px 22px 8px;"><span class="ms" style="font-size:17px; color:#E0922E;">auto_awesome</span><span style="font-weight:700; font-size:13.5px; color:#2A211B;">Simplified settle-up</span><span style="font-size:11px; color:#9A8F82; margin-left:auto;">3 payments</span></div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:32px; height:32px; border-radius:10px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:12px;">P</div><span class="ms" style="font-size:17px; color:#9A8F82;">arrow_forward</span><div class="av" style="width:32px; height:32px; border-radius:10px; background:#FCEBCF; color:#9a5a13; font-size:12px;">R</div><div style="flex:1; min-width:0; margin-left:2px;"><div style="font-weight:700; font-size:12.5px; color:#2A211B;">You pay Rahul</div><div style="font-size:10px; color:#A35E16; font-weight:700;">Tap to settle</div></div><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹1,620.00</span></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:32px; height:32px; border-radius:10px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:12px;">P</div><span class="ms" style="font-size:17px; color:#9A8F82;">arrow_forward</span><div class="av" style="width:32px; height:32px; border-radius:10px; background:#E7EEF6; color:#2E6F9E; font-size:12px;">A</div><div style="flex:1; min-width:0; margin-left:2px;"><div style="font-weight:700; font-size:12.5px; color:#2A211B;">You pay Aditya</div><div style="font-size:10px; color:#A35E16; font-weight:700;">Tap to settle</div></div><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹480.00</span></div>
+      <div class="row" style="background:#fff; border-radius:14px; padding:9px 12px;"><div class="av" style="width:32px; height:32px; border-radius:10px; background:#F3E1EC; color:#B5489B; font-size:12px;">N</div><span class="ms" style="font-size:17px; color:#9A8F82;">arrow_forward</span><div class="av" style="width:32px; height:32px; border-radius:10px; background:#E7EEF6; color:#2E6F9E; font-size:12px;">A</div><div style="flex:1; min-width:0; margin-left:2px;"><div style="font-weight:700; font-size:12.5px; color:#2A211B;">Neha pays Aditya</div><div style="font-size:10px; color:#9A8F82;">Simplified</div></div><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:13.5px; color:#2A211B;">₹900.00</span></div>
+    </div>
+    <div style="margin:14px 18px 0; background:#FFF6E6; border-radius:12px; padding:10px 13px; display:flex; gap:9px; font-size:11px; color:#6F6557; line-height:1.4;"><span class="ms" style="font-size:17px; color:#A35E16;">info</span>The fewest payments to clear everyone — never a tangled who-owes-who web.</div>
+  </div>
+  <div class="cap">★ Balances tab · per-member net balances (owed / owes / settled) + the minimum set of simplified payments to settle the whole group.</div>
+</div>
+</x-dc>
+</body>
+</html>

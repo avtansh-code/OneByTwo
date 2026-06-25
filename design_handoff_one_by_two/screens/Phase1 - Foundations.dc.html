@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; background:#EFE7D8; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; font-style:normal; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; word-wrap:normal; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .wrap{ max-width:1040px; margin:0 auto; }
+  .sec{ background:#FBF6EE; border-radius:28px; padding:40px 44px; margin:22px 0; box-shadow:0 1px 2px rgba(42,33,27,.04); }
+  .kicker{ font-family:'Hanken Grotesk',sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#C75D3C; }
+  .h2{ font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:30px; color:#2A211B; margin:8px 0 4px; letter-spacing:-.01em; }
+  .lead{ font-family:'Hanken Grotesk',sans-serif; font-size:15px; line-height:1.55; color:#6F6557; max-width:680px; }
+  .h3{ font-family:'Bricolage Grotesque',sans-serif; font-weight:600; font-size:17px; color:#2A211B; margin:26px 0 12px; }
+  table{ border-collapse:collapse; width:100%; font-family:'Hanken Grotesk',sans-serif; font-size:13px; }
+  th{ text-align:left; font-weight:700; color:#9A8F82; font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:0 12px 9px; border-bottom:1px solid #E7DDCD; }
+  td{ padding:10px 12px; border-bottom:1px solid #EFE6D6; color:#2A211B; vertical-align:middle; }
+  td.mono,.mono{ font-family:'Bricolage Grotesque',sans-serif; font-variant-numeric:tabular-nums; }
+  .chiprow{ display:flex; flex-wrap:wrap; gap:10px; }
+  .card{ background:#fff; border-radius:20px; padding:18px; box-shadow:0 1px 3px rgba(42,33,27,.06); }
+  .divx svg{ display:block; }
+</style>
+</helmet>
+
+<div style="font-family:'Hanken Grotesk',sans-serif; padding:34px 24px 70px;">
+<div class="wrap">
+
+  <!-- ===== MASTHEAD ===== -->
+  <div style="display:flex; align-items:center; gap:22px; margin-bottom:6px;">
+    <div style="width:72px; height:72px; border-radius:22px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px -8px rgba(217,122,30,.55); flex:none;">
+      <svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>
+    </div>
+    <div>
+      <div class="kicker" style="color:#C75D3C;">One By Two · Phase 1</div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:38px; color:#2A211B; line-height:1.05; margin-top:4px;">Brand &amp; Foundations</div>
+      <div class="lead" style="margin-top:6px;">Direction A — <b style="color:#2A211B;">Haldi</b>. The complete brand kernel and design tokens every screen is built from.</div>
+    </div>
+  </div>
+
+  <!-- ===== LOGO / WORDMARK ===== -->
+  <div class="sec">
+    <div class="kicker">Brand identity</div>
+    <div class="h2">Logo &amp; wordmark</div>
+    <div class="lead">The mark is the <b>division sign (÷)</b> — “one <i>by</i> two” literally means to divide. Two dots, one bar: two people, one shared bill, split clean. Geometric, warm, instantly legible at 16px.</div>
+
+    <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:18px; margin-top:24px;">
+      <!-- primary lockup -->
+      <div class="card" style="display:flex; flex-direction:column; gap:18px; padding:30px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:56px; height:56px; border-radius:18px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none;">
+            <svg width="30" height="30" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>
+          </div>
+          <div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:28px; color:#2A211B; letter-spacing:-.02em; line-height:1;">One<span style="color:#E0922E;">By</span>Two</div>
+            <div style="font-size:12.5px; color:#6F6557; margin-top:4px; letter-spacing:.01em;">Split it. Settle it. Simple.</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#EFE6D6;"></div>
+        <div style="font-size:12px; color:#9A8F82;">Primary horizontal lockup · mark + wordmark + tagline</div>
+      </div>
+
+      <!-- stacked + reversed -->
+      <div style="display:grid; grid-template-rows:1fr 1fr; gap:18px;">
+        <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+          <svg width="34" height="34" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#E0922E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#E0922E"/><circle cx="50" cy="73" r="9" fill="#C75D3C"/></svg>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:#2A211B; letter-spacing:-.01em;">One<span style="color:#E0922E;">By</span>Two</div>
+        </div>
+        <div style="background:#2A211B; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:12px;">
+          <svg width="26" height="26" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#ECA64A"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#ECA64A"/><circle cx="50" cy="73" r="9" fill="#ECA64A"/></svg>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:#FBF6EE;">One<span style="color:#ECA64A;">By</span>Two</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- clear space / min size / dos donts -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:18px; margin-top:18px;">
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:10px;">Clear space</div>
+        <div style="position:relative; height:96px; background:#FFF6E6; border-radius:12px; display:flex; align-items:center; justify-content:center; outline:2px dashed #E6C58A; outline-offset:-14px;">
+          <svg width="30" height="30" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#E0922E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#E0922E"/><circle cx="50" cy="73" r="9" fill="#C75D3C"/></svg>
+        </div>
+        <div style="font-size:11.5px; color:#9A8F82; margin-top:9px;">Keep padding ≥ the height of one dot on all sides.</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:10px;">Minimum size</div>
+        <div style="display:flex; align-items:flex-end; gap:16px; height:96px; justify-content:center;">
+          <div style="text-align:center;"><svg width="44" height="44" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#E0922E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#E0922E"/><circle cx="50" cy="73" r="9" fill="#C75D3C"/></svg><div style="font-size:10px;color:#9A8F82;margin-top:4px;">44px app</div></div>
+          <div style="text-align:center;"><svg width="16" height="16" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#E0922E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#E0922E"/><circle cx="50" cy="73" r="9" fill="#C75D3C"/></svg><div style="font-size:10px;color:#9A8F82;margin-top:4px;">16px favicon</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:10px;">Do &amp; don’t</div>
+        <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
+          <div style="display:flex; gap:8px; align-items:center; color:#0F7D6B;"><span class="ms msf" style="font-size:17px;">check_circle</span>Use marigold or single-colour ink/cream</div>
+          <div style="display:flex; gap:8px; align-items:center; color:#0F7D6B;"><span class="ms msf" style="font-size:17px;">check_circle</span>Keep the ÷ dots circular, bar centred</div>
+          <div style="display:flex; gap:8px; align-items:center; color:#BC4030;"><span class="ms msf" style="font-size:17px;">cancel</span>Don’t recolour with off-brand hues</div>
+          <div style="display:flex; gap:8px; align-items:center; color:#BC4030;"><span class="ms msf" style="font-size:17px;">cancel</span>Don’t stretch, rotate, or add shadow to the mark</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APP ICON + SPLASH ===== -->
+  <div class="sec">
+    <div class="kicker">Brand identity</div>
+    <div class="h2">App icon &amp; splash</div>
+    <div class="lead">One mark, two platform masters. iOS ships a full-bleed rounded-square (no transparency); Android splits into adaptive foreground + background layers, mark inside the safe zone so any OS mask works.</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px;">
+      <!-- iOS -->
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:14px;">iOS · rounded-square master <span style="color:#9A8F82; font-weight:500;">1024²</span></div>
+        <div style="display:flex; gap:18px; align-items:center;">
+          <div style="width:120px; height:120px; border-radius:27px; background:radial-gradient(120% 120% at 30% 20%, #F2B45C, #D97A1E 75%); display:flex; align-items:center; justify-content:center; box-shadow:0 14px 30px -10px rgba(217,122,30,.6); flex:none;">
+            <svg width="62" height="62" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>
+          </div>
+          <div style="font-size:12px; color:#6F6557; line-height:1.6;">Full-bleed marigold gradient, cream ÷. No transparency. Corner radius 22.4% per HIG. Single-glance recognisable on a busy home screen.</div>
+        </div>
+      </div>
+      <!-- Android adaptive -->
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:14px;">Android · adaptive layers <span style="color:#9A8F82; font-weight:500;">108dp</span></div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="width:74px;height:74px;border-radius:16px;background:linear-gradient(150deg,#ECA64A,#D97A1E);"></div>
+            <div style="font-size:10px;color:#9A8F82;margin-top:5px;">background</div>
+          </div>
+          <span style="color:#C1B6A4; font-size:20px;">+</span>
+          <div style="text-align:center;">
+            <div style="position:relative; width:74px;height:74px;border-radius:16px;background:#F4ECDC; display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute; inset:11px; border:1.5px dashed #C9Bca4; border-radius:50%;"></div>
+              <svg width="38" height="38" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#D97A1E"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#D97A1E"/><circle cx="50" cy="73" r="9" fill="#D97A1E"/></svg>
+            </div>
+            <div style="font-size:10px;color:#9A8F82;margin-top:5px;">foreground · safe zone</div>
+          </div>
+          <span style="color:#C1B6A4; font-size:20px;">=</span>
+          <div style="display:flex; gap:8px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(150deg,#ECA64A,#D97A1E);display:flex;align-items:center;justify-content:center;"><svg width="31" height="31" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+            <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(150deg,#ECA64A,#D97A1E);display:flex;align-items:center;justify-content:center;"><svg width="31" height="31" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- home screen context + splash -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:18px;">
+      <div class="card" style="background:#E9E2D4;">
+        <div style="font-weight:700; font-size:12px; margin-bottom:12px; color:#2A211B;">On a light wallpaper</div>
+        <div style="background:linear-gradient(160deg,#F3ECDD,#E2D6BE); border-radius:16px; padding:18px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px 10px;">
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.55;"></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.55;"></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.55;"></div>
+        </div>
+      </div>
+      <div class="card" style="background:#23201b;">
+        <div style="font-weight:700; font-size:12px; margin-bottom:12px; color:#F3EBDD;">On a dark wallpaper</div>
+        <div style="background:linear-gradient(160deg,#2c2620,#171411); border-radius:16px; padding:18px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px 10px;">
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.12;"></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.12;"></div>
+          <div style="aspect-ratio:1; border-radius:13px; background:#fff; opacity:.12;"></div>
+        </div>
+      </div>
+      <!-- splash -->
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="position:relative; height:100%; min-height:200px; background:radial-gradient(130% 100% at 50% 30%, #ECA64A, #D97A1E 80%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
+          <svg width="56" height="56" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg>
+          <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:22px; color:#FFF7E8;">OneByTwo</div>
+          <div style="position:absolute; bottom:18px; font-size:11.5px; color:rgba(255,247,232,.8); letter-spacing:.02em;">Split it. Settle it. Simple.</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11.5px; color:#9A8F82; margin-top:10px;">Splash — full-bleed brand gradient, centred mark, tagline. Identical motif iOS &amp; Android.</div>
+  </div>
+
+  <!-- ===== COLOUR SYSTEM ===== -->
+  <div class="sec">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Colour system</div>
+    <div class="lead">A warm, ownable palette tuned for both themes. <b>On-primary text is ink, not white</b> — dark-on-marigold clears AA (5.6:1) where white would fail (2.8:1). Balance colours never overlap brand accents.</div>
+
+    <!-- balance trio -->
+    <div class="h3">The balance trio — designed first, reused everywhere</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+      <div style="border-radius:18px; padding:18px; background:#E2F2EE;">
+        <div style="display:flex; align-items:center; gap:7px; color:#0F7D6B; font-weight:700; font-size:13px;"><span class="ms" style="font-size:18px;">arrow_upward</span>You are owed</div>
+        <div class="mono" style="font-size:26px; font-weight:700; color:#0F7D6B; margin-top:8px;">₹12,450.00</div>
+        <div style="font-size:11px; color:#0F7D6B; opacity:.8; margin-top:6px;">balancePositive · #0F7D6B / dark #34C0A4</div>
+      </div>
+      <div style="border-radius:18px; padding:18px; background:#FBE6DC;">
+        <div style="display:flex; align-items:center; gap:7px; color:#BC4030; font-weight:700; font-size:13px;"><span class="ms" style="font-size:18px;">arrow_downward</span>You owe</div>
+        <div class="mono" style="font-size:26px; font-weight:700; color:#BC4030; margin-top:8px;">₹2,100.00</div>
+        <div style="font-size:11px; color:#BC4030; opacity:.8; margin-top:6px;">balanceNegative · #BC4030 / dark #F2856B</div>
+      </div>
+      <div style="border-radius:18px; padding:18px; background:#EFE9DD;">
+        <div style="display:flex; align-items:center; gap:7px; color:#6F6557; font-weight:700; font-size:13px;"><span class="ms" style="font-size:18px;">check</span>All settled up</div>
+        <div class="mono" style="font-size:26px; font-weight:700; color:#6F6557; margin-top:8px;">₹0.00</div>
+        <div style="font-size:11px; color:#6F6557; opacity:.8; margin-top:6px;">balanceZero · #6F6557 / dark #A99C8C</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12.5px; color:#6F6557; background:#FFF6E6; padding:10px 14px; border-radius:12px;"><span class="ms msf" style="font-size:18px; color:#C75D3C;">accessibility_new</span><b style="color:#2A211B;">Never colour alone:</b> every balance pairs a hue with an arrow/check icon <i>and</i> a text label — colour-blind safe.</div>
+
+    <!-- semantic tokens -->
+    <div class="h3">Semantic tokens</div>
+    <table>
+      <thead><tr><th style="width:24%;">Token</th><th>Light</th><th>Dark</th><th style="width:34%;">Usage</th></tr></thead>
+      <tbody id="tok"></tbody>
+    </table>
+
+    <!-- categories -->
+    <div class="h3">Expense-category palette — 8 hues, colour-blind-safe luminance spread</div>
+    <div id="cats" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;"></div>
+    <div style="font-size:11.5px; color:#9A8F82; margin-top:10px;">Each ≥3:1 against the card surface in both themes; hue + luminance both vary so categories stay distinct under deuteranopia/protanopia. Drives the Home donut and category chips.</div>
+
+    <!-- contrast notes -->
+    <div class="h3">Key contrast pairings (WCAG 2.1)</div>
+    <table>
+      <thead><tr><th>Pairing</th><th>Ratio</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Text-primary #2A211B on background #FBF6EE</td><td class="mono">13.9:1</td><td style="color:#0F7D6B;font-weight:700;">AAA</td></tr>
+        <tr><td>Text-secondary #6F6557 on surface #FFFFFF</td><td class="mono">5.9:1</td><td style="color:#0F7D6B;font-weight:700;">AA</td></tr>
+        <tr><td>Ink #2A211B on primary #E0922E (button)</td><td class="mono">5.6:1</td><td style="color:#0F7D6B;font-weight:700;">AA</td></tr>
+        <tr><td>balancePositive #0F7D6B on #FFFFFF</td><td class="mono">4.6:1</td><td style="color:#0F7D6B;font-weight:700;">AA</td></tr>
+        <tr><td>balanceNegative #BC4030 on #FFFFFF</td><td class="mono">5.1:1</td><td style="color:#0F7D6B;font-weight:700;">AA</td></tr>
+        <tr><td>Dark: text #F3EBDD on background #1A1510</td><td class="mono">14.2:1</td><td style="color:#0F7D6B;font-weight:700;">AAA</td></tr>
+        <tr><td>Dark: positive #34C0A4 on surface #241D16</td><td class="mono">7.1:1</td><td style="color:#0F7D6B;font-weight:700;">AA</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== TYPOGRAPHY ===== -->
+  <div class="sec">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Typography</div>
+    <div class="lead"><b>Bricolage Grotesque</b> brings character to headings and the hero amounts; <b>Hanken Grotesk</b> keeps UI text quietly legible. Both ship on Google Fonts with strong Latin coverage and Devanagari-adjacent future-proofing.</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px;">
+      <div class="card" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82; font-weight:700;">Display · Bricolage Grotesque</div>
+        <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:44px; color:#2A211B; line-height:1;">Aa Bb 123</div>
+        <div style="font-size:12px; color:#6F6557;">Headings, screen titles, hero amounts</div>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#9A8F82; font-weight:700;">Text · Hanken Grotesk</div>
+        <div style="font-family:'Hanken Grotesk',sans-serif; font-weight:500; font-size:44px; color:#2A211B; line-height:1;">Aa Bb 123</div>
+        <div style="font-size:12px; color:#6F6557;">Body, labels, rows, captions, buttons</div>
+      </div>
+    </div>
+
+    <div class="h3">Type scale</div>
+    <table>
+      <thead><tr><th>Role</th><th>Font</th><th>Wt</th><th>Size / LH</th><th>Tracking</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'Bricolage Grotesque';font-weight:700;font-size:18px;">Amount-hero</td><td>Bricolage</td><td>700</td><td class="mono">48 / 52</td><td class="mono">-.01em</td><td>Home net balance, settle-up</td></tr>
+        <tr><td style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;">H1 Large title</td><td>Bricolage</td><td>700</td><td class="mono">32 / 38</td><td class="mono">-.01em</td><td>Large-title nav headers</td></tr>
+        <tr><td style="font-family:'Bricolage Grotesque';font-weight:700;">H2 Screen title</td><td>Bricolage</td><td>700</td><td class="mono">24 / 30</td><td class="mono">-.01em</td><td>Sheet &amp; screen titles</td></tr>
+        <tr><td style="font-family:'Bricolage Grotesque';font-weight:600;">H3 Section</td><td>Bricolage</td><td>600</td><td class="mono">19 / 26</td><td class="mono">0</td><td>Section headers</td></tr>
+        <tr><td style="font-weight:700;">Title / row</td><td>Hanken</td><td>700</td><td class="mono">16 / 22</td><td class="mono">0</td><td>List-row names, list titles</td></tr>
+        <tr><td style="font-family:'Bricolage Grotesque';font-weight:700;">Amount-row</td><td>Bricolage</td><td>700</td><td class="mono">17 / 22</td><td class="mono">0</td><td>Balance pills, row amounts</td></tr>
+        <tr><td>Body</td><td>Hanken</td><td>400/500</td><td class="mono">15 / 22</td><td class="mono">0</td><td>Paragraphs, descriptions</td></tr>
+        <tr><td>Body-sm</td><td>Hanken</td><td>400</td><td class="mono">13 / 18</td><td class="mono">0</td><td>Secondary row text</td></tr>
+        <tr><td>Caption / meta</td><td>Hanken</td><td>500</td><td class="mono">12 / 16</td><td class="mono">.01em</td><td>Timestamps, helper text</td></tr>
+        <tr><td>Overline</td><td>Hanken</td><td>700</td><td class="mono">11 / 14</td><td class="mono">.12em ↑</td><td>Section kickers, labels</td></tr>
+        <tr><td>Button</td><td>Hanken</td><td>700</td><td class="mono">15 / 20</td><td class="mono">.01em</td><td>All button labels</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== NUMBER / FORMAT SYSTEM ===== -->
+  <div class="sec">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Money, phone &amp; date formats</div>
+    <div class="lead">Amounts are the hero content of the app. ₹ always prefixes, Indian lakh/crore grouping, two decimals — set in Bricolage with tabular figures so columns align.</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px;">
+      <div class="card">
+        <div style="font-weight:700; font-size:13px; margin-bottom:12px;">₹ Indian numbering — worked examples</div>
+        <table>
+          <tbody>
+            <tr><td style="color:#9A8F82;">Zero</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹0.00</td></tr>
+            <tr><td style="color:#9A8F82;">Fifty</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹50.00</td></tr>
+            <tr><td style="color:#9A8F82;">Five hundred</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹500.00</td></tr>
+            <tr><td style="color:#9A8F82;">Five thousand</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹5,000.00</td></tr>
+            <tr><td style="color:#9A8F82;">Fifty thousand</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹50,000.00</td></tr>
+            <tr><td style="color:#9A8F82;">Five lakh</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹5,00,000.00</td></tr>
+            <tr><td style="color:#9A8F82;">Fifty lakh</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹50,00,000.00</td></tr>
+            <tr><td style="color:#9A8F82;">Five crore</td><td class="mono" style="text-align:right;font-weight:700;font-size:15px;">₹5,00,00,000.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:18px;">
+        <div class="card">
+          <div style="font-weight:700; font-size:13px; margin-bottom:12px;">Amount in context (colour + label + icon)</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:13px; color:#6F6557;">Rahul owes you</span><span class="mono" style="display:flex; align-items:center; gap:4px; font-weight:700; color:#0F7D6B;"><span class="ms" style="font-size:16px;">arrow_upward</span>₹350.00</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:13px; color:#6F6557;">You owe Goa Trip</span><span class="mono" style="display:flex; align-items:center; gap:4px; font-weight:700; color:#BC4030;"><span class="ms" style="font-size:16px;">arrow_downward</span>₹2,100.00</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:13px; color:#6F6557;">Flat 4B</span><span class="mono" style="display:flex; align-items:center; gap:4px; font-weight:700; color:#6F6557;"><span class="ms" style="font-size:16px;">check</span>Settled</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; font-size:13px; margin-bottom:12px;">Phone &amp; date</div>
+          <div style="display:flex; flex-direction:column; gap:9px; font-size:13px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9A8F82;">Phone (locked +91)</span><span class="mono" style="font-weight:700;">+91 98765 43210</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9A8F82;">Absolute date (IST)</span><span class="mono" style="font-weight:700;">24 Jun 2026</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9A8F82;">Date + time (IST)</span><span class="mono" style="font-weight:700;">24 Jun 2026, 7:30 PM</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9A8F82;">Relative</span><span class="mono" style="font-weight:700;">Just now · 2h ago · Yesterday</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ICONOGRAPHY ===== -->
+  <div class="sec">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Iconography</div>
+    <div class="lead"><b>Material Symbols Rounded</b> — friendly rounded terminals, consistent stroke. Default <span class="mono">FILL 0 / wght 400</span>; the <b>active</b> tab &amp; selected states use <span class="mono">FILL 1 / wght 500</span> for a satisfying filled toggle.</div>
+
+    <div class="h3">8 expense categories</div>
+    <div id="catIcons" style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;"></div>
+
+    <div class="h3">UI &amp; navigation set</div>
+    <div class="chiprow" id="uiIcons"></div>
+  </div>
+
+  <!-- ===== ILLUSTRATION ===== -->
+  <div class="sec">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Illustration style</div>
+    <div class="lead">Warm, flat, geometric spot-illustrations built from rounded shapes in the brand palette — coins, receipts, split bills, friendly avatars. Generous negative space, two-tone shading, never busy. Used for onboarding and every empty state.</div>
+
+    <div class="h3">Onboarding — 3 slides</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;">
+      <!-- track -->
+      <div class="card" style="text-align:center;">
+        <div style="height:150px; background:#FFF6E6; border-radius:16px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+          <div style="width:74px; height:92px; background:#fff; border-radius:10px; box-shadow:0 6px 16px -6px rgba(42,33,27,.2); position:relative; transform:rotate(-6deg);">
+            <div style="height:8px; background:#E0922E; border-radius:10px 10px 0 0;"></div>
+            <div style="padding:11px 10px; display:flex; flex-direction:column; gap:6px;"><div style="height:5px; background:#EFE0C6; border-radius:3px;"></div><div style="height:5px; width:70%; background:#EFE0C6; border-radius:3px;"></div><div style="height:5px; background:#EFE0C6; border-radius:3px;"></div></div>
+          </div>
+          <div style="position:absolute; right:24px; bottom:20px; width:34px; height:34px; border-radius:50%; background:#0F7D6B; display:flex;align-items:center;justify-content:center; box-shadow:0 4px 10px -3px rgba(15,125,107,.6);"><span class="ms" style="color:#fff; font-size:20px;">currency_rupee</span></div>
+        </div>
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;margin-top:14px;">Track every spend</div>
+        <div style="font-size:12.5px;color:#6F6557;margin-top:4px;">Log shared bills in seconds.</div>
+      </div>
+      <!-- split -->
+      <div class="card" style="text-align:center;">
+        <div style="height:150px; background:#FFF6E6; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#ECA64A;"></div>
+          <svg width="30" height="30" viewBox="0 0 100 100"><circle cx="50" cy="27" r="10" fill="#C75D3C"/><rect x="18" y="44" width="64" height="10" rx="5" fill="#C75D3C"/><circle cx="50" cy="73" r="10" fill="#C75D3C"/></svg>
+          <div style="width:40px;height:40px;border-radius:50%;background:#0F7D6B;"></div>
+        </div>
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;margin-top:14px;">Split any way</div>
+        <div style="font-size:12.5px;color:#6F6557;margin-top:4px;">Equally, by shares, or exact ₹.</div>
+      </div>
+      <!-- settle -->
+      <div class="card" style="text-align:center;">
+        <div style="height:150px; background:#FFF6E6; border-radius:16px; position:relative; display:flex; align-items:center; justify-content:center;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#0F7D6B;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px rgba(15,125,107,.6);"><span class="ms msf" style="color:#fff;font-size:38px;">check</span></div>
+          <div style="position:absolute; left:30px; top:28px; width:18px;height:18px;border-radius:50%;background:#ECA64A;"></div>
+          <div style="position:absolute; right:34px; bottom:30px; width:13px;height:13px;border-radius:50%;background:#C75D3C;"></div>
+        </div>
+        <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;margin-top:14px;">Settle in a tap</div>
+        <div style="font-size:12.5px;color:#6F6557;margin-top:4px;">Simplified debts, minimum payments.</div>
+      </div>
+    </div>
+
+    <div class="h3">Empty states</div>
+    <div id="empties" style="display:grid; grid-template-columns:repeat(5,1fr); gap:14px;"></div>
+  </div>
+
+  <!-- ===== MOTION ===== -->
+  <div class="sec" style="margin-bottom:8px;">
+    <div class="kicker">Foundations</div>
+    <div class="h2">Motion principles</div>
+    <div class="lead">Delightful but quiet. 200–300ms, ease-in-out as the default curve, a little spring reserved for the FAB and successful settle. Everything honours <span class="mono">prefers-reduced-motion</span> with instant cross-fades.</div>
+    <div id="motion" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;"></div>
+  </div>
+
+  <div style="text-align:center; font-size:12.5px; color:#9A8F82; font-family:'Hanken Grotesk';">Phase 1 of 5 · Brand &amp; Foundations — next: <b style="color:#C75D3C;">Phase 2, the component library</b>.</div>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){
+    // semantic tokens
+    const tok = [
+      ["background","#FBF6EE","#1A1510","App canvas behind all content"],
+      ["surface","#FFFFFF","#241D16","Cards, sheets, list rows"],
+      ["surfaceVariant","#FFF6E6","#2E2620","Tonal fills, hero card, chips"],
+      ["primary","#E0922E","#EAA24A","Brand · FAB, primary buttons"],
+      ["primaryPressed","#C77F22","#D08F3C","Pressed primary state"],
+      ["secondary","#C75D3C","#E07A55","Terracotta accent, highlights"],
+      ["success / positive","#0F7D6B","#34C0A4","Owed, success, confirm"],
+      ["danger / negative","#BC4030","#F2856B","Owe, errors, destructive"],
+      ["warning","#E8A33D","#F2B863","Cautions, cooldowns"],
+      ["onPrimary","#2A211B","#1A1510","Ink text/icons on marigold"],
+      ["text-primary","#2A211B","#F3EBDD","Headings, amounts, names"],
+      ["text-secondary","#6F6557","#B9AE9D","Body, supporting text"],
+      ["text-tertiary","#9A8F82","#8A7E6E","Meta, timestamps, hints"],
+      ["outline","#E7DDCD","#3A322A","Borders, dividers, hairlines"],
+      ["disabled","#D8CFC0","#3F372E","Disabled fills & text"],
+    ];
+    const sw=(c)=>`<span style="display:inline-block;width:16px;height:16px;border-radius:5px;background:${c};border:1px solid rgba(42,33,27,.12);vertical-align:-3px;margin-right:7px;"></span>`;
+    document.getElementById("tok").innerHTML = tok.map(r=>`<tr><td style="font-weight:700;font-family:'Bricolage Grotesque';">${r[0]}</td><td class="mono">${sw(r[1])}${r[1]}</td><td class="mono">${sw(r[2])}${r[2]}</td><td style="color:#6F6557;font-size:12px;">${r[3]}</td></tr>`).join("");
+
+    // category palette
+    const cats = [
+      ["Food & Drink","restaurant","#E8762B","#F59A52"],
+      ["Transport","directions_bus","#2E78C9","#5B9BE8"],
+      ["Groceries","local_grocery_store","#4FA13E","#73C463"],
+      ["Entertainment","movie","#B5489B","#D470BC"],
+      ["Rent & Housing","home","#6C4FC9","#9079E6"],
+      ["Utilities","bolt","#1FA39A","#3EC9BF"],
+      ["Shopping","shopping_bag","#D94F87","#F074A6"],
+      ["Other","category","#8A7B6B","#A99986"],
+    ];
+    document.getElementById("cats").innerHTML = cats.map(c=>`
+      <div class="card" style="display:flex; align-items:center; gap:12px; padding:14px;">
+        <div style="width:42px;height:42px;border-radius:13px;background:${c[2]};display:flex;align-items:center;justify-content:center;flex:none;"><span class="ms msf" style="color:#fff;font-size:22px;">${c[1]}</span></div>
+        <div style="min-width:0;"><div style="font-weight:700;font-size:13px;color:#2A211B;">${c[0]}</div><div class="mono" style="font-size:11px;color:#9A8F82;">${c[2]} · ${c[3]}</div></div>
+      </div>`).join("");
+
+    // category icons row (filled chips)
+    document.getElementById("catIcons").innerHTML = cats.map(c=>`
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:54px;height:54px;border-radius:17px;background:${c[2]}1A;display:flex;align-items:center;justify-content:center;"><span class="ms" style="color:${c[2]};font-size:26px;">${c[1]}</span></div>
+        <div style="font-size:11px;color:#6F6557;font-weight:600;text-align:center;">${c[0]}</div>
+      </div>`).join("");
+
+    // UI icon set
+    const ui = ["home","group","groups","notifications","person","add","search","settings","arrow_back","ios_share","check_circle","error","receipt_long","edit","delete","filter_list","more_horiz","tune","payments","schedule","photo_camera","content_copy"];
+    document.getElementById("uiIcons").innerHTML = ui.map(i=>`<div style="width:46px;height:46px;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(42,33,27,.06);display:flex;align-items:center;justify-content:center;"><span class="ms" style="font-size:23px;color:#2A211B;">${i}</span></div>`).join("");
+
+    // empty states
+    const emp = [
+      ["Friends","group","Add your first friend"],
+      ["Groups","groups","Start a group"],
+      ["Activity","bolt","Nothing yet"],
+      ["Search","search","Find an expense"],
+      ["Settled","sentiment_very_satisfied","All settled up!"],
+    ];
+    document.getElementById("empties").innerHTML = emp.map(e=>`
+      <div class="card" style="text-align:center; padding:18px 12px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#FFF6E6;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;"><span class="ms" style="font-size:28px;color:#E0922E;">${e[1]}</span></div>
+        <div style="font-weight:700;font-size:12.5px;color:#2A211B;">${e[0]}</div>
+        <div style="font-size:11px;color:#9A8F82;margin-top:3px;">${e[2]}</div>
+      </div>`).join("");
+
+    // motion
+    const mo = [
+      ["Page push / pop","Slide + fade, 280ms","ease-in-out"],
+      ["Bottom sheet","Spring up from bottom, grabber settles","260ms · gentle spring"],
+      ["FAB press","Scale 0.92 → 1.04 → 1","220ms · spring"],
+      ["List stagger","Rows fade-rise 30ms apart on load","200ms each"],
+      ["Skeleton → content","Shimmer, then cross-fade reveal","240ms"],
+      ["Settle success","Check pops + success haptic","300ms · spring"],
+    ];
+    document.getElementById("motion").innerHTML = mo.map(m=>`
+      <div class="card">
+        <div style="font-weight:700;font-size:13px;color:#2A211B;margin-bottom:5px;">${m[0]}</div>
+        <div style="font-size:12px;color:#6F6557;margin-bottom:8px;">${m[1]}</div>
+        <div class="mono" style="font-size:11px;color:#C75D3C;background:#FFF6E6;display:inline-block;padding:3px 9px;border-radius:8px;">${m[2]}</div>
+      </div>`).join("");
+  }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

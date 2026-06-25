@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+<style>
+  body{ margin:0; }
+  .ms{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; display:inline-block; direction:ltr; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+  .msf{ font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
+  .phone{ width:390px; height:844px; border-radius:46px; border:9px solid #221b14; overflow:hidden; position:relative; font-family:'Hanken Grotesk',sans-serif; box-shadow:0 40px 80px -20px rgba(20,16,10,.4), 0 8px 24px -8px rgba(20,16,10,.25); }
+  .sb{ display:flex; justify-content:space-between; align-items:center; padding:15px 28px 4px; font-size:14px; font-weight:700; }
+  .sb .bars{ display:flex; gap:6px; align-items:center; }
+  .sb .bars i{ width:17px; height:11px; border-radius:2px; background:currentColor; opacity:.9; display:inline-block; }
+  .sb .bars u{ width:15px; height:11px; border:1.5px solid currentColor; border-radius:3px; display:inline-block; }
+  .label{ font-family:'Hanken Grotesk'; font-weight:700; font-size:14px; color:#241d16; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .cap{ width:390px; margin-top:14px; font-family:'Hanken Grotesk'; font-size:12.5px; line-height:1.5; color:#6f6557; }
+  .row{ display:flex; align-items:center; gap:12px; }
+  .av{ width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Bricolage Grotesque'; font-weight:700; font-size:15px; flex:none; }
+  .ni{ display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; font-size:10px; font-weight:600; }
+  .nav{ position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-around; align-items:center; background:rgba(255,253,248,.96); border-top:1px solid #EFE6D6; padding:10px 12px 24px; }
+  .fab{ position:absolute; right:20px; bottom:100px; width:56px; height:56px; border-radius:19px; background:#E0922E; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 24px -6px rgba(224,146,46,.6); }
+  .set{ display:flex; align-items:center; gap:13px; padding:14px 15px; background:#fff; }
+  .tg{ width:44px; height:26px; border-radius:999px; position:relative; flex:none; }
+  .tg.on{ background:#0F7D6B; }
+  .tg.off{ background:#D8CFC0; }
+  .tg b{ position:absolute; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; }
+  .tg.on b{ right:3px; }
+  .tg.off b{ left:3px; }
+</style>
+</helmet>
+
+<div style="position:absolute; left:80px; top:44px; width:900px; font-family:'Hanken Grotesk',sans-serif;">
+  <div data-drags-parent="1" style="font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C75D3C;">One By Two · Phase 3f</div>
+  <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:34px; color:#241d16; margin-top:6px;">Activity, profile &amp; settings</div>
+  <div style="font-size:14.5px; color:#6f6557; margin-top:6px; max-width:780px;">Activity feed ★ (light + dark + empty), push notifications &amp; deep-link, profile view/edit, notification preferences (with the future Language row), contact support + copy-email fallback, delete account, and the offline banner.</div>
+</div>
+
+<!-- ========== ROW 1 ========== -->
+
+<!-- ACTIVITY LIGHT -->
+<div style="position:absolute; left:80px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>25 · Activity — light</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:8px 22px 4px; letter-spacing:-.01em;">Activity</div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:10px 22px 8px;">Today</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#fff; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:#E8762B1A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#E8762B;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#2A211B; line-height:1.35;"><b>Priya</b> added <b>Dinner at Bombay Canteen</b></div><div style="font-size:10.5px; color:#9A8F82; margin-top:1px;">Goa Trip · 2h ago · ₹3,200.00</div></div><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="background:#fff; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:#E2F2EE; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#0F7D6B;">payments</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#2A211B; line-height:1.35;"><b>Aditya</b> paid you <b style="color:#0F7D6B;">₹500.00</b></div><div style="font-size:10.5px; color:#9A8F82; margin-top:1px;">Office Lunch Club · 5h ago</div></div><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:14px 22px 8px;">Yesterday</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#fff; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:#6C4FC91A; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#6C4FC9;">hotel</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#2A211B; line-height:1.35;"><b>Rahul</b> added <b>Beach resort</b></div><div style="font-size:10.5px; color:#9A8F82; margin-top:1px;">Goa Trip · 23 Jun · ₹18,000.00</div></div><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="background:#fff; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:#FBEFD6; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#A35E16;">notifications</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#2A211B; line-height:1.35;"><b>Vikram</b> sent you a reminder</div><div style="font-size:10.5px; color:#9A8F82; margin-top:1px;">Flatmates · 23 Jun · ₹2,100.00</div></div><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div class="row" style="background:#fff; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:#FFF6E6; display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#E0922E;">group_add</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#2A211B; line-height:1.35;"><b>Neha</b> joined <b>Goa Trip</b></div><div style="font-size:10.5px; color:#9A8F82; margin-top:1px;">22 Jun 2026</div></div><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">★ Everything involving you — expenses, settlements, reminders, group changes. Each row deep-links to its detail.</div>
+</div>
+
+<!-- ACTIVITY DARK -->
+<div style="position:absolute; left:590px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1"><span style="background:#E0922E;color:#fff;width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;">★</span>25 · Activity — dark</div>
+  <div class="phone" style="background:#1A1510;">
+    <div class="sb" style="color:#F3EBDD;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#F3EBDD; padding:8px 22px 4px; letter-spacing:-.01em;">Activity</div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8A7E6E; padding:10px 22px 8px;">Today</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#241D16; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:rgba(245,154,82,.18); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#F59A52;">restaurant</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#F3EBDD; line-height:1.35;"><b>Priya</b> added <b>Dinner at Bombay Canteen</b></div><div style="font-size:10.5px; color:#8A7E6E; margin-top:1px;">Goa Trip · 2h ago · ₹3,200.00</div></div><span class="ms" style="font-size:20px; color:#5C5247;">chevron_right</span></div>
+      <div class="row" style="background:#241D16; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:rgba(52,192,164,.16); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#34C0A4;">payments</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#F3EBDD; line-height:1.35;"><b>Aditya</b> paid you <b style="color:#34C0A4;">₹500.00</b></div><div style="font-size:10.5px; color:#8A7E6E; margin-top:1px;">Office Lunch Club · 5h ago</div></div><span class="ms" style="font-size:20px; color:#5C5247;">chevron_right</span></div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8A7E6E; padding:14px 22px 8px;">Yesterday</div>
+    <div style="padding:0 18px; display:flex; flex-direction:column; gap:7px;">
+      <div class="row" style="background:#241D16; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:rgba(144,121,230,.18); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#9079E6;">hotel</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#F3EBDD; line-height:1.35;"><b>Rahul</b> added <b>Beach resort</b></div><div style="font-size:10.5px; color:#8A7E6E; margin-top:1px;">Goa Trip · 23 Jun · ₹18,000.00</div></div><span class="ms" style="font-size:20px; color:#5C5247;">chevron_right</span></div>
+      <div class="row" style="background:#241D16; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:rgba(234,162,74,.16); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#EAA24A;">notifications</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#F3EBDD; line-height:1.35;"><b>Vikram</b> sent you a reminder</div><div style="font-size:10.5px; color:#8A7E6E; margin-top:1px;">Flatmates · 23 Jun · ₹2,100.00</div></div><span class="ms" style="font-size:20px; color:#5C5247;">chevron_right</span></div>
+      <div class="row" style="background:#241D16; border-radius:15px; padding:11px 13px;"><div style="width:38px; height:38px; border-radius:12px; background:rgba(234,162,74,.12); display:flex; align-items:center; justify-content:center; flex:none;"><span class="ms" style="font-size:20px; color:#EAA24A;">group_add</span></div><div style="flex:1; min-width:0;"><div style="font-size:13px; color:#F3EBDD; line-height:1.35;"><b>Neha</b> joined <b>Goa Trip</b></div><div style="font-size:10.5px; color:#8A7E6E; margin-top:1px;">22 Jun 2026</div></div><span class="ms" style="font-size:20px; color:#5C5247;">chevron_right</span></div>
+    </div>
+    <div class="fab" style="background:#EAA24A; box-shadow:0 12px 24px -6px rgba(234,162,74,.5);"><span class="ms" style="font-size:30px; color:#1A1510;">add</span></div>
+    <div class="nav" style="background:rgba(26,21,16,.97); border-top:1px solid #3A322A;"><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#EAA24A;"><span class="ms msf" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#8A7E6E;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">★ Dark theme feed · brightened category &amp; balance hues, same chronological grouping.</div>
+</div>
+
+<!-- ACTIVITY EMPTY -->
+<div style="position:absolute; left:1100px; top:150px; width:390px;">
+  <div class="label" data-drags-parent="1">25 · Activity — empty</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:32px; color:#2A211B; padding:8px 22px 4px; letter-spacing:-.01em;">Activity</div>
+    <div style="position:absolute; left:0; right:0; top:300px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 42px;">
+      <div style="width:110px; height:110px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:54px; color:#E0922E;">bolt</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:20px; color:#2A211B; margin-top:20px;">Nothing's happened yet</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">When you or your friends add expenses or settle up, it'll all show up here.</div>
+      <button style="min-height:50px; padding:0 26px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px; font-family:'Hanken Grotesk'; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="ms" style="font-size:20px;">add</span>Add an expense</button>
+    </div>
+    <div class="fab"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Empty · explains what will appear, nudges the first action.</div>
+</div>
+
+<!-- PUSH NOTIFICATIONS -->
+<div style="position:absolute; left:80px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">26 · Push notifications &amp; deep-link</div>
+  <div class="phone" style="background:linear-gradient(165deg,#3a2c1c,#1c1410);">
+    <div class="sb" style="color:#FFF7E8;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="text-align:center; padding:30px 0 4px;"><div style="font-size:15px; color:rgba(255,247,232,.8); font-weight:600;">Tuesday, 24 June</div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:66px; color:#FFF7E8; line-height:1;">9:41</div></div>
+    <div style="padding:24px 16px 0; display:flex; flex-direction:column; gap:9px;">
+      <div style="background:rgba(251,246,238,.92); border-radius:18px; padding:12px 13px; display:flex; gap:11px; backdrop-filter:blur(10px);"><div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="20" height="20" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div><div style="flex:1; min-width:0;"><div style="display:flex; justify-content:space-between;"><span style="font-size:11px; font-weight:700; color:#6F6557;">ONE BY TWO</span><span style="font-size:11px; color:#9A8F82;">now</span></div><div style="font-size:13px; font-weight:700; color:#2A211B; margin-top:2px;">New expense in Goa Trip</div><div style="font-size:12px; color:#6F6557; line-height:1.35;">Priya added “Dinner at Bombay Canteen” · your share ₹640.00</div></div></div>
+      <div style="background:rgba(251,246,238,.92); border-radius:18px; padding:12px 13px; display:flex; gap:11px;"><div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="20" height="20" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div><div style="flex:1; min-width:0;"><div style="display:flex; justify-content:space-between;"><span style="font-size:11px; font-weight:700; color:#6F6557;">ONE BY TWO</span><span style="font-size:11px; color:#9A8F82;">2m</span></div><div style="font-size:13px; font-weight:700; color:#2A211B; margin-top:2px;">Aditya paid you ₹500.00</div><div style="font-size:12px; color:#6F6557; line-height:1.35;">You're now settled in Office Lunch Club. 🎉</div></div></div>
+      <div style="background:rgba(251,246,238,.92); border-radius:18px; padding:12px 13px; display:flex; gap:11px;"><div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(150deg,#ECA64A,#D97A1E); display:flex; align-items:center; justify-content:center; flex:none;"><svg width="20" height="20" viewBox="0 0 100 100"><circle cx="50" cy="27" r="9" fill="#FFF7E8"/><rect x="20" y="45" width="60" height="9" rx="4.5" fill="#FFF7E8"/><circle cx="50" cy="73" r="9" fill="#FFF7E8"/></svg></div><div style="flex:1; min-width:0;"><div style="display:flex; justify-content:space-between;"><span style="font-size:11px; font-weight:700; color:#6F6557;">ONE BY TWO</span><span style="font-size:11px; color:#9A8F82;">1h</span></div><div style="font-size:13px; font-weight:700; color:#2A211B; margin-top:2px;">Reminder from Vikram</div><div style="font-size:12px; color:#6F6557; line-height:1.35;">A nudge about ₹2,100.00 in Flatmates.</div></div></div>
+    </div>
+    <div style="position:absolute; left:16px; right:16px; bottom:30px; background:rgba(42,33,27,.7); border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:9px; backdrop-filter:blur(8px);"><span class="ms" style="font-size:19px; color:#EAA24A;">touch_app</span><span style="font-size:12px; color:#FFF7E8; line-height:1.4;">Tapping a notification deep-links straight to that expense, settlement or group.</span></div>
+  </div>
+  <div class="cap">Lock-screen banners for new expense, settlement &amp; reminder · each deep-links to the relevant screen.</div>
+</div>
+
+<!-- ========== ROW 2 ========== -->
+
+<!-- PROFILE VIEW -->
+<div style="position:absolute; left:590px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">27 · Profile</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:14px 22px 0;">
+      <div style="position:relative;"><div class="av" style="width:80px; height:80px; border-radius:26px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:30px;">P</div></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B; margin-top:12px;">Priya Nair</div>
+      <div style="font-size:13px; color:#9A8F82; margin-top:2px;">+91 99887 76655</div>
+      <button style="margin-top:12px; border:1.5px solid #E7DDCD; background:#fff; color:#2A211B; font-weight:700; font-size:13px; padding:9px 18px; border-radius:999px; display:flex; align-items:center; gap:6px;"><span class="ms" style="font-size:17px;">edit</span>Edit profile</button>
+    </div>
+    <div style="display:flex; gap:10px; padding:18px 18px 0;">
+      <div style="flex:1; background:#fff; border-radius:16px; padding:12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><span class="ms" style="font-size:22px; color:#E0922E;">group</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:17px; color:#2A211B;">6</div><div style="font-size:11px; color:#9A8F82;">Friends</div></div></div>
+      <div style="flex:1; background:#fff; border-radius:16px; padding:12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><span class="ms" style="font-size:22px; color:#6C4FC9;">groups</span><div><div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:17px; color:#2A211B;">4</div><div style="font-size:11px; color:#9A8F82;">Groups</div></div></div>
+    </div>
+    <div style="margin:16px 18px 0; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+      <div class="set"><span class="ms" style="font-size:22px; color:#6F6557;">notifications</span><span style="flex:1; font-size:14px; font-weight:600; color:#2A211B;">Notifications</span><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><span class="ms" style="font-size:22px; color:#6F6557;">dark_mode</span><span style="flex:1; font-size:14px; font-weight:600; color:#2A211B;">Appearance</span><span style="font-size:12.5px; color:#9A8F82;">System</span><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><span class="ms" style="font-size:22px; color:#6F6557;">help</span><span style="flex:1; font-size:14px; font-weight:600; color:#2A211B;">Help &amp; support</span><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><span class="ms" style="font-size:22px; color:#6F6557;">shield</span><span style="flex:1; font-size:14px; font-weight:600; color:#2A211B;">Privacy &amp; terms</span><span class="ms" style="font-size:20px; color:#C1B6A4;">chevron_right</span></div>
+    </div>
+    <div style="margin:12px 18px 0; border-radius:16px; overflow:hidden;">
+      <div class="set" style="background:transparent;"><span class="ms" style="font-size:22px; color:#BC4030;">logout</span><span style="flex:1; font-size:14px; font-weight:700; color:#BC4030;">Sign out</span></div>
+    </div>
+  </div>
+  <div class="cap">Profile root · avatar, name, +91, friends &amp; groups counts, settings, and sign out.</div>
+</div>
+
+<!-- PROFILE EDIT -->
+<div style="position:absolute; left:1100px; top:1180px; width:390px;">
+  <div class="label" data-drags-parent="1">27 · Profile — edit</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">close</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">Edit profile</span><span style="font-size:14px; font-weight:700; color:#A35E16;">Save</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:22px 22px 0;">
+      <div style="position:relative;"><div class="av" style="width:96px; height:96px; border-radius:30px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:36px;">P</div><div style="position:absolute; right:-4px; bottom:-4px; width:34px; height:34px; border-radius:50%; background:#2A211B; border:3px solid #FBF6EE; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:18px; color:#FFF7E8;">photo_camera</span></div></div>
+      <div style="font-size:13px; color:#A35E16; font-weight:700; margin-top:12px;">Change photo</div>
+    </div>
+    <div style="padding:26px 22px 0;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin-bottom:8px;">DISPLAY NAME</label>
+      <div style="display:flex; align-items:center; min-height:52px; background:#fff; border:1.5px solid #E0922E; border-radius:14px; padding:0 14px; box-shadow:0 0 0 3px rgba(224,146,46,.16);"><span style="flex:1; font-size:16px; font-weight:600; color:#2A211B;">Priya Nair<span style="display:inline-block; width:2px; height:20px; background:#E0922E; vertical-align:-3px; margin-left:2px;"></span></span></div>
+      <label style="display:block; font-size:11px; font-weight:700; color:#6F6557; margin:20px 0 8px;">MOBILE NUMBER</label>
+      <div style="display:flex; align-items:center; min-height:52px; background:#EFE9DD; border:1.5px solid #E7DDCD; border-radius:14px; padding:0 14px;"><span style="flex:1; font-family:'Bricolage Grotesque'; font-weight:700; font-size:16px; color:#6F6557;">+91 99887 76655</span><span class="ms" style="font-size:20px; color:#9A8F82;">lock</span></div>
+      <div style="font-size:11.5px; color:#9A8F82; margin-top:7px;">Your number verifies your account and can't be changed here.</div>
+    </div>
+    <div style="position:absolute; left:22px; right:22px; bottom:40px;"><button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#E0922E; color:#2A211B; font-weight:700; font-size:16px;">Save changes</button></div>
+  </div>
+  <div class="cap">Editable name + photo · the +91 number is locked (it verifies the account).</div>
+</div>
+
+<!-- NOTIFICATION PREFERENCES -->
+<div style="position:absolute; left:80px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">28 · Notification preferences</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Notifications</span></div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:18px 22px 8px;">Push notifications</div>
+    <div style="margin:0 18px; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+      <div class="set"><div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2A211B;">New expenses</div><div style="font-size:11px; color:#9A8F82;">When someone adds an expense with you</div></div><div class="tg on"><b></b></div></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2A211B;">Settlements</div><div style="font-size:11px; color:#9A8F82;">When a payment is recorded with you</div></div><div class="tg on"><b></b></div></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2A211B;">Reminders &amp; nudges</div><div style="font-size:11px; color:#9A8F82;">When a friend nudges you to pay</div></div><div class="tg on"><b></b></div></div>
+      <div style="height:1px; background:#EFE6D6; margin:0 15px;"></div>
+      <div class="set"><div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#2A211B;">Group activity</div><div style="font-size:11px; color:#9A8F82;">Members joining, edits &amp; changes</div></div><div class="tg off"><b></b></div></div>
+    </div>
+    <div style="font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#9A8F82; padding:20px 22px 8px;">Preferences</div>
+    <div style="margin:0 18px; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(42,33,27,.05);">
+      <div class="set" style="opacity:.7;"><span class="ms" style="font-size:22px; color:#9A8F82;">translate</span><div style="flex:1;"><div style="font-size:14px; font-weight:600; color:#6F6557;">Language</div><div style="font-size:11px; color:#9A8F82;">English (India)</div></div><span style="font-size:9.5px; font-weight:700; color:#A35E16; background:#FFF6E6; padding:3px 8px; border-radius:6px;">COMING SOON</span></div>
+    </div>
+    <div style="margin:14px 22px 0; background:#FFF6E6; border-radius:12px; padding:10px 14px; display:flex; gap:9px; font-size:11.5px; color:#6F6557; line-height:1.4;"><span class="ms" style="font-size:18px; color:#A35E16;">info</span>Reminders you receive are always rate-limited to protect everyone from spam.</div>
+  </div>
+  <div class="cap">Per-category toggles · plus the future <b>Language</b> row, present but disabled (marked Coming soon).</div>
+</div>
+
+<!-- CONTACT SUPPORT + FALLBACK -->
+<div style="position:absolute; left:590px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">29 · Contact support — copy-email fallback</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.92); opacity:.45; pointer-events:none;">
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px;">Help &amp; support</span></div>
+      <div style="padding:18px 22px 0; display:flex; flex-direction:column; gap:10px;">
+        <div style="background:#fff; border-radius:14px; padding:14px; display:flex; align-items:center; gap:12px;"><span class="ms" style="font-size:22px; color:#E0922E;">mail</span><span style="flex:1; font-weight:600; font-size:14px; color:#2A211B;">Email our team</span></div>
+        <div style="background:#fff; border-radius:14px; padding:14px; display:flex; align-items:center; gap:12px;"><span class="ms" style="font-size:22px; color:#6F6557;">quiz</span><span style="flex:1; font-weight:600; font-size:14px; color:#2A211B;">FAQs</span></div>
+      </div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.42);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#E0922E;">mail</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:18px; color:#2A211B;">No mail app found</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5;">We couldn't open a mail app on your device. Copy our support address and reach us anytime:</div>
+      <div style="display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid #E7DDCD; border-radius:13px; padding:13px 14px; margin-top:16px;"><span style="flex:1; font-family:'Bricolage Grotesque'; font-weight:700; font-size:14px; color:#2A211B; text-align:left;">help@onebytwo.app</span><span class="ms" style="font-size:20px; color:#A35E16;">content_copy</span></div>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button style="flex:1; min-height:48px; border:1.5px solid #E7DDCD; border-radius:14px; background:transparent; color:#2A211B; font-weight:700; font-size:15px;">Close</button>
+        <button style="flex:1; min-height:48px; border:none; border-radius:14px; background:#E0922E; color:#2A211B; font-weight:700; font-size:15px;">Copy email</button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">“Email our team” opens the device mail client pre-filled · if none exists, this copy-email fallback appears.</div>
+</div>
+
+<!-- ========== ROW 3 ========== -->
+
+<!-- DELETE ACCOUNT -->
+<div style="position:absolute; left:1100px; top:2210px; width:390px;">
+  <div class="label" data-drags-parent="1">30 · Delete account</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 22px 0;"><span class="ms" style="font-size:26px; color:#2A211B;">arrow_back</span><span style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Delete account</span></div>
+    <div style="display:flex; flex-direction:column; align-items:center; padding:24px 30px 0; text-align:center;">
+      <div style="width:84px; height:84px; border-radius:50%; background:#FBE6DC; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:42px; color:#BC4030;">delete_forever</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:21px; color:#2A211B; margin-top:18px;">Delete your account?</div>
+      <div style="font-size:14px; color:#6F6557; margin-top:8px; line-height:1.5;">This is permanent. Here's what happens:</div>
+    </div>
+    <div style="padding:18px 22px 0; display:flex; flex-direction:column; gap:11px;">
+      <div style="display:flex; gap:11px; align-items:flex-start;"><span class="ms" style="font-size:20px; color:#A35E16;">visibility_off</span><div style="font-size:13px; color:#2A211B; line-height:1.45;">In shared groups, your past expenses stay but are <b>anonymised to “Former member”</b> so balances still add up.</div></div>
+      <div style="display:flex; gap:11px; align-items:flex-start;"><span class="ms" style="font-size:20px; color:#A35E16;">schedule</span><div style="font-size:13px; color:#2A211B; line-height:1.45;">Your personal data is <b>fully removed within 30 days</b>.</div></div>
+      <div style="display:flex; gap:11px; align-items:flex-start;"><span class="ms" style="font-size:20px; color:#BC4030;">block</span><div style="font-size:13px; color:#2A211B; line-height:1.45;">You'll be signed out everywhere and this <b>can't be undone</b>.</div></div>
+    </div>
+    <div style="margin:18px 22px 0; display:flex; align-items:center; gap:11px; background:#fff; border:1.5px solid #E7DDCD; border-radius:13px; padding:13px;"><span style="width:24px; height:24px; border-radius:7px; background:#BC4030; display:flex; align-items:center; justify-content:center;"><span class="ms" style="font-size:17px; color:#fff;">check</span></span><span style="flex:1; font-size:12.5px; color:#2A211B; font-weight:600;">I understand and want to delete my account.</span></div>
+    <div style="position:absolute; left:22px; right:22px; bottom:36px;">
+      <button style="width:100%; min-height:52px; border:none; border-radius:15px; background:#BC4030; color:#fff; font-weight:700; font-size:16px;">Delete my account</button>
+      <button style="width:100%; min-height:46px; border:none; border-radius:15px; background:transparent; color:#6F6557; font-weight:700; font-size:14px; margin-top:6px;">Cancel</button>
+    </div>
+  </div>
+  <div class="cap">Explains anonymisation in shared groups, 30-day data removal, and requires explicit acknowledgement.</div>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div style="position:absolute; left:80px; top:3240px; width:390px;">
+  <div class="label" data-drags-parent="1">Global · Offline banner</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="margin:6px 16px 0; background:#FBEFD6; border-radius:12px; padding:11px 14px; display:flex; align-items:center; gap:10px;"><span class="ms" style="font-size:20px; color:#A35E16;">wifi_off</span><span style="flex:1; font-size:12.5px; font-weight:600; color:#9a5a13;">You're offline — changes will sync when you're back.</span></div>
+    <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:28px; color:#2A211B; padding:14px 22px 4px; letter-spacing:-.01em;">Groups</div>
+    <div style="padding:6px 18px 0; display:flex; flex-direction:column; gap:10px;">
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05);"><div class="av" style="width:48px; height:48px; border-radius:15px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff;"><span class="ms msf" style="font-size:24px;">flight</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Goa Trip 2026</div><div style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#A35E16; font-weight:600; margin-top:3px;"><span class="ms" style="font-size:14px;">sync</span>1 change pending sync</div></div><div style="text-align:right;"><div style="font-size:11px; color:#9A8F82;">you owe</div><span style="display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:999px; background:#FBE6DC; color:#BC4030; font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; margin-top:2px;"><span class="ms" style="font-size:13px;">arrow_downward</span>₹2,100.00</span></div></div>
+      <div class="row" style="background:#fff; border-radius:18px; padding:13px; box-shadow:0 1px 3px rgba(42,33,27,.05); opacity:.85;"><div class="av" style="width:48px; height:48px; border-radius:15px; background:#6C4FC91A; color:#6C4FC9;"><span class="ms msf" style="font-size:24px;">home</span></div><div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:15px; color:#2A211B;">Flatmates</div><div style="font-size:11px; color:#9A8F82; margin-top:3px;">3 members</div></div><div style="text-align:right;"><div style="font-size:11px; color:#9A8F82;">you are owed</div><span style="display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:999px; background:#E2F2EE; color:#0F7D6B; font-family:'Bricolage Grotesque'; font-weight:700; font-size:13px; margin-top:2px;"><span class="ms" style="font-size:13px;">arrow_upward</span>₹3,400.00</span></div></div>
+    </div>
+    <div class="fab" style="opacity:.6;"><span class="ms" style="font-size:30px; color:#2A211B;">add</span></div>
+    <div class="nav"><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">home</span>Home</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">group</span>Friends</div><div class="ni" style="color:#E0922E;"><span class="ms msf" style="font-size:24px;">groups</span>Groups</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">bolt</span>Activity</div><div class="ni" style="color:#9A8F82;"><span class="ms" style="font-size:24px;">person</span>Profile</div></div>
+  </div>
+  <div class="cap">Global offline banner · pinned under the status bar, rows show a “pending sync” state until reconnected.</div>
+</div>
+
+
+<!-- SIGN OUT CONFIRM -->
+<div style="position:absolute; left:590px; top:3240px; width:390px;">
+  <div class="label" data-drags-parent="1">Global · Sign out</div>
+  <div class="phone" style="background:#FBF6EE;">
+    <div class="sb" style="color:#2A211B;"><span>9:41</span><span class="bars"><i></i><u></u></span></div>
+    <div style="filter:saturate(.92); opacity:.42; pointer-events:none;">
+      <div style="display:flex; flex-direction:column; align-items:center; padding:14px 22px 0;">
+        <div class="av" style="width:80px; height:80px; border-radius:26px; background:linear-gradient(135deg,#ECA64A,#C75D3C); color:#fff; font-size:30px;">P</div>
+        <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:22px; color:#2A211B; margin-top:12px;">Priya Nair</div>
+        <div style="font-size:13px; color:#9A8F82; margin-top:2px;">+91 99887 76655</div>
+      </div>
+    </div>
+    <div style="position:absolute; inset:0; background:rgba(26,16,8,.45);"></div>
+    <div style="position:absolute; left:22px; right:22px; top:50%; transform:translateY(-50%); background:#FBF6EE; border-radius:24px; padding:24px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35);">
+      <div style="width:52px; height:52px; border-radius:50%; background:#FFF6E6; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;"><span class="ms" style="font-size:26px; color:#A35E16;">logout</span></div>
+      <div style="font-family:'Bricolage Grotesque'; font-weight:700; font-size:19px; color:#2A211B;">Sign out?</div>
+      <div style="font-size:13.5px; color:#6F6557; margin-top:8px; line-height:1.5;">You'll need your +91 number and a fresh code to sign back in. Your expenses and groups stay safe.</div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button style="flex:1; min-height:48px; border:1.5px solid #E7DDCD; border-radius:14px; background:transparent; color:#2A211B; font-weight:700; font-size:15px;">Cancel</button>
+        <button style="flex:1; min-height:48px; border:none; border-radius:14px; background:#2A211B; color:#FBF6EE; font-weight:700; font-size:15px;">Sign out</button>
+      </div>
+    </div>
+  </div>
+  <div class="cap">Sign-out confirmation · reassures that data is kept and a new OTP is needed to return.</div>
+</div>
+</x-dc>
+</body>
+</html>
