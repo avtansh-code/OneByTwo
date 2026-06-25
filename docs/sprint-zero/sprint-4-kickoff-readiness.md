@@ -1,13 +1,21 @@
-# Sprint 3 Kickoff Readiness
+# Sprint 4 Kickoff Readiness
 
 **Date:** 2026-06-24
 **Author:** PM
 **QA sign-off:** posted on PR #91 (see below)
-**Status:** GREEN LIGHT — Sprint 3 (Groups and Settlements) may begin once PR #91 merges.
+**Status:** GREEN LIGHT — Sprint 4 (Groups and Settlements) may begin once PR #91 merges.
 
-This document is the green light to start Sprint 3. It confirms that the Sprint 2 ->
+> **Renumbered (2026-06-25):** this was originally the *Sprint 3* (Groups and Settlements)
+> kickoff readiness. A Design Conversion sprint (migration to the Haldi visual system, ADR-0024)
+> was inserted as the new **Sprint 3**, so the Groups-and-Settlements sprint is now **Sprint 4**.
+> Forward-looking sprint references below are updated to Sprint 4; names that predate the
+> renumber (the "Sprint 2 → Sprint 3 boundary audit" and the audit file
+> `docs/audits/sprint-2/05-sprint-3-readiness.md`) keep their original numbering. See
+> `docs/audits/design-conversion/`.
+
+This document is the green light to start Sprint 4. It confirms that the Sprint 2 ->
 Sprint 3 boundary audit (`docs/audits/sprint-2/`) is fully resolved and that the first
-Sprint-3 PR is unblocked.
+Sprint-4 PR is unblocked.
 
 ---
 
@@ -33,22 +41,22 @@ No finding is unresolved or untriaged.
 
 ---
 
-## 2. First three Sprint-3 PRs queued
+## 2. First three Sprint-4 PRs queued
 
 | # | Issue | Story file | DoR | Notes |
 |---|---|---|---|---|
-| 1 | **#92 FR-GR-01** Create group | `stories/FR-GR-01-create-group.md` | Compliant (6 AC, 2 negative) | **The first Sprint-3 PR. Unblocked.** Schema, create rule, screen spec, wireframe, mockup, telemetry all exist. |
+| 1 | **#92 FR-GR-01** Create group | `stories/FR-GR-01-create-group.md` | Compliant (6 AC, 2 negative) | **The first Sprint-4 PR. Unblocked.** Schema, create rule, screen spec, wireframe, mockup, telemetry all exist. |
 | 2 | #93 FR-GR-02 Invite members | `stories/FR-GR-02-invite-members.md` | Compliant (6 AC, 2 negative) | Builds on the invite-token model (ADR-0023 + `groupInvites` schema/rules). Invariant 3 governs the share link. |
 | 3 | #94 FR-GR-03 Invite-link expiry/revocation | `stories/FR-GR-03-invite-link-expiry.md` | Compliant (5 AC, 2 negative) | 7-day expiry + admin revocation enforced server-side (risk R-18). |
 
-The Sprint 3 milestone is populated with these three stories plus the Bucket-B
+The Sprint 4 milestone is populated with these three stories plus the Bucket-B
 follow-ups (#78-#88) and the carried `#8` Node.js-24 CI chore.
 
 ---
 
-## 3. First Sprint-3 PR — identified and unblocked
+## 3. First Sprint-4 PR — identified and unblocked
 
-**FR-GR-01 (Create group) — issue #92 — is the first Sprint-3 PR.** It is unblocked:
+**FR-GR-01 (Create group) — issue #92 — is the first Sprint-4 PR.** It is unblocked:
 
 - Story file exists and is DoR-compliant (SR1 resolved).
 - `groups/{groupId}` schema is complete and the create rule is live in `firestore.rules`
@@ -70,4 +78,4 @@ member-row / invite-link-card components (#79).
 QA has reviewed PR #91 (all eight CI checks green: Title Lint, change-detection,
 Flutter Lint & Test, Cloud Functions Lint & Test, Build Android, Build iOS, Integration
 Tests, Coverage Gate) and the audit resolution, and posts the sign-off comment on PR #91.
-On merge of #91, Sprint 3 is cleared to begin with FR-GR-01 (#92).
+On merge of #91, Sprint 4 is cleared to begin with FR-GR-01 (#92).

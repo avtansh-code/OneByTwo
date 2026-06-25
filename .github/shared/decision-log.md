@@ -1926,3 +1926,115 @@ document directly.
   deferred.
 
 ---
+
+## ADR-0024: Adopt the Haldi Visual System (Direction A) as the App-Wide Design Language
+
+**Status:** Accepted
+
+### Context
+
+Sprints 0–2 shipped the app on an interim design system documented under
+`docs/design/02-design-system/*` — Plus Jakarta Sans + Inter typography and an
+Indigo/Saffron/Emerald/Coral palette mapped into `lib/app/theme.dart`. A high-fidelity visual
+system, **"Direction A — Haldi"**, has since been delivered at `design_handoff_one_by_two/` and
+selected from three explored directions. It specifies the final colour, typography, shape,
+motion, iconography and accessibility pairings for all 30 screens, light and dark.
+
+The Design Conversion planning pack (`docs/audits/design-conversion/`) ratifies migrating the
+already-built app and every upcoming feature onto Haldi. This ADR records that adoption and,
+critically, its **scope**: Haldi is a **visual/UX replacement, not a backend or data-model
+change.** The Haldi handoff re-states the four project invariants verbatim, so the redesign
+strengthens rather than disturbs them. The decision is referenced by
+`docs/audits/design-conversion/README.md` and detailed by
+`docs/audits/design-conversion/03-foundation-plan.md` (the token/type/component foundation plan).
+
+The defining constraint: two visual sources of truth (the old `02-design-system/*` docs and the
+Haldi handoff) cannot both be canonical, but the **data layer must not move** with the skin. The
+ADR therefore draws a sharp line between the visual-layer docs it supersedes and the
+backend/data docs and invariants it leaves untouched.
+
+### Decision
+
+1. **Adopt `design_handoff_one_by_two/` (Haldi) as the canonical, app-wide visual system.** It
+   is the single source of truth for colour, typography, shape, elevation, motion, iconography
+   and accessibility pairings across all 30 screens and the global overlays.
+
+2. **Supersession is visual-layer only.** This ADR supersedes — as historical references that
+   remain in the repo — exactly these visual-layer documents:
+   - `docs/design/02-design-system/tokens.md`
+   - `docs/design/02-design-system/components.md`
+   - `docs/design/02-design-system/typography-and-formatting.md`
+   - `docs/design/02-design-system/motion-and-interaction.md`
+   - `docs/design/04-wireframes/*`
+   - `docs/design/05-mockups/*`
+   - `docs/design/06-screen-specs/*`
+
+3. **The backend/data layer is explicitly unchanged.** `docs/design/03-architecture/*` and
+   `docs/design/07-technical/{firestore-schema,firestore-security-rules,cloud-functions-catalogue}.md`,
+   the simplified-debts algorithm, the Cloud Functions, `firestore.rules`, `storage.rules`,
+   `firestore.indexes.json`, and **the four invariants** (`.github/shared/invariants.md`) are
+   authoritative as-is and are not re-planned. The token/type change touches **no backend
+   contract**.
+
+4. **Marigold palette with an ink `onPrimary`.** `primary` becomes marigold `#E0922E` (dark
+   `#EAA24A`), and `onPrimary` becomes the warm **ink `#2A211B`** (dark `#1A1510`) — **not
+   white.** White on marigold measures ≈ 2.5:1 and fails WCAG 2.1 AA; the Haldi ink measures
+   **5.6:1 (AA)**. The same light/warm-fill-takes-ink rule applies to the dark-theme `onError`
+   and `onSecondary` foregrounds. The balance signal is always colour **and** icon **and** label
+   (never colour alone), and expense categories use an 8-hue, colour-blind-safe palette.
+
+5. **Bricolage Grotesque + Hanken Grotesk.** Typography moves to **Bricolage Grotesque**
+   (display/headings, with tabular figures for all amounts) and **Hanken Grotesk** (text/UI),
+   both via `google_fonts`, replacing Plus Jakarta Sans + Inter.
+
+6. **Integer-paise rule preserved.** `formatInrFromPaise()`
+   (`lib/core/formatters/inr_formatter.dart`) remains the **sole** paise→rupee display boundary
+   (Invariant 1 / ADR-0002). Only the rupee *display* is restyled (Bricolage tabular figures);
+   the stored integer-paise value, and the prohibition on `paise / 100` arithmetic elsewhere, are
+   unchanged.
+
+7. **Delivery via the new Sprint 3 (Design Conversion).** The conversion is the newly inserted
+   **Sprint 3**; every previously-numbered sprint shifts forward by one. The foundation —
+   `lib/app/theme.dart` → Haldi tokens + the Bricolage/Hanken `TextTheme` + the shared
+   radius/shadow/motion tokens — is **Sprint 3 PR #1**, the blocking dependency for all screen
+   conversion, detailed in `docs/audits/design-conversion/03-foundation-plan.md`. The visual
+   sections of the SRS (§6.2/§6.3) will be reconciled separately via a PM `update-srs` proposal;
+   **this ADR does not edit the SRS.**
+
+### Consequences
+
+- `lib/app/theme.dart` migration becomes the first conversion PR; all 30-screen reskins depend
+  on it. The token/slot map and the typeface mapping are fixed in `03-foundation-plan.md`.
+- The six existing shared widgets (`OBTBottomNav`, `OBTFloatingActionButton`, `OBTAmountInput`,
+  `OBTActivityRow`, `OBTConfirmationDialog`, `OBTSettleUpCard`) are **reskins** (token/type
+  only); approximately **thirteen** new Haldi components (skeleton loaders, balance pill,
+  category chip/tile, 3-step add-expense sheet, segmented split control, settle-up sheet,
+  empty-state scaffold, offline banner, spend donut/legend, group tab bar, OTP six-box,
+  stacked-avatar cluster, brand kit) are added — itemised in `03-foundation-plan.md`.
+- The `onPrimary`, `onError` and `onSecondary` foreground inks diverge from Material defaults;
+  QA's Phase-7 contrast gate (`docs/audits/design-conversion/04-qa-test-strategy.md`) verifies
+  every AA/AAA pairing and the dynamic-type-to-2.0× behaviour.
+- The visual-layer docs in `docs/design/` (item 2) become historical; new visual questions are
+  resolved against the Haldi handoff and this ADR.
+- **No** change to `firestore.rules`, `storage.rules`, `firestore.indexes.json`, the Firestore
+  schema, the Cloud Functions catalogue, or the simplified-debts algorithm results from this ADR.
+- The three disabled extension slots (Settle Up → "Pay via UPI", Add Expense step 3 → "Make
+  recurring", Profile → Notifications → "Language") ship visually present but inert ("Coming
+  soon"); building any of them live remains out of scope.
+
+### Alternatives Considered
+
+- **Re-skin in place with no ADR and no superseded docs.** Rejected: it would leave two
+  conflicting visual sources of truth (`02-design-system/*` vs Haldi), so a reviewer could not
+  tell which token set is canonical. Recording the supersession scope is the point.
+- **Adopt Haldi and re-plan the backend/data docs in the same motion.** Rejected: Haldi is
+  visual-only and re-affirms the four invariants; touching `03-architecture/*`, the schema, the
+  rules, or the functions would be scope creep that risks the server-authoritative guarantees
+  (Invariant 2, ADR-0022) for no design benefit.
+- **Keep white `onPrimary`.** Rejected: white on marigold `#E0922E` is ≈2.5:1 and fails AA; the
+  Haldi ink `#2A211B` is 5.6:1. The accessibility floor is non-negotiable.
+- **Defer the typeface swap to a later sprint, ship colour first.** Rejected: colour and type are
+  one foundation. A half-migrated theme would render Haldi colours under the old Plus
+  Jakarta/Inter faces — a mixed, un-reviewable skin. PR #1 swaps both together.
+
+---

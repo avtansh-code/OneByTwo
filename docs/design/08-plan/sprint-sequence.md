@@ -5,8 +5,9 @@
 - **Sprint cadence:** two-week sprints, six sprints to feature-complete release candidate.
 - **Team capacity:** to be determined by stakeholder. Story-point totals per sprint are presented as planned load; actual velocity will be calibrated after sprint 1 and capacity adjusted accordingly.
 - **Priority policy (SRS section 11):** all P0 items (46 FRs, 146 SP per backlog) must be completed for v1.0 launch. P1 items (16 FRs, 40 SP) are strongly desired but descope-eligible under timeline pressure; any descoped P1 items move to a fast-follow release. No P2 items exist in the current backlog.
-- **Story-point source:** sprint 1 story points are taken from `docs/sprint-zero/sprint-1-plan.md` (authoritative, refined estimates). Sprints 2 through 5 use the Fibonacci estimates from `docs/sprint-zero/backlog.md`; these will be refined during each sprint's planning session.
+- **Story-point source:** sprint 1 story points are taken from `docs/sprint-zero/sprint-1-plan.md` (authoritative, refined estimates). Sprints 2 and 4 through 6 (the feature sprints) use the Fibonacci estimates from `docs/sprint-zero/backlog.md`; the new Sprint 3 (Design Conversion) is sized separately in `docs/sprint-zero/sprint-3-plan.md`. These will be refined during each sprint's planning session.
 - **Infrastructure stories:** INFRA-01 and FUNC-01 are not counted in the backlog's 62 FRs / 186 SP total. They add 13 SP of enabling work in sprint 1.
+- **Design Conversion sprint (new Sprint 3):** the Haldi visual-system migration is additive enabling work (like INFRA-01 / FUNC-01) — it delivers no functional requirement, so it is not part of the 62-FR / 186-SP backlog and is excluded from the FR cumulative and P0-completion totals below. Its story points are set in `docs/sprint-zero/sprint-3-plan.md`.
 - **Extension-point fields (ARCH-EXT-01 through ARCH-EXT-07):** per `docs/design/03-architecture/extension-points.md`, every document created in v1.0 must write extension-point fields with their stated default values. The relevant extension points are called out in each sprint where the document type is first created.
 
 ---
@@ -18,7 +19,7 @@
 | Product backlog (`docs/sprint-zero/backlog.md`) | 62 | 186 | Canonical FR count and estimates |
 | Sprint 1 re-estimation uplift | — | +9 | Sprint planning refined 9 auth/profile stories upward from 21 SP (backlog) to 30 SP (sprint-1-plan) |
 | Infrastructure stories (INFRA-01, FUNC-01) | — | +13 | Enabling work outside the FR backlog |
-| **Programme total** | **62 FRs + 2 infra** | **208** | Across sprints 1–5; sprint 6 carries no new SP |
+| **Programme total** | **62 FRs + 2 infra** | **208** | Across sprints 1–6 (Sprint 3 = Design Conversion, SP set in `sprint-3-plan.md`); sprint 7 carries no new SP |
 
 ### SP by Sprint
 
@@ -26,10 +27,11 @@
 |---|---|---|---|
 | 1 | Foundation and Authentication | 43 | 43 |
 | 2 | Friends and Core Expenses | 50 | 93 |
-| 3 | Groups and Settlements | 38 | 131 |
-| 4 | Notifications, Activity, Dashboard | 28 | 159 |
-| 5 | Polish, Support, Offline, Search | 49 | 208 |
-| 6 | QA, Performance, Release Prep | 0 (bug-fix budget) | 208 |
+| 3 | Design Conversion (Haldi) | TBD (enabling; set in `sprint-3-plan.md`) | 93 |
+| 4 | Groups and Settlements | 38 | 131 |
+| 5 | Notifications, Activity, Dashboard | 28 | 159 |
+| 6 | Polish, Support, Offline, Search | 49 | 208 |
+| 7 | QA, Performance, Release Prep | 0 (bug-fix budget) | 208 |
 
 ---
 
@@ -141,12 +143,60 @@ A user adds a friend (by contact picker or phone number), creates an expense wit
 ### Dependencies and Notes
 
 1. FR-SE-02 upgrades the FUNC-01 stub from sprint 1 into the full, optimised algorithm. This is the highest single-story effort in the sprint (8 SP) and is on the critical path for all balance display.
-2. FR-FR-02 depends on FR-SH-01 (system share sheet), which is scheduled for sprint 4. In sprint 2, the invite path will use the system share sheet directly without the deep-link store-fallback URL (FR-SH-02). The share-sheet integration must comply with Invariant 3 (system share sheet only; SRS section 3.4).
-3. FR-EX-02 covers the friend context in this sprint. The group context portion is exercised in sprint 3 once groups exist.
+2. FR-FR-02 depends on FR-SH-01 (system share sheet), which is scheduled for sprint 5. In sprint 2, the invite path will use the system share sheet directly without the deep-link store-fallback URL (FR-SH-02). The share-sheet integration must comply with Invariant 3 (system share sheet only; SRS section 3.4).
+3. FR-EX-02 covers the friend context in this sprint. The group context portion is exercised in sprint 4 once groups exist.
 
 ---
 
-## Sprint 3: Groups and Settlements
+## Sprint 3: Design Conversion
+
+**Goal:** Migrate the already-built app and the shared component library onto the
+**"Direction A — Haldi"** visual system (`design_handoff_one_by_two/`, adopted by ADR-0024):
+the token + type foundation (`lib/app/theme.dart` → Haldi marigold palette + Bricolage
+Grotesque / Hanken Grotesk), the shared-component reskin plus the new Haldi components,
+per-flow screen conversion (Auth, Home, Friends, Expenses, Settlements, Activity, Profile),
+dark-mode parity for every hero screen, accessibility re-verification against the new palette,
+and a visual-regression / golden-test harness — with **zero change** to the data model,
+Firestore security rules, the simplified-debts algorithm, or Cloud Functions.
+
+> Stories, acceptance criteria, story points, Definition of Ready/Done, the sprint-end demo,
+> risks, and the critical path are defined in `docs/sprint-zero/sprint-3-plan.md`. The visual
+> source of truth is `design_handoff_one_by_two/` (ADR-0024); it supersedes the old
+> visual-layer docs (`docs/design/02-design-system/*`, `04-wireframes/*`, `05-mockups/*`,
+> `06-screen-specs/*`). The four invariants are re-affirmed: integer paise (rupee display only
+> via `formatInrFromPaise()`), `simplifiedBalances` server-written / client-read-only, OS
+> system share sheet only, single Firebase project. SRS §6.2/§6.3 are reconciled via the PM
+> `update-srs` proposal (`docs/sprint-zero/srs-update-proposal-haldi.md`).
+
+### Story Points
+
+The Design Conversion sprint is **additive enabling work** (like INFRA-01 / FUNC-01 in
+Sprint 1): it delivers no new functional requirement and carries no P0 FR SP, so it does not
+appear in the FR-backlog cumulative or the P0-completion curves below. Its story-point total
+is set in `docs/sprint-zero/sprint-3-plan.md`.
+
+### Demo at Sprint End
+
+Every converted hero screen (Home, Friends list, Settle up, Add-expense, Activity) renders in
+the Haldi visual language in light **and** dark mode; the shared `OBT*` components and the new
+Haldi components (skeleton loaders, balance pill, category chip/tile, and the rest) are in use;
+contrast and dynamic-type (to 2.0×) checks pass against the verified Haldi pairings; the
+golden-test harness proves the conversion is non-regressing. No application behaviour, balance
+figure, or backend contract changes.
+
+### Dependencies and Notes
+
+1. **PR #1 is the token + type foundation** (`lib/app/theme.dart` → Haldi) and blocks every
+   other conversion story; it is the critical path.
+2. One built surface needs a newly-commissioned Haldi design before it can be converted — the
+   change-phone OTP re-verification flow (FR-PR-02); see
+   `docs/audits/design-conversion/01-coverage-gap.md`.
+3. The not-yet-built screens (Groups 14–20, Search, Onboarding) are **not** converted here;
+   they are built directly in Haldi in the feature sprints that own them (Groups in Sprint 4).
+
+---
+
+## Sprint 4: Groups and Settlements
 
 **Goal:** Deliver the full group lifecycle (create, invite, manage members, delete) and the settlement flow (settle up, history, real-time balance updates), enabling multi-party expense splitting and debt resolution within groups.
 
@@ -178,14 +228,26 @@ A user adds a friend (by contact picker or phone number), creates an expense wit
 
 ### Design Artefacts Required Beforehand
 
+> **Design-system DoR:** the visual source of truth for Sprint 4 is Haldi
+> (`design_handoff_one_by_two/`, ADR-0024). The Groups UI is **not built yet**, so it
+> is authored **directly in Haldi** (there is no built screen to convert). Every story
+> builds on the Haldi token + component foundation delivered in Sprint 3
+> (`docs/sprint-zero/sprint-3-plan.md`, DC-01–DC-03) and reuses the Sprint 3 shared
+> component library; the two Groups-specific components — the group segmented tab bar
+> and the stacked-avatar cluster — are authored here in Sprint 4 on top of that
+> foundation, per `docs/audits/design-conversion/02-conversion-checklist.md`. No story
+> opens until the Sprint 3 foundation is on `main`. The backend artefacts below
+> (Firestore schema, security rules, extension points) are **unchanged**.
+
 | Artefact | Path |
 |---|---|
-| Wireframes — groups flow | `docs/design/04-wireframes/groups-flow.md` |
-| Wireframes — settle-up flow | `docs/design/04-wireframes/settle-up-flow.md` |
-| Screen specs — groups | `docs/design/06-screen-specs/13-18-groups.md` |
-| Screen specs — settle, activity, profile | `docs/design/06-screen-specs/23-28-settle-activity-profile.md` |
-| Mockups — group detail | `docs/design/05-mockups/05-group-detail.html` |
-| Mockups — settle up | `docs/design/05-mockups/06-settle-up.html` |
+| Design system: Haldi (per ADR-0024 + the new Sprint 3 component library) | `design_handoff_one_by_two/README.md` |
+| Haldi screens — Groups flow (authored directly in Haldi) | `design_handoff_one_by_two/` screens 14 (Groups list), 15 (Create group — name, type, optional cover), 18 (Group members — admin badge; remove only at zero balance), 19 (Leave / delete group — zero-balance guards), 20 (Group history) |
+| Haldi screen — Group detail ★ (Expenses / Balances / Activity) | `design_handoff_one_by_two/` screen 16 — the **Balances** tab shows each member's simplified net plus the minimum set of payments to clear the whole group (for example "You pay Rahul ₹1,620"), and **never** a who-owes-who web (Invariant 2) |
+| Haldi screen — Invite members | `design_handoff_one_by_two/` screen 17 — 7-day, admin-revocable invite link handed off to the **OS system share sheet only**, with +91 entry and multi-select contacts; no per-app buttons (Invariant 3) |
+| Haldi screen — Settle up ★ | `design_handoff_one_by_two/` screen 23 — one pre-filled suggested payment (recipient + amount from `simplifiedBalances`), editable amount, disabled "Pay via UPI" slot ("Coming soon"); never a debt graph (Invariant 2) |
+| Haldi screen — Settlement history | `design_handoff_one_by_two/` screen 24 — sent/received with direction icon + sign, per friend and per group; amounts via `formatInrFromPaise()` (FR-SE-08) |
+| Haldi screen — View / edit / delete expense | `design_handoff_one_by_two/` screen 22 — creator-only edit form; delete confirm explains balance impact (FR-EX-06 / FR-EX-07) |
 | Firestore schema (groups, settlements collections) | `docs/design/07-technical/firestore-schema.md` |
 | Firestore security rules (settlement write constraints) | `docs/design/07-technical/firestore-security-rules.md` |
 | Architecture extension points | `docs/design/03-architecture/extension-points.md` |
@@ -196,13 +258,13 @@ A user creates a group, invites members via share-sheet link, adds a group expen
 
 ### Dependencies and Notes
 
-1. FR-EX-02 (expense in group context) is exercised here against the group infrastructure. The FR was delivered in sprint 2 for the friend context; sprint 3 validates and extends it to groups.
-2. FR-EX-07 writes to the activity feed structure that FR-AC-01 (sprint 4) will formally surface in the Activity tab. In sprint 3, activity entries are written to Firestore but not yet displayed in a dedicated tab; they appear within the group detail view (FR-GR-04).
+1. FR-EX-02 (expense in group context) is exercised here against the group infrastructure. The FR was delivered in sprint 2 for the friend context; sprint 4 validates and extends it to groups.
+2. FR-EX-07 writes to the activity feed structure that FR-AC-01 (sprint 5) will formally surface in the Activity tab. In sprint 4, activity entries are written to Firestore but not yet displayed in a dedicated tab; they appear within the group detail view (FR-GR-04).
 3. FR-SE-06 depends on FR-SE-04 (sprint 2) for atomic recomputation.
 
 ---
 
-## Sprint 4: Notifications, Activity, Dashboard
+## Sprint 5: Notifications, Activity, Dashboard
 
 **Goal:** Deliver the home dashboard as the primary entry surface, the activity feed as the chronological event log, push notifications via FCM, deep-linking from notifications and activity items, and the system share-sheet integration with deep-link URLs.
 
@@ -228,13 +290,23 @@ A user creates a group, invites members via share-sheet link, adds a group expen
 
 ### Design Artefacts Required Beforehand
 
+> **Design-system DoR:** the visual source of truth for Sprint 5 is Haldi
+> (`design_handoff_one_by_two/`, ADR-0024). Home dashboard (6) and Activity feed (25)
+> carry their Haldi conversion from Sprint 3; Sprint 5 lands their feature behaviour on
+> those converted Haldi surfaces and the Sprint 3 shared component library (skeleton
+> loaders, balance pill, empty-state scaffold, donut + 6-category legend). Every story
+> builds on the Sprint 3 Haldi token + component foundation
+> (`docs/sprint-zero/sprint-3-plan.md`); no story opens until that foundation is on
+> `main`. The technical / IA artefacts below (notifications design, telemetry plan,
+> user journeys, Cloud Functions catalogue) are **unchanged**.
+
 | Artefact | Path |
 |---|---|
-| Wireframes — home dashboard | `docs/design/04-wireframes/home-dashboard.md` |
-| Wireframes — notifications and deep links | `docs/design/04-wireframes/notifications-and-deeplinks.md` |
-| Screen specs — home and search | `docs/design/06-screen-specs/06-08-home-and-search.md` |
-| Mockups — home dashboard | `docs/design/05-mockups/03-home-dashboard.html` |
-| Mockups — activity feed | `docs/design/05-mockups/07-activity-feed.html` |
+| Design system: Haldi (per ADR-0024 + the new Sprint 3 component library) | `design_handoff_one_by_two/README.md` |
+| Haldi screen — Home dashboard ★ | `design_handoff_one_by_two/` screen 6 — net simplified-balance hero, top balances with quick Settle, monthly-spend donut + 6-category legend, persistent FAB, 5-tab nav (light + dark) |
+| Haldi screen — Add-expense context picker | `design_handoff_one_by_two/` screen 8 — FAB → search + Groups/Friends sections → opens the add sheet (FR-HD-04) |
+| Haldi screen — Activity feed ★ | `design_handoff_one_by_two/` screen 25 — chronological expenses / settlements / reminders / group changes; rows deep-link to detail (light + dark) |
+| Haldi screen — Push notifications and deep links | `design_handoff_one_by_two/` screen 26 — lock-screen banners; tap deep-links to the relevant screen, including cold start (FR-AC-05) |
 | Notifications technical design | `docs/design/07-technical/notifications.md` |
 | Telemetry plan | `docs/design/07-technical/telemetry-plan.md` |
 | Information architecture — user journeys | `docs/design/01-information-architecture/user-journeys.md` |
@@ -246,7 +318,7 @@ The home dashboard displays the user's overall net simplified balance and the to
 
 ---
 
-## Sprint 5: Polish, Support, Offline, Search
+## Sprint 6: Polish, Support, Offline, Search
 
 **Goal:** Complete all remaining P0 and P1 functional requirements — profile extras, contact support, offline caching and sync, search and filters, receipt attachment, payment reminders, account deletion, and the monthly spend chart — to reach feature-complete status.
 
@@ -283,11 +355,27 @@ The home dashboard displays the user's overall net simplified balance and the to
 
 ### Design Artefacts Required Beforehand
 
+> **Design-system DoR:** the visual source of truth for Sprint 6 is Haldi
+> (`design_handoff_one_by_two/`, ADR-0024). The Profile & support surfaces (27–30) carry
+> their Haldi conversion from Sprint 3; Sprint 6 lands the remaining P0/P1 behaviour on
+> those converted Haldi surfaces and the Sprint 3 shared component library (offline /
+> pending-sync banner, empty-state scaffold, category chip). Every story builds on the
+> Sprint 3 Haldi token + component foundation (`docs/sprint-zero/sprint-3-plan.md`); no
+> story opens until that foundation is on `main`. **One surface — change-phone OTP
+> re-verification (FR-PR-02) — needs a newly-commissioned Haldi design** before it can be
+> built; it is the Sprint 3 blocked item carried forward
+> (`docs/audits/design-conversion/01-coverage-gap.md` §C/§D). The technical artefacts
+> below (offline-and-sync, error/empty-state taxonomy, Cloud Functions catalogue,
+> accessibility spec) are **unchanged**.
+
 | Artefact | Path |
 |---|---|
-| Wireframes — profile and support | `docs/design/04-wireframes/profile-and-support.md` |
-| Mockups — profile with support | `docs/design/05-mockups/08-profile-with-support.html` |
-| Screen specs — home and search (search/filter portion) | `docs/design/06-screen-specs/06-08-home-and-search.md` |
+| Design system: Haldi (per ADR-0024 + the new Sprint 3 component library) | `design_handoff_one_by_two/README.md` |
+| Haldi screens — Profile & support | `design_handoff_one_by_two/` screens 27 (Profile view + edit — name + photo; +91 locked), 28 (Notification preferences — per-category toggles + disabled "Language" slot), 29 (Contact support — mail client pre-filled + copy-email fallback), 30 (Delete account — anonymise to "Former member", 30-day removal) |
+| Haldi screen — Search & filters | `design_handoff_one_by_two/` screen 7 — focused field, date / group / category filters, recent searches → category-icon result rows (FR-SR-01 / FR-SR-02) |
+| Haldi screen — Monthly-spend chart | `design_handoff_one_by_two/` screen 6 — current-month spend donut + 6-category legend (FR-HD-03) |
+| Haldi screen — Receipt attachment | `design_handoff_one_by_two/` screen 21 (step 3) + 22 — receipt thumbnail / fullscreen viewer (FR-EX-05) |
+| Change-phone OTP re-verification — NEW Haldi design required | Not covered by the 30 Haldi screens (FR-PR-02). Commission the new Haldi change-phone screen first; it reuses the auth Phone-entry (3) + OTP (4) chrome but needs the two-step "verify current → verify new" flow specified. Carried from the Sprint 3 blocked item (`docs/audits/design-conversion/01-coverage-gap.md` §C item 1 / §D) |
 | Offline and sync technical design | `docs/design/07-technical/offline-and-sync.md` |
 | Error and empty state taxonomy | `docs/design/07-technical/error-and-empty-state-taxonomy.md` |
 | Cloud Functions catalogue (account deletion, reminders) | `docs/design/07-technical/cloud-functions-catalogue.md` |
@@ -299,7 +387,7 @@ Full application walkthrough covering all feature areas. Aeroplane mode is enabl
 
 ### Descope Risk
 
-Sprint 5 carries all 16 P1 items (40 SP). If velocity data from sprints 1 through 4 indicates that 49 SP exceeds sustainable capacity, the following P1 items are candidates for deferral to a fast-follow release, in descending order of descope eligibility:
+Sprint 6 carries all 16 P1 items (40 SP). If velocity data from sprints 1 through 5 indicates that 49 SP exceeds sustainable capacity, the following P1 items are candidates for deferral to a fast-follow release, in descending order of descope eligibility:
 
 | Descope Order | ID | Title | SP | Rationale |
 |---|---|---|---|---|
@@ -310,11 +398,11 @@ Sprint 5 carries all 16 P1 items (40 SP). If velocity data from sprints 1 throug
 | 5 | FR-OF-02 | Offline write queue | 5 | Depends on FR-OF-03; descoped together |
 | 6 | FR-EX-05 | Receipt attachment | 3 | Enhancement to expense entry; not required for core split-and-settle |
 
-Items 1 through 6 total 22 SP. Descoping all six would reduce sprint 5 to 27 SP (9 SP P0 + 18 SP remaining P1), a manageable load.
+Items 1 through 6 total 22 SP. Descoping all six would reduce sprint 6 to 27 SP (9 SP P0 + 18 SP remaining P1), a manageable load.
 
 ---
 
-## Sprint 6: QA, Performance, Release Prep
+## Sprint 7: QA, Performance, Release Prep
 
 **Goal:** Achieve release-candidate quality through comprehensive QA, performance profiling against NFR targets, accessibility audit, dark mode polish, and store listing preparation, culminating in a TestFlight and Play Internal build ready for alpha distribution (SRS section 11.1, phase 1).
 
@@ -322,7 +410,7 @@ Items 1 through 6 total 22 SP. Descoping all six would reduce sprint 5 to 27 SP 
 
 | Activity | Description | Responsible Agents |
 |---|---|---|
-| Bug fixes | Address all P0 and P1 defects from sprint 5 QA and any carry-over items | Flutter Dev, Functions Dev |
+| Bug fixes | Address all P0 and P1 defects from sprint 6 QA and any carry-over items | Flutter Dev, Functions Dev |
 | Regression testing | Full test suite execution across all feature areas; canonical simplified-debts test cases must pass on the release commit (SRS section 11.2) | QA |
 | Performance profiling | Validate against NFR targets (SRS section 5): cold start < 3 s, screen transitions < 300 ms, Firestore reads per screen load within budget | Flutter Dev, DevOps |
 | Accessibility audit | VoiceOver (iOS) and TalkBack (Android) walkthroughs of all primary flows; remediate blockers per `docs/design/07-technical/accessibility-spec.md` | Flutter Dev, Designer, QA |
@@ -357,28 +445,28 @@ Release candidate build distributed via TestFlight (iOS) and Play Internal Testi
 | Epic | FRs | Sprint(s) | Backlog SP | Notes |
 |---|---|---|---|---|
 | 1 — Authentication | FR-AU-01 to FR-AU-08 | 1 | 18 | Sprint-1-plan refined to 25 SP |
-| 1 — Authentication | FR-AU-09 | 5 | 5 | P1 |
+| 1 — Authentication | FR-AU-09 | 6 | 5 | P1 |
 | 2 — Profile | FR-PR-01 | 1 | 3 | Sprint-1-plan refined to 5 SP |
-| 2 — Profile | FR-PR-02 to FR-PR-05 | 5 | 9 | FR-PR-02, FR-PR-03 are P1 |
+| 2 — Profile | FR-PR-02 to FR-PR-05 | 6 | 9 | FR-PR-02, FR-PR-03 are P1 |
 | 3 — Friends | FR-FR-01 to FR-FR-04 | 2 | 12 | All P0 |
-| 3 — Friends | FR-FR-05 | 5 | 2 | P1 |
-| 4 — Groups | FR-GR-01 to FR-GR-07 | 3 | 20 | All P0 |
+| 3 — Friends | FR-FR-05 | 6 | 2 | P1 |
+| 4 — Groups | FR-GR-01 to FR-GR-07 | 4 | 20 | All P0 |
 | 5 — Expenses | FR-EX-01 to FR-EX-04, FR-EX-08, FR-EX-09 | 2 | 17 | All P0 |
-| 5 — Expenses | FR-EX-06, FR-EX-07 | 3 | 7 | All P0 |
-| 5 — Expenses | FR-EX-05 | 5 | 3 | P1 |
+| 5 — Expenses | FR-EX-06, FR-EX-07 | 4 | 7 | All P0 |
+| 5 — Expenses | FR-EX-05 | 6 | 3 | P1 |
 | 6 — Settlements | FR-SE-01 to FR-SE-04 | 2 | 21 | All P0 |
-| 6 — Settlements | FR-SE-05 to FR-SE-08 | 3 | 11 | All P0 |
-| 6 — Settlements | FR-SE-09 | 5 | 3 | P1 |
-| 7 — Activity | FR-AC-01 to FR-AC-03, FR-AC-05 | 4 | 16 | All P0 |
-| 7 — Activity | FR-AC-04 | 5 | 2 | P1 |
-| 8 — Dashboard | FR-HD-01, FR-HD-02, FR-HD-04 | 4 | 8 | All P0 |
-| 8 — Dashboard | FR-HD-03 | 5 | 5 | P1 |
-| 9 — Search | FR-SR-01, FR-SR-02 | 5 | 6 | Both P1 |
-| 10 — Offline | FR-OF-01 | 5 | 3 | P0 |
-| 10 — Offline | FR-OF-02, FR-OF-03 | 5 | 8 | Both P1 |
-| 11 — Sharing | FR-SH-01, FR-SH-02 | 4 | 4 | Both P0 |
-| 11 — Sharing | FR-SH-03 | 5 | 2 | P0 |
-| 11 — Sharing | FR-SH-04 | 5 | 1 | P1 |
+| 6 — Settlements | FR-SE-05 to FR-SE-08 | 4 | 11 | All P0 |
+| 6 — Settlements | FR-SE-09 | 6 | 3 | P1 |
+| 7 — Activity | FR-AC-01 to FR-AC-03, FR-AC-05 | 5 | 16 | All P0 |
+| 7 — Activity | FR-AC-04 | 6 | 2 | P1 |
+| 8 — Dashboard | FR-HD-01, FR-HD-02, FR-HD-04 | 5 | 8 | All P0 |
+| 8 — Dashboard | FR-HD-03 | 6 | 5 | P1 |
+| 9 — Search | FR-SR-01, FR-SR-02 | 6 | 6 | Both P1 |
+| 10 — Offline | FR-OF-01 | 6 | 3 | P0 |
+| 10 — Offline | FR-OF-02, FR-OF-03 | 6 | 8 | Both P1 |
+| 11 — Sharing | FR-SH-01, FR-SH-02 | 5 | 4 | Both P0 |
+| 11 — Sharing | FR-SH-03 | 6 | 2 | P0 |
+| 11 — Sharing | FR-SH-04 | 6 | 1 | P1 |
 
 **Total backlog SP accounted:** 186 (matches `docs/sprint-zero/backlog.md` summary).
 
@@ -388,21 +476,21 @@ Release candidate build distributed via TestFlight (iOS) and Play Internal Testi
 |---|---|---|---|
 | 1 | 30 (refined from 21) | 30 | 21% |
 | 2 | 50 | 80 | 55% |
-| 3 | 38 | 118 | 81% |
-| 4 | 28 | 146 | 100% |
-| 5 | 0 new P0 (9 SP P0 items remaining) | — | — |
+| 4 | 38 | 118 | 81% |
+| 5 | 28 | 146 | 100% |
+| 6 | 0 new P0 (9 SP P0 items remaining) | — | — |
 
-**Correction:** sprint 5 contains 4 P0 items totalling 9 SP (FR-PR-04, FR-PR-05, FR-SH-03, FR-OF-01). Including these, the P0 completion curve is:
+**Correction:** sprint 6 contains 4 P0 items totalling 9 SP (FR-PR-04, FR-PR-05, FR-SH-03, FR-OF-01). Including these, the P0 completion curve is:
 
 | Sprint | P0 SP Delivered | Cumulative P0 SP | Percentage |
 |---|---|---|---|
 | 1 | 30 | 30 | 21% |
 | 2 | 47 | 77 | 53% |
-| 3 | 38 | 115 | 79% |
-| 4 | 22 | 137 | 94% |
-| 5 | 9 | 146 | 100% |
+| 4 | 38 | 115 | 79% |
+| 5 | 22 | 137 | 94% |
+| 6 | 9 | 146 | 100% |
 
-All 46 P0 items are delivered by end of sprint 5. All 16 P1 items are scheduled in sprint 5 but are descope-eligible per the descope table above.
+All 46 P0 items are delivered by end of sprint 6. All 16 P1 items are scheduled in sprint 6 but are descope-eligible per the descope table above. (Sprint 3 — Design Conversion — delivers no functional requirement, so it carries no P0 SP; the P0-completion curve advances from Sprint 2 directly to Sprint 4.)
 
 ### P1 Items at Risk of Fast-Follow Deferral
 
@@ -433,13 +521,13 @@ Note: FR-AC-04 depends on FR-PR-03; if FR-PR-03 is descoped, FR-AC-04 must also 
 ## Cross-Sprint Dependency Graph
 
 ```
-Sprint 1                Sprint 2                Sprint 3                Sprint 4                Sprint 5
+Sprint 1                Sprint 2                Sprint 4                Sprint 5                Sprint 6
 ---------               ---------               ---------               ---------               ---------
 INFRA-01 ──────────────> all stories
 FR-AU-07 ──────────────> FR-FR-01, FR-EX-01     FR-GR-01                FR-AC-01                FR-OF-01
                          FR-SE-01
 FUNC-01 ───────────────> FR-SE-02
-FR-AU-06 (user doc) ───> FR-PR-04 (sprint 5)
+FR-AU-06 (user doc) ───> FR-PR-04 (sprint 6)
                          FR-SE-02 ──> FR-SE-03 ──> FR-SE-04
                                                    FR-SE-04 ──> FR-SE-06
                                                    FR-SE-04 ──────────────────────────> FR-OF-02
