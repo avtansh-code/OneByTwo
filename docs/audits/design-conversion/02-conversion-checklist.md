@@ -189,7 +189,7 @@ All six `OBT*` widgets are reskins (token/type only, no structural rebuild) per
 | `OBTSettleUpCard` | `friends/presentation/widgets/obt_settle_up_card.dart` | reskin | Card fill → surfaceVariant hero; arrow → marigold; amount → Bricolage tabular; CTA radius/type; cooldown caption → tertiary text. | S |
 | `IndianPhoneInputFormatter` (+ display formatter) | `core/widgets/india_phone_input_formatter.dart` | **conform** | Pure `TextInputFormatter` logic (strip/cap/group). No visual surface, no tokens — no change. | — |
 
-> **Status — done (DC-02 / Sprint 3 PR #2, issue #114, branch
+> **Status — done (DC-02 / Sprint 3 PR #2 = #127, issue #114, branch
 > `feat/obt-widget-reskins`).** All six `OBT*` widgets above are reskinned to the
 > Haldi tokens (`Theme` / `OBTColors` / the `AppTheme` radius scale / `OBTText`)
 > with **no structural change**, and `IndianPhoneInputFormatter` **conforms** (no
