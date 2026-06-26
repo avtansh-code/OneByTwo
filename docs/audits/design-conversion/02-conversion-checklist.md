@@ -242,6 +242,46 @@ greenfield.
 13. **Brand kit** — `M/L`. Haldi 1, 2. ÷ logo mark, wordmark, splash marigold
     gradient, onboarding illustrations. **Greenfield** (today a placeholder icon).
 
+> **Status — done (DC-03 / Sprint 3 PR #3 = #115, branch
+> `feat/haldi-shared-components`).** The **eleven** non-Groups components are
+> built as reusable, fully-stated shared widgets under `lib/core/widgets/`, each
+> with its four states (populated / empty / loading = shimmer / error, where
+> applicable) and per-component widget tests (>= 1 negative case; per-component
+> coverage >= 70%, overall 86%), plus light + dark golden scaffolds queued in
+> `test/golden/haldi_components_golden_test.dart` (skipped pending the DC-13
+> ubuntu baseline path):
+> 1 `OBTSkeleton`(+`Row`/`Card`/`List`/`Circle`) `feedback/obt_skeleton.dart`;
+> 2 `OBTBalancePill` `indicators/obt_balance_pill.dart` (the colour + icon +
+> label trio, §B.3, with the colour-only negative case proven to fail; reads the
+> projection only, Invariant 2);
+> 3 `OBTCategoryChip`/`OBTCategoryTile` `inputs/obt_category_chip.dart`
+> (`OBTColors.category` 8-hue);
+> 4 `OBTStepperSheet` `sheets/obt_stepper_sheet.dart` (visual stepper replaces the
+> `(N/3)` text);
+> 5 `OBTSegmentedSplitControl` `inputs/obt_segmented_split_control.dart`
+> (greenfield; live adds-up green / over-under red, Next disabled; integer paise
+> via `formatInrFromPaise()`, Invariant 1, AC-4);
+> 6 `OBTSettleUpSheet` `sheets/obt_settle_up_sheet.dart` (exactly ONE suggested
+> payment, focal `OBTText.amountHero` per #128 §B; the inert "Pay via UPI" /
+> "Coming soon" slot announced disabled; success moment = check + one
+> `HapticFeedback`; Invariant 2, never a debt graph);
+> 7 `OBTEmptyState` `feedback/obt_empty_state.dart` (ink-on-marigold CTA);
+> 8 `OBTOfflineBanner` `feedback/obt_offline_banner.dart` (greenfield global
+> status primitive);
+> 9 `OBTSpendingDonut` + `OBTCategoryLegend` `charts/obt_spending_donut.dart`
+> (reskinned to the Haldi 8-hue);
+> 11 `OBTOtpInput` `inputs/obt_otp_input.dart` (reskin; auto-advance + paste +
+> error state preserved);
+> 13 brand kit `OBTBrandMark`/`OBTWordmark`/`OBTBrandLockup`/`OBTSplashGradient`
+> `branding/obt_brand.dart` (ink on marigold, never white). **Built in isolation
+> — no screen converted; the existing feature partials (`balance_pill.dart`,
+> `otp_input.dart`, the `spending_*` widgets, `expense_category_grid.dart`,
+> `add_expense_bottom_sheet.dart`) stay until their flow conversions (DC-04+)
+> re-point them.** The two **Groups-specific** components — **#10 group segmented
+> tab bar** and **#12 stacked-avatar cluster** — are **deferred to Sprint 4** and
+> built fresh in Haldi with the Groups flow (`sprint-3-plan.md` DC-03 DoD; the
+> §C critical-path table).
+
 ---
 
 ## D. Roll-up
