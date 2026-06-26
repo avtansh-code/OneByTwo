@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
@@ -12,7 +13,6 @@ import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/expense_draft.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
-import 'package:onebytwo/features/expenses/presentation/expense_date_format.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_indicator.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
 
@@ -456,9 +456,7 @@ class _SummaryCard extends StatelessWidget {
     final payerLabel = draft.payerId == currentUserUid ? 'You' : 'Friend';
     final categoryLabel = draft.category?.name ?? '—';
     final splitMethodLabel = _splitMethodLabel(draft.splitMethod);
-    final dateLabel = draft.date != null
-        ? formatExpenseIstDate(draft.date!)
-        : '—';
+    final dateLabel = draft.date != null ? formatIstLongDate(draft.date!) : '—';
 
     return Container(
       padding: const EdgeInsets.all(16),

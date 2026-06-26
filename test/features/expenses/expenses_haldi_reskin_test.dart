@@ -18,8 +18,6 @@
 // Money is asserted only as formatInrFromPaise() output (Invariant 1); the
 // expense_creation_boundary_contract_test grep is the structural guard.
 
-// ignore_for_file: cascade_invocations
-
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -48,57 +46,6 @@ import 'package:onebytwo/features/friends/application/user_profile_provider.dart
 import '../../support/widget_test_harness.dart';
 import 'helpers/fake_services.dart';
 
-class _NoopAnalytics implements AnalyticsService {
-  @override
-  Future<void> logEvent({
-    required String name,
-    Map<String, Object>? parameters,
-  }) async {}
-}
-
-class _FakeExpenseRepository implements ExpenseRepository {
-  @override
-  Future<String> createExpense({
-    required String friendshipId,
-    required ExpenseDoc doc,
-  }) async => 'eid-test';
-
-  @override
-  Future<void> createExpenseAtId({
-    required String friendshipId,
-    required String expenseId,
-    required ExpenseDoc doc,
-  }) async {}
-
-  @override
-  Future<void> updateExpense({
-    required String friendshipId,
-    required String expenseId,
-    required Map<String, dynamic> updates,
-  }) async {}
-
-  @override
-  Future<void> softDeleteExpense({
-    required String friendshipId,
-    required String expenseId,
-  }) async {}
-
-  @override
-  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
-    required String friendshipId,
-    int limit = 5,
-  }) => const Stream<List<ExpenseDoc>>.empty();
-
-  @override
-  Future<List<ExpenseDoc>> fetchExpensesInMonth({
-    required String friendshipId,
-    required DateTime monthStartUtc,
-  }) async => const <ExpenseDoc>[];
-
-  @override
-  String newExpenseId({required String friendshipId}) => 'eid-test';
-}
-
 const _friendshipId = 'uid-me_uid-friend';
 const _currentUid = 'uid-me';
 const _friendUid = 'uid-friend';
@@ -121,8 +68,8 @@ ExpenseDoc _detailDoc() {
 }
 
 List<Override> _sheetOverrides() => <Override>[
-  analyticsServiceProvider.overrideWithValue(_NoopAnalytics()),
-  expenseRepositoryProvider.overrideWithValue(_FakeExpenseRepository()),
+  analyticsServiceProvider.overrideWithValue(NoopAnalytics()),
+  expenseRepositoryProvider.overrideWithValue(NoopExpenseRepository()),
   receiptStorageServiceProvider.overrideWithValue(FakeReceiptStorageService()),
   imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
 ];

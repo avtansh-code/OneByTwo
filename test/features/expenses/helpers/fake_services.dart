@@ -6,7 +6,10 @@
 
 import 'package:image_picker/image_picker.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
+import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
+import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 
 /// Recording fake [ReceiptStorageService]. Defaults to a successful
 /// upload returning a deterministic URL. Tests that exercise the
@@ -85,4 +88,59 @@ class FakeImagePickerService implements ImagePickerService {
     galleryCalls += 1;
     return returnFromGallery;
   }
+}
+
+/// No-op [AnalyticsService] for widget / golden tests that do not assert on
+/// emitted events.
+class NoopAnalytics implements AnalyticsService {
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {}
+}
+
+/// No-op [ExpenseRepository] for widget / golden tests that render the
+/// add-expense surfaces without exercising a save / read.
+class NoopExpenseRepository implements ExpenseRepository {
+  @override
+  Future<String> createExpense({
+    required String friendshipId,
+    required ExpenseDoc doc,
+  }) async => 'eid';
+
+  @override
+  Future<void> createExpenseAtId({
+    required String friendshipId,
+    required String expenseId,
+    required ExpenseDoc doc,
+  }) async {}
+
+  @override
+  Future<void> updateExpense({
+    required String friendshipId,
+    required String expenseId,
+    required Map<String, dynamic> updates,
+  }) async {}
+
+  @override
+  Future<void> softDeleteExpense({
+    required String friendshipId,
+    required String expenseId,
+  }) async {}
+
+  @override
+  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
+    required String friendshipId,
+    int limit = 5,
+  }) => const Stream<List<ExpenseDoc>>.empty();
+
+  @override
+  Future<List<ExpenseDoc>> fetchExpensesInMonth({
+    required String friendshipId,
+    required DateTime monthStartUtc,
+  }) async => const <ExpenseDoc>[];
+
+  @override
+  String newExpenseId({required String friendshipId}) => 'eid';
 }

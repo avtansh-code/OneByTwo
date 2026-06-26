@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/theme/obt_text.dart';
@@ -19,7 +20,6 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
-import 'package:onebytwo/features/expenses/presentation/expense_date_format.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/expense_category_palette.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
 import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
@@ -305,7 +305,7 @@ class _ExpenseDetailBody extends ConsumerWidget {
                     Text(doc.description, style: theme.textTheme.titleLarge),
                     const SizedBox(height: 4),
                     Text(
-                      formatExpenseIstDate(doc.date),
+                      formatIstLongDate(doc.date),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: OBTColors.metaText(theme),
                       ),

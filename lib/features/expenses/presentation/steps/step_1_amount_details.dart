@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
-import 'package:onebytwo/features/expenses/presentation/expense_date_format.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_indicator.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/expense_category_grid.dart';
 
@@ -129,7 +129,7 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatted = date == null ? 'Today' : formatExpenseIstDate(date!);
+    final formatted = date == null ? 'Today' : formatIstLongDate(date!);
     return InputDecorator(
       decoration: InputDecoration(labelText: 'Date', errorText: errorText),
       child: Row(

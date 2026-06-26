@@ -22,7 +22,6 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Split;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -40,87 +39,8 @@ import 'package:onebytwo/features/friends/application/user_profile_provider.dart
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
 import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 
+import '../features/expenses/helpers/fake_services.dart';
 import 'golden_harness.dart';
-
-class _FakeAnalytics implements AnalyticsService {
-  @override
-  Future<void> logEvent({
-    required String name,
-    Map<String, Object>? parameters,
-  }) async {}
-}
-
-class _FakeReceiptStorage implements ReceiptStorageService {
-  @override
-  Future<String> uploadFriendshipReceipt({
-    required String friendshipId,
-    required String expenseId,
-    required XFile file,
-  }) async => 'https://example.com/r.jpg';
-
-  @override
-  Future<void> deleteFriendshipReceipt({
-    required String friendshipId,
-    required String expenseId,
-  }) async {}
-}
-
-class _FakeImagePicker implements ImagePickerService {
-  @override
-  Future<XFile?> pickFromCamera({
-    int maxWidth = 1024,
-    int maxHeight = 1024,
-  }) async => null;
-
-  @override
-  Future<XFile?> pickFromGallery({
-    int maxWidth = 1024,
-    int maxHeight = 1024,
-  }) async => null;
-}
-
-class _FakeExpenseRepository implements ExpenseRepository {
-  @override
-  Future<String> createExpense({
-    required String friendshipId,
-    required ExpenseDoc doc,
-  }) async => 'eid';
-
-  @override
-  Future<void> createExpenseAtId({
-    required String friendshipId,
-    required String expenseId,
-    required ExpenseDoc doc,
-  }) async {}
-
-  @override
-  Future<void> updateExpense({
-    required String friendshipId,
-    required String expenseId,
-    required Map<String, dynamic> updates,
-  }) async {}
-
-  @override
-  Future<void> softDeleteExpense({
-    required String friendshipId,
-    required String expenseId,
-  }) async {}
-
-  @override
-  Stream<List<ExpenseDoc>> watchExpensesByFriendship({
-    required String friendshipId,
-    int limit = 5,
-  }) => const Stream<List<ExpenseDoc>>.empty();
-
-  @override
-  Future<List<ExpenseDoc>> fetchExpensesInMonth({
-    required String friendshipId,
-    required DateTime monthStartUtc,
-  }) async => const <ExpenseDoc>[];
-
-  @override
-  String newExpenseId({required String friendshipId}) => 'eid';
-}
 
 const _friendshipId = 'uid-me_uid-friend';
 const _currentUid = 'uid-me';
@@ -150,10 +70,10 @@ FriendListItem _item(int net, String name, String oid) => FriendListItem(
 );
 
 List<Override> _serviceOverrides() => <Override>[
-  analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
-  expenseRepositoryProvider.overrideWithValue(_FakeExpenseRepository()),
-  receiptStorageServiceProvider.overrideWithValue(_FakeReceiptStorage()),
-  imagePickerServiceProvider.overrideWithValue(_FakeImagePicker()),
+  analyticsServiceProvider.overrideWithValue(NoopAnalytics()),
+  expenseRepositoryProvider.overrideWithValue(NoopExpenseRepository()),
+  receiptStorageServiceProvider.overrideWithValue(FakeReceiptStorageService()),
+  imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
 ];
 
 Widget _addExpenseHost() => ProviderScope(
@@ -193,7 +113,7 @@ Widget _detail(Future<ExpenseDoc?> Function(Ref, ExpenseDetailArgs) value) {
 Widget _contextPicker(AsyncValue<List<FriendListItem>> state) {
   return ProviderScope(
     overrides: <Override>[
-      analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
+      analyticsServiceProvider.overrideWithValue(NoopAnalytics()),
       currentUserIdProvider.overrideWithValue(_currentUid),
       friendsListProvider.overrideWith((ref) async* {
         if (state is AsyncData<List<FriendListItem>>) {
