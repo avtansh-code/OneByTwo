@@ -204,35 +204,48 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 
 ### Epic C — Per-Flow Screen Conversion
 
-#### DC-04: Auth flow conversion (Haldi 1, 3, 4, 5)
+#### DC-04: Auth & onboarding flow conversion (Haldi 1, 2, 3, 4, 5)
 
-- **SRS / Source:** FR-AU-01..06; Haldi screens 1, 3, 4, 5; `02-conversion-checklist.md`
-  §B (Auth).
+- **SRS / Source:** FR-AU-01..06; Haldi screens 1, 2, 3, 4, 5; `02-conversion-checklist.md`
+  §B (Auth). **Onboarding (Haldi 2) is a net-new build** (added 2026-06-26): it has no
+  built file today; its design exists in `Phase3a - Auth.dc.html` + the mockup
+  `docs/design/05-mockups/01-splash-and-onboarding.html`, and the SRS §6 first-time
+  journey + §10 (Terms/Privacy linked from onboarding) require it. It has **no dedicated
+  FR id** — flag the FR formalisation to the PM's `update-srs` proposal.
 - **Priority:** P0 — Must have.
-- **User Story:** As a user signing in, I want the splash, phone-entry, OTP, and
-  profile-setup screens in the Haldi visual language so that my first impression of
+- **User Story:** As a user signing in, I want the splash, onboarding, phone-entry, OTP,
+  and profile-setup screens in the Haldi visual language so that my first impression of
   the app is consistent and on-brand.
-- **Preconditions:** DC-01 merged; brand kit (DC-03 #13) available for the splash
-  rebuild.
+- **Preconditions:** DC-01 merged; brand kit (DC-03 #13) — incl. the onboarding
+  illustration holders — available for the splash rebuild and onboarding build.
 - **Acceptance Criteria:**
   1. **Given** the splash screen (Haldi 1, **rebuild**), **When** the app launches,
      **Then** the placeholder icon is replaced by the `÷` brand mark + "OneByTwo"
      wordmark on a full-bleed marigold gradient with **ink** (not white) on marigold,
      in light **and** dark.
-  2. **Given** phone-entry (3), OTP (4) with `otp_input`, and profile-setup (5),
+  2. **Given** onboarding (Haldi 2, **build** — net-new in Haldi), **When** a first-time
+     user launches, **Then** the 3 illustrated slides (Track / Split / Settle) render
+     with pagination dots, a **Skip** affordance, an **ink-on-marigold "Get started"**
+     CTA, and the **Terms of Service / Privacy Policy** links; onboarding shows **once**
+     (first-launch gated by a persisted "seen" flag — Skip and Get started both set it
+     and route to phone-entry), in light **and** dark.
+  3. **Given** phone-entry (3), OTP (4) with `OBTOtpInput`, and profile-setup (5),
      **When** reskinned, **Then** they use marigold tokens + Bricolage/Hanken, the
      `+91` prefix stays **locked**, and the profile-setup camera badge icon is **ink,
      not white**; OTP, validation, and session behaviour are unchanged.
-  3. **Given** `authenticated_screen.dart` (orphaned, no inbound references),
+  4. **Given** `authenticated_screen.dart` (orphaned, no inbound references),
      **When** conversion runs, **Then** it is **deleted, not converted** (negative
      case — if any reference to `AuthenticatedScreen` is found, the deletion is
      blocked until the reference is removed).
-- **Definition of Done:** the standard checklist; one of the three throwaways
-  (`authenticated_screen.dart`) deleted here.
+- **Definition of Done:** the standard checklist; **onboarding (Haldi 2) built fresh**
+  with its first-launch gating; one of the three throwaways (`authenticated_screen.dart`)
+  deleted here.
 - **Invariant Compliance:** No money, balance, share, or project surface changes —
-  all four invariants hold unchanged.
+  all four invariants hold unchanged. The onboarding build adds only its own screen,
+  route, and a local first-launch flag (`shared_preferences`); no second project.
 - **Responsible Agents:** Flutter Dev, Designer, QA.
-- **Story Points:** 5
+- **Story Points:** 8 (was 5; +3 for the net-new onboarding build)
+
 
 #### DC-05: Home dashboard conversion (Haldi 6 ★)
 
@@ -267,16 +280,22 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 - **Responsible Agents:** Flutter Dev, Designer, QA.
 - **Story Points:** 5
 
-#### DC-06: Friends flow conversion (Haldi 9 ★, 10, 11)
+#### DC-06: Friends flow conversion (Haldi 9 ★, 10, 11, 12)
 
-- **SRS / Source:** FR-FR-01..04; Haldi screens 9, 10, 11; `02-conversion-checklist.md`
-  §B (Friends).
+- **SRS / Source:** FR-FR-01..04; Haldi screens 9, 10, 11, 12; `02-conversion-checklist.md`
+  §B (Friends). **Friend history (Haldi 12) is a net-new build** (added 2026-06-26): the
+  Friends feature dev is complete, so the dedicated full per-friend log can now be built.
+  FR-FR-04's full reverse-chron log is today met only by the top-5 inline timeline on
+  Friend detail (11) + the settlements-only history (24); Haldi 12 specifies the dedicated
+  month-grouped expense **+** settlement, signed-amount log, which has no built screen.
 - **Priority:** P0 — Must have.
 - **User Story:** As a user managing friends, I want the friends list, add-friend
-  lookup, and friend-detail screens in the Haldi visual language so that balances and
-  the add-friend branches are clear and on-brand.
+  lookup, friend-detail, and the full friend-history screens in the Haldi visual
+  language so that balances, the add-friend branches, and the complete transaction
+  history are clear and on-brand.
 - **Preconditions:** DC-01 merged; skeleton-loader (#1), empty-state scaffold (#7),
-  balance pill (#2) available (DC-03).
+  balance pill (#2) available (DC-03); the Friends feature (FR-FR-01..04) is built, so
+  the friend-history data/providers exist for Haldi 12.
 - **Acceptance Criteria:**
   1. **Given** the friends list (9 ★), **When** reskinned, **Then** it gains the
      owed/owe summary band, balance-signal rows using the balance pill (colour + icon
@@ -291,13 +310,20 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
   4. **Given** friend detail (11), **When** reskinned, **Then** the balance header and
      `OBTSettleUpCard` use the balance trio, amounts render via `formatInrFromPaise()`,
      and balances are **read** from the projection only (Invariants 1 + 2).
+  5. **Given** friend history (12, **build**), **When** the user opens the full log
+     from Friend detail, **Then** a dedicated screen shows the complete reverse-chron,
+     **month-grouped** list of expenses **and** settlements with **signed amounts** via
+     `formatInrFromPaise()` (Invariant 1), shimmer-loading + empty-state + error states,
+     in Haldi — superseding the top-5 inline preview.
 - **Definition of Done:** the standard checklist; `add_friend_flow.dart`
-  **conforms** (pure navigation glue, no visual surface).
+  **conforms** (pure navigation glue, no visual surface); **friend history (Haldi 12)
+  built fresh** with its four states.
 - **Invariant Compliance:** Integer paise via `formatInrFromPaise()` (Invariant 1);
   simplified balances read-only (Invariant 2); invites via OS share sheet only
   (Invariant 3); single project (Invariant 4).
 - **Responsible Agents:** Flutter Dev, Designer, QA.
-- **Story Points:** 5
+- **Story Points:** 8 (was 5; +3 for the net-new friend-history build)
+
 
 #### DC-07: Expenses flow conversion (Haldi 21 ★, 22, and context picker 8)
 
@@ -537,13 +563,13 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 |---|---|---|
 | A — Token + Type Foundation (DC-01) | 1 | 8 |
 | B — Shared Component Library (DC-02, DC-03) | 2 | 16 |
-| C — Per-Flow Screen Conversion (DC-04 … DC-10) | 7 | 31 |
+| C — Per-Flow Screen Conversion (DC-04 … DC-10) | 7 | 37 |
 | D — Dark-Mode Parity (DC-11) | 1 | 5 |
 | E — Accessibility Re-Verification (DC-12) | 1 | 3 |
 | F — Visual-Regression / Golden Harness (DC-13) | 1 | 5 |
-| **Total** | **13** | **68** |
+| **Total** | **13** | **74** |
 
-> **Roll-up note.** This **68 SP** is the additive enabling total that
+> **Roll-up note.** This **74 SP** is the additive enabling total that
 > `docs/design/08-plan/sprint-sequence.md` records as "TBD / set in
 > `sprint-3-plan.md`". It is **enabling** work (like INFRA-01 / FUNC-01 in Sprint 1):
 > it delivers no new functional requirement, carries no P0 FR SP, and is therefore
@@ -557,9 +583,9 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
 | DC-01 | 8 | Load-bearing, blocking foundation (ColorScheme + `OBTColors` + Bricolage/Hanken `TextTheme` + radius/shadow/motion + `OBTText` helper); comparable to INFRA-01. |
 | DC-02 | 3 | Six widgets, all classified **reskin** (token/type only); formatter conforms. |
 | DC-03 | 13 | Eleven components, each in four states + light/dark goldens; includes the greenfield segmented split control, offline banner, and brand kit. |
-| DC-04 | 5 | Splash **rebuild** (brand-kit dependency) + three reskins + one delete. |
+| DC-04 | 8 | Splash **rebuild** (brand-kit dependency) + **onboarding build** (net-new: 3-slide PageView, first-launch gating, Terms/Privacy) + three reskins + one delete. |
 | DC-05 | 5 | Home hero ★ + six widgets + donut/skeleton/empty-state + one delete. |
-| DC-06 | 5 | Friends list ★ + add-friend + `match_and_invite` **rebuild** + friend detail (rides on components). |
+| DC-06 | 8 | Friends list ★ + add-friend + `match_and_invite` **rebuild** + friend detail + **friend-history build** (net-new Haldi 12: month-grouped expense+settlement log) (rides on components). |
 | DC-07 | 5 | Add-expense hero ★ (sheet shell + step-2 **rebuild** + step-3 additive) + detail + context picker. |
 | DC-08 | 3 | Settle-up hero ★ **rebuild** (UPI slot + success moment via component) + history. |
 | DC-09 | 3 | Activity hero ★ + shimmer + in-app banner / pre-permission reskins. |

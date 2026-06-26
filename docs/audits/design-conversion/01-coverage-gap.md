@@ -36,15 +36,17 @@ governing FR only.
 ## B. Coverage matrix (30 Haldi screens)
 
 Status values: **covered** (a matching built screen exists) · **designed-not-yet-built**
-(Haldi designs it; the app screen is not built) · **mismatch** (built screen and Haldi
-screen diverge in scope/behaviour). A fourth value, **built-not-yet-designed** (a built
-surface the 30-screen handoff does not cover), cannot apply to a Haldi-screen row by
-definition; those surfaces are captured in the addendum table below the main matrix and in §C.
+(Haldi designs it; the app screen is not built) · **building (DC-NN)** (designed, no built
+screen yet, but scheduled as a net-new Haldi build in this sprint's named story) ·
+**mismatch** (built screen and Haldi screen diverge in scope/behaviour). A further value,
+**built-not-yet-designed** (a built surface the 30-screen handoff does not cover), cannot
+apply to a Haldi-screen row by definition; those surfaces are captured in the addendum
+table below the main matrix and in §C.
 
 | Haldi screen № | app screen / FR | status |
 |---|---|---|
 | 1 — Splash | `auth/presentation/splash_screen.dart` (SCR-01) | covered |
-| 2 — Onboarding (3 slides) | *(no built screen)* — SRS §6.3 #1 | designed-not-yet-built |
+| 2 — Onboarding (3 slides) | *(net-new build in DC-04)* — SRS §6 / §10; `Phase3a` design | **building (DC-04)** ⁵ |
 | 3 — Phone entry (+91 locked) | `auth/presentation/phone_entry_screen.dart` (FR-AU-01, FR-AU-02) | covered |
 | 4 — OTP (6-box) | `auth/presentation/otp_entry_screen.dart` (FR-AU-03, FR-AU-04, FR-AU-05) | covered |
 | 5 — Profile setup | `auth/presentation/profile_setup_screen.dart` (FR-AU-06) | covered |
@@ -54,7 +56,7 @@ definition; those surfaces are captured in the addendum table below the main mat
 | 9 — Friends list | `friends/presentation/friends_list_screen.dart` (FR-FR-03) | covered |
 | 10 — Add friend (lookup branches) | `friends/presentation/add_friend_screen.dart` + `add_friend_flow.dart` + `match_and_invite_screen.dart` (FR-FR-01, FR-FR-02) | covered |
 | 11 — Friend detail | `friends/presentation/friend_detail_screen.dart` (FR-FR-04) | covered |
-| 12 — Friend history | `friends/presentation/friend_detail_screen.dart` (top-5 inline only) — FR-FR-04 | designed-not-yet-built ² |
+| 12 — Friend history | *(net-new build in DC-06)* — `friend_history_screen.dart`; FR-FR-04 | **building (DC-06)** ² |
 | 13 — Remove friend | *(no presentation UI; removal logic only in `friends/data/friendship_repository.dart`)* — FR-FR-05 | designed-not-yet-built |
 | 14 — Groups list | `shell/presentation/groups_list_placeholder.dart` (placeholder only) — FR-GR-04 | designed-not-yet-built |
 | 15 — Create group | *(not built)* — FR-GR-01 | designed-not-yet-built |
@@ -80,12 +82,13 @@ definition; those surfaces are captured in the addendum table below the main mat
    Groups section is an intentional "Coming soon" stub row that lights up only when the
    Groups epic ships (the in-code "Sprint 3" label predates the renumber → now **Sprint 4**).
    No new design needed; the Groups branch reuses Haldi 14/16 when those are built.
-2. **Haldi 12 (designed-not-yet-built).** FR-FR-04's full reverse-chron per-friend log is
-   currently met only by the **top-5 inline timeline** on Friend detail (Haldi 11) plus the
-   **settlements-only** Settlement History (Haldi 24). The dedicated full
+2. **Haldi 12 (building — DC-06).** FR-FR-04's full reverse-chron per-friend log was
+   previously met only by the **top-5 inline timeline** on Friend detail (Haldi 11) plus
+   the **settlements-only** Settlement History (Haldi 24). The dedicated full
    expense+settlement, month-grouped, signed-amount log that Haldi screen 12 specifies is
-   not built as a distinct screen. Build it (in Haldi) when the friends history surface is
-   completed; the Haldi design already exists.
+   **now being built as a distinct Haldi screen** (`friend_history_screen.dart`) within
+   **DC-06** (PM decision 2026-06-26; the Friends feature dev is complete), superseding the
+   top-5 inline preview. The Haldi design already exists.
 3. **Haldi 24 (covered, with a flagged divergence).** The Settlement History list itself is
    built and maps cleanly. The **reminder** element diverges: it is implemented as a
    one-tap "Remind" affordance on **Friend detail** (`friend_detail_screen.dart` →
@@ -95,6 +98,11 @@ definition; those surfaces are captured in the addendum table below the main mat
 4. **Haldi 26 (covered).** The OS lock-screen banner is system-rendered and not an app
    surface to design; the designable surfaces — the foreground in-app banner, the
    "Stay in the loop" pre-permission dialog, and the deep-link host — are all built.
+5. **Haldi 2 (building — DC-04).** Onboarding has no built screen today; it is being
+   **built fresh in Haldi within DC-04** (PM decision 2026-06-26) per the `Phase3a - Auth`
+   design + the mockup `docs/design/05-mockups/01-splash-and-onboarding.html`, and the
+   SRS §6 first-time journey / §10 (Terms/Privacy linked from onboarding). It has **no
+   dedicated FR id** — the FR formalisation is folded into the PM's `update-srs` proposal.
 
 ### Addendum — built surfaces NOT among the 30 Haldi screens
 
@@ -157,11 +165,13 @@ vs **reuse existing Haldi screen N** vs **internal — no design needed**.
    Haldi screen 24/11**, but flag the placement/scope divergence to the PM for reconciliation.
    Not a new commission.
 
-7. **Designed-not-yet-built Haldi screens** — Onboarding (2), Search (7), Friend history (12),
-   Remove friend (13), Groups (14–20). *Why listed:* these are required but unbuilt; however
-   the Haldi handoff **already designs** each one. → **Reuse existing Haldi screen N** (build
-   them directly in Haldi in the later feature sprints — Groups in Sprint 4, the rest in
-   Sprint 5/6). **No new design needed.**
+7. **Designed-not-yet-built Haldi screens** — Search (7), Remove friend (13),
+   Groups (14–20). *Why listed:* these are required but unbuilt; however the Haldi handoff
+   **already designs** each one. → **Reuse existing Haldi screen N** (build them directly in
+   Haldi in the later feature sprints — Groups in **Sprint 4**, Search + Remove-friend in
+   **Sprint 6**). **No new design needed.** **(Updated 2026-06-26: Onboarding (2) and Friend
+   history (12) were promoted IN-scope as net-new Sprint 3 builds — DC-04 and DC-06
+   respectively — so they are no longer designed-not-yet-built.)**
 
 **Net result (updated 2026-06-25):** **zero** surfaces now need a newly-commissioned Haldi
 design — the single gap, the **change-phone OTP re-verification flow (FR-PR-02)**, has been
@@ -186,9 +196,13 @@ on exactly one item:
 - **Not blocked (delete, do not convert):** `authenticated_screen.dart`,
   `profile_placeholder_screen.dart`, `groups_list_placeholder.dart` — handled by the Phase 2
   conversion checklist as deletions; no design dependency.
-- **Not a Sprint 3 dependency:** the designed-not-yet-built Haldi screens (2, 7, 12, 13,
+- **Net-new Sprint 3 builds (updated 2026-06-26):** Onboarding (2) and Friend history (12)
+  are now **built fresh in Haldi within Sprint 3** — DC-04 and DC-06 respectively (PM
+  decision). They carry no *conversion* dependency (no built screen to reskin) but are
+  in-scope as builds.
+- **Not a Sprint 3 dependency:** the remaining designed-not-yet-built Haldi screens (7, 13,
   14–20) carry **no conversion dependency** because there is no built screen to convert — they
-  are built fresh in Haldi in Sprint 4/5/6.
+  are built fresh in Haldi in Sprint 4 (Groups) / Sprint 6 (Search, Remove-friend).
 - **Flag (not a blocker):** the reminder placement/scope divergence (§C item 6) is a
   reconcile item for the PM, not a conversion blocker.
 

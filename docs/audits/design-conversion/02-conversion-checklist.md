@@ -68,6 +68,7 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | file | Haldi № | class | key changes | states to add | effort |
 |---|---|---|---|---|---|
 | `auth/presentation/splash_screen.dart` | 1 ★ | **rebuild** | Replace placeholder `Icons.vertical_split_rounded` with the ÷ brand mark + OneByTwo wordmark on a full-bleed marigold gradient; ink-on-marigold; tagline in Hanken. Depends on **brand kit**. | light + dark hero treatment (dark splash) | M |
+| `auth/presentation/onboarding_screen.dart` (NEW) | 2 ★ | **build** | Net-new in Haldi (PM decision 2026-06-26; design in `Phase3a - Auth.dc.html`): 3 illustrated slides (Track / Split / Settle) in a `PageView` + pagination dots + Skip + ink-on-marigold "Get started" + Terms/Privacy links; first-launch "seen" gating (`shared_preferences`) → phone-entry. Depends on **brand kit**. No FR id yet — flag to `update-srs`. | light + dark; first-launch gate; all 3 slides | M |
 | `auth/presentation/phone_entry_screen.dart` | 3 | reskin | Marigold tokens + Bricolage/Hanken; locked `+91` chip on `surfaceVariant`; field radius → chip/input 12; CTA → primary ink-on-marigold. | — (error + loading present) | S |
 | `auth/presentation/otp_entry_screen.dart` | 4 | reskin | Marigold tokens + type; resend cooldown caption → tertiary text; error microcopy. | — | S |
 | `auth/presentation/widgets/otp_input.dart` | 4 | reskin | Cell radius → chip/input 12; active/filled border → marigold; digit text → Bricolage tabular. (This **is** new-component #11 — already built; reskin only.) | — | S |
@@ -95,6 +96,7 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `friends/presentation/friend_detail_screen.dart` | 11 | reskin | Marigold tokens + type; `OBTSettleUpCard` reskin; FAB → marigold; skeleton → shimmer. | loading-skeleton (shimmer) | M |
 | `friends/presentation/widgets/friend_detail_header.dart` | 11 | reskin | Large balance pill gains icon + balance-trio tokens; name → Bricolage/Hanken; amount → Bricolage tabular. | — | S |
 | `friends/presentation/widgets/friend_detail_timeline.dart` | 11/12 | reskin | Category icon → Haldi hue bed; amounts → Bricolage tabular; share label → balance tokens; IST dates. | — | M |
+| `friends/presentation/friend_history_screen.dart` (NEW) | 12 | **build** | Net-new in Haldi (PM decision 2026-06-26; FR-FR-04): the dedicated full per-friend log — reverse-chron, **month-grouped**, expenses **+** settlements, **signed amounts** via `formatInrFromPaise()`; shimmer-loading + empty-state + error. Supersedes the top-5 inline preview on Friend detail. | loading-skeleton (shimmer); empty illustration; error | M |
 | `friends/presentation/widgets/friend_detail_states.dart` | 11 | reskin | Skeleton → shimmer; empty `Icon` → empty-state scaffold; tokens. | loading-skeleton (shimmer); empty illustration | S |
 | `friends/presentation/add_friend_screen.dart` | 10 | reskin | Marigold tokens + type; segmented Contacts/Manual reskin; search field radius; contacts `CircularProgressIndicator` → skeleton. | loading-skeleton (replace spinner) | M |
 | `friends/presentation/add_friend_flow.dart` | 10 | **conform** | Pure navigation glue (route push helper); no visual surface. | — | — |
@@ -164,11 +166,13 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `shell/presentation/add_expense_context_picker_sheet.dart` | 8 | reskin | Sheet radius → 28; section headers → overline; friends loading spinner → skeleton; Groups stub copy → "Coming soon"; add the Haldi search field (additive). | loading-skeleton (replace spinner); search field | M |
 | `shell/presentation/groups_list_placeholder.dart` | — | **delete** | Replaced by the real Haldi 14 Groups list, built fresh in **Sprint 4**. Remove (do not convert). | — | S |
 
-> **Not in scope here.** Haldi 2 (Onboarding), 7 (Search), 13 (Remove friend),
-> 14–20 (Groups: list, create, detail ★, invite, members, leave/delete, history)
-> have **no built file** — `lib/features/groups/` is greenfield. Group detail
-> (Haldi 16 ★) and the rest of the Groups flow are **built fresh in Sprint 4**, not
-> converted in this sprint.
+> **Not in scope here.** Haldi 7 (Search) and 13 (Remove friend) have **no built
+> file** and are built fresh in **Sprint 6** (FR-SR-01/02, FR-FR-05). Haldi 14–20
+> (Groups: list, create, detail ★, invite, members, leave/delete, history) have no
+> built file — `lib/features/groups/` is greenfield — and are **built fresh in
+> Sprint 4**, not converted in this sprint. **(Updated 2026-06-26: Haldi 2 Onboarding
+> and Haldi 12 Friend history were moved IN-scope as net-new builds within DC-04 and
+> DC-06 respectively — see the Auth / Friends rows above.)**
 
 ---
 
@@ -286,22 +290,26 @@ greenfield.
 
 ## D. Roll-up
 
-### Counts by classification (all 56 table rows)
+### Counts by classification (all 58 table rows)
 
 | classification | count |
 |---|---|
 | conform | 3 |
 | reskin | 46 |
 | rebuild | 4 |
+| build | 2 |
 | delete | 3 |
 | blocked | 0 |
-| **total** | **56** |
+| **total** | **58** |
 
 - **conform (3):** `add_friend_flow.dart`, `notifications_lifecycle_host.dart`,
   `authenticated_shell.dart` (logic/nav glue, no visual surface or change).
 - **rebuild (4):** `splash_screen.dart` (brand moment), `match_and_invite_screen.dart`
   (bare guard states), `step_2_split_and_payer.dart` (segmented control + live
   validation), `settle_up_bottom_sheet.dart` (UPI slot + success moment).
+- **build (2):** `onboarding_screen.dart` (Haldi 2, net-new in DC-04),
+  `friend_history_screen.dart` (Haldi 12, net-new in DC-06) — designed-not-yet-built
+  screens promoted in-scope as fresh Haldi builds (PM decision 2026-06-26).
 - **delete (3):** `authenticated_screen.dart`, `profile_placeholder_screen.dart`,
   `groups_list_placeholder.dart`.
 - **blocked (0):** none — the former blocker, `change_phone_screen.dart` (FR-PR-02), now has
