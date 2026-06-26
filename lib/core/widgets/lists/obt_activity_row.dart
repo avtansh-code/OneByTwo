@@ -99,7 +99,7 @@ class OBTActivityRow extends StatelessWidget {
                       Text(
                         secondaryText,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: _metaColour(theme),
+                          color: OBTColors.metaText(theme),
                         ),
                       ),
                     ],
@@ -119,10 +119,6 @@ class OBTActivityRow extends StatelessWidget {
       ),
     );
   }
-
-  Color _metaColour(ThemeData theme) =>
-      theme.extension<OBTColors>()?.textTertiary ??
-      theme.colorScheme.onSurfaceVariant;
 
   IconData _iconFor(ActivityEventType type) {
     switch (type) {

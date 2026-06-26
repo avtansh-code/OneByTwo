@@ -218,9 +218,7 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
               Text(
                 _cooldownCaption(),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color:
-                      theme.extension<OBTColors>()?.textTertiary ??
-                      theme.colorScheme.onSurfaceVariant,
+                  color: OBTColors.metaText(theme),
                 ),
               ),
             ],

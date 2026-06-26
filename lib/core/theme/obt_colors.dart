@@ -96,6 +96,14 @@ class OBTColors extends ThemeExtension<OBTColors> {
   Color categoryColor(OBTCategory c) =>
       category[c] ?? category[OBTCategory.other]!;
 
+  /// Resolves the meta/timestamp text colour ([textTertiary]) from [theme],
+  /// falling back to [ColorScheme.onSurfaceVariant] when the extension is
+  /// absent. Use for timestamps, cooldown captions and other tertiary meta
+  /// text so the AA-tuned token is applied consistently.
+  static Color metaText(ThemeData theme) =>
+      theme.extension<OBTColors>()?.textTertiary ??
+      theme.colorScheme.onSurfaceVariant;
+
   /// Light-theme token set.
   static const OBTColors light = OBTColors(
     balanceZero: Color(0xFF6F6557),
