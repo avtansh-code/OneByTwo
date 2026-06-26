@@ -38,6 +38,7 @@ late ColorScheme dark;
 late Color lightBg;
 late Color darkBg;
 late OBTColors obtLight;
+late OBTColors obtDark;
 
 void main() {
   testWidgets('prime: resolve the Haldi token pairs', (tester) async {
@@ -49,6 +50,7 @@ void main() {
     lightBg = AppTheme.light.scaffoldBackgroundColor;
     darkBg = AppTheme.dark.scaffoldBackgroundColor;
     obtLight = AppTheme.light.extension<OBTColors>()!;
+    obtDark = AppTheme.dark.extension<OBTColors>()!;
   });
 
   group('Handoff-verified pairings (meet role threshold + measured)', () {
@@ -123,6 +125,38 @@ void main() {
       );
       expect(
         contrastRatio(obtLight.balanceNegative, light.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+  });
+
+  group('Meta text (textTertiary) clears AA on its surfaces (DC-02)', () {
+    // Timestamps and cooldown captions are 12px bodySmall (normal text), so
+    // the role threshold is 4.5:1 — not the 3:1 large-text allowance.
+    test('light textTertiary clears AA on the warm light surfaces', () {
+      expect(
+        contrastRatio(obtLight.textTertiary, lightBg),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(obtLight.textTertiary, light.surfaceContainerHighest),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(obtLight.textTertiary, light.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('dark textTertiary clears AA on the elevated dark surface', () {
+      // surfaceContainerHighest is the highest-luminance dark surface and so
+      // the worst case for light-on-dark meta text (the settle-up caption).
+      expect(
+        contrastRatio(obtDark.textTertiary, dark.surfaceContainerHighest),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(obtDark.textTertiary, darkBg),
         greaterThanOrEqualTo(4.5),
       );
     });

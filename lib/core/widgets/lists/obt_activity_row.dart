@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/features/activity/domain/activity_event_type.dart';
 import 'package:onebytwo/features/activity/domain/activity_feed_item.dart';
 
@@ -89,7 +91,7 @@ class OBTActivityRow extends StatelessWidget {
                     children: [
                       Text(
                         primary,
-                        style: theme.textTheme.bodyLarge,
+                        style: theme.textTheme.titleMedium,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -97,9 +99,7 @@ class OBTActivityRow extends StatelessWidget {
                       Text(
                         secondaryText,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
+                          color: OBTColors.metaText(theme),
                         ),
                       ),
                     ],
@@ -109,10 +109,7 @@ class OBTActivityRow extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     formatInrFromPaise(amountPaise),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colour,
-                    ),
+                    style: OBTText.amount(context).copyWith(color: colour),
                   ),
                 ],
               ],

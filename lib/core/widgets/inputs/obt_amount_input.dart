@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
+
 /// Reusable rupee-amount input that emits **paise** integers (Option E
 /// extract per Architect Notes §2.8). The companion `OBTRupeeText` and
 /// other read-side widgets in the design-system catalogue render paise
@@ -88,6 +91,7 @@ class _OBTAmountInputState extends State<OBTAmountInput> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final amountStyle = OBTText.amount(context);
     return TextField(
       controller: _controller,
       enabled: widget.enabled,
@@ -95,15 +99,18 @@ class _OBTAmountInputState extends State<OBTAmountInput> {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [_formatter],
       onChanged: _onTextChanged,
-      style: theme.textTheme.headlineMedium,
+      style: amountStyle,
       decoration: InputDecoration(
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(AppTheme.radiusChipInput),
+          ),
+        ),
         prefixIcon: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Text(
             '₹',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: theme.colorScheme.primary,
-            ),
+            style: amountStyle.copyWith(color: theme.colorScheme.primary),
           ),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 32),

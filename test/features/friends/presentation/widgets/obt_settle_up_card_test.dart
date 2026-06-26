@@ -15,6 +15,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
@@ -145,6 +147,75 @@ void main() {
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
       expect(find.textContaining('Next reminder in'), findsNothing);
+    });
+  });
+
+  group('OBTSettleUpCard — Haldi token reskin (DC-02)', () {
+    testWidgets('card uses the card radius, the CTA uses the button radius, '
+        'and the amount is Bricolage tabular', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: OBTSettleUpCard(
+              payerDisplayName: 'You',
+              payerPhotoUrl: null,
+              payeeDisplayName: 'Priya',
+              payeePhotoUrl: null,
+              suggestedAmountPaise: 50000,
+              onSettleUp: () {},
+            ),
+          ),
+        ),
+      );
+
+      final card = tester.widget<Card>(find.byType(Card));
+      expect(
+        (card.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(AppTheme.radiusCard),
+      );
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      final shape = button.style?.shape?.resolve(<WidgetState>{});
+      expect(
+        (shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(AppTheme.radiusButton),
+      );
+
+      final amount = tester.widget<Text>(find.text('\u20B9500.00'));
+      expect(
+        amount.style?.fontFeatures,
+        contains(const FontFeature.tabularFigures()),
+      );
+    });
+
+    testWidgets('cooldown caption uses the textTertiary meta colour', (
+      tester,
+    ) async {
+      final future = DateTime.now().add(const Duration(hours: 2));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: OBTSettleUpCard(
+              payerDisplayName: 'Priya',
+              payerPhotoUrl: null,
+              payeeDisplayName: 'You',
+              payeePhotoUrl: null,
+              suggestedAmountPaise: 50000,
+              onSettleUp: () {},
+              isReceivingDirection: true,
+              onSendReminder: () {},
+              nextAllowedAt: future,
+            ),
+          ),
+        ),
+      );
+
+      final caption = tester.widget<Text>(
+        find.textContaining('Next reminder in'),
+      );
+      expect(caption.style?.color, OBTColors.light.textTertiary);
     });
   });
 }

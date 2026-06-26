@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 
 Widget _host(Widget child) {
@@ -286,6 +287,27 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await futureResult, isFalse);
+    });
+  });
+
+  group('OBTConfirmationDialog — Haldi token reskin (DC-02)', () {
+    testWidgets('dialog shape uses the card radius and the title uses the '
+        'Bricolage heading slot', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const OBTConfirmationDialog(
+            title: 't',
+            body: 'b',
+            confirmLabel: 'OK',
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(AlertDialog));
+      final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+      final shape = dialog.shape! as RoundedRectangleBorder;
+      expect(shape.borderRadius, BorderRadius.circular(AppTheme.radiusCard));
+      expect(dialog.titleTextStyle, Theme.of(context).textTheme.headlineMedium);
     });
   });
 }

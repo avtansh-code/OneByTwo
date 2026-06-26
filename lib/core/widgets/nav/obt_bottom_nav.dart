@@ -17,8 +17,9 @@ import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 ///
 /// The active tab uses [ColorScheme.primary] for the label colour and
 /// renders the filled icon variant; inactive tabs use
-/// [ColorScheme.onSurfaceVariant] and the outlined variant. Minimum
-/// tap target per tab is 48x48 dp (Material's default).
+/// [ColorScheme.onSurfaceVariant] and the outlined variant. The label
+/// type is the Hanken caption ([TextTheme.bodySmall]). Minimum tap
+/// target per tab is 48x48 dp (Material's default).
 ///
 /// `BottomNavigationBar.type` is pinned to [BottomNavigationBarType.fixed]
 /// per the spec ("five-tab bottom navigation bar" — fixed, not shifting).
@@ -89,6 +90,12 @@ class OBTBottomNav extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: theme.colorScheme.primary,
       unselectedItemColor: theme.colorScheme.onSurfaceVariant,
+      selectedLabelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.primary,
+      ),
+      unselectedLabelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
       items: <BottomNavigationBarItem>[
         for (final tab in tabs)
           BottomNavigationBarItem(

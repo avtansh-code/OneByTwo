@@ -189,6 +189,22 @@ All six `OBT*` widgets are reskins (token/type only, no structural rebuild) per
 | `OBTSettleUpCard` | `friends/presentation/widgets/obt_settle_up_card.dart` | reskin | Card fill → surfaceVariant hero; arrow → marigold; amount → Bricolage tabular; CTA radius/type; cooldown caption → tertiary text. | S |
 | `IndianPhoneInputFormatter` (+ display formatter) | `core/widgets/india_phone_input_formatter.dart` | **conform** | Pure `TextInputFormatter` logic (strip/cap/group). No visual surface, no tokens — no change. | — |
 
+> **Status — done (DC-02 / Sprint 3 PR #2 = #127, issue #114, branch
+> `feat/obt-widget-reskins`).** All six `OBT*` widgets above are reskinned to the
+> Haldi tokens (`Theme` / `OBTColors` / the `AppTheme` radius scale / `OBTText`)
+> with **no structural change**, and `IndianPhoneInputFormatter` **conforms** (no
+> change). The FAB resolves **ink on marigold** (`onPrimary`, never white);
+> `OBTAmountInput` keeps its integer-paise `onChanged(int paise)` contract and
+> the `formatInrFromPaise()` boundary (Invariant 1); `OBTSettleUpCard` keeps the
+> single `simplifiedBalances` suggested-payment read (Invariant 2). Light + dark
+> golden scaffolds are queued in the DC-13 harness (skipped pending the
+> ubuntu baseline-authoring path). The optional follow-ups — the `OBTBottomNav`
+> → Material 3 `NavigationBar` active-pill and the `OBTFloatingActionButton`
+> press-spring — are deferred. One QA note carried forward: the
+> `OBTColors.textTertiary` meta colour measures ~2.95:1 on the warm
+> `surfaceContainerHighest` / background (below AA for body text); recorded for a
+> foundation-level (DC-01) review of the `textTertiary` value.
+
 ### New components to create (Architect's thirteen, refined per-screen)
 
 Effort folds in the built foundation discovered while reading the surface. Many

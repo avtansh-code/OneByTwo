@@ -14,7 +14,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/widgets/lists/obt_activity_row.dart';
 import 'package:onebytwo/features/activity/domain/activity_event_type.dart';
 import 'package:onebytwo/features/activity/domain/activity_feed_item.dart';
@@ -311,6 +313,55 @@ void main() {
       expect(semantics.label, contains('Priya'));
       expect(semantics.label, contains('Dinner'));
       expect(semantics.label, contains('Tap to view details'));
+    });
+  });
+
+  group('OBTActivityRow — Haldi token reskin (DC-02)', () {
+    testWidgets('amount is Bricolage tabular; timestamp uses the textTertiary '
+        'meta colour; primary text is titleMedium', (tester) async {
+      final item = _expenseItem(
+        id: '1',
+        type: ActivityEventType.expenseAdded,
+        amountPaise: 100000,
+        authorUid: 'uidB',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: ListView(
+              children: [
+                OBTActivityRow(
+                  item: item,
+                  currentUserUid: 'uidA',
+                  otherPartyDisplayName: 'Priya',
+                  secondaryText: '2 hours ago',
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(OBTActivityRow));
+      final theme = Theme.of(context);
+
+      final amountText = tester.widget<Text>(
+        find.text(formatInrFromPaise(100000)),
+      );
+      expect(
+        amountText.style?.fontFeatures,
+        contains(const FontFeature.tabularFigures()),
+      );
+
+      final timestamp = tester.widget<Text>(find.text('2 hours ago'));
+      expect(timestamp.style?.color, OBTColors.light.textTertiary);
+
+      final primaryText = tester.widget<Text>(
+        find.textContaining('Priya added'),
+      );
+      expect(primaryText.style, theme.textTheme.titleMedium);
     });
   });
 }

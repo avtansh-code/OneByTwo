@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/app/theme.dart';
+
 /// Reusable confirmation dialog from the OneByTwo design system
 /// catalogue (item 24).
 ///
@@ -85,6 +87,10 @@ class OBTConfirmationDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final destructiveColor = theme.colorScheme.error;
     return AlertDialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusCard)),
+      ),
+      titleTextStyle: theme.textTheme.headlineMedium,
       title: Semantics(header: true, child: Text(title)),
       content: Text(body),
       actions: [

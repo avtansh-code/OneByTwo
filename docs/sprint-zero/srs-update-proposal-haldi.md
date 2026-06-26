@@ -75,7 +75,7 @@ Error & Loading States), and §6.5 (Microcopy Tone) remain valid as written and 
 | Background | `#FBF6EE` / `#1A1510` | App canvas |
 | Surface | `#FFFFFF` / `#241D16` | Cards, sheets, rows |
 | Surface-variant | `#FFF6E6` / `#2E2620` | Tonal fills, hero card, chips |
-| Text (primary / secondary / tertiary) | `#2A211B` · `#6F6557` · `#9A8F82` (light) / `#F3EBDD` · `#B9AE9D` · `#8A7E6E` (dark) | Headings & amounts / body / meta |
+| Text (primary / secondary / tertiary) | `#2A211B` · `#6F6557` · `#776E64` (light) / `#F3EBDD` · `#B9AE9D` · `#9C8E7C` (dark) | Headings & amounts / body / meta |
 | Outline / divider | `#E7DDCD` / `#3A322A` | Borders, hairlines |
 | Typography | **Bricolage Grotesque** (display/headings; amounts always Bricolage with **tabular figures**) + **Hanken Grotesk** (text/UI), via `google_fonts` | All UI text |
 | Corner radius | Cards 16–22, sheets 26–28 (top), buttons 14–16, chips/inputs 12–14, pills 18–19 / 999 | Soft, warm feel |
