@@ -240,6 +240,7 @@ class _Segment extends StatelessWidget {
     final content = AnimatedContainer(
       duration: AppTheme.motionDurationShort,
       curve: AppTheme.motionCurve,
+      constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: selected && enabled ? colors.surface : Colors.transparent,

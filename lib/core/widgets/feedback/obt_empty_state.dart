@@ -52,10 +52,13 @@ class OBTEmptyState extends StatelessWidget {
           children: <Widget>[
             ExcludeSemantics(child: illustration),
             const SizedBox(height: 20),
-            Text(
-              headline,
-              style: theme.textTheme.headlineMedium,
-              textAlign: TextAlign.center,
+            Semantics(
+              header: true,
+              child: Text(
+                headline,
+                style: theme.textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
             ),
             if (supportingText != null) ...<Widget>[
               const SizedBox(height: 8),

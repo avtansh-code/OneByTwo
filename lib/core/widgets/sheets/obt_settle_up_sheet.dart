@@ -140,7 +140,10 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text('Settle up', style: theme.textTheme.headlineMedium),
+        Semantics(
+          header: true,
+          child: Text('Settle up', style: theme.textTheme.headlineMedium),
+        ),
         const SizedBox(height: 16),
         _SuggestedPaymentHeader(
           payerDisplayName: widget.payerDisplayName,
@@ -183,7 +186,10 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
         children: <Widget>[
           Icon(Icons.check_circle, size: 48, color: obtColors.balanceZero),
           const SizedBox(height: 12),
-          Text('Settled up', style: theme.textTheme.headlineMedium),
+          Semantics(
+            header: true,
+            child: Text('Settled up', style: theme.textTheme.headlineMedium),
+          ),
           const SizedBox(height: 4),
           Text(
             'Nothing to pay ${widget.payeeDisplayName}.',
@@ -226,7 +232,13 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
         children: <Widget>[
           Icon(Icons.check_circle, size: 56, color: obtColors.balancePositive),
           const SizedBox(height: 12),
-          Text('Payment recorded', style: theme.textTheme.headlineMedium),
+          Semantics(
+            header: true,
+            child: Text(
+              'Payment recorded',
+              style: theme.textTheme.headlineMedium,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
             'You paid ${widget.payeeDisplayName} '

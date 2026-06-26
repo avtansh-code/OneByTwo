@@ -120,3 +120,53 @@ Future<void> expectAllInteractiveNodesLabelled(WidgetTester tester) async {
   );
   handle.dispose();
 }
+
+/// Asserts every button semantics node meets the minimum tap-target size
+/// (accessibility-spec.md; SRS section 5.6).
+///
+/// Like the labelling guideline, the built-in [androidTapTargetGuideline]
+/// only inspects nodes that expose a tap action, so it is defeated by the
+/// `Semantics(button: true, excludeSemantics: true)` + [InkWell] pattern
+/// (the tap action is excluded). This walk supplements it: every button
+/// node that is not a text field must have a rendered hit area of at least
+/// [minSize] on both axes.
+Future<void> expectAllTapTargetsMeetMinSize(
+  WidgetTester tester, {
+  double minSize = 48.0,
+}) async {
+  final handle = tester.ensureSemantics();
+  final tooSmall = <String>[];
+  void visit(SemanticsNode node) {
+    final data = node.getSemanticsData();
+    final flags = data.flagsCollection;
+    if (flags.isButton && !flags.isTextField) {
+      final size = node.rect.size;
+      if (size.width < minSize || size.height < minSize) {
+        tooSmall.add('"${data.label}" ${size.width}x${size.height}');
+      }
+    }
+    node.visitChildren((child) {
+      visit(child);
+      return true;
+    });
+  }
+
+  SemanticsNode? root;
+  void searchOwners(PipelineOwner owner) {
+    root ??= owner.semanticsOwner?.rootSemanticsNode;
+    owner.visitChildren(searchOwners);
+  }
+
+  searchOwners(tester.binding.rootPipelineOwner);
+  if (root != null) {
+    visit(root!);
+  }
+  expect(
+    tooSmall,
+    isEmpty,
+    reason:
+        'every button node must be at least ${minSize}x$minSize dp; '
+        'too small: $tooSmall',
+  );
+  handle.dispose();
+}

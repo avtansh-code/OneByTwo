@@ -81,7 +81,8 @@ class OBTCategoryChip extends StatelessWidget {
           onTap: isEnabled ? () => onSelected!(category) : null,
           borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
               border: Border.all(color: border, width: selected ? 2 : 1),

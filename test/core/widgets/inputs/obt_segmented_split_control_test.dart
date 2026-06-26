@@ -156,6 +156,16 @@ void main() {
       await expectAllInteractiveNodesLabelled(tester);
     });
 
+    testWidgets('segments meet the 48dp minimum tap target (SRS 5.6)', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        control(totalPaise: 100000, allocatedPaise: 100000),
+      );
+      await expectAllTapTargetsMeetMinSize(tester);
+    });
+
     testWidgets('renders in dark theme', (tester) async {
       await pumpThemed(
         tester,

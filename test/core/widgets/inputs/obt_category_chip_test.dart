@@ -100,6 +100,20 @@ void main() {
       await expectAllInteractiveNodesLabelled(tester);
     });
 
+    testWidgets('meets the 48dp minimum tap target (SRS 5.6)', (tester) async {
+      await pumpThemed(
+        tester,
+        OBTCategoryChip(
+          category: OBTCategory.food,
+          icon: Icons.restaurant,
+          label: 'Food',
+          selected: false,
+          onSelected: (_) {},
+        ),
+      );
+      await expectAllTapTargetsMeetMinSize(tester);
+    });
+
     testWidgets('OBTCategoryTile renders a non-interactive legend form', (
       tester,
     ) async {
