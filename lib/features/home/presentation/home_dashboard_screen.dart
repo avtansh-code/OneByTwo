@@ -305,10 +305,13 @@ class _PopulatedState extends StatelessWidget {
         NetBalanceHeaderCard(netBalancePaise: netBalancePaise),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Text(
-            'Top Balances',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          child: Semantics(
+            header: true,
+            child: Text(
+              'Top Balances',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -321,10 +324,13 @@ class _PopulatedState extends StatelessWidget {
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            'This Month',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          child: Semantics(
+            header: true,
+            child: Text(
+              'This Month',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
