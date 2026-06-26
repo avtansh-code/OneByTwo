@@ -1,46 +1,29 @@
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
+
 /// Empty state shown when no contacts are found in the device contact
-/// picker.
-///
-/// Displays a centred column with an icon, title, and subtitle matching
-/// SCR-10 state 3.
+/// picker (SCR-10 state 3 / Haldi 10), reskinned to `OBTEmptyState`
+/// (DC-06).
 class EmptyContactsState extends StatelessWidget {
   /// Creates an [EmptyContactsState].
   const EmptyContactsState({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.contacts_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No contacts found',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You can enter a number manually.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    final colors = Theme.of(context).colorScheme;
+    return OBTEmptyState(
+      illustration: Container(
+        width: 110,
+        height: 110,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
         ),
+        child: Icon(Icons.contacts_outlined, size: 52, color: colors.primary),
       ),
+      headline: 'No contacts found',
+      supportingText: 'You can enter a number manually.',
     );
   }
 }

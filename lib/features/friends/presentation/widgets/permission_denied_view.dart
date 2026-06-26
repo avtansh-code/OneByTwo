@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// View shown when the user has denied contact permission.
+import 'package:onebytwo/core/theme/obt_colors.dart';
+
+/// View shown when the user has denied contact permission (SCR-10 /
+/// Haldi 10), reskinned to the Haldi tokens (DC-06).
 ///
 /// Displays an explanation and a CTA to either re-request permission
 /// or open the device settings, depending on whether the denial is
@@ -36,17 +39,23 @@ class PermissionDeniedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
 
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.lock_outline,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          children: <Widget>[
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.lock_outline, size: 52, color: colors.primary),
             ),
             const SizedBox(height: 16),
             Text(
@@ -64,10 +73,11 @@ class PermissionDeniedView extends StatelessWidget {
                 isDeniedPermanently ? 'Open Settings' : 'Grant Permission',
               ),
             ),
-            if (onTypeNumberInstead != null) ...[
+            if (onTypeNumberInstead != null) ...<Widget>[
               const SizedBox(height: 12),
               TextButton(
                 onPressed: onTypeNumberInstead,
+                style: TextButton.styleFrom(foregroundColor: obtColors.link),
                 child: const Text('Type a number instead'),
               ),
             ],

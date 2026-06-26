@@ -225,8 +225,8 @@ void main() {
       expect(find.text('owes you'), findsOneWidget);
       // Negative → "you owe"
       expect(find.text('you owe'), findsOneWidget);
-      // Zero → "settled up"
-      expect(find.text('settled up'), findsOneWidget);
+      // Zero → "Settled up" (the shared OBTBalancePill label; DC-06)
+      expect(find.text('Settled up'), findsOneWidget);
     });
 
     testWidgets('balance amount uses the shared INR formatter (not inline)', (
@@ -236,10 +236,15 @@ void main() {
       streamController.add(items);
       await tester.pumpAndSettle();
 
-      // Aarav: +123.45 → "₹123.45"
-      expect(find.text(formatInrFromPaise(12345)), findsOneWidget);
-      // Bina: -5000 paise → "−₹50.00"
-      expect(find.text(formatInrFromPaise(-5000)), findsOneWidget);
+      // Aarav: +123.45 → "₹123.45". Appears twice now: once in the
+      // additive "You are owed" summary band (DC-06 AC-1) and once in
+      // Aarav's row pill.
+      expect(find.text(formatInrFromPaise(12345)), findsNWidgets(2));
+      // Bina: -5000 paise → the shared OBTBalancePill renders the
+      // magnitude "₹50.00"; the sign is carried by the icon + colour +
+      // label, not a minus on the amount (DC-06). Appears twice: the
+      // "You owe" summary band total and Bina's row pill.
+      expect(find.text(formatInrFromPaise(5000)), findsNWidgets(2));
       // Chandra: zero balance — the formatter is not used in the pill;
       // the "settled up" pill replaces the amount. Assert the raw zero
       // formatter result is NOT rendered, to lock the design behaviour.

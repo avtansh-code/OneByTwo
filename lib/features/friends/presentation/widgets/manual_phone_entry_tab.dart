@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/validators.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -109,8 +111,8 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
+                    topLeft: Radius.circular(AppTheme.radiusChipInput),
+                    bottomLeft: Radius.circular(AppTheme.radiusChipInput),
                   ),
                   border: Border.all(color: colorScheme.outline),
                 ),
@@ -143,22 +145,28 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(12),
-                          bottomRight: Radius.circular(12),
+                          topRight: Radius.circular(AppTheme.radiusChipInput),
+                          bottomRight: Radius.circular(
+                            AppTheme.radiusChipInput,
+                          ),
                         ),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(12),
-                          bottomRight: Radius.circular(12),
+                          topRight: Radius.circular(AppTheme.radiusChipInput),
+                          bottomRight: Radius.circular(
+                            AppTheme.radiusChipInput,
+                          ),
                         ),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(12),
-                          bottomRight: Radius.circular(12),
+                          topRight: Radius.circular(AppTheme.radiusChipInput),
+                          bottomRight: Radius.circular(
+                            AppTheme.radiusChipInput,
+                          ),
                         ),
                         borderSide: BorderSide(
                           color: colorScheme.primary,
@@ -191,7 +199,7 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
           Text(
             'Enter a 10-digit Indian mobile number.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              color: OBTColors.metaText(theme),
             ),
           ),
 

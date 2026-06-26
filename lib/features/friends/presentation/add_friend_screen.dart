@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_permission_provider.dart';
 import 'package:onebytwo/features/friends/application/contact_picker_controller.dart';
@@ -324,7 +326,7 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
 
       case ContactPermissionState.granted:
         if (pickerState.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const OBTSkeletonList(itemCount: 6);
         }
 
         return Column(
@@ -333,10 +335,14 @@ class _AddFriendScreenState extends ConsumerState<AddFriendScreen> {
               padding: const EdgeInsets.all(16),
               child: TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search contacts',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppTheme.radiusChipInput,
+                    ),
+                  ),
                 ),
                 onChanged: _onSearchChanged,
               ),

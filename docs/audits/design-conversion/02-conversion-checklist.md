@@ -141,6 +141,26 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `friends/presentation/widgets/permission_denied_view.dart` | 10 | reskin | Lock `Icon` + CTA tokens + type; manual-entry link styling. | — | S |
 | `friends/presentation/widgets/phone_selector_bottom_sheet.dart` | 10 | reskin | Sheet top radius → 28; title → overline; rows → Hanken. | — | S |
 
+> **Status — done (DC-06 / Sprint 3 PR #7 = #118, branch
+> `feat/haldi-friends-conversion`).** All sixteen Friends rows above are converted to
+> Haldi in light + dark. The shared-feature `balance_pill.dart` is **deleted** and its
+> call sites (`friend_list_tile.dart`, `friend_detail_header.dart`) re-point to the
+> shared `OBTBalancePill` (colour + icon + label). `friends_list_screen.dart` gains the
+> additive owed/owe summary band, swaps the hand-rolled skeleton → the shimmer
+> `OBTSkeleton` set and the empty `Icon` → `OBTEmptyState`. `friend_detail_*` adopt the
+> balance trio, Haldi category-hue timeline tiles, Bricolage tabular amounts, the
+> `OBTSettleUpCard`, and a "View full history" affordance. `match_and_invite_screen.dart`
+> is **rebuilt** with Haldi guard states + a shimmer looking-up state + a confirm-add
+> card + a no-match `OBTEmptyState` invite that hands off to the **OS system share sheet
+> only** (AC-3 / Invariant 3). The add-friend surfaces re-token, swap spinners → shimmer
+> and empties → `OBTEmptyState`, keep the locked `+91`, and `add_friend_flow.dart`
+> conforms untouched. **`friend_history_screen.dart` (Haldi 12) is built net-new** — a
+> read-only, reverse-chronological, month-grouped (IST) log of expenses + settlements
+> with signed amounts via `formatInrFromPaise()`, in four states. Invariants 1 + 2 + 3
+> hold — money only via `formatInrFromPaise()`, `simplifiedBalances` read-only, invites
+> via the system share sheet only. Light + dark golden scaffolds for the four states of
+> Friends list 9, Friend detail 11 and Friend history 12 are queued in the DC-13 harness.
+
 ### Expenses
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -349,9 +369,10 @@ greenfield.
 - **rebuild (4):** `splash_screen.dart` (brand moment), `match_and_invite_screen.dart`
   (bare guard states), `step_2_split_and_payer.dart` (segmented control + live
   validation), `settle_up_bottom_sheet.dart` (UPI slot + success moment).
-- **build (2):** `onboarding_screen.dart` (Haldi 2, net-new in DC-04),
-  `friend_history_screen.dart` (Haldi 12, net-new in DC-06) — designed-not-yet-built
-  screens promoted in-scope as fresh Haldi builds (PM decision 2026-06-26).
+- **build (2):** `onboarding_screen.dart` (Haldi 2, net-new in DC-04 — **built**),
+  `friend_history_screen.dart` (Haldi 12, net-new in DC-06 — **built**) —
+  designed-not-yet-built screens promoted in-scope as fresh Haldi builds (PM decision
+  2026-06-26).
 - **delete (3):** `authenticated_screen.dart`, `profile_placeholder_screen.dart`,
   `groups_list_placeholder.dart`.
 - **blocked (0):** none — the former blocker, `change_phone_screen.dart` (FR-PR-02), now has

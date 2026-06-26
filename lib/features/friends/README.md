@@ -28,10 +28,13 @@ server-maintained net balance from `simplifiedBalances` via
 `FriendDetailPlaceholderScreen` and renders SCR-11:
 
 - `widgets/friend_detail_header.dart` — 80 dp avatar + display name +
-  large balance pill (distinct from the friends-list trailing pill;
-  both fold into `OBTBalancePill` when a third use site appears).
+  the shared `OBTBalancePill` (large form; the friends-feature
+  `balance_pill.dart` was deleted in DC-06 and all call sites re-point
+  to the shared component).
 - `widgets/friend_detail_timeline.dart` — up to 5 intermixed
-  expense + settlement rows ordered by `date` desc.
+  expense + settlement rows ordered by `date` desc; a "View full
+  history" affordance opens the Haldi 12 `friend_history_screen.dart`
+  (the full month-grouped, signed-amount log).
 - `widgets/friend_detail_states.dart` — loading skeleton, empty
   state, error state.
 
@@ -112,6 +115,7 @@ application/
   contact_permission_provider.dart
   contact_picker_controller.dart
   friend_detail_provider.dart        # FR-FR-04 combined provider
+  friend_history_provider.dart       # DC-06 read-only full history (Haldi 12)
   friends_list_provider.dart         # FR-FR-03 stream provider
   match_and_invite_controller.dart
   user_profile_provider.dart         # cached per-uid profile family
@@ -130,20 +134,21 @@ domain/
 presentation/
   add_friend_screen.dart
   friend_detail_screen.dart          # PR #42 — replaces placeholder; PR #43 inserts OBTSettleUpCard
+  friend_history_screen.dart         # DC-06 — net-new Haldi 12 (month-grouped, signed)
   friends_list_screen.dart
   match_and_invite_screen.dart
   widgets/
-    balance_pill.dart                # friends-list trailing pill
     contact_list_tile.dart
     empty_contacts_state.dart
-    friend_detail_header.dart        # PR #42
+    friend_detail_header.dart        # PR #42; DC-06 → shared OBTBalancePill
     friend_detail_states.dart        # PR #42
     friend_detail_timeline.dart      # PR #42; PR #43 §R3 payer-aware settlement labels
-    friend_list_tile.dart
+    friend_list_tile.dart            # DC-06 → shared OBTBalancePill
     manual_phone_entry_tab.dart
     obt_settle_up_card.dart          # PR #43 (FR-SE-07)
     permission_denied_view.dart
     phone_selector_bottom_sheet.dart
+    transaction_visuals.dart         # DC-06 — category-hue tile + mapping
 ```
 
 ## Invariants honoured

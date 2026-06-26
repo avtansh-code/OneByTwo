@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
+import 'package:onebytwo/features/friends/presentation/friend_history_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_header.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_states.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_timeline.dart';
@@ -75,6 +77,8 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncState = ref.watch(friendDetailProvider(_args));
+    final obtColors =
+        Theme.of(context).extension<OBTColors>() ?? OBTColors.light;
 
     return Scaffold(
       appBar: AppBar(title: Text(_appBarTitle(asyncState))),
@@ -127,6 +131,22 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
                       currentUserUid: widget.currentUserUid,
                       otherUserUid: widget.otherUserUid,
                       friendDisplayName: state.header.displayName,
+                    ),
+                    // Haldi 12 entry point: the dedicated full per-friend
+                    // log (expenses + settlements, month-grouped, signed
+                    // amounts) supersedes the inline top-5 preview above.
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () => _openFullHistory(context, state),
+                          style: TextButton.styleFrom(
+                            foregroundColor: obtColors.link,
+                          ),
+                          child: const Text('View full history'),
+                        ),
+                      ),
                     ),
                     // SCR-24 entry point: the dedicated full settlement
                     // history surface. Shown unconditionally in the
@@ -224,6 +244,22 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
           currentUserUid: widget.currentUserUid,
           otherUserUid: widget.otherUserUid,
           otherDisplayName: state.header.displayName,
+        ),
+      ),
+    );
+  }
+
+  void _openFullHistory(
+    BuildContext context,
+    FriendDetailStatePopulated state,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FriendHistoryScreen(
+          friendshipId: widget.friendshipId,
+          currentUserUid: widget.currentUserUid,
+          otherUserUid: widget.otherUserUid,
+          friendDisplayName: state.header.displayName,
         ),
       ),
     );
