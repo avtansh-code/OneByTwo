@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
@@ -13,10 +12,6 @@ import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/friends/application/friend_history_provider.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/transaction_visuals.dart';
-
-/// Indian Standard Time offset (UTC+5:30). The app is India-only (SRS),
-/// so the per-friend history groups by the IST calendar month.
-const Duration _istOffset = Duration(hours: 5, minutes: 30);
 
 /// Friend History screen (FR-FR-04 / Haldi 12; net-new in DC-06).
 ///
@@ -118,37 +113,66 @@ class _HistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[];
+    // Flatten the month-grouped log into a single item list (month headers
+    // interleaved with rows) up front — a cheap single pass over lightweight
+    // value holders — then render lazily via ListView.builder so only the
+    // visible viewport is inflated. The log is uncapped, so eager inflation
+    // (ListView(children:)) would build every row on each build.
+    final items = <_HistoryItem>[];
     DateTime? currentMonthKey;
-
     for (final event in events) {
-      final ist = event.timelineTimestamp.toUtc().add(_istOffset);
+      final ist = toIst(event.timelineTimestamp);
       final monthKey = DateTime(ist.year, ist.month);
       if (currentMonthKey == null || monthKey != currentMonthKey) {
         currentMonthKey = monthKey;
-        children.add(_MonthHeader(month: ist));
+        items.add(_MonthHeaderItem(event.timelineTimestamp));
       }
-      children.add(
-        _HistoryRow(
-          event: event,
-          currentUserUid: currentUserUid,
-          friendDisplayName: friendDisplayName,
-        ),
-      );
+      items.add(_EventItem(event));
     }
 
-    return ListView(
+    return ListView.builder(
       key: const Key('friend_history_list'),
       padding: const EdgeInsets.only(bottom: 16),
-      children: children,
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        switch (item) {
+          case _MonthHeaderItem(:final timestamp):
+            return _MonthHeader(timestamp: timestamp);
+          case _EventItem(:final event):
+            return _HistoryRow(
+              event: event,
+              currentUserUid: currentUserUid,
+              friendDisplayName: friendDisplayName,
+            );
+        }
+      },
     );
   }
 }
 
-class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.month});
+/// One entry in the flattened history list: a month header or a row.
+sealed class _HistoryItem {
+  const _HistoryItem();
+}
 
-  final DateTime month;
+class _MonthHeaderItem extends _HistoryItem {
+  const _MonthHeaderItem(this.timestamp);
+
+  /// A representative timestamp from the month (formatted IST-aware).
+  final DateTime timestamp;
+}
+
+class _EventItem extends _HistoryItem {
+  const _EventItem(this.event);
+
+  final FriendDetailTimelineEvent event;
+}
+
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({required this.timestamp});
+
+  final DateTime timestamp;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +182,7 @@ class _MonthHeader extends StatelessWidget {
       child: Semantics(
         header: true,
         child: Text(
-          DateFormat('MMMM yyyy').format(month).toUpperCase(),
+          formatIstMonthHeader(timestamp),
           style: theme.textTheme.labelMedium?.copyWith(
             color: OBTColors.metaText(theme),
             fontWeight: FontWeight.w700,
@@ -185,9 +209,7 @@ class _HistoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
-    final dateFmt = DateFormat('d MMM');
-    final ist = event.timelineTimestamp.toUtc().add(_istOffset);
-    final dateStr = dateFmt.format(ist);
+    final dateStr = formatIstShortDate(event.timelineTimestamp);
 
     final String title;
     final String descriptor;

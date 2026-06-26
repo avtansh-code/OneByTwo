@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
+
+/// IST timezone offset per SRS section 5.9 (UTC+05:30 fixed; no DST).
+///
+/// Shared so every Friends transaction surface — the inline Friend Detail
+/// timeline preview and the full Friend History — groups and labels dates
+/// in the SAME timezone regardless of the device clock, instead of one
+/// converting to IST and the other formatting device-local.
+const Duration kIstOffset = Duration(hours: 5, minutes: 30);
+
+/// Converts [timestamp] to its IST wall-clock instant.
+DateTime toIst(DateTime timestamp) => timestamp.toUtc().add(kIstOffset);
+
+/// IST-formatted long row date, e.g. `22 Jun 2026` — the Friend Detail
+/// timeline row date.
+String formatIstLongDate(DateTime timestamp) =>
+    DateFormat.yMMMd().format(toIst(timestamp));
+
+/// IST-formatted compact row date, e.g. `22 Jun` — the Friend History row
+/// date (the month lives in the group header, so the year is omitted).
+String formatIstShortDate(DateTime timestamp) =>
+    DateFormat('d MMM').format(toIst(timestamp));
+
+/// IST-formatted uppercase month header, e.g. `JUNE 2026` — the Friend
+/// History month-group header.
+String formatIstMonthHeader(DateTime timestamp) =>
+    DateFormat('MMMM yyyy').format(toIst(timestamp)).toUpperCase();
 
 /// Maps a domain [ExpenseCategory] to its Haldi-palette [OBTCategory] hue
 /// key (foundation plan section 1.6).

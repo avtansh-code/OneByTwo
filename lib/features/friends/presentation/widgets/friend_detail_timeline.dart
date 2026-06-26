@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
@@ -100,7 +99,6 @@ class _ExpenseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
-    final dateFmt = DateFormat.yMMMd();
     final isMyExpense = doc.payerId == currentUserUid;
     final payerLabel = isMyExpense ? 'You' : _firstName(friendDisplayName);
 
@@ -139,7 +137,7 @@ class _ExpenseRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$payerLabel paid • ${dateFmt.format(doc.date)}',
+                    '$payerLabel paid • ${formatIstLongDate(doc.date)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: OBTColors.metaText(theme),
                     ),
@@ -193,7 +191,6 @@ class _SettlementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
-    final dateFmt = DateFormat.yMMMd();
     final amount = formatInrFromPaise(doc.amountPaise);
     final isMine = doc.fromUserId == currentUserUid;
     final friendFirstName = _firstName(friendDisplayName);
@@ -223,7 +220,7 @@ class _SettlementRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  dateFmt.format(doc.date),
+                  formatIstLongDate(doc.date),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: OBTColors.metaText(theme),
                   ),

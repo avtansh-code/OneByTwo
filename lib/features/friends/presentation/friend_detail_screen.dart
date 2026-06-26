@@ -253,6 +253,11 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
     BuildContext context,
     FriendDetailStatePopulated state,
   ) {
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(name: 'friend_history_tapped'),
+    );
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => FriendHistoryScreen(

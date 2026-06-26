@@ -212,6 +212,7 @@ class _SummaryCard extends StatelessWidget {
 
     return Semantics(
       container: true,
+      excludeSemantics: true,
       label: '$label $amount',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

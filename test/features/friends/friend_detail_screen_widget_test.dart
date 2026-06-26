@@ -1010,6 +1010,9 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
 
       expect(find.byType(FriendHistoryScreen), findsOneWidget);
+      // The telemetry plan defines friend_history_tapped for this tap
+      // (telemetry-plan.md:146, SCR-11); it fires exactly once.
+      expect(analytics.countOf('friend_history_tapped'), 1);
     });
 
     testWidgets('AC-18 tapping the link pushes SettlementHistoryScreen with '
