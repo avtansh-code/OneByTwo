@@ -14,7 +14,8 @@ content once a user reaches `AuthenticatedWithProfile`.
   `IndexedStack` (for tab-state preservation) with `OBTBottomNav` and
   the persistent `OBTFloatingActionButton`. Tab content, in order:
   `HomeDashboardScreen` (home feature), `FriendsListScreen` (friends
-  feature), `GroupsListPlaceholder`, `ActivityFeedScreen` (activity
+  feature), the Groups "coming soon" tab (`GroupsComingSoonTab`),
+  `ActivityFeedScreen` (activity
   feature), `ProfileScreen` (profile feature). The current tab index is
   plain in-shell `setState` (no Riverpod `Notifier<int>` until a second
   consumer needs it). Android back on a non-zero tab snaps to tab 0 via
@@ -34,12 +35,14 @@ content once a user reaches `AuthenticatedWithProfile`.
   otherUserUid)` tuple. The **Groups** section is a single disabled
   "Coming in Sprint 3" stub row that keeps the picker open on tap.
 
-### Placeholders
+### Groups "coming soon" tab
 
-- `presentation/groups_list_placeholder.dart` — `GroupsListPlaceholder`
-  for tab 2. `lib/features/groups/` is greenfield (Sprint 3 Groups
-  epic). Colocated with the shell so a later PR can swap it for the real
-  Group list screen in one change.
+- `presentation/groups_coming_soon_tab.dart` — `GroupsComingSoonTab`
+  for tab 2. `lib/features/groups/` is greenfield (the real Groups list
+  is built fresh in **Sprint 4**). DC-05 deleted the former bespoke
+  `GroupsListPlaceholder` stub and composes the shared Haldi
+  `OBTEmptyState` here instead ("Groups — coming soon"), so the 5-tab
+  structure conforms without a one-off placeholder screen.
 
   Tab 0's `HomeDashboardScreen` (FR-HD-01/02) now lives under
   `lib/features/home/`; the temporary `HomeDashboardPlaceholder` was
@@ -64,7 +67,7 @@ application/
 presentation/
   authenticated_shell.dart              # 5-tab IndexedStack + bottom nav + FAB
   add_expense_context_picker_sheet.dart # SCR-08 picker → AddExpenseBottomSheet
-  groups_list_placeholder.dart          # tab 2 placeholder (Sprint 3 groups)
+  groups_coming_soon_tab.dart           # tab 2 Haldi empty-state (Sprint 4 groups)
 ```
 
 ## Invariants honoured

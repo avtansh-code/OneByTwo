@@ -82,12 +82,15 @@ parameter-key and enum-token constants. The only identifier parameter,
   matching `friends_list_viewed` / `settlement_history_viewed`.
 
 - `presentation/widgets/net_balance_header_card.dart` —
-  `NetBalanceHeaderCard`. The FR-HD-01 header. Direction is conveyed by
-  text and by the semantic `ColorScheme` role (tertiary/error/surface),
-  never colour alone (SRS section 5.6).
+  `NetBalanceHeaderCard`. The FR-HD-01 header — a tonal
+  `surfaceContainerHighest` hero (marigold `OBTColors.heroShadow`) whose
+  Bricolage `OBTText.amountHero` amount carries the balance trio (colour +
+  directional icon + text label), never colour alone (SRS section 5.6).
 - `presentation/widgets/top_balance_tile.dart` — `TopBalanceTile`. A
-  Top Balances row: avatar + name + the **reused** friends-feature
-  `BalancePill` + a "Settle Up" text button (48×48 dp tap target).
+  Top Balances row: avatar + name + the shared `OBTBalancePill` (colour +
+  icon + label) + a marigold-link "Settle Up" (48×48 dp tap target). The
+  row reflows to a stacked layout at narrow widths / large dynamic type so
+  amounts never truncate (04 §C.2).
 - `presentation/widgets/spending_breakdown_card.dart` —
   `SpendingBreakdownCard` (`ConsumerStatefulWidget`). Watches
   `monthlySpendBreakdownProvider` and renders the four SCR-06
@@ -106,9 +109,10 @@ parameter-key and enum-token constants. The only identifier parameter,
   `ExcludeSemantics`; each section sweep is the integer-paise geometry
   ratio `categoryPaise / monthTotalPaise`, never a `double` money value.
 - `presentation/widgets/spending_category_palette.dart` — the
-  brightness-aware light/dark `ExpenseCategory → Color` maps (design
-  tokens §1.3) plus the `spendingCategoryColor()` resolver. A plain
-  `static const` map, not a `ThemeExtension`.
+  `spendingCategoryColor(category, brightness)` resolver. The Haldi 8-hue
+  values are sourced from `OBTColors.category` (DC-05; no duplicated hex) —
+  the domain `ExpenseCategory.travel` maps to the palette's `transport`,
+  every other category by name.
 
 ### Domain (FR-HD-03)
 
@@ -138,7 +142,7 @@ presentation/
   home_dashboard_screen.dart            # SCR-06 four-state screen (tab 0)
   widgets/
     net_balance_header_card.dart        # FR-HD-01 header
-    top_balance_tile.dart               # FR-HD-02 row (reuses BalancePill)
+    top_balance_tile.dart               # FR-HD-02 row (shared OBTBalancePill)
     spending_breakdown_card.dart        # FR-HD-03 card (4 sub-states)
     spending_donut_chart.dart           # FR-HD-03 fl_chart donut
     spending_category_palette.dart      # FR-HD-03 category colours

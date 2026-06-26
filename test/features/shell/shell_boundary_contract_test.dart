@@ -23,7 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _newShellFiles = <String>[
   'lib/features/shell/application/shell_telemetry.dart',
   'lib/features/shell/presentation/authenticated_shell.dart',
-  'lib/features/shell/presentation/groups_list_placeholder.dart',
+  'lib/features/shell/presentation/groups_coming_soon_tab.dart',
   'lib/core/widgets/nav/obt_bottom_nav.dart',
   // FR-HD-04 additions — the two new shell-owned files that ship the
   // persistent FAB primitive and the Add Expense context picker. The
