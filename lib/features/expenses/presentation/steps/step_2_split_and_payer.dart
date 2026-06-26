@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/inputs/obt_segmented_split_control.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
@@ -11,13 +14,17 @@ import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_in
 import 'package:onebytwo/features/expenses/presentation/widgets/split_row.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/split_validation_message.dart';
 
-/// Step 2 of the Add Expense bottom sheet (SCR-20): split method
-/// chips, per-member split rows (for exact), payer toggle, Back +
-/// Save.
+/// Step 2 of the Add Expense bottom sheet (SCR-20): the segmented
+/// split-method control, per-member split rows (for exact), payer toggle,
+/// Back + Next.
 ///
-/// Pure projection of [AddExpenseController]. The three deferred
-/// split methods (unequal / percentage / shares) render as disabled
-/// chips with a "Coming soon" tooltip per AC-7.
+/// Pure projection of [AddExpenseController]. The split-method selector is
+/// the shared Haldi [OBTSegmentedSplitControl] — `equal` / `exact` are the
+/// enabled methods (FR-EX-01); the three reserved methods render disabled
+/// ("Coming soon"). The control surfaces the live "adds up" (green) /
+/// over-under (red) validation off `totalPaise` vs `allocatedPaise`, and
+/// Next is disabled until the split sums exactly to the total (AC-2,
+/// Invariant 1 — integer paise, no float, no `/100`).
 class Step2SplitAndPayer extends ConsumerWidget {
   /// Creates a [Step2SplitAndPayer].
   const Step2SplitAndPayer({required this.args, super.key});
@@ -42,14 +49,22 @@ class Step2SplitAndPayer extends ConsumerWidget {
     }
     final errors = state is Editing ? state.validationErrors : null;
     final isSaving = state is Saving;
-    // FR-EX-05: Step 2 advances to Step 3; the save itself
-    // fires from Step 3. The CTA is "Next", not "Save" / "Save
-    // Changes". Step 2 does NOT gate on hasChanges anymore — the
-    // user is free to advance to the summary screen even without
-    // modifications. The no-op guard now sits on Step 3's Save
-    // Changes CTA per AC-3.
+    // The split rows' running allocation (integer paise — equal sums to the
+    // total by construction; exact is the sum of the entered shares). Drives
+    // the OBTSegmentedSplitControl live validation and the Next gate.
+    final allocatedPaise =
+        _shareFor(args.currentUserUid, draft) +
+        _shareFor(args.otherUserUid, draft);
+    final balanced = allocatedPaise == draft.amountPaise;
+    // FR-EX-05: Step 2 advances to Step 3; the save itself fires from Step
+    // 3. The CTA is "Next". Next is gated on the split summing exactly to the
+    // total (AC-2 — `balanced`) in addition to the controller's splits
+    // validation, so an off-total exact split cannot advance.
     final canAdvance =
-        !isSaving && (errors?['splits'] == null) && draft.amountPaise > 0;
+        !isSaving &&
+        (errors?['splits'] == null) &&
+        draft.amountPaise > 0 &&
+        balanced;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -58,19 +73,15 @@ class Step2SplitAndPayer extends ConsumerWidget {
         const SizedBox(height: 8),
         ChangedFieldIndicator(
           isChanged: controller.isFieldChanged(ExpenseDoc.fieldSplitMethod),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: SplitMethod.values
-                .map(
-                  (m) => _SplitMethodChip(
-                    method: m,
-                    selected: draft.splitMethod == m,
-                    enabled: isSplitMethodEnabled(m) && !isSaving,
-                    onTap: () => controller.setSplitMethod(m),
-                  ),
-                )
-                .toList(growable: false),
+          child: OBTSegmentedSplitControl(
+            selected: draft.splitMethod,
+            enabledMethods: const <SplitMethod>{
+              SplitMethod.equal,
+              SplitMethod.exact,
+            },
+            onMethodSelected: controller.setSplitMethod,
+            totalPaise: draft.amountPaise,
+            allocatedPaise: allocatedPaise,
           ),
         ),
         const SizedBox(height: 16),
@@ -218,51 +229,6 @@ class Step2SplitAndPayer extends ConsumerWidget {
   }
 }
 
-class _SplitMethodChip extends StatelessWidget {
-  const _SplitMethodChip({
-    required this.method,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final SplitMethod method;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // TODO(flutter-dev): replace with the reusable OBTCategoryChip
-    // (sibling of expense-category chips). Inline rendering for FR-EX-01.
-    final label = _labelFor(method);
-    final chip = ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: enabled ? (_) => onTap() : null,
-    );
-    if (!enabled) {
-      return Tooltip(message: 'Coming soon', child: chip);
-    }
-    return chip;
-  }
-
-  String _labelFor(SplitMethod m) {
-    switch (m) {
-      case SplitMethod.equal:
-        return 'Equal';
-      case SplitMethod.exact:
-        return 'Exact';
-      case SplitMethod.unequal:
-        return 'Unequal';
-      case SplitMethod.percentage:
-        return 'Percentage';
-      case SplitMethod.shares:
-        return 'Shares';
-    }
-  }
-}
-
 class _PayerChoice extends StatelessWidget {
   const _PayerChoice({
     required this.label,
@@ -278,10 +244,38 @@ class _PayerChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final background = selected
+        ? colors.primary
+        : colors.surfaceContainerHighest;
+    final foreground = selected ? colors.onPrimary : colors.onSurfaceVariant;
+    return Semantics(
+      button: true,
       selected: selected,
-      onSelected: enabled ? (_) => onTap() : null,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+        child: AnimatedContainer(
+          duration: AppTheme.motionDurationShort,
+          curve: AppTheme.motionCurve,
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: enabled ? background : obtColors.disabledFill,
+            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: enabled ? foreground : obtColors.disabledText,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

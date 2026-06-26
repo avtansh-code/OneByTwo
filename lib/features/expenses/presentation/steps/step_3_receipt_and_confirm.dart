@@ -2,14 +2,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/expense_draft.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
+import 'package:onebytwo/features/expenses/presentation/expense_date_format.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/changed_field_indicator.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
 
@@ -96,6 +99,13 @@ class Step3ReceiptAndConfirm extends ConsumerWidget {
           currentUserUid: args.currentUserUid,
           otherUserUid: args.otherUserUid,
         ),
+        const SizedBox(height: 24),
+        // Additive extension slots — both inert "Coming soon" (announced
+        // disabled, no write path). The note has no draft/controller backing
+        // in this iteration, so it is a display-only slot.
+        const _NoteSlot(),
+        const SizedBox(height: 16),
+        const _MakeRecurringSlot(),
         const SizedBox(height: 24),
         Row(
           children: [
@@ -239,7 +249,7 @@ class _EmptyReceiptArea extends StatelessWidget {
         Container(
           height: 240,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             border: Border.all(color: theme.colorScheme.outline),
             color: theme.colorScheme.surfaceContainerHighest.withValues(
               alpha: 0.4,
@@ -320,7 +330,7 @@ class _AttachedReceiptArea extends StatelessWidget {
             GestureDetector(
               onTap: isBusy ? null : () => _openFullscreen(context, draft),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                 child: Container(
                   height: 240,
                   width: double.infinity,
@@ -442,24 +452,25 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFmt = DateFormat.yMMMd();
     final amount = formatInrFromPaise(draft.amountPaise);
     final payerLabel = draft.payerId == currentUserUid ? 'You' : 'Friend';
     final categoryLabel = draft.category?.name ?? '—';
     final splitMethodLabel = _splitMethodLabel(draft.splitMethod);
-    final dateLabel = draft.date != null ? dateFmt.format(draft.date!) : '—';
+    final dateLabel = draft.date != null
+        ? formatExpenseIstDate(draft.date!)
+        : '—';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryRow(label: 'Amount', value: amount),
+          _SummaryRow(label: 'Amount', value: amount, isAmount: true),
           _SummaryRow(label: 'Description', value: draft.description),
           _SummaryRow(label: 'Category', value: categoryLabel),
           _SummaryRow(label: 'Date', value: dateLabel),
@@ -487,10 +498,15 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isAmount = false,
+  });
 
   final String label;
   final String value;
+  final bool isAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -508,7 +524,14 @@ class _SummaryRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(child: Text(value, style: theme.textTheme.bodyLarge)),
+          Expanded(
+            child: Text(
+              value,
+              style: isAmount
+                  ? OBTText.amount(context)
+                  : theme.textTheme.bodyLarge,
+            ),
+          ),
         ],
       ),
     );
@@ -553,5 +576,82 @@ class _SaveButton extends StatelessWidget {
       );
     }
     return button;
+  }
+}
+
+/// Inert "Coming soon" note slot (Haldi 21, AC-1). An additive,
+/// display-only field — there is no draft / controller backing in this
+/// iteration, so it is disabled (no write path) and announced disabled.
+class _NoteSlot extends StatelessWidget {
+  const _NoteSlot();
+
+  @override
+  Widget build(BuildContext context) {
+    return const TextField(
+      enabled: false,
+      maxLines: 2,
+      decoration: InputDecoration(
+        labelText: 'Note (optional)',
+        hintText: 'Coming soon',
+        helperText: 'Coming soon',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(AppTheme.radiusChipInput),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Inert "Make recurring" extension slot (Haldi 21, AC-1). A disabled
+/// toggle rendered "Coming soon" — labelled, announced disabled, never
+/// wired (no write path, no backend call). Mirrors the DC-03 inert
+/// "Pay via UPI" pattern.
+class _MakeRecurringSlot extends StatelessWidget {
+  const _MakeRecurringSlot();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    return Semantics(
+      label: 'Make recurring, coming soon',
+      enabled: false,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: obtColors.disabledFill,
+          borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.repeat, color: obtColors.disabledText),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Make recurring',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: obtColors.disabledText,
+                    ),
+                  ),
+                  Text(
+                    'Coming soon',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: obtColors.disabledText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Switch(value: false, onChanged: null),
+          ],
+        ),
+      ),
+    );
   }
 }

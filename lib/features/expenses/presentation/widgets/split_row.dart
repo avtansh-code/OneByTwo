@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 
@@ -53,7 +55,7 @@ class SplitRow extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     formatInrFromPaise(paise),
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: OBTText.amount(context),
                   ),
                 ),
         ),

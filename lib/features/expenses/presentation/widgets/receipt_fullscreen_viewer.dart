@@ -64,8 +64,9 @@ class _BaseViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Dialog.fullscreen(
-      backgroundColor: Colors.black,
+      backgroundColor: colors.scrim,
       child: Stack(
         children: [
           Positioned.fill(

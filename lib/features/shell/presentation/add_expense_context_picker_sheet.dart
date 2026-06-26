@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
@@ -19,7 +22,7 @@ import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 ///     dismisses the picker, and opens the existing
 ///     [AddExpenseBottomSheet] with the friend's
 ///     `(friendshipId, currentUserUid, otherUserUid)` tuple.
-///   - **Groups:** a single "Coming in Sprint 3" stub row per
+///   - **Groups:** a single "Coming soon" stub row per
 ///     `components.md §3` disabled-state token. Tapping it shows a
 ///     SnackBar, fires
 ///     `expense_context_selected{context_type: 'group'}`, and KEEPS
@@ -41,34 +44,101 @@ import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 /// carries only `context_type` ∈ {`friend`, `group`}. NO uid,
 /// friendship-id, or hashed identifier. See
 /// `docs/design/07-technical/telemetry-plan.md §1.3` line 89.
-class AddExpenseContextPickerSheet extends ConsumerWidget {
+class AddExpenseContextPickerSheet extends ConsumerStatefulWidget {
   /// Creates an [AddExpenseContextPickerSheet].
   const AddExpenseContextPickerSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AddExpenseContextPickerSheet> createState() =>
+      _AddExpenseContextPickerSheetState();
+}
+
+class _AddExpenseContextPickerSheetState
+    extends ConsumerState<AddExpenseContextPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
     final friendsAsync = ref.watch(friendsListProvider);
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+    return Material(
+      color: theme.colorScheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusSheet),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const _Grabber(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text('Add Expense', style: theme.textTheme.titleLarge),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: _SearchField(
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              ),
               const _SectionHeader(label: 'Friends'),
-              _FriendsSection(state: friendsAsync),
+              _FriendsSection(state: friendsAsync, query: _query),
               const SizedBox(height: 12),
               const _SectionHeader(label: 'Groups'),
               const _GroupsStubRow(),
+              const SizedBox(height: 8),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Grabber extends StatelessWidget {
+  const _Grabber();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.outline,
+            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.onChanged});
+
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: 'Search friends',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
         ),
       ),
     );
@@ -89,8 +159,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Text(
         label,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: OBTColors.metaText(theme),
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -98,8 +169,9 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _FriendsSection extends ConsumerWidget {
-  const _FriendsSection({required this.state});
+  const _FriendsSection({required this.state, required this.query});
   final AsyncValue<List<FriendListItem>> state;
+  final String query;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,7 +183,16 @@ class _FriendsSection extends ConsumerWidget {
         if (items.isEmpty) {
           return const _FriendsEmpty();
         }
-        return _FriendsPopulated(items: items);
+        final trimmed = query.trim().toLowerCase();
+        final filtered = trimmed.isEmpty
+            ? items
+            : items
+                  .where((i) => i.displayName.toLowerCase().contains(trimmed))
+                  .toList(growable: false);
+        if (filtered.isEmpty) {
+          return const _FriendsNoMatches();
+        }
+        return _FriendsPopulated(items: filtered);
       },
     );
   }
@@ -219,8 +300,26 @@ class _FriendsLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Center(child: CircularProgressIndicator()),
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: OBTSkeletonList(itemCount: 3),
+    );
+  }
+}
+
+class _FriendsNoMatches extends StatelessWidget {
+  const _FriendsNoMatches();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Text(
+        'No friends match your search',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: OBTColors.metaText(theme),
+        ),
+      ),
     );
   }
 }
@@ -256,7 +355,7 @@ class _GroupsStubRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    final mutedColor = OBTColors.metaText(theme);
     return ListTile(
       leading: Icon(Icons.groups_outlined, color: mutedColor),
       title: Text(
@@ -264,7 +363,7 @@ class _GroupsStubRow extends ConsumerWidget {
         style: theme.textTheme.titleMedium?.copyWith(color: mutedColor),
       ),
       trailing: Text(
-        'Coming in Sprint 3',
+        'Coming soon',
         style: theme.textTheme.labelMedium?.copyWith(color: mutedColor),
       ),
       onTap: () => _onGroupsTapped(context, ref),
@@ -273,10 +372,12 @@ class _GroupsStubRow extends ConsumerWidget {
 
   Future<void> _onGroupsTapped(BuildContext context, WidgetRef ref) async {
     // Show snackbar + fire telemetry; KEEP the picker mounted (per
-    // architect §2.3).
+    // architect §2.3). The Groups slot stays interactive so the planned
+    // expense_context_selected{group} event is preserved (DC-06 lesson:
+    // a converted control must not drop a planned telemetry event).
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.showSnackBar(
-      const SnackBar(content: Text('Group expenses coming in Sprint 3.')),
+      const SnackBar(content: Text('Group expenses are coming soon.')),
     );
     await ref
         .read(analyticsServiceProvider)

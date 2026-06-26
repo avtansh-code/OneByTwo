@@ -80,7 +80,8 @@ table below the main matrix and in §C.
 
 1. **Haldi 8 (covered, partial).** The picker is built with the Friends section live; the
    Groups section is an intentional "Coming soon" stub row that lights up only when the
-   Groups epic ships (the in-code "Sprint 3" label predates the renumber → now **Sprint 4**).
+   Groups epic ships (the in-code copy is a neutral "Coming soon" as of DC-07; the Groups
+   branch lights up in **Sprint 4**).
    No new design needed; the Groups branch reuses Haldi 14/16 when those are built.
 2. **Haldi 12 (covered — built in DC-06).** FR-FR-04's full reverse-chron per-friend log was
    previously met only by the **top-5 inline timeline** on Friend detail (Haldi 11) plus
@@ -104,6 +105,20 @@ table below the main matrix and in §C.
    and the SRS §6 first-time journey / §10 (Terms/Privacy linked from onboarding). It
    still has **no dedicated FR id** — the FR formalisation is folded into the PM's
    `update-srs` proposal.
+
+> **DC-07 status (Sprint 3 PR #8 = #119) — Expenses converted.** The Haldi Expenses
+> surfaces — **21** (Add-expense 3-step sheet), **22** (Expense detail) and the
+> add-expense context picker **8** — are now **converted to Haldi by DC-07**: the
+> Add-expense sheet adopts `OBTStepperSheet` and **step 2 is rebuilt** to the
+> `OBTSegmentedSplitControl` (Equally / Unequal / % / Shares / Exact, with live
+> adds-up green / over-under red validation); the Expense detail renders the
+> per-person **simplified** split + balance trio **read from the projection**
+> (Invariant 2); and the **context picker (8) is reskinned** (28 radius, overline
+> headers, friends spinner → shimmer, Groups "Coming soon", additive search;
+> friend selection still opens the add sheet). Rows **8 / 21 / 22 stay "covered"** —
+> there is **no SRS gap** (Expenses is specified by FR-EX-01..08 / FR-HD-04), so this
+> is a visual conversion only, not a scope change. Invariants 1 + 2 hold (amounts via
+> `formatInrFromPaise()`; `simplifiedBalances` read-only).
 
 ### Addendum — built surfaces NOT among the 30 Haldi screens
 

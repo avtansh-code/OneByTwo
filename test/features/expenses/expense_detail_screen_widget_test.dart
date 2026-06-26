@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/expenses/application/expense_detail_provider.dart';
@@ -186,7 +187,7 @@ void main() {
   });
 
   group('ExpenseDetailScreen — render states', () {
-    testWidgets('shows a loading indicator while the future is pending', (
+    testWidgets('shows a loading skeleton while the future is pending', (
       tester,
     ) async {
       // Use a future that never completes for the loading assertion.
@@ -203,8 +204,10 @@ void main() {
           ),
         ),
       );
-      // First pump shows loading because the FutureProvider is unresolved.
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // First pump shows the shimmer skeleton because the FutureProvider is
+      // unresolved (the bare CircularProgressIndicator is gone — Haldi 22).
+      expect(find.byType(OBTSkeleton), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('shows the error message + Retry button on failure', (

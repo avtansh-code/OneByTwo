@@ -150,6 +150,18 @@ Widget buildSubject({
   );
 }
 
+/// Ensures the matching FilledButton CTA is on-screen, then taps it and
+/// settles. The OBTStepperSheet shell (grabber + header + visual stepper)
+/// consumes vertical space, so a step's bottom CTA can sit below the fold
+/// in the default test viewport.
+Future<void> tapStepCta(WidgetTester tester, String label) async {
+  final finder = find.widgetWithText(FilledButton, label).last;
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late FakeExpenseRepository repo;
   late FakeAnalyticsService analytics;
@@ -160,11 +172,14 @@ void main() {
   });
 
   group('Step 1 — initial render', () {
-    testWidgets('shows the step title "Add Expense (1/3)"', (tester) async {
+    testWidgets('shows the step title "Add Expense" with the step counter', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Expense (1/3)'), findsOneWidget);
+      expect(find.text('Add Expense'), findsOneWidget);
+      expect(find.text('Step 1 of 3'), findsOneWidget);
     });
 
     testWidgets('renders the eight FR-EX-08 category chips', (tester) async {
@@ -280,10 +295,10 @@ void main() {
         );
         await tester.tap(find.text('Food'));
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-        await tester.pumpAndSettle();
+        await tapStepCta(tester, 'Next');
 
-        expect(find.text('Add Expense (2/3)'), findsOneWidget);
+        expect(find.text('Add Expense'), findsOneWidget);
+        expect(find.text('Step 2 of 3'), findsOneWidget);
       },
     );
 
@@ -302,6 +317,7 @@ void main() {
       );
       await tester.tap(find.text('Food'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Next'));
       await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
 
@@ -325,18 +341,17 @@ void main() {
       );
       await tester.tap(find.text('Food'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-      await tester.pumpAndSettle();
+      await tapStepCta(tester, 'Next');
     }
 
     testWidgets('Equal and Exact chips are enabled; other three are disabled '
         '("Coming soon")', (tester) async {
       await advanceToStep2(tester);
 
-      expect(find.text('Equal'), findsOneWidget);
+      expect(find.text('Equally'), findsOneWidget);
       expect(find.text('Exact'), findsOneWidget);
       expect(find.text('Unequal'), findsOneWidget);
-      expect(find.text('Percentage'), findsOneWidget);
+      expect(find.text('%'), findsOneWidget);
       expect(find.text('Shares'), findsOneWidget);
     });
 
@@ -378,21 +393,11 @@ void main() {
       );
       await tester.tap(find.text('Food'));
       await tester.pumpAndSettle();
-      // Step 1 → Step 2.
-      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-      await tester.pumpAndSettle();
-      // Step 2 → Step 3 (FR-EX-05). The Step 2 layout fits
-      // comfortably in the default test window.
-      await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
-      await tester.pumpAndSettle();
-      // Step 3 → Save. Step 3's receipt picker + summary card may
-      // push the CTA below the fold on smaller test windows; scroll
-      // it into view before tapping.
-      final saveCta = find.widgetWithText(FilledButton, 'Save Expense');
-      await tester.ensureVisible(saveCta);
-      await tester.pumpAndSettle();
-      await tester.tap(saveCta);
-      await tester.pumpAndSettle();
+      // Each step's bottom CTA can sit below the fold under the
+      // OBTStepperSheet shell, so scroll it into view before tapping.
+      await tapStepCta(tester, 'Next'); // Step 1 -> Step 2.
+      await tapStepCta(tester, 'Next'); // Step 2 -> Step 3 (FR-EX-05).
+      await tapStepCta(tester, 'Save Expense'); // Step 3 -> Save.
     }
 
     testWidgets('invokes repository.createExpense with the captured '
@@ -438,15 +443,9 @@ void main() {
       );
       await tester.tap(find.text('Food'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
-      await tester.pumpAndSettle();
-      final saveCta = find.widgetWithText(FilledButton, 'Save Expense');
-      await tester.ensureVisible(saveCta);
-      await tester.pumpAndSettle();
-      await tester.tap(saveCta);
-      await tester.pumpAndSettle();
+      await tapStepCta(tester, 'Next');
+      await tapStepCta(tester, 'Next');
+      await tapStepCta(tester, 'Save Expense');
 
       expect(find.text("Couldn't add the expense. Try again."), findsOneWidget);
       expect(analytics.hasEvent(ExpenseTelemetry.saveFailed), isTrue);
@@ -508,9 +507,8 @@ void main() {
       );
     }
 
-    testWidgets('header reads "Edit Expense (1/3)" in edit mode', (
-      tester,
-    ) async {
+    testWidgets('header reads "Edit Expense" with the step counter in edit '
+        'mode', (tester) async {
       await tester.pumpWidget(
         buildEditSubject(
           repo: repo,
@@ -519,7 +517,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Edit Expense (1/3)'), findsOneWidget);
+      expect(find.text('Edit Expense'), findsOneWidget);
+      expect(find.text('Step 1 of 3'), findsOneWidget);
     });
 
     testWidgets(
@@ -534,11 +533,9 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        // Tap Next twice to advance to Step 3 (Step 1 → Step 2 → Step 3).
-        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Next').last);
-        await tester.pumpAndSettle();
+        // Tap Next twice to advance to Step 3 (Step 1 -> Step 2 -> Step 3).
+        await tapStepCta(tester, 'Next');
+        await tapStepCta(tester, 'Next');
 
         // The CTA label is "Save Changes" in edit mode on Step 3.
         final cta = find.widgetWithText(FilledButton, 'Save Changes');
@@ -575,14 +572,14 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+        await tapStepCta(tester, 'Next');
+
+        // Flip split method from Equal (original) to Exact via the
+        // segmented split control.
+        await tester.tap(find.text('Exact'));
         await tester.pumpAndSettle();
 
-        // Flip split method from Equal (original) to Exact.
-        await tester.tap(find.widgetWithText(ChoiceChip, 'Exact'));
-        await tester.pumpAndSettle();
-
-        // Indicator wrapping the Wrap that hosts the split-method chips.
+        // Indicator wrapping the split-method group.
         final indicator = find.byWidgetPredicate(
           (w) =>
               w is Semantics && (w.properties.label ?? '').contains('changed'),
@@ -595,11 +592,13 @@ void main() {
               '", changed." after the split method flips from its original.',
         );
 
-        // And the Step 2 Next CTA flips to enabled (hasChanges true).
+        // AC-2: flipping to Exact leaves the per-member shares empty (0),
+        // which does not sum to the total, so the Step 2 Next CTA is
+        // disabled until the split balances.
         final cta = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'Next').last,
         );
-        expect(cta.onPressed, isNotNull);
+        expect(cta.onPressed, isNull);
       },
     );
   });
