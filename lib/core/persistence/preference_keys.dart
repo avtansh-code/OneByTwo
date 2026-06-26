@@ -15,6 +15,11 @@ abstract final class PreferenceKeys {
   static const String notificationsPermanentlyDenied =
       'notifications_permanently_denied';
 
+  /// Whether the first-launch onboarding (Haldi 2) has been seen on this
+  /// installation (DC-04). Persisted so onboarding is shown exactly once,
+  /// before phone entry; Skip and "Get started" both set it.
+  static const String hasSeenOnboarding = 'has_seen_onboarding';
+
   /// Prefix for the FR-SE-09 per-friendship send-reminder cooldown.
   /// The stored value is the server-returned `nextAllowedAt` as an
   /// ISO-8601 string; a stored value in the past is treated as absent.

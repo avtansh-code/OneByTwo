@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/profile_setup_controller.dart';
 
@@ -123,7 +124,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   child: Text(
                     'Set up your profile',
                     style: theme.textTheme.headlineLarge?.copyWith(
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -134,7 +135,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   'Tell us your name so your '
                   'friends recognise you.',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -168,10 +169,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                     color: theme.colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.camera_alt,
                                     size: 14,
-                                    color: Colors.white,
+                                    color: theme.colorScheme.onPrimary,
                                   ),
                                 ),
                               ),
@@ -204,9 +205,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: charCount > 50
                                   ? theme.colorScheme.error
-                                  : theme.colorScheme.onSurface.withValues(
-                                      alpha: 0.6,
-                                    ),
+                                  : theme.colorScheme.onSurfaceVariant,
                             ),
                           );
                         },
@@ -215,7 +214,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       hintText: 'Enter your display name',
                       errorText: state.displayNameError,
                       border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.radiusChipInput),
+                        ),
                       ),
                     ),
                     onChanged: controller.setDisplayName,
@@ -231,7 +232,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 // Continue button.
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 52,
                   child: Semantics(
                     button: true,
                     label: state.isLoading
@@ -245,6 +246,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             liveRegion: true,
                             child: FilledButton(
                               onPressed: null,
+                              style: FilledButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusButton,
+                                  ),
+                                ),
+                              ),
                               child: SizedBox(
                                 width: 20,
                                 height: 20,
@@ -262,6 +270,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                     phoneNumber: widget.phoneNumber,
                                   )
                                 : null,
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusButton,
+                                ),
+                              ),
+                            ),
                             child: const Text('Continue'),
                           ),
                   ),
@@ -287,16 +302,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       );
     }
 
-    // Initials fallback.
+    // Initials fallback — a marigold avatar with an ink initial (from the
+    // scheme; ink on marigold, never white — the DC-01 contrast rule).
     if (trimmedName.isNotEmpty) {
       final initial = trimmedName[0].toUpperCase();
-      final colorIndex = initial.codeUnitAt(0) % Colors.primaries.length;
       return CircleAvatar(
         radius: 40,
-        backgroundColor: Colors.primaries[colorIndex],
+        backgroundColor: theme.colorScheme.primary,
         child: Text(
           initial,
-          style: theme.textTheme.headlineLarge?.copyWith(color: Colors.white),
+          style: theme.textTheme.headlineLarge?.copyWith(
+            color: theme.colorScheme.onPrimary,
+          ),
         ),
       );
     }

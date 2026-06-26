@@ -75,6 +75,24 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `auth/presentation/profile_setup_screen.dart` | 5 | reskin | Marigold tokens + type; camera badge icon → **onPrimary ink (not white)**; avatar fallback from scheme; field radius. | — (validation present) | M |
 | `auth/presentation/authenticated_screen.dart` | — | **delete** | Orphaned internal screen, no inbound references. Remove (do not convert). | — | S |
 
+> **Status — done (DC-04 / Sprint 3 PR #5 = #116, branch
+> `feat/haldi-auth-conversion`).** All seven Auth rows above are converted to
+> Haldi. `splash_screen.dart` (1 ★) is **rebuilt** on the brand kit (÷ mark +
+> wordmark, ink-on-marigold gradient, dark variant); `onboarding_screen.dart`
+> (2 ★) is **built net-new** — three slides (Track / Split / Settle) in a
+> `PageView` + pagination dots + Skip + ink-on-marigold "Get started" + Terms /
+> Privacy links, first-launch "seen" gating via `shared_preferences` → phone
+> entry (no longer "out of scope"; screen 2 now has a built surface).
+> `phone_entry_screen.dart` (3), `otp_entry_screen.dart` (4, now consuming the
+> shared `OBTOtpInput`) and `profile_setup_screen.dart` (5, camera badge →
+> **onPrimary ink, not white**) are **reskinned**, with `+91` still locked;
+> `widgets/otp_input.dart` (4) is **retained** (reskin only — still consumed by
+> the Profile change-phone flow / DC-10). The orphaned
+> `authenticated_screen.dart` is **deleted** (no inbound references). The four
+> invariants are untouched — the Auth surface carries no money / balance / share
+> / Firebase-project path; light + dark golden scaffolds are queued in the DC-13
+> harness.
+
 ### Home
 
 | file | Haldi № | class | key changes | states to add | effort |

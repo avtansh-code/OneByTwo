@@ -198,6 +198,31 @@ This proposal violates **no** invariant — it re-affirms all four — and reque
 
 ---
 
+## 9. Addendum (2026-06-26) — Onboarding (Haldi screen 2) has no dedicated FR id
+
+Logged during **Sprint 3 (Design Conversion) PR #5 — DC-04 (#116)**, which **built
+the onboarding flow net-new** in Haldi (screen 2: three slides, Skip / "Get
+started", Terms & Privacy links, first-launch "seen" gating via `shared_preferences`).
+Onboarding is required by the SRS but carries **no dedicated FR-XX-NN id**:
+
+- **§6.3 Core Screens** lists "Splash & Onboarding (3 illustrated slides)" as screen
+  1 of the current catalogue (this proposal's §3b keeps it as Haldi screen 2).
+- **§10.2 Critical User Journeys**, must-pass journey 1 (≈ line 593): "First-time
+  user: onboarding → phone OTP → profile setup → home dashboard."
+- **§5.5 Privacy & Compliance** (≈ line 317): "A privacy policy and terms of service
+  shall be linked from the onboarding screen and the profile."
+
+**Proposed action:** fold an **onboarding FR formalisation** into this Haldi proposal
+(a later revision) — or a dedicated `update-srs` follow-up if it grows — so the built
+screen 2 rests on an explicit requirement id rather than only the §6.3 catalogue entry
+plus the §5.5 / §10.2 obligations above. This is a **tracked note, not a blocker**:
+DC-04 ships against the existing SRS text. The present proposal still creates **no new
+FR** (it ratifies the §6.2 / §6.3 design sections only); this addendum merely records
+the gap for the next SRS revision. `docs/OneByTwo_Requirements_Spec.md` is **not**
+edited and the SRS remains **version 1.1**.
+
+---
+
 ## Validation checklist (update-srs skill)
 
 - [x] Change does not violate any invariant (re-affirms all four).

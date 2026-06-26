@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
@@ -100,7 +101,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               Text(
                 'Enter your mobile number',
                 style: theme.textTheme.headlineLarge?.copyWith(
-                  color: colorScheme.primary,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -109,7 +110,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               Text(
                 "We'll send you a 6-digit code to verify.",
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 32),
@@ -128,8 +129,8 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                       decoration: BoxDecoration(
                         color: colorScheme.surfaceContainerHighest,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
+                          topLeft: Radius.circular(AppTheme.radiusChipInput),
+                          bottomLeft: Radius.circular(AppTheme.radiusChipInput),
                         ),
                         border: Border.all(color: colorScheme.outline),
                       ),
@@ -157,22 +158,34 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
+                              topRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
+                              bottomRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
                             ),
                             borderSide: BorderSide(color: colorScheme.outline),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
+                              topRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
+                              bottomRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
                             ),
                             borderSide: BorderSide(color: colorScheme.outline),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(12),
-                              bottomRight: Radius.circular(12),
+                              topRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
+                              bottomRight: Radius.circular(
+                                AppTheme.radiusChipInput,
+                              ),
                             ),
                             borderSide: BorderSide(
                               color: colorScheme.primary,
@@ -210,11 +223,18 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               // Continue button.
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 52,
                 child: FilledButton(
                   onPressed: hasExactlyTenDigits && !state.isLoading
                       ? controller.submit
                       : null,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.radiusButton,
+                      ),
+                    ),
+                  ),
                   child: state.isLoading
                       ? const SizedBox(
                           width: 20,
