@@ -11,7 +11,9 @@ import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/services/key_value_store.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
+import 'package:onebytwo/features/auth/application/onboarding_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
+import 'package:onebytwo/features/auth/presentation/onboarding_screen.dart';
 import 'package:onebytwo/features/auth/presentation/phone_entry_screen.dart';
 import 'package:onebytwo/features/auth/presentation/profile_setup_screen.dart';
 import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
@@ -163,7 +165,13 @@ class OneBytwoApp extends ConsumerWidget {
     final home = authState.when(
       data: (state) => switch (state) {
         AuthLoading() => const SplashScreen(),
-        AuthUnauthenticated() => const PhoneEntryScreen(),
+        // First launch shows onboarding (Haldi 2) once, gated by the
+        // persisted "seen" flag; thereafter it goes straight to phone entry.
+        // Skip / Get started flip the flag, rebuilding this gate to advance.
+        AuthUnauthenticated() =>
+          ref.watch(hasSeenOnboardingProvider)
+              ? const PhoneEntryScreen()
+              : const OnboardingScreen(),
         AuthenticatedNoProfile(:final uid, :final phoneNumber) =>
           ProfileSetupScreen(uid: uid, phoneNumber: phoneNumber ?? ''),
         // The per-arm currentUserId / currentUserPhone overrides are applied

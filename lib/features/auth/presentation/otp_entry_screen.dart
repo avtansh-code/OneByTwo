@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/inputs/obt_otp_input.dart';
 import 'package:onebytwo/features/auth/application/otp_entry_controller.dart';
-import 'package:onebytwo/features/auth/presentation/widgets/otp_input.dart';
 
 /// OTP verification screen for FR-AU-03.
 ///
@@ -54,6 +55,7 @@ class OtpEntryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
     final state = ref.watch(otpEntryControllerProvider(_providerArgs));
     final controller = ref.read(
       otpEntryControllerProvider(_providerArgs).notifier,
@@ -86,7 +88,7 @@ class OtpEntryScreen extends ConsumerWidget {
                 child: Text(
                   'Verify your number',
                   style: theme.textTheme.headlineLarge?.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -95,7 +97,7 @@ class OtpEntryScreen extends ConsumerWidget {
                 TextSpan(
                   text: 'Enter the 6-digit code sent to ',
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                   children: [
                     TextSpan(
@@ -106,25 +108,14 @@ class OtpEntryScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              OtpInput(
+              OBTOtpInput(
                 digits: state.digits,
+                errorText: state.validationError,
                 onDigitEntered: controller.setDigit,
                 onCompleted: (_) => controller.submit(),
                 onBackspace: controller.clearDigit,
               ),
               const SizedBox(height: 16),
-
-              // Error text.
-              if (state.validationError != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    state.validationError!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
 
               // Loading indicator.
               if (state.isLoading)
@@ -147,7 +138,7 @@ class OtpEntryScreen extends ConsumerWidget {
                     'Resend OTP in '
                     '${_formatCountdown(state.remainingSeconds)}',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: OBTColors.metaText(theme),
                     ),
                   ),
                 ),
@@ -166,16 +157,14 @@ class OtpEntryScreen extends ConsumerWidget {
                     TextSpan(
                       text: "Didn't receive the code? ",
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
-                        ),
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       children: [
                         TextSpan(
                           text: 'Resend',
                           style: TextStyle(
                             color: state.canResend
-                                ? theme.colorScheme.primary
+                                ? obtColors.link
                                 : theme.colorScheme.onSurface.withValues(
                                     alpha: 0.38,
                                   ),

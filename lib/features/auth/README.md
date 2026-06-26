@@ -62,16 +62,19 @@ depends on.
 ### Screens
 
 - `presentation/splash_screen.dart` — `SplashScreen` (`AuthLoading`).
+- `presentation/onboarding_screen.dart` — `OnboardingScreen`, the
+  first-launch onboarding (Haldi 2). Shown once before phone entry,
+  gated by the persisted "seen" flag (`hasSeenOnboardingProvider`); Skip
+  and "Get started" both mark it seen and advance the gate to
+  `PhoneEntryScreen`.
 - `presentation/phone_entry_screen.dart` — `PhoneEntryScreen`
   (`AuthUnauthenticated`).
-- `presentation/otp_entry_screen.dart` — `OtpEntryScreen`, with
-  `presentation/widgets/otp_input.dart` (`OtpInput`).
+- `presentation/otp_entry_screen.dart` — `OtpEntryScreen`, with the
+  shared `OBTOtpInput` (`core/widgets/inputs/obt_otp_input.dart`). The
+  local `presentation/widgets/otp_input.dart` (`OtpInput`) is retained
+  for the Profile change-phone flow.
 - `presentation/profile_setup_screen.dart` — `ProfileSetupScreen`
   (`AuthenticatedNoProfile`).
-- `presentation/authenticated_screen.dart` — `AuthenticatedScreen`, an
-  early debug stub that simply shows the UID. It is **not** wired into
-  the live auth gate (which routes `AuthenticatedWithProfile` to
-  `AuthenticatedShell`); retained only as a legacy artefact.
 
 ## Layout
 
@@ -79,6 +82,7 @@ depends on.
 application/
   analytics_provider.dart       # AnalyticsService seam (app-wide)
   auth_state_provider.dart      # authStateProvider + firebaseAuthProvider
+  onboarding_provider.dart      # hasSeenOnboardingProvider (first-launch gate)
   otp_entry_controller.dart     # OtpEntryController (autoDispose)
   phone_entry_controller.dart   # PhoneEntryController
   profile_setup_controller.dart # ProfileSetupController (autoDispose)
@@ -92,13 +96,13 @@ domain/
   user_model.dart               # users/{uid} domain model
   verification_session.dart     # in-progress verification value
 presentation/
-  splash_screen.dart            # AuthLoading
+  splash_screen.dart            # AuthLoading (Haldi brand splash)
+  onboarding_screen.dart        # first-launch onboarding (Haldi 2)
   phone_entry_screen.dart       # AuthUnauthenticated
-  otp_entry_screen.dart         # OTP verification
+  otp_entry_screen.dart         # OTP verification (uses shared OBTOtpInput)
   profile_setup_screen.dart     # AuthenticatedNoProfile (SCR-05)
-  authenticated_screen.dart     # legacy debug stub (not on the live gate)
   widgets/
-    otp_input.dart              # six-cell OTP input
+    otp_input.dart              # six-cell OTP input (retained for Profile)
 ```
 
 ## Invariants honoured

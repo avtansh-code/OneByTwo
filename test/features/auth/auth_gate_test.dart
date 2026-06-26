@@ -7,8 +7,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/core/persistence/preference_keys.dart';
 import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
+import 'package:onebytwo/core/services/key_value_store.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -18,6 +20,7 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
+import 'package:onebytwo/features/auth/presentation/onboarding_screen.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 import 'package:onebytwo/main.dart';
 
@@ -63,6 +66,28 @@ class _FakePhoneAuthRepository implements PhoneAuthRepository {
   Future<void> signOut() async {}
 }
 
+/// A [KeyValueStore] that reports onboarding as already seen, so the auth
+/// gate routes `AuthUnauthenticated` straight to phone entry (the
+/// returning-user path). The first-launch onboarding path is covered by
+/// `onboarding_gate_test.dart`.
+class _OnboardingSeenStore implements KeyValueStore {
+  @override
+  bool? getBool(String key) =>
+      key == PreferenceKeys.hasSeenOnboarding ? true : null;
+
+  @override
+  Future<void> setBool(String key, {required bool value}) async {}
+
+  @override
+  String? getString(String key) => null;
+
+  @override
+  Future<void> setString(String key, String value) async {}
+
+  @override
+  Future<void> remove(String key) async {}
+}
+
 class _FakeUserRepository implements UserRepository {
   @override
   Future<void> updatePhoneNumber({
@@ -106,6 +131,7 @@ class _FakeUserRepository implements UserRepository {
 List<Override> _baseOverrides({
   required Stream<AuthState> authStream,
   _FakeAnalyticsService? analytics,
+  bool hasSeenOnboarding = true,
 }) {
   return [
     analyticsServiceProvider.overrideWithValue(
@@ -113,6 +139,9 @@ List<Override> _baseOverrides({
     ),
     phoneAuthRepositoryProvider.overrideWithValue(_FakePhoneAuthRepository()),
     userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
+    keyValueStoreProvider.overrideWithValue(
+      hasSeenOnboarding ? _OnboardingSeenStore() : InMemoryKeyValueStore(),
+    ),
     authStateProvider.overrideWith((ref) => authStream),
   ];
 }
@@ -149,6 +178,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Enter your mobile number'), findsOneWidget);
+    });
+
+    testWidgets('AuthUnauthenticated first launch (unseen) renders '
+        'OnboardingScreen', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _baseOverrides(
+            authStream: Stream.value(const AuthUnauthenticated()),
+            hasSeenOnboarding: false,
+          ),
+          child: const OneBytwoApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The production gate's onboarding branch renders through the real
+      // OneBytwoApp (not just the gate-reproduction widget).
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+      expect(find.text('Track every shared spend'), findsOneWidget);
+      expect(find.text('Enter your mobile number'), findsNothing);
     });
 
     testWidgets('AuthenticatedNoProfile renders ProfileSetupScreen', (

@@ -6,8 +6,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
+import 'package:onebytwo/core/widgets/branding/obt_brand.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
 import 'package:onebytwo/features/auth/domain/auth_error.dart';
@@ -76,7 +78,10 @@ Widget _buildSplash({
       analyticsServiceProvider.overrideWithValue(analytics),
       phoneAuthRepositoryProvider.overrideWithValue(authRepo),
     ],
-    child: MaterialApp(home: SplashScreen(timeoutDuration: timeoutDuration)),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: SplashScreen(timeoutDuration: timeoutDuration),
+    ),
   );
 }
 
@@ -92,16 +97,42 @@ void main() {
       authRepo = _FakePhoneAuthRepository();
     });
 
-    testWidgets('renders logo and tagline', (tester) async {
+    testWidgets('renders the brand lockup on the marigold gradient '
+        'and the tagline', (tester) async {
       await tester.pumpWidget(
         _buildSplash(analytics: analytics, authRepo: authRepo),
       );
       await tester.pump();
 
-      // Logo icon.
-      expect(find.byIcon(Icons.vertical_split_rounded), findsOneWidget);
+      // Brand kit on the full-bleed marigold gradient (ink on marigold).
+      expect(find.byType(OBTSplashGradient), findsOneWidget);
+      expect(find.byType(OBTBrandLockup), findsOneWidget);
+      expect(find.byType(OBTBrandMark), findsOneWidget);
+
+      // The placeholder icon is gone (rebuild, not reskin).
+      expect(find.byIcon(Icons.vertical_split_rounded), findsNothing);
 
       // Tagline text.
+      expect(find.text('Split it. Settle it. Simple.'), findsOneWidget);
+    });
+
+    testWidgets('renders the dark splash brand moment', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            analyticsServiceProvider.overrideWithValue(analytics),
+            phoneAuthRepositoryProvider.overrideWithValue(authRepo),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const SplashScreen(timeoutDuration: _testTimeout),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(OBTSplashGradient), findsOneWidget);
+      expect(find.byType(OBTBrandLockup), findsOneWidget);
       expect(find.text('Split it. Settle it. Simple.'), findsOneWidget);
     });
 

@@ -46,7 +46,7 @@ table below the main matrix and in §C.
 | Haldi screen № | app screen / FR | status |
 |---|---|---|
 | 1 — Splash | `auth/presentation/splash_screen.dart` (SCR-01) | covered |
-| 2 — Onboarding (3 slides) | *(net-new build in DC-04)* — SRS §6 / §10; `Phase3a` design | **building (DC-04)** ⁵ |
+| 2 — Onboarding (3 slides) | *(net-new build in DC-04)* — SRS §6 / §10; `Phase3a` design | **covered (DC-04, built)** ⁵ |
 | 3 — Phone entry (+91 locked) | `auth/presentation/phone_entry_screen.dart` (FR-AU-01, FR-AU-02) | covered |
 | 4 — OTP (6-box) | `auth/presentation/otp_entry_screen.dart` (FR-AU-03, FR-AU-04, FR-AU-05) | covered |
 | 5 — Profile setup | `auth/presentation/profile_setup_screen.dart` (FR-AU-06) | covered |
@@ -98,11 +98,12 @@ table below the main matrix and in §C.
 4. **Haldi 26 (covered).** The OS lock-screen banner is system-rendered and not an app
    surface to design; the designable surfaces — the foreground in-app banner, the
    "Stay in the loop" pre-permission dialog, and the deep-link host — are all built.
-5. **Haldi 2 (building — DC-04).** Onboarding has no built screen today; it is being
-   **built fresh in Haldi within DC-04** (PM decision 2026-06-26) per the `Phase3a - Auth`
-   design + the mockup `docs/design/05-mockups/01-splash-and-onboarding.html`, and the
-   SRS §6 first-time journey / §10 (Terms/Privacy linked from onboarding). It has **no
-   dedicated FR id** — the FR formalisation is folded into the PM's `update-srs` proposal.
+5. **Haldi 2 (covered — built in DC-04).** Onboarding had no built screen before DC-04;
+   it was **built fresh in Haldi within DC-04** (#116, PM decision 2026-06-26) per the
+   `Phase3a - Auth` design + the mockup `docs/design/05-mockups/01-splash-and-onboarding.html`,
+   and the SRS §6 first-time journey / §10 (Terms/Privacy linked from onboarding). It
+   still has **no dedicated FR id** — the FR formalisation is folded into the PM's
+   `update-srs` proposal.
 
 ### Addendum — built surfaces NOT among the 30 Haldi screens
 
