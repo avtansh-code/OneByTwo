@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
@@ -92,8 +94,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _openUrl(String url) async {
     final launcher = ref.read(urlLauncherServiceProvider);
     final uri = Uri.parse(url);
+    var launched = false;
     if (await launcher.canLaunch(uri)) {
-      await launcher.launchExternal(uri);
+      try {
+        launched = await launcher.launchExternal(uri);
+      } on PlatformException catch (_) {
+        // A canLaunch false-positive must not crash; fall back below.
+      }
+    }
+    // Mirror the contact-support fallback: never fail silently — surface the
+    // URL so a browserless device still has a path to the document.
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Semantics(
+            liveRegion: true,
+            child: Text('Could not open the link. Visit $url'),
+          ),
+        ),
+      );
     }
   }
 
@@ -127,7 +146,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _slides.length,
-                onPageChanged: (index) => setState(() => _page = index),
+                onPageChanged: (index) {
+                  setState(() => _page = index);
+                  // Announce the new slide so assistive tech gets a
+                  // page-change cue (the headers alone are silent on swipe).
+                  SemanticsService.sendAnnouncement(
+                    View.of(context),
+                    _slides[index].headline,
+                    Directionality.of(context),
+                  );
+                },
                 itemBuilder: (context, index) =>
                     _OnboardingSlide(data: _slides[index]),
               ),

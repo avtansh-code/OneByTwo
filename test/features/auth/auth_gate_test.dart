@@ -20,6 +20,7 @@ import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/auth/domain/auth_user.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/auth/domain/verification_session.dart';
+import 'package:onebytwo/features/auth/presentation/onboarding_screen.dart';
 import 'package:onebytwo/features/shell/presentation/authenticated_shell.dart';
 import 'package:onebytwo/main.dart';
 
@@ -130,6 +131,7 @@ class _FakeUserRepository implements UserRepository {
 List<Override> _baseOverrides({
   required Stream<AuthState> authStream,
   _FakeAnalyticsService? analytics,
+  bool hasSeenOnboarding = true,
 }) {
   return [
     analyticsServiceProvider.overrideWithValue(
@@ -137,7 +139,9 @@ List<Override> _baseOverrides({
     ),
     phoneAuthRepositoryProvider.overrideWithValue(_FakePhoneAuthRepository()),
     userRepositoryProvider.overrideWithValue(_FakeUserRepository()),
-    keyValueStoreProvider.overrideWithValue(_OnboardingSeenStore()),
+    keyValueStoreProvider.overrideWithValue(
+      hasSeenOnboarding ? _OnboardingSeenStore() : InMemoryKeyValueStore(),
+    ),
     authStateProvider.overrideWith((ref) => authStream),
   ];
 }
@@ -174,6 +178,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Enter your mobile number'), findsOneWidget);
+    });
+
+    testWidgets('AuthUnauthenticated first launch (unseen) renders '
+        'OnboardingScreen', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _baseOverrides(
+            authStream: Stream.value(const AuthUnauthenticated()),
+            hasSeenOnboarding: false,
+          ),
+          child: const OneBytwoApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The production gate's onboarding branch renders through the real
+      // OneBytwoApp (not just the gate-reproduction widget).
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+      expect(find.text('Track every shared spend'), findsOneWidget);
+      expect(find.text('Enter your mobile number'), findsNothing);
     });
 
     testWidgets('AuthenticatedNoProfile renders ProfileSetupScreen', (

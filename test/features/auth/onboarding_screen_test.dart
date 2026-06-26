@@ -32,6 +32,15 @@ class _FakeUrlLauncher implements UrlLauncherService {
   }
 }
 
+/// A launcher with no handler (canLaunch false) — exercises the fallback.
+class _FailingUrlLauncher implements UrlLauncherService {
+  @override
+  Future<bool> canLaunch(Uri uri) async => false;
+
+  @override
+  Future<bool> launchExternal(Uri uri) async => false;
+}
+
 Future<void> _pumpOnboarding(
   WidgetTester tester, {
   required KeyValueStore store,
@@ -169,6 +178,20 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(launcher.launched, contains(Uri.parse(LegalUrls.privacyPolicy)));
+    });
+
+    testWidgets('a failed link launch shows a fallback SnackBar with the URL', (
+      tester,
+    ) async {
+      final failing = _FailingUrlLauncher();
+      await _pumpOnboarding(tester, store: store, launcher: failing);
+      await _advanceToFinalSlide(tester);
+
+      await tester.tap(find.text('Terms of Service'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining(LegalUrls.termsOfService), findsOneWidget);
     });
 
     testWidgets('first slide: every control is labelled and >= 48 dp', (
