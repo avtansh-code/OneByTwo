@@ -29,6 +29,7 @@ import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
+import 'package:onebytwo/features/friends/presentation/friend_history_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
 import 'package:onebytwo/features/reminders/data/reminder_repository.dart';
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
@@ -319,10 +320,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('You are owed ${formatInrFromPaise(12345)}'),
-        findsOneWidget,
-      );
+      // The shared OBTBalancePill (large form) carries the label and the
+      // magnitude amount as separate Texts (colour + icon + label trio;
+      // DC-06), so the header reads "you are owed" + "₹123.45". The amount
+      // also appears in the receiving-direction OBTSettleUpCard (same
+      // suggested amount), so it renders twice.
+      expect(find.text('you are owed'), findsOneWidget);
+      expect(find.text(formatInrFromPaise(12345)), findsNWidgets(2));
     });
 
     testWidgets('renders the intermixed timeline rows in order', (
@@ -387,7 +391,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('You owe ${formatInrFromPaise(-5000)}'), findsOneWidget);
+      // The shared OBTBalancePill renders the "you owe" label and the
+      // magnitude "₹50.00" (the sign is the icon + colour, not a minus on
+      // the amount; DC-06). The amount also appears in the OBTSettleUpCard
+      // (same suggested amount), so it renders twice.
+      expect(find.text('you owe'), findsOneWidget);
+      expect(find.text(formatInrFromPaise(5000)), findsNWidgets(2));
     });
 
     testWidgets('friend_detail_viewed fires with owes balance_state', (
@@ -983,6 +992,27 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('View Settlement History'), findsNothing);
+    });
+
+    testWidgets('DC-06: tapping "View full history" pushes '
+        'FriendHistoryScreen (Haldi 12)', (tester) async {
+      await tester.pumpWidget(
+        _buildSubject(initialValue: AsyncData(populated), analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('View full history'));
+      await tester.tap(find.text('View full history'));
+      // Advance past the route transition; one frame only — the pushed
+      // history screen then shows its shimmer skeleton (the fake repos
+      // never emit), which never settles.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(FriendHistoryScreen), findsOneWidget);
+      // The telemetry plan defines friend_history_tapped for this tap
+      // (telemetry-plan.md:146, SCR-11); it fires exactly once.
+      expect(analytics.countOf('friend_history_tapped'), 1);
     });
 
     testWidgets('AC-18 tapping the link pushes SettlementHistoryScreen with '

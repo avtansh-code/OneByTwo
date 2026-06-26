@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/presentation/expense_detail_screen.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
+import 'package:onebytwo/features/friends/presentation/widgets/transaction_visuals.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
-/// Intermixed expense + settlement timeline rendered below the header.
+/// Intermixed expense + settlement timeline rendered below the header
+/// (SCR-11 / Haldi 11), reskinned to the Haldi visual system (DC-06).
 ///
-/// Up to 5 rows per the SCR-11 spec. Tap on an expense row pushes the
-/// [ExpenseDetailScreen] (FR-EX-06). Tap on a settlement row is a
+/// Up to 5 rows per the SCR-11 spec — the "View full history" affordance on
+/// Friend Detail opens the full Haldi 12 log. Tap on an expense row pushes
+/// the [ExpenseDetailScreen] (FR-EX-06). Tap on a settlement row is a
 /// no-op until a future PR introduces the settlement detail screen.
 ///
-/// All paise → INR conversion goes through [formatInrFromPaise]
+/// Each row leads with a Haldi category-hue [TransactionIconTile]; amounts
+/// render in the Bricolage tabular [OBTText.amount] tinted by the balance
+/// trio. All paise -> INR conversion goes through `formatInrFromPaise()`
 /// (Invariant 1).
 class FriendDetailTimelineWidget extends StatelessWidget {
   /// Creates a [FriendDetailTimelineWidget].
@@ -92,7 +98,7 @@ class _ExpenseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFmt = DateFormat.yMMMd();
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
     final isMyExpense = doc.payerId == currentUserUid;
     final payerLabel = isMyExpense ? 'You' : _firstName(friendDisplayName);
 
@@ -103,6 +109,9 @@ class _ExpenseRow extends StatelessWidget {
     final shareLabel = isMyExpense
         ? 'you lent ${formatInrFromPaise(doc.amountPaise - mySplit.sharePaise)}'
         : 'you borrowed ${formatInrFromPaise(mySplit.sharePaise)}';
+    final shareHue = isMyExpense
+        ? obtColors.balancePositive
+        : obtColors.balanceNegative;
 
     return InkWell(
       onTap: doc.id == null ? null : () => _openExpenseDetail(context, doc.id!),
@@ -110,21 +119,16 @@ class _ExpenseRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ExcludeSemantics(
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  expenseCategoryIcon[doc.category] ?? Icons.receipt_long,
-                ),
-              ),
+          children: <Widget>[
+            TransactionIconTile(
+              icon: expenseCategoryIcon[doc.category] ?? Icons.receipt_long,
+              hue: obtColors.categoryColor(friendCategoryKey(doc.category)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Text(
                     doc.description,
                     style: theme.textTheme.titleSmall,
@@ -133,9 +137,9 @@ class _ExpenseRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$payerLabel paid • ${dateFmt.format(doc.date)}',
+                    '$payerLabel paid • ${formatIstLongDate(doc.date)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: OBTColors.metaText(theme),
                     ),
                   ),
                 ],
@@ -144,12 +148,7 @@ class _ExpenseRow extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               shareLabel,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isMyExpense
-                    ? theme.colorScheme.tertiary
-                    : theme.colorScheme.error,
-                fontWeight: FontWeight.w600,
-              ),
+              style: OBTText.amount(context).copyWith(color: shareHue),
             ),
           ],
         ),
@@ -191,7 +190,7 @@ class _SettlementRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFmt = DateFormat.yMMMd();
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
     final amount = formatInrFromPaise(doc.amountPaise);
     final isMine = doc.fromUserId == currentUserUid;
     final friendFirstName = _firstName(friendDisplayName);
@@ -203,19 +202,16 @@ class _SettlementRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ExcludeSemantics(
-            child: CircleAvatar(
-              radius: 20,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              child: const Icon(Icons.handshake_outlined),
-            ),
+        children: <Widget>[
+          TransactionIconTile(
+            icon: Icons.payments_outlined,
+            hue: obtColors.balanceZero,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Text(
                   label,
                   style: theme.textTheme.titleSmall,
@@ -224,9 +220,9 @@ class _SettlementRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  dateFmt.format(doc.date),
+                  formatIstLongDate(doc.date),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: OBTColors.metaText(theme),
                   ),
                 ),
               ],

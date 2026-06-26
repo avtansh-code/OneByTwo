@@ -56,7 +56,7 @@ table below the main matrix and in §C.
 | 9 — Friends list | `friends/presentation/friends_list_screen.dart` (FR-FR-03) | covered |
 | 10 — Add friend (lookup branches) | `friends/presentation/add_friend_screen.dart` + `add_friend_flow.dart` + `match_and_invite_screen.dart` (FR-FR-01, FR-FR-02) | covered |
 | 11 — Friend detail | `friends/presentation/friend_detail_screen.dart` (FR-FR-04) | covered |
-| 12 — Friend history | *(net-new build in DC-06)* — `friend_history_screen.dart`; FR-FR-04 | **building (DC-06)** ² |
+| 12 — Friend history | `friends/presentation/friend_history_screen.dart` (FR-FR-04, net-new in DC-06) | covered ² |
 | 13 — Remove friend | *(no presentation UI; removal logic only in `friends/data/friendship_repository.dart`)* — FR-FR-05 | designed-not-yet-built |
 | 14 — Groups list | `shell/presentation/groups_list_placeholder.dart` (placeholder only) — FR-GR-04 | designed-not-yet-built |
 | 15 — Create group | *(not built)* — FR-GR-01 | designed-not-yet-built |
@@ -82,13 +82,13 @@ table below the main matrix and in §C.
    Groups section is an intentional "Coming soon" stub row that lights up only when the
    Groups epic ships (the in-code "Sprint 3" label predates the renumber → now **Sprint 4**).
    No new design needed; the Groups branch reuses Haldi 14/16 when those are built.
-2. **Haldi 12 (building — DC-06).** FR-FR-04's full reverse-chron per-friend log was
+2. **Haldi 12 (covered — built in DC-06).** FR-FR-04's full reverse-chron per-friend log was
    previously met only by the **top-5 inline timeline** on Friend detail (Haldi 11) plus
    the **settlements-only** Settlement History (Haldi 24). The dedicated full
    expense+settlement, month-grouped, signed-amount log that Haldi screen 12 specifies is
-   **now being built as a distinct Haldi screen** (`friend_history_screen.dart`) within
-   **DC-06** (PM decision 2026-06-26; the Friends feature dev is complete), superseding the
-   top-5 inline preview. The Haldi design already exists.
+   **now built as a distinct Haldi screen** (`friend_history_screen.dart`) within
+   **DC-06** (PM decision 2026-06-26), reached via a "View full history" affordance on
+   Friend detail that supersedes the top-5 inline preview. The Haldi design already existed.
 3. **Haldi 24 (covered, with a flagged divergence).** The Settlement History list itself is
    built and maps cleanly. The **reminder** element diverges: it is implemented as a
    one-tap "Remind" affordance on **Friend detail** (`friend_detail_screen.dart` →

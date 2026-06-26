@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/core/theme/obt_colors.dart';
+
 /// A list tile displaying a device contact's name and phone number.
 ///
 /// Shows a [CircleAvatar] with the first letter of the contact's name,
 /// the display name in bold, and the first phone number as a subtitle.
+/// Reskinned to the Haldi meta-text token (DC-06).
 class ContactListTile extends StatelessWidget {
   /// Creates a [ContactListTile].
   const ContactListTile({
@@ -41,7 +44,7 @@ class ContactListTile extends StatelessWidget {
         subtitle: Text(
           phoneNumber,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            color: OBTColors.metaText(theme),
           ),
         ),
         onTap: onTap,

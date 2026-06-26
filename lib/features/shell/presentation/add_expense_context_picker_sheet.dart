@@ -31,7 +31,7 @@ import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 ///   - **Invariant 1 (paise integers):** no monetary values flow
 ///     through the picker. The `FriendListTile` consumes `int paise`
 ///     from `FriendListItem.netBalancePaise` and renders via the
-///     existing `BalancePill` (formats via `formatInrFromPaise`).
+///     shared `OBTBalancePill` (formats via `formatInrFromPaise`).
 ///   - **Invariant 2 (`simplifiedBalances` server-only):** the picker
 ///     reads `friendsListProvider` (which projects the field deeper
 ///     in the pipeline) but the picker itself does NOT touch the

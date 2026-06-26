@@ -85,7 +85,8 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // DC-06: the looking-up spinner is replaced by a shimmer skeleton.
+      expect(find.byKey(const Key('match_lookup_skeleton')), findsOneWidget);
     });
 
     testWidgets('MatchFound state renders confirmation card with '
@@ -103,7 +104,7 @@ void main() {
 
       expect(find.text('Priya Sharma'), findsOneWidget);
       expect(
-        find.widgetWithText(ElevatedButton, 'Add as friend'),
+        find.widgetWithText(FilledButton, 'Add as friend'),
         findsOneWidget,
       );
     });
@@ -135,9 +136,11 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      expect(find.text('Priya Sharma'), findsOneWidget);
+      // DC-06: the no-match invite is an OBTEmptyState whose copy names the
+      // contact and whose CTA hands off to the OS share sheet.
+      expect(find.textContaining('Priya Sharma'), findsOneWidget);
       expect(
-        find.widgetWithText(ElevatedButton, 'Send invite'),
+        find.widgetWithText(FilledButton, 'Invite to One By Two'),
         findsOneWidget,
       );
     });
@@ -226,7 +229,7 @@ void main() {
       await tester.pumpWidget(_buildTestApp(fakeController: controller));
       await tester.pump();
 
-      await tester.tap(find.text('Send invite'));
+      await tester.tap(find.text('Invite to One By Two'));
       await tester.pump();
 
       expect(controller.openInviteShareSheetCalled, isTrue);

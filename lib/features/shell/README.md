@@ -73,7 +73,7 @@ presentation/
 ## Invariants honoured
 
 - **Invariant 1 (integer paise):** the picker shows friend balances via
-  `FriendListTile` → `BalancePill` → `formatInrFromPaise`; the shell
+  `FriendListTile` → `OBTBalancePill` → `formatInrFromPaise`; the shell
   itself performs no monetary arithmetic.
 - **Invariant 2 (`simplifiedBalances` server-maintained):** the picker
   reads `friendsListProvider` (which projects the field deeper in the

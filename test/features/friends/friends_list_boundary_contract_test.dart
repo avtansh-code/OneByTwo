@@ -114,9 +114,10 @@ void main() {
     // documented comment text via `_isCommentLine`.
     const sourceFiles = [
       'lib/features/friends/presentation/friends_list_screen.dart',
-      'lib/features/friends/presentation/widgets/balance_pill.dart',
       'lib/features/friends/presentation/widgets/friend_list_tile.dart',
       'lib/features/friends/application/friends_list_provider.dart',
+      'lib/features/friends/presentation/friend_history_screen.dart',
+      'lib/features/friends/application/friend_history_provider.dart',
     ];
 
     for (final path in sourceFiles) {

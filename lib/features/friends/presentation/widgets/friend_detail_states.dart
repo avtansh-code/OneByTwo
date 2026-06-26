@@ -1,69 +1,49 @@
 import 'package:flutter/material.dart';
 
-/// Loading skeleton rendered while the friendship doc + the two
-/// snapshot streams resolve their first emission.
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
+
+/// Loading skeleton rendered while the friendship doc + the two snapshot
+/// streams resolve their first emission (SCR-11 / Haldi 11), reskinned to
+/// the shimmer `OBTSkeleton` set (DC-06). Freezes under reduced motion.
 class FriendDetailLoadingState extends StatelessWidget {
   /// Creates a [FriendDetailLoadingState].
   const FriendDetailLoadingState({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final shimmerColor = theme.colorScheme.surfaceContainerHighest;
     return ListView(
       key: const Key('friend_detail_skeleton'),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      children: [
+      children: <Widget>[
         Column(
-          children: [
-            CircleAvatar(radius: 40, backgroundColor: shimmerColor),
+          children: <Widget>[
+            const OBTSkeletonCircle(diameter: 80),
             const SizedBox(height: 16),
-            Container(
+            OBTSkeleton(
               width: 160,
               height: 20,
-              decoration: BoxDecoration(
-                color: shimmerColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
             ),
             const SizedBox(height: 12),
-            Container(
+            OBTSkeleton(
               width: 200,
               height: 36,
-              decoration: BoxDecoration(
-                color: shimmerColor,
-                borderRadius: BorderRadius.circular(18),
-              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusPill),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        for (var i = 0; i < 3; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                CircleAvatar(radius: 20, backgroundColor: shimmerColor),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: shimmerColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        const OBTSkeletonList(itemCount: 3),
       ],
     );
   }
 }
 
-/// Empty-state placeholder rendered when the friendship has zero
-/// expenses AND zero settlements.
+/// Empty-state placeholder rendered when the friendship has zero expenses
+/// AND zero settlements (SCR-11 / Haldi 11), reskinned to `OBTEmptyState`.
 class FriendDetailEmptyState extends StatelessWidget {
   /// Creates a [FriendDetailEmptyState].
   const FriendDetailEmptyState({required this.friendDisplayName, super.key});
@@ -73,37 +53,24 @@ class FriendDetailEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ExcludeSemantics(
-              child: Icon(
-                Icons.receipt_long_outlined,
-                size: 64,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No expenses yet',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add an expense with $friendDisplayName to start tracking.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    final colors = Theme.of(context).colorScheme;
+    return OBTEmptyState(
+      illustration: Container(
+        width: 110,
+        height: 110,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.receipt_long_outlined,
+          size: 52,
+          color: colors.primary,
         ),
       ),
+      headline: 'No expenses yet',
+      supportingText:
+          'Add an expense with $friendDisplayName to start tracking.',
     );
   }
 }
@@ -127,7 +94,7 @@ class FriendDetailErrorState extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
@@ -139,7 +106,7 @@ class FriendDetailErrorState extends StatelessWidget {
             Text(
               "We couldn't load this friend's details. Please try again.",
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: OBTColors.metaText(theme),
               ),
               textAlign: TextAlign.center,
             ),

@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   serverTimestamp,
   setLogLevel,
 } from "firebase/firestore";
@@ -217,7 +218,6 @@ describe("users/{userId} — delete rules", () => {
 
   it("rejects deletion even by the document owner", async () => {
     const ctx = testEnv.authenticatedContext(uid);
-    const {deleteDoc} = await import("firebase/firestore");
     const userDoc = doc(ctx.firestore(), `users/${uid}`);
     await assertFails(deleteDoc(userDoc));
   });

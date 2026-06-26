@@ -5,7 +5,7 @@
  */
 
 import {HttpsError} from "firebase-functions/v2/https";
-import {createHandler, Dependencies} from "../../src/simplified-debts/function";
+import {createHandler, Dependencies, recomputeAndWrite} from "../../src/simplified-debts/function";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -426,7 +426,6 @@ describe("recomputeSimplifiedBalances handler", () => {
 
 describe("recomputeAndWrite — alsoSet reserved-key guard", () => {
   it("throws when alsoSet contains a reserved key (simplifiedBalances)", async () => {
-    const {recomputeAndWrite} = await import("../../src/simplified-debts/function");
     const {deps} = createDeps({contextExists: true, expenses: []});
 
     await expect(
@@ -439,7 +438,6 @@ describe("recomputeAndWrite — alsoSet reserved-key guard", () => {
   });
 
   it("throws when alsoSet.lastActivityAt is not a Firestore Timestamp", async () => {
-    const {recomputeAndWrite} = await import("../../src/simplified-debts/function");
     const {deps} = createDeps({contextExists: true, expenses: []});
 
     await expect(
