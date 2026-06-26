@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:onebytwo/core/services/image_picker_service.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
@@ -245,11 +246,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Two "Groups" texts: the section header (labelLarge) AND the
+      // Two "Groups" texts: the section header (overline) AND the
       // stub row's ListTile title (titleMedium) per
       // architect notes §2.3 / §2.6.
       expect(find.text('Groups'), findsNWidgets(2));
-      expect(find.text('Coming in Sprint 3'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
     });
   });
 
@@ -376,7 +377,7 @@ void main() {
         // Groups section still renders (header + row title both say
         // "Groups" per architect §2.6).
         expect(find.text('Groups'), findsNWidgets(2));
-        expect(find.text('Coming in Sprint 3'), findsOneWidget);
+        expect(find.text('Coming soon'), findsOneWidget);
       },
     );
   });
@@ -408,27 +409,27 @@ void main() {
   });
 
   group('AddExpenseContextPickerSheet — Friends loading (AC-10)', () {
-    testWidgets(
-      'renders CircularProgressIndicator in Friends section + Groups stub',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(
-            friendsState: const AsyncLoading<List<FriendListItem>>(),
-            analytics: analytics,
-          ),
-        );
-        await tester.pump();
-        // Open the picker.
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump();
+    testWidgets('renders a shimmer skeleton in Friends section + Groups stub', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildSubject(
+          friendsState: const AsyncLoading<List<FriendListItem>>(),
+          analytics: analytics,
+        ),
+      );
+      await tester.pump();
+      // Open the picker.
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
 
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        // Groups section still renders (header + row title both say
-        // "Groups").
-        expect(find.text('Groups'), findsNWidgets(2));
-        expect(find.text('Coming in Sprint 3'), findsOneWidget);
-      },
-    );
+      expect(find.byType(OBTSkeleton), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // Groups section still renders (header + row title both say
+      // "Groups").
+      expect(find.text('Groups'), findsNWidgets(2));
+      expect(find.text('Coming soon'), findsOneWidget);
+    });
   });
 
   group('AddExpenseContextPickerSheet — Friends error (AC-11)', () {
@@ -504,27 +505,24 @@ void main() {
           }
 
           // Tap the Groups stub row. Scope to the ListTile that owns
-          // the unique "Coming in Sprint 3" trailing label (the bare
+          // the unique "Coming soon" trailing label (the bare
           // text "Groups" appears twice: section header + row title).
           await tester.tap(
             find.ancestor(
-              of: find.text('Coming in Sprint 3'),
+              of: find.text('Coming soon'),
               matching: find.byType(ListTile),
             ),
           );
           // The snackbar is enqueued asynchronously by ScaffoldMessenger
           // — pump a few frames so the SnackBar's enter-transition
           // mounts the Text in the overlay. (`pumpAndSettle` would
-          // deadlock on the loading-state CircularProgressIndicator.)
+          // deadlock on the loading-state shimmer skeleton.)
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
           await tester.pump();
 
           // Snackbar copy per architect §2.3.
-          expect(
-            find.text('Group expenses coming in Sprint 3.'),
-            findsOneWidget,
-          );
+          expect(find.text('Group expenses are coming soon.'), findsOneWidget);
 
           // Telemetry fired exactly once with the group context_type.
           expect(analytics.events, hasLength(1));

@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/application/expense_detail_provider.dart';
@@ -16,6 +20,7 @@ import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
+import 'package:onebytwo/features/expenses/presentation/widgets/expense_category_palette.dart';
 import 'package:onebytwo/features/expenses/presentation/widgets/receipt_fullscreen_viewer.dart';
 import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 
@@ -76,7 +81,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         actions: _appBarActions(async),
       ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _DetailSkeleton(),
         error: (_, __) => _ErrorView(onRetry: _onRetry),
         data: (doc) {
           if (doc == null) return _MissingView(onBack: () => _onBack(context));
@@ -270,7 +275,6 @@ class _ExpenseDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final dateFmt = DateFormat.yMMMd();
     final amount = formatInrFromPaise(doc.amountPaise);
     final isMyExpense = doc.payerId == currentUserUid;
     // Resolve the other participant's display name; the friends-list
@@ -292,13 +296,7 @@ class _ExpenseDetailBody extends ConsumerWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  expenseCategoryIcon[doc.category] ?? Icons.receipt_long,
-                ),
-              ),
+              ExpenseCategoryAvatar(category: doc.category),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -307,9 +305,9 @@ class _ExpenseDetailBody extends ConsumerWidget {
                     Text(doc.description, style: theme.textTheme.titleLarge),
                     const SizedBox(height: 4),
                     Text(
-                      dateFmt.format(doc.date),
+                      formatIstLongDate(doc.date),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: OBTColors.metaText(theme),
                       ),
                     ),
                   ],
@@ -318,17 +316,23 @@ class _ExpenseDetailBody extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _DetailRow(label: 'Amount', value: amount),
-          _DetailRow(label: 'Category', value: doc.category.name),
+          _DetailRow(label: 'Amount', value: amount, isAmount: true),
+          _DetailRow(
+            label: 'Category',
+            value: expenseCategoryLabel[doc.category] ?? doc.category.name,
+          ),
           _DetailRow(label: 'Paid by', value: payerLabel),
           _DetailRow(label: 'Split', value: _splitMethodLabel(doc.splitMethod)),
           const SizedBox(height: 16),
           Text('Splits', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           for (final split in doc.splits)
-            _DetailRow(
-              label: split.userId == currentUserUid ? 'You' : friendName,
-              value: formatInrFromPaise(split.sharePaise),
+            _SplitBalanceRow(
+              name: split.userId == currentUserUid ? 'You' : friendName,
+              isPayer: split.userId == doc.payerId,
+              paise: split.userId == doc.payerId
+                  ? doc.amountPaise - split.sharePaise
+                  : split.sharePaise,
             ),
           // FR-EX-05: receipt thumbnail when present.
           if (doc.receiptUrl != null) ...[
@@ -359,10 +363,15 @@ class _ExpenseDetailBody extends ConsumerWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.isAmount = false,
+  });
 
   final String label;
   final String value;
+  final bool isAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +388,12 @@ class _DetailRow extends StatelessWidget {
               ),
             ),
           ),
-          Text(value, style: theme.textTheme.bodyLarge),
+          Text(
+            value,
+            style: isAmount
+                ? OBTText.amount(context)
+                : theme.textTheme.bodyLarge,
+          ),
         ],
       ),
     );
@@ -407,7 +421,7 @@ class _ReceiptTile extends StatelessWidget {
         label: 'Receipt image attached. Double-tap to view full size.',
         button: true,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
           child: SizedBox(
             width: 240,
             height: 320,
@@ -419,6 +433,102 @@ class _ReceiptTile extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One per-person split row on the Expense Detail (Haldi 22): the member
+/// name with the balance-trio indicator — colour + icon + label, never
+/// colour alone. The payer "gets back" what the others owe
+/// ([OBTColors.balancePositive] + `arrow_upward`); everyone else "owes"
+/// their share ([OBTColors.balanceNegative] + `arrow_downward`). Read
+/// straight from the expense document's stored `splits` projection
+/// (Invariant 2 — never the friendship-level `simplifiedBalances`, never a
+/// client write); the magnitude renders via [formatInrFromPaise]
+/// (Invariant 1).
+class _SplitBalanceRow extends StatelessWidget {
+  const _SplitBalanceRow({
+    required this.name,
+    required this.isPayer,
+    required this.paise,
+  });
+
+  final String name;
+  final bool isPayer;
+  final int paise;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final hue = isPayer ? obtColors.balancePositive : obtColors.balanceNegative;
+    final icon = isPayer ? Icons.arrow_upward : Icons.arrow_downward;
+    final label = isPayer ? 'gets back' : 'owes';
+    final amount = formatInrFromPaise(paise);
+    return Semantics(
+      excludeSemantics: true,
+      label: '$name $label $amount',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: <Widget>[
+            Expanded(child: Text(name, style: theme.textTheme.bodyLarge)),
+            Icon(icon, size: 16, color: hue),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(color: hue),
+            ),
+            const SizedBox(width: 8),
+            Text(amount, style: OBTText.amount(context).copyWith(color: hue)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shimmer skeleton for the Expense Detail loading state (Haldi 22) —
+/// replaces the bare `CircularProgressIndicator` with the shared
+/// [OBTSkeleton] set: a header (category tile + two lines) over a stack of
+/// detail-row silhouettes.
+class _DetailSkeleton extends StatelessWidget {
+  const _DetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label: 'Loading…',
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            const Row(
+              children: <Widget>[
+                OBTSkeleton(width: 48, height: 48),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      OBTSkeleton(height: 16, width: 160),
+                      SizedBox(height: 8),
+                      OBTSkeleton(height: 12, width: 100),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            for (var i = 0; i < 5; i++) ...<Widget>[
+              const OBTSkeleton(height: 16),
+              const SizedBox(height: 12),
+            ],
+          ],
         ),
       ),
     );

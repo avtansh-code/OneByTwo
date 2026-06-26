@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/widgets/sheets/obt_stepper_sheet.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
@@ -81,14 +82,11 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
 
     final state = ref.watch(addExpenseControllerProvider(_args));
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: _buildBody(context, state),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
+      child: _buildBody(context, state),
     );
   }
 
@@ -101,26 +99,19 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
       Success() => 3,
     };
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _SheetHandle(),
-        _SheetHeader(
-          step: step,
-          isEditMode: _isEditMode,
-          onDismiss: () => _onDismiss(context),
-        ),
-        Flexible(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: switch (step) {
-              1 => Step1AmountDetails(args: _args),
-              2 => Step2SplitAndPayer(args: _args),
-              _ => Step3ReceiptAndConfirm(args: _args),
-            },
-          ),
-        ),
+    // The Add-expense 3-step sheet shell (Haldi 21): 28-radius top + grabber
+    // + the visual stepper replacing the old `(N/3)` text counter. The
+    // per-step routing and controller wiring are unchanged — each step body
+    // owns its own Back / Next CTAs.
+    return OBTStepperSheet(
+      currentStep: step,
+      totalSteps: 3,
+      title: _isEditMode ? 'Edit Expense' : 'Add Expense',
+      onClose: () => _onDismiss(context),
+      stepBodies: <Widget>[
+        Step1AmountDetails(args: _args),
+        Step2SplitAndPayer(args: _args),
+        Step3ReceiptAndConfirm(args: _args),
       ],
     );
   }
@@ -153,65 +144,5 @@ class _AddExpenseBottomSheetState extends ConsumerState<AddExpenseBottomSheet> {
   void _onDismiss(BuildContext context) {
     ref.read(addExpenseControllerProvider(_args).notifier).discard();
     Navigator.of(context).maybePop();
-  }
-}
-
-class _SheetHandle extends StatelessWidget {
-  const _SheetHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(context).dividerColor,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetHeader extends StatelessWidget {
-  const _SheetHeader({
-    required this.step,
-    required this.isEditMode,
-    required this.onDismiss,
-  });
-
-  final int step;
-  final bool isEditMode;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    // FR-EX-05: header reads `(N/3)` — the sheet is a
-    // three-step flow (Step 1 amount + meta; Step 2 split + payer;
-    // Step 3 receipt + confirm per SCR-21). FR-EX-01 shipped the
-    // create flow with Step 3 deferred and the label flipped
-    // to `(N/2)`; FR-EX-05 reactivates Step 3 and the label restores.
-    final title = isEditMode
-        ? 'Edit Expense ($step/3)'
-        : 'Add Expense ($step/3)';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.titleLarge),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            tooltip: 'Close',
-            onPressed: onDismiss,
-          ),
-        ],
-      ),
-    );
   }
 }

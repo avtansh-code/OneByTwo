@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
@@ -128,17 +129,12 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formatted = date == null
-        ? 'Today'
-        : '${date!.day.toString().padLeft(2, '0')}/'
-              '${date!.month.toString().padLeft(2, '0')}/'
-              '${date!.year}';
+    final formatted = date == null ? 'Today' : formatIstLongDate(date!);
     return InputDecorator(
       decoration: InputDecoration(labelText: 'Date', errorText: errorText),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(formatted),
+          Expanded(child: Text(formatted)),
           IconButton(
             icon: const Icon(Icons.calendar_today),
             tooltip: 'Pick date',

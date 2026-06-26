@@ -176,6 +176,25 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `expenses/presentation/widgets/changed_field_indicator.dart` | 22 | reskin | 2px left border → Haldi secondary/terracotta token. | — | S |
 | `expenses/presentation/widgets/receipt_fullscreen_viewer.dart` | 22 | reskin | Viewer chrome tokens (scrim, close affordance). | — | S |
 
+> **Status — Expenses converted (DC-07 / Sprint 3 PR #8 = #119, branch
+> `feat/haldi-expenses-conversion`).** `add_expense_bottom_sheet.dart` adopts
+> `OBTStepperSheet` (28 radius + grabber + visual stepper); `step_1` →
+> `OBTAmountInput` (Bricolage tabular) + `OBTCategoryChip`/`OBTCategoryTile`
+> (Haldi 8-hue bed) + IST date + marigold Next; **`step_2` rebuilt** to
+> `OBTSegmentedSplitControl` (Equally / Unequal / % / Shares / Exact) with live
+> adds-up green / over-under red and Next disabled off-total (AC-2); `step_3`
+> adds the inert note slot + inert "Make recurring" ("Coming soon");
+> `expense_detail_screen.dart` reskins to marigold tokens with the per-person
+> balance-trio split read from the doc projection, spinner → shimmer skeleton,
+> IST date; `expense_category_grid.dart` → `OBTColors.category` 8-hue;
+> `split_row.dart` → Bricolage tabular; `split_validation_message.dart` → red
+> over/under + green "adds up"; `changed_field_indicator.dart` →
+> secondary/terracotta token; `receipt_fullscreen_viewer.dart` chrome →
+> scrim/close tokens. Invariants 1 + 2 hold — amounts via `formatInrFromPaise()`,
+> no client `simplifiedBalances` write. Light + dark golden scaffolds for 21
+> (incl. step-2 green/red), 22 and the context picker 8 queued in the DC-13
+> harness.
+
 ### Settlements
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -226,7 +245,11 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > Sprint 4) in `shell/presentation/groups_coming_soon_tab.dart`, so the
 > `authenticated_shell.dart` 5-tab + FAB structure **conforms** (no structural change).
 > `shell_boundary_contract_test.dart` and the shell / groups READMEs are updated. The
-> `add_expense_context_picker_sheet.dart` (8) reskin remains for a later flow PR.
+> `add_expense_context_picker_sheet.dart` (8) is **reskinned in DC-07 (Sprint 3
+> PR #8 = #119)** — 28 radius, overline section headers, friends spinner →
+> shimmer skeleton, Groups copy → "Coming soon", additive Haldi search field;
+> friend selection still opens the add sheet and the Groups telemetry is
+> preserved.
 
 > **Not in scope here.** Haldi 7 (Search) and 13 (Remove friend) have **no built
 > file** and are built fresh in **Sprint 6** (FR-SR-01/02, FR-FR-05). Haldi 14–20
