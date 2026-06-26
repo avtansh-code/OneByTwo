@@ -107,7 +107,7 @@ Dev's to implement; the token set and hex are fixed here.)
 | `warning` | `#E8A33D` | `#F2B863` | `OBTColors.warning` |
 | `primaryPressed` | `#C77F22` | `#D08F3C` | `OBTColors.primaryPressed` (overlay state) |
 | `textSecondary` | `#6F6557` | `#B9AE9D` | `ColorScheme.onSurfaceVariant` (existing slot; already consumed by `OBTActivityRow`, `OBTSettleUpCard`) |
-| `textTertiary` | `#9A8F82` | `#8A7E6E` | `OBTColors.textTertiary` (meta/timestamps) |
+| `textTertiary` | `#776E64` | `#9C8E7C` | `OBTColors.textTertiary` (meta/timestamps; AA-tuned in DC-02 — the original `#9A8F82` / `#8A7E6E` measured ~2.95:1 / ~3.74:1, below WCAG 2.1 AA for 12px meta text) |
 | `disabledFill` / `disabledText` | `#E4DCCE` / `#B8AC9B` | `#332B23` / `#6B6053` | `OBTColors.disabledFill` / `.disabledText` |
 | `link` | `#A35E16` | `#EAA24A` | `OBTColors.link` (text/links on tonal) |
 

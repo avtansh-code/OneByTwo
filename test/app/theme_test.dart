@@ -112,7 +112,7 @@ void main() {
       expect(c.balanceNegative, const Color(0xFFBC4030));
       expect(c.warning, const Color(0xFFE8A33D));
       expect(c.primaryPressed, const Color(0xFFC77F22));
-      expect(c.textTertiary, const Color(0xFF9A8F82));
+      expect(c.textTertiary, const Color(0xFF776E64));
       expect(c.link, const Color(0xFFA35E16));
       expect(c.disabledFill, const Color(0xFFE4DCCE));
       expect(c.disabledText, const Color(0xFFB8AC9B));
@@ -125,7 +125,7 @@ void main() {
       expect(c.balanceNegative, const Color(0xFFF2856B));
       expect(c.warning, const Color(0xFFF2B863));
       expect(c.primaryPressed, const Color(0xFFD08F3C));
-      expect(c.textTertiary, const Color(0xFF8A7E6E));
+      expect(c.textTertiary, const Color(0xFF9C8E7C));
       expect(c.link, const Color(0xFFEAA24A));
     });
 

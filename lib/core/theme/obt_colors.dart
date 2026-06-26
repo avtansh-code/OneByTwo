@@ -103,7 +103,9 @@ class OBTColors extends ThemeExtension<OBTColors> {
     balanceNegative: Color(0xFFBC4030),
     warning: Color(0xFFE8A33D),
     primaryPressed: Color(0xFFC77F22),
-    textTertiary: Color(0xFF9A8F82),
+    // AA-tuned (DC-02): clears WCAG 2.1 AA (>= 4.5:1) for 12px meta text on
+    // the warm light surfaces; the lighter #9A8F82 measured ~2.95:1.
+    textTertiary: Color(0xFF776E64),
     link: Color(0xFFA35E16),
     disabledFill: Color(0xFFE4DCCE),
     disabledText: Color(0xFFB8AC9B),
@@ -137,7 +139,9 @@ class OBTColors extends ThemeExtension<OBTColors> {
     balanceNegative: Color(0xFFF2856B),
     warning: Color(0xFFF2B863),
     primaryPressed: Color(0xFFD08F3C),
-    textTertiary: Color(0xFF8A7E6E),
+    // AA-tuned (DC-02): clears AA on the elevated dark surface (#2E2620);
+    // the darker #8A7E6E measured ~3.74:1 there.
+    textTertiary: Color(0xFF9C8E7C),
     link: Color(0xFFEAA24A),
     disabledFill: Color(0xFF332B23),
     disabledText: Color(0xFF6B6053),
