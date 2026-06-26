@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/domain/friend_list_item.dart';
@@ -243,50 +247,20 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final box = theme.colorScheme.surfaceContainerHighest;
     return Semantics(
       liveRegion: true,
       label: 'Loading content',
       child: ListView(
         key: const Key('home_dashboard_skeleton'),
         children: [
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            height: 96,
-            decoration: BoxDecoration(
-              color: box,
-              borderRadius: BorderRadius.circular(24),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: OBTSkeleton(
+              height: 96,
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             ),
           ),
-          for (var i = 0; i < 5; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  CircleAvatar(radius: 22, backgroundColor: box),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: box,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 80,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: box,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          for (var i = 0; i < 5; i++) const OBTSkeletonRow(announce: false),
         ],
       ),
     );
@@ -300,46 +274,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ExcludeSemantics(
-              child: Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 64,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Semantics(
-              header: true,
-              child: Text(
-                'No expenses yet',
-                style: theme.textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add your first expense and start splitting!',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onAddExpense,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Expense'),
-            ),
-          ],
-        ),
-      ),
+    return OBTEmptyState(
+      illustration: const Icon(Icons.account_balance_wallet_outlined, size: 72),
+      headline: 'No expenses yet',
+      supportingText: 'Add your first expense and start splitting!',
+      ctaLabel: 'Add Expense',
+      onCta: onAddExpense,
     );
   }
 }
@@ -365,10 +305,13 @@ class _PopulatedState extends StatelessWidget {
         NetBalanceHeaderCard(netBalancePaise: netBalancePaise),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Text(
-            'Top Balances',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          child: Semantics(
+            header: true,
+            child: Text(
+              'Top Balances',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -381,10 +324,13 @@ class _PopulatedState extends StatelessWidget {
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            'This Month',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          child: Semantics(
+            header: true,
+            child: Text(
+              'This Month',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -437,7 +383,7 @@ class _ErrorState extends StatelessWidget {
                   : 'We could not load your balances. Please check your '
                         'connection and try again.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: OBTColors.metaText(theme),
               ),
               textAlign: TextAlign.center,
             ),
@@ -452,7 +398,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               'Error code: ${HomeTelemetry.errorCodeFirestoreRead}',
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                color: OBTColors.metaText(theme),
               ),
             ),
           ],

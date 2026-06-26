@@ -2,6 +2,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/features/home/domain/monthly_spend_breakdown.dart';
 import 'package:onebytwo/features/home/presentation/widgets/spending_category_palette.dart';
 
@@ -70,14 +72,12 @@ class SpendingDonutChart extends StatelessWidget {
               children: [
                 Text(
                   formatInrFromPaise(breakdown.monthTotalPaise),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: OBTText.amount(context),
                 ),
                 Text(
                   'spent',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: OBTColors.metaText(theme),
                   ),
                 ),
               ],

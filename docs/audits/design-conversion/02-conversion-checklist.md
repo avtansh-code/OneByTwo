@@ -104,6 +104,22 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `home/presentation/widgets/spending_donut_chart.dart` | 6 ★ | reskin | Re-point segment colours to Haldi 8-hue; centre total → Bricolage tabular; gap colour → surface. | — | S |
 | `home/presentation/widgets/spending_category_palette.dart` | 6 | reskin | Re-point all eight light + dark category hues from the old hex (food `#B23A48`…) to the Haldi palette; or source from `OBTColors`. | — | S |
 
+> **Status — done (DC-05 / Sprint 3 PR #6 = #117, branch
+> `feat/haldi-home-conversion`).** All six Home rows above are converted to Haldi
+> in light + dark. `net_balance_header_card.dart` (6 ★) renders the tonal
+> `surfaceContainerHighest` hero + the marigold `OBTColors.heroShadow`, the amount
+> as the Bricolage `OBTText.amountHero` tinted by the balance-trio colour, with the
+> directional icon (balance trio = colour + icon + label). `home_dashboard_screen.dart`
+> swaps the hand-rolled skeleton → the shimmer `OBTSkeleton` set and the empty `Icon`
+> → `OBTEmptyState`. `top_balance_tile.dart` adopts the shared `OBTBalancePill` (with
+> icon) and a marigold-link Settle Up, reflowing to a stacked layout at narrow widths /
+> large dynamic type so amounts never truncate (04 §C.2). `spending_breakdown_card.dart`
+> / `spending_donut_chart.dart` re-point to `radiusCard`, Bricolage tabular amounts and
+> the Haldi 8-hue; `spending_category_palette.dart` now sources its hues from
+> `OBTColors.category` (no duplicated hex). Invariants 1 + 2 hold — money only via
+> `formatInrFromPaise()`, `simplifiedBalances` read-only. Light + dark golden scaffolds
+> for the four states are queued in the DC-13 harness.
+
 ### Friends
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -183,6 +199,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `shell/presentation/authenticated_shell.dart` | global | **conform** | `IndexedStack` + 5-tab + FAB structure already matches the Haldi shell model; the visual change lives entirely in `OBTBottomNav` + `OBTFloatingActionButton` (see §C). No change in this file. | — | — |
 | `shell/presentation/add_expense_context_picker_sheet.dart` | 8 | reskin | Sheet radius → 28; section headers → overline; friends loading spinner → skeleton; Groups stub copy → "Coming soon"; add the Haldi search field (additive). | loading-skeleton (replace spinner); search field | M |
 | `shell/presentation/groups_list_placeholder.dart` | — | **delete** | Replaced by the real Haldi 14 Groups list, built fresh in **Sprint 4**. Remove (do not convert). | — | S |
+
+> **Status — `groups_list_placeholder.dart` deleted (DC-05 / Sprint 3 PR #6 =
+> #117).** The bespoke Groups stub is **removed, not converted** (AC-3); the shell's
+> tab-2 reference is swapped to a shared Haldi `OBTEmptyState` ("Groups — coming soon",
+> Sprint 4) in `shell/presentation/groups_coming_soon_tab.dart`, so the
+> `authenticated_shell.dart` 5-tab + FAB structure **conforms** (no structural change).
+> `shell_boundary_contract_test.dart` and the shell / groups READMEs are updated. The
+> `add_expense_context_picker_sheet.dart` (8) reskin remains for a later flow PR.
 
 > **Not in scope here.** Haldi 7 (Search) and 13 (Remove friend) have **no built
 > file** and are built fresh in **Sprint 6** (FR-SR-01/02, FR-FR-05). Haldi 14–20

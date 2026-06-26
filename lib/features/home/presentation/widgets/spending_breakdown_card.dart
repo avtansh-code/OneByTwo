@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/domain/expense_category.dart';
 import 'package:onebytwo/features/home/application/home_telemetry.dart';
@@ -125,44 +129,37 @@ class _BreakdownCardFrame extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }
 
-/// Loading sub-state: a 160 dp chart skeleton plus three bar lines,
-/// reusing the dashboard skeleton discipline (SCR-06 Loading State).
+/// Loading sub-state: a shimmer donut silhouette plus three shimmer bar
+/// lines, using the shared [OBTSkeleton] set (SCR-06 Loading State; DC-05
+/// — skeletons, not spinners). Under reduced motion the shimmer freezes.
 class _BreakdownSkeleton extends StatelessWidget {
   const _BreakdownSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    final box = Theme.of(context).colorScheme.surfaceContainerHighest;
     return _BreakdownCardFrame(
       child: Semantics(
         liveRegion: true,
         label: 'Loading content',
-        child: Column(
-          key: const Key('spending_breakdown_skeleton'),
-          children: [
-            Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(color: box, shape: BoxShape.circle),
-            ),
-            const SizedBox(height: 16),
-            for (var i = 0; i < 3; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: box,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
+        child: const Column(
+          key: Key('spending_breakdown_skeleton'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(child: OBTSkeletonCircle(diameter: 160)),
+            SizedBox(height: 16),
+            OBTSkeleton(height: 12),
+            SizedBox(height: 12),
+            OBTSkeleton(height: 12),
+            SizedBox(height: 12),
+            OBTSkeleton(height: 12),
           ],
         ),
       ),
@@ -199,7 +196,7 @@ class _BreakdownEmptyBody extends StatelessWidget {
           Text(
             'Add an expense to see your monthly breakdown',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              color: OBTColors.metaText(theme),
             ),
             textAlign: TextAlign.center,
           ),
@@ -251,7 +248,7 @@ class _LegendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final swatch = spendingCategoryColor(spend.category, theme.brightness);
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    final muted = OBTColors.metaText(theme);
     return Semantics(
       container: true,
       label:
@@ -286,7 +283,7 @@ class _LegendRow extends StatelessWidget {
             ),
             Text(
               formatInrFromPaise(spend.totalPaise),
-              style: theme.textTheme.bodyMedium,
+              style: OBTText.amount(context),
             ),
             const SizedBox(width: 8),
             Text(
@@ -343,7 +340,7 @@ class _BreakdownErrorBody extends StatelessWidget {
           Text(
             'Error code: ${HomeTelemetry.errorCodeFirestoreRead}',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              color: OBTColors.metaText(theme),
             ),
           ),
         ],

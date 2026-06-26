@@ -5,7 +5,7 @@
 
 The Groups epic (FR-GR-01 … FR-GR-07: group create, invite members,
 group detail, group expenses/settlements, member removal, leave, delete)
-is planned for the Sprint 3 Groups epic and has no Flutter UI or state
+is planned for the Sprint 4 Groups epic and has no Flutter UI or state
 yet.
 
 ## What exists today
@@ -16,11 +16,12 @@ yet.
   ship in `firestore.rules`. These are owned by the Architect and the
   Functions Dev; they exist so the data layer is ready before the client
   is built.
-- **A shell placeholder, hosted elsewhere.** The Groups bottom-nav tab
-  renders `GroupsListPlaceholder` from
-  `lib/features/shell/presentation/groups_list_placeholder.dart` (a
-  "coming soon" stand-in), and the Add-Expense context picker shows a
-  disabled "Coming in Sprint 3" Groups row
+- **A shell "coming soon" tab, hosted elsewhere.** The Groups bottom-nav
+  tab renders `GroupsComingSoonTab` from
+  `lib/features/shell/presentation/groups_coming_soon_tab.dart` — the
+  shared Haldi `OBTEmptyState` ("Groups — coming soon"); DC-05 deleted the
+  former bespoke `GroupsListPlaceholder` stub (removed, not converted). The
+  Add-Expense context picker still shows a disabled Groups row
   (`lib/features/shell/presentation/add_expense_context_picker_sheet.dart`).
   Both live under the `shell` feature, not here.
 

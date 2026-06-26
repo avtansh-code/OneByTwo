@@ -270,6 +270,32 @@ void main() {
       expect(find.byType(SpendingBreakdownCard), findsOneWidget);
     });
 
+    testWidgets('section titles are exposed as accessibility headers', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(buildSubject());
+      controller.add([
+        _item(
+          friendshipId: 'uid-a_uid-me',
+          otherUserId: 'uid-a',
+          displayName: 'Aarav',
+          netBalancePaise: 5000,
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSemantics(find.text('Top Balances')).flagsCollection.isHeader,
+        isTrue,
+      );
+      expect(
+        tester.getSemantics(find.text('This Month')).flagsCollection.isHeader,
+        isTrue,
+      );
+      handle.dispose();
+    });
+
     testWidgets('negative net renders "Overall, you owe" + absolute amount', (
       tester,
     ) async {
