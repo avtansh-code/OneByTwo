@@ -2038,3 +2038,92 @@ backend/data docs and invariants it leaves untouched.
   Jakarta/Inter faces — a mixed, un-reviewable skin. PR #1 swaps both together.
 
 ---
+
+## ADR-0025: Issue #128 §4.1 Reconciliation — Focal Amount Tiers, Colour-Reserved-for-Balance, and Settle-Up Separation
+
+**Status:** Accepted
+
+**Date:** 2026-06-28
+
+### Context
+
+The Sprint 3 foundation plan (`docs/audits/design-conversion/03-foundation-plan.md` §4.1) classified
+the six existing shared widgets as token/type **reskins** and mapped every amount onto two Bricolage
+tabular slots — `OBTText.amount` (16px row) and `OBTText.amountHero` (48px hero). Issue #128
+reconciles that table against the Haldi handoff (Phase 3e) and the SRS accessibility rule that
+**colour is reserved for balance signals** (ADR-0024 §4: a balance is always colour *and* icon *and*
+label, never colour alone). Four gaps surfaced where the shipped widgets diverged from the handoff:
+
+- The **amount entry** field (`OBTAmountInput`) rendered at the 16px row size, but the handoff draws
+  amount entry as a focal 46–50px figure.
+- The **settle-up card** suggestion (`OBTSettleUpCard`) rendered at 16px, but the handoff draws it at
+  ~32px — a tier between row and hero that the helper family did not yet have.
+- The `₹` **prefix** of the amount field rendered in marigold `primary`, colliding with the cursor
+  (a `TextField` already tints the cursor `primary`) and spending the reserved hue on chrome.
+- The **activity-row trailing amount** inherited the per-event hue (marigold added / terracotta
+  edited / red deleted / green settled), so an ordinary expense amount read as a false balance signal.
+
+Two of these are display-size changes (a restyle); two are colour-discipline corrections. Parts A
+(textTertiary contrast) and D (the 2.0× dynamic-type gate) of #128 were resolved separately and are
+untouched here.
+
+### Decision
+
+1. **A three-tier amount scale (§B).** Add `OBTText.amountFocal(context)` — `displayMedium` 32px with
+   `FontFeature.tabularFigures()` — between the existing 16px `amount` and 48px `amountHero` helpers.
+   The amount **entry** field adopts `amountHero` (48px); the settle-up card suggestion adopts
+   `amountFocal` (32px); row amounts (incl. `OBTActivityRow`) keep `amount` (16px). The tier is chosen
+   by emphasis, not by widget.
+
+2. **`₹` prefix → `textSecondary` (§C1).** The amount-field prefix glyph moves from `primary` to
+   `onSurfaceVariant`, reusing the hero style only for *sizing*. Marigold is reserved for the cursor,
+   which `TextField` already defaults to `primary` (no `cursorColor` override needed).
+
+3. **Activity-row amount → neutral, green only for settlement (§C2).** The trailing amount renders in
+   `onSurface` for `expenseAdded`/`expenseEdited`/`expenseDeleted`, and keeps the success green
+   (`tertiary`) **only** for `settlementRecorded`. The leading event **icon** keeps its per-event hue
+   unchanged — the row still signals event type by icon colour, but the money text no longer mimics a
+   balance signal.
+
+4. **Settle-up card separation (§C3).** Per foundation-plan §2.2, the CTA card lifts off the warm
+   canvas with the marigold **`heroShadow`** in light and a 1px `colorScheme.outline` **border** in
+   dark, implemented as a `Container`/`BoxDecoration` (`surfaceContainerHighest` fill, `radiusCard`,
+   elevation:0 base) — the same separation model already used by `NetBalanceHeaderCard` and
+   `FriendListTile`. `outline` (not the unset `outlineVariant`, which falls back to `onSurface`) is
+   used for the dark border.
+
+### Consequences
+
+- `OBTText` gains one helper; `OBTAmountInput`, `OBTActivityRow` and `OBTSettleUpCard` change
+  appearance only. **No paise/data contract moves:** `formatInrFromPaise()` stays the sole paise→INR
+  boundary (Invariant 1); only font size and colour change, and font sizes are not money math.
+- The §4.1 table (the three widget rows) and the §3.3 amounts note are updated to the three-tier scale
+  and the new colour/separation rulings; the "all six are reskins" verdict stands — Card→Container is
+  an elevation-model/token change, not a structural rebuild.
+- The 48px entry figure is safe for the 2.0× dynamic-type gate: every host scrolls (the settle-up
+  sheet and the add-expense step sit in scroll views) and `TextField` scrolls its content
+  horizontally, so the focal size scrolls rather than clipping. No revert of the focal size is needed.
+- Widget/unit tests that pinned the old styles are updated in lockstep to assert the new contract
+  (amount-field 48px + `onSurfaceVariant` prefix; activity-row `onSurface`/`tertiary` split; settle-up
+  `BoxDecoration` shadow/border + 32px amount; the new `amountFocal` helper; the `onSurfaceVariant`-on-
+  surface contrast pairing). The committed golden baselines (PR #140) for `obt_amount_input`,
+  `obt_settle_up_card`, `obt_activity_row` and their dc06–dc09 screen goldens are expected to diff and
+  are regenerated on CI.
+
+### Alternatives Considered
+
+- **Keep amounts at 16px everywhere and treat the handoff sizes as decorative.** Rejected: amount
+  entry and the settle-up suggestion are the visual focus of their screens in the handoff; rendering
+  them at row size loses the intended hierarchy and fails Phase-3e fidelity.
+- **Reuse `amountHero` (48px) for the settle-up card too.** Rejected: 48px overpowers the card's CTA
+  and avatar stack; the handoff draws ~32px. A dedicated mid-tier slot keeps the scale honest and
+  reusable for future focal amounts.
+- **Tint the `₹` prefix and activity amounts to carry event meaning.** Rejected: it spends the colour
+  channel the SRS/Haldi reserve for balance, so neutral expense amounts would read as owed/owing. Icon
+  colour already conveys event type; the money text stays neutral.
+- **Give the settle-up card a real Material elevation instead of the §2.2 shadow.** Rejected: Haldi's
+  elevation model is a flat surface plus the bespoke marigold hero shadow (light) / hairline border
+  (dark); a default Material drop shadow would be a grey, off-system separation inconsistent with
+  `NetBalanceHeaderCard`.
+
+---

@@ -261,10 +261,10 @@ void main() {
   });
 
   group('OBTText amount helpers (AC #4)', () {
-    testWidgets('amount + amountHero are Bricolage tabular styles', (
-      tester,
-    ) async {
+    testWidgets('amount / amountFocal / amountHero are Bricolage tabular '
+        'styles at the row, focal and hero sizes', (tester) async {
       late TextStyle amount;
+      late TextStyle amountFocal;
       late TextStyle amountHero;
       await tester.pumpWidget(
         MaterialApp(
@@ -272,6 +272,7 @@ void main() {
           home: Builder(
             builder: (context) {
               amount = OBTText.amount(context);
+              amountFocal = OBTText.amountFocal(context);
               amountHero = OBTText.amountHero(context);
               return const SizedBox.shrink();
             },
@@ -280,13 +281,16 @@ void main() {
       );
 
       final heading = GoogleFonts.bricolageGrotesque().fontFamily;
+      const tabular = FontFeature.tabularFigures();
       expect(amount.fontFamily, heading);
-      expect(amount.fontFeatures, contains(const FontFeature.tabularFigures()));
+      expect(amount.fontFeatures, contains(tabular));
+      expect(amount.fontSize, 16);
+      expect(amountFocal.fontFamily, heading);
+      expect(amountFocal.fontFeatures, contains(tabular));
+      expect(amountFocal.fontSize, 32);
       expect(amountHero.fontFamily, heading);
-      expect(
-        amountHero.fontFeatures,
-        contains(const FontFeature.tabularFigures()),
-      );
+      expect(amountHero.fontFeatures, contains(tabular));
+      expect(amountHero.fontSize, 48);
     });
   });
 }

@@ -354,6 +354,14 @@ void main() {
         amountText.style?.fontFeatures,
         contains(const FontFeature.tabularFigures()),
       );
+      expect(
+        amountText.style?.color,
+        theme.colorScheme.onSurface,
+        reason:
+            'An expense amount is neutral ink (#128 §C2); colour is '
+            'reserved for balance signals.',
+      );
+      expect(amountText.style?.color, isNot(theme.colorScheme.primary));
 
       final timestamp = tester.widget<Text>(find.text('2 hours ago'));
       expect(timestamp.style?.color, OBTColors.light.textTertiary);
@@ -362,6 +370,39 @@ void main() {
         find.textContaining('Priya added'),
       );
       expect(primaryText.style, theme.textTheme.titleMedium);
+    });
+
+    testWidgets('a settlement amount keeps the success green (tertiary), '
+        'unlike a neutral expense amount (#128 §C2)', (tester) async {
+      final item = _settlementItem(id: '2', fromUid: 'uidA', toUid: 'uidB');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: ListView(
+              children: [
+                OBTActivityRow(
+                  item: item,
+                  currentUserUid: 'uidA',
+                  otherPartyDisplayName: 'Priya',
+                  secondaryText: '2 hours ago',
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final scheme = AppTheme.light.colorScheme;
+      final amountText = tester.widget<Text>(
+        find.text(formatInrFromPaise(5000)),
+      );
+      expect(
+        amountText.style?.color,
+        scheme.tertiary,
+        reason: 'Only settlements keep the green success hue.',
+      );
     });
   });
 }

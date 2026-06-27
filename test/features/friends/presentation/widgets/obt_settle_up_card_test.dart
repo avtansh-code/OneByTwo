@@ -151,8 +151,9 @@ void main() {
   });
 
   group('OBTSettleUpCard — Haldi token reskin (DC-02)', () {
-    testWidgets('card uses the card radius, the CTA uses the button radius, '
-        'and the amount is Bricolage tabular', (tester) async {
+    testWidgets('card is a BoxDecoration at the card radius with the light '
+        'heroShadow, the CTA uses the button radius, and the amount is '
+        'Bricolage tabular amount-focal (32px)', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -169,10 +170,28 @@ void main() {
         ),
       );
 
-      final card = tester.widget<Card>(find.byType(Card));
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(OBTSettleUpCard),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
       expect(
-        (card.shape! as RoundedRectangleBorder).borderRadius,
+        decoration.borderRadius,
         BorderRadius.circular(AppTheme.radiusCard),
+      );
+      expect(
+        decoration.boxShadow,
+        OBTColors.light.heroShadow,
+        reason: 'Light separation is the marigold heroShadow (#128 §C3).',
+      );
+      expect(
+        decoration.border,
+        isNull,
+        reason: 'The outline border is a dark-only treatment.',
       );
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -186,6 +205,46 @@ void main() {
       expect(
         amount.style?.fontFeatures,
         contains(const FontFeature.tabularFigures()),
+      );
+      expect(
+        amount.style?.fontSize,
+        32,
+        reason: 'The settle-up suggestion is amount-focal at 32px (#128 §B).',
+      );
+    });
+
+    testWidgets('in dark the card uses a 1px outline border and no shadow '
+        '(#128 §C3)', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: OBTSettleUpCard(
+              payerDisplayName: 'You',
+              payerPhotoUrl: null,
+              payeeDisplayName: 'Priya',
+              payeePhotoUrl: null,
+              suggestedAmountPaise: 50000,
+              onSettleUp: () {},
+            ),
+          ),
+        ),
+      );
+
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(OBTSettleUpCard),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      expect(decoration.boxShadow, isNull);
+      expect(decoration.border, isNotNull);
+      expect(
+        (decoration.border! as Border).top.color,
+        AppTheme.dark.colorScheme.outline,
       );
     });
 

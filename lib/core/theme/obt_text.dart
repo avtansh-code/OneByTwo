@@ -22,6 +22,15 @@ class OBTText {
     return base.copyWith(fontFeatures: _tabularFigures);
   }
 
+  /// Bricolage tabular style for a focal amount that sits between a row
+  /// amount and the hero figure — the settle-up card suggestion and similar
+  /// mid-emphasis money (the `displayMedium` 32px amount-focal slot, issue
+  /// #128 §B). Colour is inherited from the ambient text style.
+  static TextStyle amountFocal(BuildContext context) {
+    final base = Theme.of(context).textTheme.displayMedium ?? const TextStyle();
+    return base.copyWith(fontFeatures: _tabularFigures);
+  }
+
   /// Bricolage tabular style for the hero net-balance amount (the
   /// `displayLarge` amount-hero slot).
   static TextStyle amountHero(BuildContext context) {

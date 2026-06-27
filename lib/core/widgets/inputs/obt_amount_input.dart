@@ -91,7 +91,10 @@ class _OBTAmountInputState extends State<OBTAmountInput> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final amountStyle = OBTText.amount(context);
+    // #128 §B: the entered amount renders focal (amount-hero, 48px tabular)
+    // to match the Haldi entry treatment; the `₹` prefix reuses the same
+    // hero style for glyph sizing.
+    final amountStyle = OBTText.amountHero(context);
     return TextField(
       controller: _controller,
       enabled: widget.enabled,
@@ -110,7 +113,11 @@ class _OBTAmountInputState extends State<OBTAmountInput> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Text(
             '₹',
-            style: amountStyle.copyWith(color: theme.colorScheme.primary),
+            // #128 §C1: the prefix sits in the textSecondary slot; marigold
+            // is reserved for the cursor (TextField defaults it to primary).
+            style: amountStyle.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 32),
