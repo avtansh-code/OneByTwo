@@ -319,11 +319,25 @@ void main() {
     });
   }
 
-  testWidgets('detail does not overflow at 2.0x text scale', (tester) async {
-    await tester.pumpWidget(_detailHost(Brightness.light, textScale: 2));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
+  // --- AC-2: the detail hero reflows at 2.0x at 390 AND 320, light + dark ---
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    for (final width in <double>[390, 320]) {
+      testWidgets('detail does not overflow at 2.0x text scale '
+          '(${width.toInt()} dp, $mode)', (tester) async {
+        tester.view.physicalSize =
+            Size(width, 844) * tester.view.devicePixelRatio;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(_detailHost(brightness, textScale: 2));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        // Invariant 1: the hero amount stays whole at 2.0x (never truncated).
+        expect(find.text(formatInrFromPaise(50000)), findsOneWidget);
+      });
+    }
+  }
 
   // --- C.3: reduced motion freezes the detail skeleton (settles) ---
   testWidgets('detail loading skeleton freezes under reduced motion', (

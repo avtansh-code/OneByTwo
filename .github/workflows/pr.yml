@@ -173,6 +173,38 @@ jobs:
           path: coverage/lcov.info
           retention-days: 14
 
+  # ── Accessibility gate: WCAG contrast + dynamic-type (DC-12) ─────────────────
+  a11y-checks:
+    name: Accessibility Gate (WCAG AA)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    # The named, blocking accessibility gate (DC-12 / issue #124): runs the
+    # a11y-contrast + a11y-dynamic-type tagged families so a reviewer sees the
+    # WCAG contrast pairings and the 2.0x dynamic-type / reduced-motion gates
+    # pass or fail by name, separate from DC-13's golden job. No Firebase, no
+    # emulator, no secrets — these are pure `flutter test` runs (04 §E).
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.ci == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Contrast + dynamic-type accessibility gate
+        # The boolean OR selector runs BOTH tagged families. Repeated
+        # `--tags a --tags b` is last-wins and would silently skip the first
+        # family, so the `||` selector is required (see 04 §E).
+        run: flutter test --tags "a11y-contrast || a11y-dynamic-type"
+
   # ── Cloud Functions: lint, test ─────────────────────────────────────────────
   functions-checks:
     name: Cloud Functions Lint & Test

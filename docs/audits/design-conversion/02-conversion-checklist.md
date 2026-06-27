@@ -53,6 +53,24 @@ screens ship **light + dark**. Most built screens already implement all four
 state is upgraded to the shared shimmer skeleton-loader component, and empty states
 get the flat-illustration empty-state scaffold rather than a bare `Icon`.
 
+> **Status — Accessibility re-verified against the Haldi palette (DC-12 / Sprint 3
+> PR #13, #124).** WCAG 2.1 AA holds across the conversion. **AC-1:** the verified
+> contrast pairings clear their role thresholds against the *resolved* tokens — the
+> published handoff figures reconciled with the Flutter-measured ratios
+> (`6.25 / 14.66 / 5.04 / 5.36 / 15.31`) in `04-qa-test-strategy.md` §B.1 (no token
+> change; the gate tracks the resolved-token reality). **AC-2:** every converted
+> hero renders at 2.0x dynamic type at 390 **and** 320, light + dark, with no
+> clipped/truncated rupee figure — the one gap the re-verification surfaced (the
+> expense-detail per-person split row, `_SplitBalanceRow`) gained a `LayoutBuilder`
+> stacked reflow so the amount wraps whole; the `OBTSettleUpSheet` / `OBTActivityRow`
+> 320 overflows stay the documented #128 exceptions. **AC-3:** every balance signal
+> carries colour + **icon + label** (the colour-only case asserted to FAIL), and
+> reduced motion collapses the page transition + freezes skeletons. The
+> `a11y-contrast` + `a11y-dynamic-type` gates are now a named, blocking CI check
+> ("Accessibility Gate (WCAG AA)") in `pr.yml`; goldens remain DC-13's. No
+> `theme.dart` / `core/theme/*` / DC-02-03 component change (any token gap → #128);
+> all four invariants hold unchanged.
+
 ---
 
 ## B. Per-screen conversion table

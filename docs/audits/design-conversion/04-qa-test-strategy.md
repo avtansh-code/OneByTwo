@@ -171,27 +171,41 @@ block is **foundation design-intent** (`03-foundation-plan` §1.2–§1.3): PR #
 must record the measured value in the same test and the gate enforces the WCAG
 threshold for the role.
 
-Handoff-verified pairings (gate = meets role threshold **and** within ±0.2 of the
-figure as a drift tripwire):
+Handoff-verified pairings. The **Handoff** column is the canonical published
+figure (`design_handoff_one_by_two/README.md`, restated in `02`/`03`). The
+**Measured** column is the ratio the gate actually computes from the **resolved**
+`AppTheme` tokens via `Color.computeLuminance()` (see the reconciliation note
+below). The gate asserts (a) the WCAG **role threshold** as a hard pass/fail and
+(b) a **±0.1 drift tripwire around the Measured figure**, so a one-token chromatic
+regression is caught. Every pairing clears its role threshold by both figures:
 
-| Pairing (foreground on background) | FG | BG | Ratio | WCAG | Role |
+| Pairing (foreground on background) | FG | BG | Handoff | Measured | WCAG | Role |
+|---|---|---|---|---|---|---|
+| Ink on background (light) | `#2A211B` | `#FBF6EE` | 13.9:1 | **14.66:1** | AAA | Body text / amounts on canvas |
+| Ink on marigold (`onPrimary`) | `#2A211B` | `#E0922E` | 5.6:1 | **6.25:1** | AA | Primary button + FAB label/glyph |
+| Positive on white | `#0F7D6B` | `#FFFFFF` | 4.6:1 | **5.04:1** | AA (body) | "you are owed" balance text |
+| Negative on white | `#BC4030` | `#FFFFFF` | 5.1:1 | **5.36:1** | AA (body) | "you owe" / destructive text |
+| Dark text on dark canvas | `#F3EBDD` | `#1A1510` | 14.2:1 | **15.31:1** | AAA | Body text / amounts on canvas (dark) |
+
+> **Reconciliation (DC-12).** The Measured figures are what
+> `test/app/theme_contrast_test.dart` asserts (`closeTo`, ±0.1). They run ~0.3–1.1
+> higher than the Handoff figures because the gate reads the *resolved* theme
+> tokens and uses Flutter's sRGB `Color.computeLuminance()`, whose rounding differs
+> from the handoff's published method. The published figures remain the canonical
+> design reference; the gate tracks the resolved-token reality. Both clear the
+> AA/AAA role thresholds, so the conversion is verified either way — there is **no
+> token change** (any token tuning routes to issue #128).
+
+Foundation design-intent (gate = meets role threshold; the **Measured** column is
+the value `theme_contrast_test.dart` records via `Color.computeLuminance()`):
+
+| Pairing | FG | BG | Intent | Measured | Role |
 |---|---|---|---|---|---|
-| Ink on background (light) | `#2A211B` | `#FBF6EE` | **13.9:1** | AAA | Body text / amounts on canvas |
-| Ink on marigold (`onPrimary`) | `#2A211B` | `#E0922E` | **5.6:1** | AA | Primary button + FAB label/glyph |
-| Positive on white | `#0F7D6B` | `#FFFFFF` | **4.6:1** | AA (body) | "you are owed" balance text |
-| Negative on white | `#BC4030` | `#FFFFFF` | **5.1:1** | AA (body) | "you owe" / destructive text |
-| Dark text on dark canvas | `#F3EBDD` | `#1A1510` | **14.2:1** | AAA | Body text / amounts on canvas (dark) |
-
-Foundation design-intent (gate = meets role threshold; record measured value in
-PR #1):
-
-| Pairing | FG | BG | Intent | Role |
-|---|---|---|---|---|
-| `onPrimary` dark — ink on marigold-dark | `#1A1510` | `#EAA24A` | ≥ 4.5 (AA) | Primary affordance (dark) |
-| `onError` dark — ink on danger-dark salmon | `#1A1510` | `#F2856B` | ≈ 7.2 | Destructive label (dark) |
-| `onSecondary` light — cream on terracotta | `#FFF7E8` | `#C75D3C` | ≥ 3.0 (large/UI) | Accent icon / short label |
-| `onTertiary` light — white on success | `#FFFFFF` | `#0F7D6B` | 4.6 (AA) | Success label (light) |
-| `onTertiary` dark — ink on success-dark | `#1A1510` | `#34C0A4` | ≥ 3.0 (large/UI) | Success label (dark) |
+| `onPrimary` dark — ink on marigold-dark | `#1A1510` | `#EAA24A` | ≥ 4.5 (AA) | **8.43:1** | Primary affordance (dark) |
+| `onError` dark — ink on danger-dark salmon | `#1A1510` | `#F2856B` | ≈ 7.2 | **7.20:1** | Destructive label (dark) |
+| `onSecondary` light — cream on terracotta | `#FFF7E8` | `#C75D3C` | ≥ 3.0 (large/UI) | **3.90:1** | Accent icon / short label |
+| `onTertiary` light — white on success | `#FFFFFF` | `#0F7D6B` | 4.6 (AA) | **5.04:1** | Success label (light) |
+| `onTertiary` dark — ink on success-dark | `#1A1510` | `#34C0A4` | ≥ 3.0 (large/UI) | **7.96:1** | Success label (dark) |
 
 **Canonical negative case (must be asserted to FAIL-as-rejected):** white on
 marigold, `#FFFFFF` on `#E0922E` ≈ **2.5:1**. The gate asserts `onPrimary` is the
@@ -209,8 +223,10 @@ A pure-Dart widget/unit test (no extra dependency) that:
   standard sRGB relative-luminance formula.
 - **Given** the Haldi theme is active, **When** each pairing in §B.1 is measured,
   **Then** the ratio meets its role threshold (≥ 4.5:1 body text, ≥ 3:1
-  large/UI/non-text), and for the verified block is within ±0.2 of the published
-  figure.
+  large/UI/non-text), and for the verified block is within ±0.1 of the
+  **Measured** figure recorded in §B.1 — the resolved-token ratio the gate
+  computes, not the published handoff figure (Flutter's luminance method renders
+  it ~0.3–1.1 higher; see the §B.1 reconciliation note).
 - **Negative case:** asserts the white-on-marigold pairing is **not** emitted by
   any primary affordance (i.e. `colorScheme.onPrimary` is the ink token), and
   fails if `onPrimary`, `onError` (dark), or `onTertiary` ever resolve to a
@@ -368,12 +384,47 @@ boundary-contract invariant suites are green.
 
 ---
 
-## E. CI — the new golden / a11y job (specification only)
+## E. CI — the accessibility gate (wired) and the golden job (specified)
 
-**This job is NOT added in this planning session.** It is specified here and is to
-be added **later, as a Sprint 3 task, via the `add-github-actions-job` skill**
-(DevOps owns the edit to `.github/workflows/pr.yml`; QA owns this specification
-and hands it off). No `.github/workflows/*` file is edited now.
+### E.1 The accessibility gate — `a11y-checks` (DC-12, wired in `pr.yml`)
+
+DC-12 (#124) wires the contrast + dynamic-type families as a **named, blocking CI
+gate** so a reviewer sees them pass/fail by name and the conversion can never
+silently regress on a future PR. This is **separate** from the golden job below
+(DC-13): it runs for real on every host and needs no committed baselines.
+
+- **Job key / name:** `a11y-checks` / "Accessibility Gate (WCAG AA)".
+- **Trigger / gating:** rides `pr.yml`; `needs: [changes]`; runs when
+  `needs.changes.outputs.flutter == 'true'` or `…ci == 'true'`, with the same
+  `needs.changes.result != 'success'` fail-safe (a skipped run reports "skipped",
+  which the ruleset counts as passing).
+- **Runner / setup:** `ubuntu-latest`; `actions/checkout@v4`;
+  `subosito/flutter-action@v2` (`channel: stable`, `cache: true`); `flutter pub
+  get`. **No Firebase, no emulator, no secrets** (Invariant 4 trivially holds).
+- **What it runs:**
+  `flutter test --tags "a11y-contrast || a11y-dynamic-type"` — the boolean **OR
+  selector** runs BOTH families (the §B contrast pairings, incl. the
+  white-on-marigold and DC-11 white-on-warm-fill-dark negative cases, and the §C
+  2.0x overflow/clip + reduced-motion gate). **The repeated form
+  `--tags a --tags b` is _last-wins_** and silently runs only the last family
+  (verified: it ran 6 of the 26 tagged tests), so the `||` selector is mandatory —
+  the same form the golden job below must use for its multi-tag selection.
+- **Failure semantics:** any contrast pairing below its role threshold (or a
+  negative case passing), any 2.0x overflow/clip, or any reduced-motion regression
+  fails the job. These tests also run inside the `flutter-checks` full
+  `flutter test --coverage`; this job re-runs the tagged subset only to surface it
+  as a *named* check. To make it merge-blocking, the `avtansh-code` owner adds
+  "Accessibility Gate (WCAG AA)" to the branch ruleset's required checks.
+- **Coverage:** unchanged — `coverage-gate` (SRS 5.7) remains the single coverage
+  authority; this job adds no coverage step.
+
+### E.2 The golden job — `golden-a11y-checks` (DC-13, specification only)
+
+**This job is NOT added by DC-12.** It is specified here and is added **later, as
+Sprint 3 PR #14 (DC-13), via the `add-github-actions-job` skill** (DevOps owns the
+edit to `.github/workflows/pr.yml`; QA owns this specification). DC-12 edits
+`pr.yml` only to add the `a11y-checks` gate above; the golden job and its
+baselines remain DC-13's.
 
 - **Job key / name:** `golden-a11y-checks` / "Golden & A11y Checks".
 - **Trigger:** rides the existing `pull_request → main` (and `workflow_dispatch`)
@@ -385,10 +436,11 @@ and hands it off). No `.github/workflows/*` file is edited now.
   `actions/checkout@v4`; `subosito/flutter-action@v2` with `channel: stable`,
   `cache: true`. **No Firebase, no emulator, no secrets** — these are pure
   `flutter test` runs.
-- **What it runs:** `flutter pub get`, then the tagged check suites — golden
-  comparison (`flutter test --tags golden`), contrast (`--tags a11y-contrast`),
-  semantics/labelling and dynamic-type (`--tags a11y-dynamic-type`) — or a single
-  `flutter test test/golden/`. It runs **comparison only**; CI never passes
+- **What it runs:** `flutter pub get`, then the tagged check suites via the boolean
+  OR selector — `flutter test --tags "golden || a11y-contrast || a11y-dynamic-type"`
+  (golden comparison + contrast + semantics/dynamic-type) — or a single
+  `flutter test test/golden/`. Use the `||` selector, **not** repeated `--tags`
+  (last-wins; see §E.1). It runs **comparison only**; CI never passes
   `--update-goldens` (that would make every run trivially pass).
 - **Where goldens live:** committed under `test/**/goldens/`, as in §A.3. CI
   compares the running render against those committed baselines on the fixed host.
@@ -433,7 +485,7 @@ Draft block for the later skill invocation (illustrative — **do not apply now*
       - name: Install dependencies
         run: flutter pub get
       - name: Golden + contrast + dynamic-type checks (compare only)
-        run: flutter test --tags golden --tags a11y-contrast --tags a11y-dynamic-type
+        run: flutter test --tags "golden || a11y-contrast || a11y-dynamic-type"
       - name: Upload golden failure diffs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -512,6 +564,12 @@ be a blocking defect.
 - `a11y-dynamic-type` — 2.0x overflow/clip + semantics-label + reduced-motion
   tests (§B.4, §C).
 
-These tags let the §E job select the new families without disturbing the existing
+These tags let the §E jobs select the new families without disturbing the existing
 `flutter test` run, and let `flutter test --exclude-tags golden` stay fast for
 developers who are not touching visuals.
+
+To select **more than one** tag family in a single run, use the boolean OR
+selector — `flutter test --tags "a11y-contrast || a11y-dynamic-type"`. Repeated
+`--tags a --tags b` is **last-wins** and silently runs only the last family, so it
+must not be used for a multi-family gate (this is how the DC-12 `a11y-checks` job
+and the DC-13 golden job select their families — §E.1).
