@@ -221,8 +221,12 @@ jobs:
     name: Golden & A11y Checks
     runs-on: ubuntu-latest
     needs: [changes]
+    # Compare on every pull request, but never on workflow_dispatch: the manual
+    # golden-refresh job owns that path and regenerates baselines, so a compare
+    # there would only fail against the not-yet-updated committed PNGs.
     if: >-
       !cancelled()
+      && github.event_name != 'workflow_dispatch'
       && (needs.changes.result != 'success'
       || needs.changes.outputs.flutter == 'true'
       || needs.changes.outputs.ci == 'true')
