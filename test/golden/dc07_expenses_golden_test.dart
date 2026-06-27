@@ -9,13 +9,19 @@ library;
 // over-under red states), the Expense detail (22), and the context picker (8)
 // — so every state has both brightnesses (04-qa-test-strategy.md §A.5 / §A.6).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-06: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job. The load-bearing proof until then is the
+// This group is ENABLED, consistent with DC-01..DC-06: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
 // per-screen widget tests (expenses_haldi_reskin_test.dart,
 // add_expense_bottom_sheet_widget_test.dart, the detail widget test, and
-// add_expense_context_picker_sheet_test.dart), which run for real.
+// add_expense_context_picker_sheet_test.dart) also run for real.
 
 import 'dart:async';
 
@@ -156,104 +162,86 @@ Future<void> _driveToStep2(
 }
 
 void main() {
-  group(
-    'DC-07 Expenses goldens',
-    () {
-      for (final brightness in Brightness.values) {
-        final mode = brightness == Brightness.light ? 'light' : 'dark';
+  group('DC-07 Expenses goldens', () {
+    for (final brightness in Brightness.values) {
+      final mode = brightness == Brightness.light ? 'light' : 'dark';
 
-        // ---- Add-expense 21: step 1 ----
-        testWidgets('add_expense step1 ($mode)', (tester) async {
+      // ---- Add-expense 21: step 1 ----
+      testWidgets('add_expense step1 ($mode)', (tester) async {
+        await loadHaldiFonts();
+        await pumpForGolden(tester, _addExpenseHost(), brightness: brightness);
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/dc07/add_expense_step1_$mode.png'),
+        );
+      });
+
+      // ---- Add-expense 21: step 2 balanced ("adds up" green) ----
+      testWidgets('add_expense step2_balanced ($mode)', (tester) async {
+        await loadHaldiFonts();
+        await pumpForGolden(tester, _addExpenseHost(), brightness: brightness);
+        await _driveToStep2(tester);
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'goldens/dc07/add_expense_step2_balanced_$mode.png',
+          ),
+        );
+      });
+
+      // ---- Add-expense 21: step 2 over-under (red) ----
+      testWidgets('add_expense step2_overunder ($mode)', (tester) async {
+        await loadHaldiFonts();
+        await pumpForGolden(tester, _addExpenseHost(), brightness: brightness);
+        await _driveToStep2(tester, exactUnbalanced: true);
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'goldens/dc07/add_expense_step2_overunder_$mode.png',
+          ),
+        );
+      });
+
+      // ---- Expense detail 22 ----
+      final detailStates = <String, Widget>{
+        'loading': _detail((ref, args) => Completer<ExpenseDoc?>().future),
+        'populated': _detail((ref, args) async => _expense()),
+        'error': _detail((ref, args) async => throw Exception('READ')),
+      };
+      for (final entry in detailStates.entries) {
+        testWidgets('expense_detail ${entry.key} ($mode)', (tester) async {
           await loadHaldiFonts();
-          await pumpForGolden(
-            tester,
-            _addExpenseHost(),
-            brightness: brightness,
-          );
+          await pumpForGolden(tester, entry.value, brightness: brightness);
           await expectLater(
             find.byType(MaterialApp),
-            matchesGoldenFile('goldens/dc07/add_expense_step1_$mode.png'),
+            matchesGoldenFile('goldens/dc07/detail_${entry.key}_$mode.png'),
           );
         });
-
-        // ---- Add-expense 21: step 2 balanced ("adds up" green) ----
-        testWidgets('add_expense step2_balanced ($mode)', (tester) async {
-          await loadHaldiFonts();
-          await pumpForGolden(
-            tester,
-            _addExpenseHost(),
-            brightness: brightness,
-          );
-          await _driveToStep2(tester);
-          await expectLater(
-            find.byType(MaterialApp),
-            matchesGoldenFile(
-              'goldens/dc07/add_expense_step2_balanced_$mode.png',
-            ),
-          );
-        });
-
-        // ---- Add-expense 21: step 2 over-under (red) ----
-        testWidgets('add_expense step2_overunder ($mode)', (tester) async {
-          await loadHaldiFonts();
-          await pumpForGolden(
-            tester,
-            _addExpenseHost(),
-            brightness: brightness,
-          );
-          await _driveToStep2(tester, exactUnbalanced: true);
-          await expectLater(
-            find.byType(MaterialApp),
-            matchesGoldenFile(
-              'goldens/dc07/add_expense_step2_overunder_$mode.png',
-            ),
-          );
-        });
-
-        // ---- Expense detail 22 ----
-        final detailStates = <String, Widget>{
-          'loading': _detail((ref, args) => Completer<ExpenseDoc?>().future),
-          'populated': _detail((ref, args) async => _expense()),
-          'error': _detail((ref, args) async => throw Exception('READ')),
-        };
-        for (final entry in detailStates.entries) {
-          testWidgets('expense_detail ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(tester, entry.value, brightness: brightness);
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc07/detail_${entry.key}_$mode.png'),
-            );
-          });
-        }
-
-        // ---- Context picker 8 ----
-        final pickerStates = <String, AsyncValue<List<FriendListItem>>>{
-          'populated': AsyncData<List<FriendListItem>>(<FriendListItem>[
-            _item(425000, 'Rahul Sharma', 'uid-r'),
-            _item(-210000, 'Bina Kapoor', 'uid-b'),
-          ]),
-          'empty': const AsyncData<List<FriendListItem>>(<FriendListItem>[]),
-          'loading': const AsyncLoading<List<FriendListItem>>(),
-        };
-        for (final entry in pickerStates.entries) {
-          testWidgets('context_picker ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _contextPicker(entry.value),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc07/picker_${entry.key}_$mode.png'),
-            );
-          });
-        }
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips Expenses goldens on ubuntu-latest; '
-        'baselines are not committed from macOS.',
-  );
+
+      // ---- Context picker 8 ----
+      final pickerStates = <String, AsyncValue<List<FriendListItem>>>{
+        'populated': AsyncData<List<FriendListItem>>(<FriendListItem>[
+          _item(425000, 'Rahul Sharma', 'uid-r'),
+          _item(-210000, 'Bina Kapoor', 'uid-b'),
+        ]),
+        'empty': const AsyncData<List<FriendListItem>>(<FriendListItem>[]),
+        'loading': const AsyncLoading<List<FriendListItem>>(),
+      };
+      for (final entry in pickerStates.entries) {
+        testWidgets('context_picker ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(
+            tester,
+            _contextPicker(entry.value),
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc07/picker_${entry.key}_$mode.png'),
+          );
+        });
+      }
+    }
+  });
 }

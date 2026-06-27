@@ -7,13 +7,17 @@ library;
 // onboarding BUILD are hero brand moments needing fresh baselines; the
 // phone-entry / OTP / profile-setup reskins re-baseline the same tree.
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-03: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job (04-qa-test-strategy.md sections A.2.2 / E).
-// DC-13 un-skips this group, bundles the fonts in `loadHaldiFonts`, and
-// runs `--update-goldens` on the canonical host. The load-bearing proof
-// until then is the per-screen widget tests, which run for real.
+// This group is ENABLED, consistent with DC-01..DC-03: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The per-screen widget
+// tests also run for real and remain the structural proof.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -202,30 +206,24 @@ void main() {
     ),
   };
 
-  group(
-    'DC-04 Auth flow goldens',
-    () {
-      for (final entry in cases.entries) {
-        for (final brightness in Brightness.values) {
-          final mode = brightness == Brightness.light ? 'light' : 'dark';
-          testWidgets('${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await _pumpScreen(
-              tester,
-              entry.value.build(),
-              entry.value.overrides,
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc04/${entry.key}_$mode.png'),
-            );
-          });
-        }
+  group('DC-04 Auth flow goldens', () {
+    for (final entry in cases.entries) {
+      for (final brightness in Brightness.values) {
+        final mode = brightness == Brightness.light ? 'light' : 'dark';
+        testWidgets('${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await _pumpScreen(
+            tester,
+            entry.value.build(),
+            entry.value.overrides,
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc04/${entry.key}_$mode.png'),
+          );
+        });
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips Auth-flow goldens on '
-        'ubuntu-latest; baselines are not committed from macOS.',
-  );
+    }
+  });
 }

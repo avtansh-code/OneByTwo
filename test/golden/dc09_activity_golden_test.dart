@@ -9,14 +9,20 @@ library;
 // empty, populated, error) and the in-app banner per-type in light (§A.6: a
 // non-hero converted surface gets light goldens).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-08: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job. The load-bearing proof until then is the
+// This group is ENABLED, consistent with DC-01..DC-08: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
 // per-screen widget tests (activity_feed_screen_test.dart,
 // activity_haldi_reskin_test.dart, the banner/dialog widget tests,
-// notifications_haldi_reskin_test.dart) + the no-`Color(0x…)` grep, which run
-// for real.
+// notifications_haldi_reskin_test.dart) + the no-`Color(0x…)` grep also
+// run for real.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,62 +81,55 @@ Widget _banner(NotificationPayload payload) {
 }
 
 void main() {
-  group(
-    'DC-09 Activity + Notifications goldens',
-    () {
-      // ---- Activity feed 25 (a hero — light + dark) ----
-      for (final brightness in Brightness.values) {
-        final mode = brightness == Brightness.light ? 'light' : 'dark';
-        final activityStates = <String, FakeActivityFeedRepository>{
-          'loading': FakeActivityFeedRepository(keepLoading: true),
-          'empty': FakeActivityFeedRepository(),
-          'populated': FakeActivityFeedRepository(
-            items: <ActivityFeedItem>[fakeExpenseAdded(), fakeSettlement()],
-          ),
-          'error': FakeActivityFeedRepository()
-            ..streamError = Exception('READ'),
-        };
-        for (final entry in activityStates.entries) {
-          testWidgets('activity ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _feed(
-                entry.value,
-                profiles: <String, UserModel?>{_otherUid: _user('Priya')},
-              ),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc09/activity_${entry.key}_$mode.png'),
-            );
-          });
-        }
-      }
-
-      // ---- In-app banner 26 (a non-hero — light only) ----
-      final bannerStates = <String, NotificationType>{
-        'expense': NotificationType.expenseAdded,
-        'settlement': NotificationType.settlementReceived,
-        'reminder': NotificationType.reminder,
+  group('DC-09 Activity + Notifications goldens', () {
+    // ---- Activity feed 25 (a hero — light + dark) ----
+    for (final brightness in Brightness.values) {
+      final mode = brightness == Brightness.light ? 'light' : 'dark';
+      final activityStates = <String, FakeActivityFeedRepository>{
+        'loading': FakeActivityFeedRepository(keepLoading: true),
+        'empty': FakeActivityFeedRepository(),
+        'populated': FakeActivityFeedRepository(
+          items: <ActivityFeedItem>[fakeExpenseAdded(), fakeSettlement()],
+        ),
+        'error': FakeActivityFeedRepository()..streamError = Exception('READ'),
       };
-      for (final entry in bannerStates.entries) {
-        testWidgets('banner ${entry.key} (light)', (tester) async {
+      for (final entry in activityStates.entries) {
+        testWidgets('activity ${entry.key} ($mode)', (tester) async {
           await loadHaldiFonts();
           await pumpForGolden(
             tester,
-            _banner(notificationPayload(type: entry.value)),
+            _feed(
+              entry.value,
+              profiles: <String, UserModel?>{_otherUid: _user('Priya')},
+            ),
+            brightness: brightness,
           );
           await expectLater(
             find.byType(MaterialApp),
-            matchesGoldenFile('goldens/dc09/banner_${entry.key}_light.png'),
+            matchesGoldenFile('goldens/dc09/activity_${entry.key}_$mode.png'),
           );
         });
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips the DC-09 goldens on '
-        'ubuntu-latest; baselines are not committed from macOS.',
-  );
+    }
+
+    // ---- In-app banner 26 (a non-hero — light only) ----
+    final bannerStates = <String, NotificationType>{
+      'expense': NotificationType.expenseAdded,
+      'settlement': NotificationType.settlementReceived,
+      'reminder': NotificationType.reminder,
+    };
+    for (final entry in bannerStates.entries) {
+      testWidgets('banner ${entry.key} (light)', (tester) async {
+        await loadHaldiFonts();
+        await pumpForGolden(
+          tester,
+          _banner(notificationPayload(type: entry.value)),
+        );
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/dc09/banner_${entry.key}_light.png'),
+        );
+      });
+    }
+  });
 }

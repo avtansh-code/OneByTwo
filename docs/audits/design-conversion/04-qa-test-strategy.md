@@ -418,13 +418,13 @@ silently regress on a future PR. This is **separate** from the golden job below
 - **Coverage:** unchanged — `coverage-gate` (SRS 5.7) remains the single coverage
   authority; this job adds no coverage step.
 
-### E.2 The golden job — `golden-a11y-checks` (DC-13, specification only)
+### E.2 The golden job — `golden-a11y-checks` (DC-13, wired in `pr.yml`)
 
-**This job is NOT added by DC-12.** It is specified here and is added **later, as
-Sprint 3 PR #14 (DC-13), via the `add-github-actions-job` skill** (DevOps owns the
-edit to `.github/workflows/pr.yml`; QA owns this specification). DC-12 edits
-`pr.yml` only to add the `a11y-checks` gate above; the golden job and its
-baselines remain DC-13's.
+**DC-13 (#125) wires this job** in `.github/workflows/pr.yml` and commits the
+baselines. It is **separate** from the DC-12 `a11y-checks` gate above: the
+golden job **pins the Flutter version** because golden bytes are
+engine-sensitive, whereas `a11y-checks` floats the stable channel and runs no
+byte comparison.
 
 - **Job key / name:** `golden-a11y-checks` / "Golden & A11y Checks".
 - **Trigger:** rides the existing `pull_request → main` (and `workflow_dispatch`)
@@ -433,38 +433,56 @@ baselines remain DC-13's.
   the same fail-safe (`needs.changes.result != 'success'` → run anyway). A
   skipped run reports "skipped", which the ruleset counts as passing.
 - **Runner / setup:** `ubuntu-latest` (the canonical golden host — see §A.2.2);
-  `actions/checkout@v4`; `subosito/flutter-action@v2` with `channel: stable`,
-  `cache: true`. **No Firebase, no emulator, no secrets** — these are pure
-  `flutter test` runs.
+  `actions/checkout@v4`; `subosito/flutter-action@v2` **pinned to
+  `flutter-version: 3.44.3`** (not just `channel: stable`, §A.2.3 — do not float
+  the channel for golden jobs) with `cache: true`. **No Firebase, no emulator,
+  no secrets** — these are pure `flutter test` runs.
+- **Determinism:** the harness (`golden_harness.dart` +
+  `test/golden/flutter_test_config.dart`) bundles the Bricolage Grotesque +
+  Hanken Grotesk OFL `.ttf` under `test/golden/fonts/` and serves them to
+  `google_fonts` through its `@visibleForTesting` http seam, so the real Haldi
+  type ramp rasterises identically offline; rendering runs under reduced motion
+  at the pinned 390 × 844 @ dpr 3 frame (§A.2). `flutter-checks` now runs the
+  full suite with `--exclude-tags golden`, so byte-exact goldens compare **only**
+  on this pinned job, while the `a11y-contrast` / `a11y-dynamic-type` families
+  still run in `flutter-checks` and keep contributing coverage.
 - **What it runs:** `flutter pub get`, then the tagged check suites via the boolean
   OR selector — `flutter test --tags "golden || a11y-contrast || a11y-dynamic-type"`
-  (golden comparison + contrast + semantics/dynamic-type) — or a single
-  `flutter test test/golden/`. Use the `||` selector, **not** repeated `--tags`
-  (last-wins; see §E.1). It runs **comparison only**; CI never passes
-  `--update-goldens` (that would make every run trivially pass).
-- **Where goldens live:** committed under `test/**/goldens/`, as in §A.3. CI
-  compares the running render against those committed baselines on the fixed host.
+  (golden comparison + contrast + semantics/dynamic-type). Use the `||` selector,
+  **not** repeated `--tags` (last-wins; see §E.1). It runs **comparison only**;
+  CI never passes `--update-goldens` (that would make every run trivially pass).
+- **Where goldens live:** committed under `test/golden/goldens/**`, as in §A.3.
+  CI compares the running render against those committed baselines on the fixed
+  host.
 - **Failure semantics (required check, blocks merge):** any golden mismatch,
   any contrast pairing below threshold (or the white-on-marigold negative case
   appearing), any 2.0x overflow/clip, or any unlabelled interactive control fails
-  the job. On a **golden** failure, upload Flutter's generated
+  the job. On a **golden** failure it uploads Flutter's generated
   `failures/*_testImage.png`, `*_masterImage.png`, `*_isolatedDiff.png`,
   `*_maskedDiff.png` via `actions/upload-artifact@v4` so reviewers can see the
-  pixel diff without re-running locally.
-- **Baseline refresh path:** a `workflow_dispatch`-only step (or a sibling
-  `golden-refresh` job) runs `flutter test --update-goldens` on the **same
-  ubuntu-latest** image and surfaces the regenerated PNGs as an artifact for a
-  developer to review and commit — so baselines are always authored on the host
-  CI compares against, never on a local macOS machine.
+  pixel diff without re-running locally. The `avtansh-code` owner adds "Golden &
+  A11y Checks" to the branch ruleset's required checks to make it merge-blocking.
+- **AC-3 (the negative case is real, in two halves):** a chromatic/typographic
+  regression (e.g. reintroducing Indigo `#1F4E79`, or a font swap) lands as a
+  **pixel diff** that fails this job; a white-on-marigold / white-on-warm-fill
+  `on*`-ink regression is caught by the `a11y-contrast` pairing gate
+  (`theme_contrast_test.dart` asserts the white-on-marigold negative case
+  directly). Both halves block merge.
+- **Baseline refresh path:** the `workflow_dispatch`-only **`golden-refresh`**
+  job runs `flutter test --update-goldens --tags golden` on the **same pinned
+  ubuntu image** and uploads the regenerated PNGs as the `golden-baselines`
+  artifact for a developer to review and commit — so baselines are always
+  authored on the host CI compares against, never on a local macOS machine, and
+  a PR never runs a silent `--update-goldens` (AC-2).
 - **Invariant 4 / secrets:** the job introduces **no** Firebase project and makes
   no `firebase` CLI call (so the `block-second-firebase-project` guard is
   trivially satisfied); it references no secrets. It is idempotent and safe to
   re-run.
-- **Coverage:** these widget tests already contribute to `coverage/lcov.info` via
-  the existing `flutter-checks` job; the new job does **not** re-implement the
-  coverage gate — `coverage-gate` (SRS 5.7) remains the single authority.
+- **Coverage:** these widget tests' coverage is owned by the `coverage-gate`
+  (SRS 5.7); the golden job adds no coverage step.
 
-Draft block for the later skill invocation (illustrative — **do not apply now**):
+The wired jobs (`.github/workflows/pr.yml`) — the compare gate plus the
+manual-only refresh path:
 
 ```yaml
   golden-a11y-checks:
@@ -480,6 +498,7 @@ Draft block for the later skill invocation (illustrative — **do not apply now*
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.44.3 # pinned: golden bytes are engine-sensitive
           channel: stable
           cache: true
       - name: Install dependencies
@@ -492,6 +511,29 @@ Draft block for the later skill invocation (illustrative — **do not apply now*
         with:
           name: golden-failures
           path: '**/failures/*.png'
+          retention-days: 14
+          if-no-files-found: ignore
+
+  golden-refresh: # manual baseline authoring — workflow_dispatch only
+    name: Golden Refresh (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.3
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Regenerate golden baselines (ubuntu-latest)
+        run: flutter test --update-goldens --tags golden
+      - name: Upload regenerated baselines for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-baselines
+          path: test/golden/goldens/**
           retention-days: 14
 ```
 

@@ -71,6 +71,23 @@ get the flat-illustration empty-state scaffold rather than a bare `Icon`.
 > `theme.dart` / `core/theme/*` / DC-02-03 component change (any token gap → #128);
 > all four invariants hold unchanged.
 
+> **Status — Goldens authored and the visual-regression harness wired (DC-13 /
+> Sprint 3 PR #14, #125).** DC-13 makes the conversion provable and
+> non-regressing; it converts no screen and adds no behaviour. **AC-1:** the
+> harness renders light + dark goldens for the six `OBT*` widgets, the eleven
+> DC-03 components across their four states, and the converted heroes (the
+> Appendix 1 matrix), failing on any unintended pixel diff. **AC-2:** baselines
+> are authored on `ubuntu-latest` via the manual `golden-refresh` job and
+> committed under `test/golden/goldens/`; the compare-only `golden-a11y-checks`
+> job never runs `--update-goldens`, so a baseline update is always explicit and
+> reviewed. **AC-3:** a reintroduced old token (e.g. Indigo `#1F4E79`) or a font
+> swap fails as a golden pixel diff, and a white-on-marigold pairing fails the
+> `a11y-contrast` gate — both block merge. Determinism comes from the bundled
+> Bricolage Grotesque + Hanken Grotesk OFL fonts and the pinned Flutter version.
+> Closing **Epic F** and **Sprint 3**. No `theme.dart` / `core/theme/*` /
+> DC-02-03 component or data-path change (any token gap → #128); all four
+> invariants hold unchanged.
+
 ---
 
 ## B. Per-screen conversion table

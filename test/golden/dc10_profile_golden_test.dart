@@ -6,17 +6,24 @@ library;
 // 04-qa-test-strategy.md §A.6 calls for LIGHT goldens only (no both-brightness
 // hero treatment).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with DC-01..DC-09:
-// golden bytes are byte-sensitive across macOS/Linux, so the baselines must be
-// authored on ubuntu-latest by the DC-13 (#125) `golden-a11y-checks` job. The
-// load-bearing proof until then is the per-screen widget tests
-// (profile_screen_test, change_phone_screen_test, delete_account_screen_test,
-// notification_preferences_screen_test, contact_support_fallback_dialog_test)
-// + profile_haldi_reskin_test + the no-`Color(0x…)` grep, which run for real.
+// This group is ENABLED, consistent with DC-01..DC-09: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
+// per-screen widget tests (profile_screen_test, change_phone_screen_test,
+// delete_account_screen_test, notification_preferences_screen_test,
+// contact_support_fallback_dialog_test) + profile_haldi_reskin_test + the
+// no-`Color(0x…)` grep also run for real.
 //
-// edit-profile (27) is a pure radius migration whose contract is fully covered
-// by `flutter analyze` + the no-hex grep, so it is folded into the DC-13
-// authoring pass rather than queued here.
+// edit-profile (27) is a pure radius migration whose contract is fully
+// covered by `flutter analyze` + the no-hex grep, so it is not queued here
+// as a golden.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,162 +135,156 @@ Widget _contactSupportLauncher() => Scaffold(
 );
 
 void main() {
-  group(
-    'DC-10 Profile cluster goldens (light)',
-    () {
-      // ---- profile (27): loading skeleton + populated ----
-      testWidgets('profile loading (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _profile(loading: true));
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/profile_loading_light.png'),
-        );
-      });
+  group('DC-10 Profile cluster goldens (light)', () {
+    // ---- profile (27): loading skeleton + populated ----
+    testWidgets('profile loading (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _profile(loading: true));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/profile_loading_light.png'),
+      );
+    });
 
-      testWidgets('profile populated (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _profile(loading: false));
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/profile_populated_light.png'),
-        );
-      });
+    testWidgets('profile populated (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _profile(loading: false));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/profile_populated_light.png'),
+      );
+    });
 
-      // ---- notification preferences (28): incl. the inert Language slot ----
-      testWidgets('notification preferences ready (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _notifPrefs());
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/notification_preferences_light.png'),
-        );
-      });
+    // ---- notification preferences (28): incl. the inert Language slot ----
+    testWidgets('notification preferences ready (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _notifPrefs());
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/notification_preferences_light.png'),
+      );
+    });
 
-      // ---- change-phone (Phase3g): the five states ----
-      testWidgets('change-phone reauth intro (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/change_phone_reauth_intro_light.png'),
-        );
-      });
+    // ---- change-phone (Phase3g): the five states ----
+    testWidgets('change-phone reauth intro (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/change_phone_reauth_intro_light.png'),
+      );
+    });
 
-      testWidgets('change-phone reauth OTP (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
-        await tester.tap(find.text('Send verification code'));
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/change_phone_reauth_otp_light.png'),
-        );
-      });
+    testWidgets('change-phone reauth OTP (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
+      await tester.tap(find.text('Send verification code'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/change_phone_reauth_otp_light.png'),
+      );
+    });
 
-      testWidgets('change-phone new-number entry (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
-        await tester.tap(find.text('Send verification code'));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, '123456');
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/change_phone_new_entry_light.png'),
-        );
-      });
+    testWidgets('change-phone new-number entry (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
+      await tester.tap(find.text('Send verification code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/change_phone_new_entry_light.png'),
+      );
+    });
 
-      testWidgets('change-phone new-number OTP (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
-        await tester.tap(find.text('Send verification code'));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, '123456');
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).last, '9123456780');
-        await tester.pump();
-        await tester.tap(find.text('Send code'));
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/change_phone_new_otp_light.png'),
-        );
-      });
+    testWidgets('change-phone new-number OTP (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _changePhoneScreen(FakeUserRepo()));
+      await tester.tap(find.text('Send verification code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '9123456780');
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/change_phone_new_otp_light.png'),
+      );
+    });
 
-      testWidgets('change-phone sync-pending recovery (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(
-          tester,
-          _changePhoneScreen(FakeUserRepo(throwOnSync: true)),
-        );
-        await tester.tap(find.text('Send verification code'));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, '123456');
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).last, '9123456780');
-        await tester.pump();
-        await tester.tap(find.text('Send code'));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, '654321');
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/change_phone_sync_pending_light.png'),
-        );
-      });
+    testWidgets('change-phone sync-pending recovery (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(
+        tester,
+        _changePhoneScreen(FakeUserRepo(throwOnSync: true)),
+      );
+      await tester.tap(find.text('Send verification code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '9123456780');
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '654321');
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/change_phone_sync_pending_light.png'),
+      );
+    });
 
-      // ---- delete-account (30): warning + confirm + success ----
-      testWidgets('delete-account warning (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _deleteScreen());
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/delete_account_warning_light.png'),
-        );
-      });
+    // ---- delete-account (30): warning + confirm + success ----
+    testWidgets('delete-account warning (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _deleteScreen());
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/delete_account_warning_light.png'),
+      );
+    });
 
-      testWidgets('delete-account confirm (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _deleteScreen());
-        await tester.tap(find.text('Continue'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Send OTP'));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).first, '123456');
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/delete_account_confirm_light.png'),
-        );
-      });
+    testWidgets('delete-account confirm (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _deleteScreen());
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Send OTP'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '123456');
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/delete_account_confirm_light.png'),
+      );
+    });
 
-      // ---- contact-support (29) + photo picker (5/27) ----
-      testWidgets('contact-support fallback dialog (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(tester, _contactSupportLauncher());
-        await tester.tap(find.text('open'));
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/contact_support_dialog_light.png'),
-        );
-      });
+    // ---- contact-support (29) + photo picker (5/27) ----
+    testWidgets('contact-support fallback dialog (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(tester, _contactSupportLauncher());
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/contact_support_dialog_light.png'),
+      );
+    });
 
-      testWidgets('photo picker sheet (light)', (tester) async {
-        await loadHaldiFonts();
-        await pumpForGolden(
-          tester,
-          const Scaffold(body: PhotoPickerSheet(hasExistingPhoto: true)),
-        );
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile('goldens/dc10/photo_picker_sheet_light.png'),
-        );
-      });
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips the DC-10 goldens on '
-        'ubuntu-latest; baselines are not committed from macOS.',
-  );
+    testWidgets('photo picker sheet (light)', (tester) async {
+      await loadHaldiFonts();
+      await pumpForGolden(
+        tester,
+        const Scaffold(body: PhotoPickerSheet(hasExistingPhoto: true)),
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dc10/photo_picker_sheet_light.png'),
+      );
+    });
+  });
 }

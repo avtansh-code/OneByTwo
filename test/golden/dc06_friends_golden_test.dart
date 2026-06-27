@@ -9,13 +9,20 @@ library;
 // hero with money on screen, so every state needs both brightnesses
 // (04-qa-test-strategy.md sections A.5 / A.6).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-05: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job. The load-bearing proof until then is the
+// This group is ENABLED, consistent with DC-01..DC-05: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
 // per-screen widget tests (friends_haldi_reskin_test.dart,
-// friends_list_screen_widget_test.dart, friend_detail_screen_widget_test.dart,
-// friend_history_screen_test.dart), which run for real.
+// friends_list_screen_widget_test.dart,
+// friend_detail_screen_widget_test.dart, friend_history_screen_test.dart)
+// also run for real.
 
 import 'dart:async';
 
@@ -188,56 +195,50 @@ void main() {
     'error': _friendDetail(FriendDetailErrorState(onRetry: () {})),
   };
 
-  group(
-    'DC-06 Friends goldens',
-    () {
-      for (final brightness in Brightness.values) {
-        final mode = brightness == Brightness.light ? 'light' : 'dark';
+  group('DC-06 Friends goldens', () {
+    for (final brightness in Brightness.values) {
+      final mode = brightness == Brightness.light ? 'light' : 'dark';
 
-        for (final entry in listStates.entries) {
-          testWidgets('friends_list ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _friendsList(entry.value),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc06/list_${entry.key}_$mode.png'),
-            );
-          });
-        }
-
-        for (final entry in detailStates.entries) {
-          testWidgets('friend_detail ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(tester, entry.value, brightness: brightness);
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc06/detail_${entry.key}_$mode.png'),
-            );
-          });
-        }
-
-        for (final entry in historyStates.entries) {
-          testWidgets('friend_history ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _friendHistory(entry.value),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc06/history_${entry.key}_$mode.png'),
-            );
-          });
-        }
+      for (final entry in listStates.entries) {
+        testWidgets('friends_list ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(
+            tester,
+            _friendsList(entry.value),
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc06/list_${entry.key}_$mode.png'),
+          );
+        });
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips Friends goldens on ubuntu-latest; '
-        'baselines are not committed from macOS.',
-  );
+
+      for (final entry in detailStates.entries) {
+        testWidgets('friend_detail ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(tester, entry.value, brightness: brightness);
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc06/detail_${entry.key}_$mode.png'),
+          );
+        });
+      }
+
+      for (final entry in historyStates.entries) {
+        testWidgets('friend_history ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(
+            tester,
+            _friendHistory(entry.value),
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc06/history_${entry.key}_$mode.png'),
+          );
+        });
+      }
+    }
+  });
 }

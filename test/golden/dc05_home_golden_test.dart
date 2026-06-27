@@ -7,15 +7,19 @@ library;
 // populated, error) in light + dark — Home 6 is a hero with money on
 // screen, so every state needs both brightnesses (04 section A.5/A.6).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-04: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job (04-qa-test-strategy.md sections A.2.2 / E).
-// DC-13 un-skips this group, bundles the fonts in `loadHaldiFonts`, and
-// runs `--update-goldens` on the canonical host. The load-bearing proof
-// until then is home_dashboard_haldi_reskin_test.dart +
-// home_dashboard_screen_test.dart + spending_breakdown_card_test.dart,
-// which run for real.
+// This group is ENABLED, consistent with DC-01..DC-04: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
+// per-screen widget tests (home_dashboard_haldi_reskin_test.dart +
+// home_dashboard_screen_test.dart + spending_breakdown_card_test.dart)
+// also run for real.
 
 import 'dart:async';
 
@@ -142,29 +146,23 @@ void main() {
     'error': Stream<List<FriendListItem>>.error(Exception('HD-FIRESTORE-READ')),
   };
 
-  group(
-    'DC-05 Home dashboard goldens',
-    () {
-      for (final entry in states.entries) {
-        for (final brightness in Brightness.values) {
-          final mode = brightness == Brightness.light ? 'light' : 'dark';
-          testWidgets('${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _home(entry.value),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc05/${entry.key}_$mode.png'),
-            );
-          });
-        }
+  group('DC-05 Home dashboard goldens', () {
+    for (final entry in states.entries) {
+      for (final brightness in Brightness.values) {
+        final mode = brightness == Brightness.light ? 'light' : 'dark';
+        testWidgets('${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(
+            tester,
+            _home(entry.value),
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc05/${entry.key}_$mode.png'),
+          );
+        });
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips Home-dashboard goldens on '
-        'ubuntu-latest; baselines are not committed from macOS.',
-  );
+    }
+  });
 }

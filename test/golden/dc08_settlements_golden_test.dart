@@ -15,13 +15,19 @@ library;
 // wrapper, no visual difference), and explicit props keep each state
 // deterministic.
 //
-// The pixel comparison is intentionally SKIPPED, consistent with
-// DC-01..DC-07: golden bytes are byte-sensitive across macOS/Linux, so the
-// baselines must be authored on ubuntu-latest by the DC-13
-// `golden-a11y-checks` job. The load-bearing proof until then is the
+// This group is ENABLED, consistent with DC-01..DC-07: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). The load-bearing
 // per-screen widget tests (settle_up_bottom_sheet_widget_test.dart,
-// settlement_history_screen_test.dart, settlements_haldi_reskin_test.dart),
-// which run for real.
+// settlement_history_screen_test.dart, settlements_haldi_reskin_test.dart)
+// also run for real.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,58 +95,50 @@ List<SettlementDoc> _historyItems() => <SettlementDoc>[
 ];
 
 void main() {
-  group(
-    'DC-08 Settlements goldens',
-    () {
-      for (final brightness in Brightness.values) {
-        final mode = brightness == Brightness.light ? 'light' : 'dark';
+  group('DC-08 Settlements goldens', () {
+    for (final brightness in Brightness.values) {
+      final mode = brightness == Brightness.light ? 'light' : 'dark';
 
-        // ---- Settle up 23 ----
-        final settleUpStates = <String, Widget>{
-          'populated': _settleUp(),
-          'settled': _settleUp(suggestedAmountPaise: 0),
-          'success': _settleUp(isSuccess: true),
-          'loading': _settleUp(isLoading: true),
-          'error': _settleUp(amountErrorText: 'Enter an amount above zero'),
-        };
-        for (final entry in settleUpStates.entries) {
-          testWidgets('settle_up ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(tester, entry.value, brightness: brightness);
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile(
-                'goldens/dc08/settle_up_${entry.key}_$mode.png',
-              ),
-            );
-          });
-        }
-
-        // ---- Settlement history 24 ----
-        final historyStates = <String, FakeSettlementRepository>{
-          'loading': FakeSettlementRepository(keepLoading: true),
-          'empty': FakeSettlementRepository(),
-          'populated': FakeSettlementRepository(history: _historyItems()),
-          'error': FakeSettlementRepository()..streamError = Exception('READ'),
-        };
-        for (final entry in historyStates.entries) {
-          testWidgets('history ${entry.key} ($mode)', (tester) async {
-            await loadHaldiFonts();
-            await pumpForGolden(
-              tester,
-              _history(entry.value),
-              brightness: brightness,
-            );
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/dc08/history_${entry.key}_$mode.png'),
-            );
-          });
-        }
+      // ---- Settle up 23 ----
+      final settleUpStates = <String, Widget>{
+        'populated': _settleUp(),
+        'settled': _settleUp(suggestedAmountPaise: 0),
+        'success': _settleUp(isSuccess: true),
+        'loading': _settleUp(isLoading: true),
+        'error': _settleUp(amountErrorText: 'Enter an amount above zero'),
+      };
+      for (final entry in settleUpStates.entries) {
+        testWidgets('settle_up ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(tester, entry.value, brightness: brightness);
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc08/settle_up_${entry.key}_$mode.png'),
+          );
+        });
       }
-    },
-    skip:
-        'DC-13 (#125) authors and un-skips Settlements goldens on '
-        'ubuntu-latest; baselines are not committed from macOS.',
-  );
+
+      // ---- Settlement history 24 ----
+      final historyStates = <String, FakeSettlementRepository>{
+        'loading': FakeSettlementRepository(keepLoading: true),
+        'empty': FakeSettlementRepository(),
+        'populated': FakeSettlementRepository(history: _historyItems()),
+        'error': FakeSettlementRepository()..streamError = Exception('READ'),
+      };
+      for (final entry in historyStates.entries) {
+        testWidgets('history ${entry.key} ($mode)', (tester) async {
+          await loadHaldiFonts();
+          await pumpForGolden(
+            tester,
+            _history(entry.value),
+            brightness: brightness,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/dc08/history_${entry.key}_$mode.png'),
+          );
+        });
+      }
+    }
+  });
 }
