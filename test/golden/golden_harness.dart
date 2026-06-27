@@ -72,6 +72,11 @@ Future<void> loadHaldiFonts() async {
     GoogleFonts.bricolageGrotesque(),
     GoogleFonts.hankenGrotesk(),
   ]);
+  // Material Icons (uses-material-design) so `Icon` glyphs render as their real
+  // shapes rather than the test fallback box.
+  await (FontLoader(
+    'MaterialIcons',
+  )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   _fontsLoaded = true;
 }
 
