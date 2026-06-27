@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
+import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -181,6 +182,10 @@ void main() {
       await tester.tap(find.text('Sign Out'));
       await tester.pumpAndSettle();
 
+      // The hand-rolled AlertDialog is now the shared OBTConfirmationDialog
+      // (DC-10); sign-out is not destructive, so the confirm stays marigold.
+      expect(find.byType(OBTConfirmationDialog), findsOneWidget);
+
       // Dialog title.
       expect(find.text('Sign out?'), findsOneWidget);
 
@@ -228,6 +233,30 @@ void main() {
         expect(find.text('Profile'), findsOneWidget);
       },
     );
+
+    testWidgets('dismissing via the barrier does not log sign_out_cancelled', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildProfile(analytics: analytics, authRepo: authRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Open dialog.
+      await tester.tap(find.text('Sign Out'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign out?'), findsOneWidget);
+
+      // Dismiss by tapping the scrim outside the dialog (not Cancel).
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Dialog dismissed, but — like the previous AlertDialog — a barrier
+      // dismiss logs nothing (no telemetry behaviour change).
+      expect(find.text('Sign out?'), findsNothing);
+      expect(analytics.loggedEvents, isNot(contains('sign_out_cancelled')));
+      expect(authRepo.signOutCalled, isFalse);
+    });
 
     testWidgets('tapping Sign Out (confirm) calls signOut and fires '
         'sign_out_completed', (tester) async {

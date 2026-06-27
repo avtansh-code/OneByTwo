@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
@@ -53,7 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         automaticallyImplyLeading: false,
       ),
       body: authAsync.when(
-        loading: () => _buildLoadingState(theme),
+        loading: _buildLoadingState,
         error: (error, _) => _buildErrorState(theme, ref),
         data: (authState) {
           final user = switch (authState) {
@@ -71,43 +76,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildLoadingState(ThemeData theme) {
-    return SafeArea(
+  Widget _buildLoadingState() {
+    // Shared Haldi skeleton primitives (DC-03) replace the hand-rolled
+    // shimmer: the avatar, name and phone silhouettes plus three row
+    // placeholders. Colour flows from the theme inside [OBTSkeleton], so no
+    // hard-coded greys remain.
+    return const SafeArea(
       child: SingleChildScrollView(
-        child: _ShimmerEffect(
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              // Avatar shimmer.
-              _SkeletonCircle(
-                size: 96,
-                colour: theme.colorScheme.surfaceContainerHighest,
-              ),
-              const SizedBox(height: 12),
-              // Name shimmer.
-              _SkeletonBar(
-                width: 160,
-                height: 20,
-                colour: theme.colorScheme.surfaceContainerHighest,
-              ),
-              const SizedBox(height: 8),
-              // Phone shimmer.
-              _SkeletonBar(
-                width: 120,
-                height: 16,
-                colour: theme.colorScheme.surfaceContainerHighest,
-              ),
-              const SizedBox(height: 24),
-              const Divider(height: 1),
-              // Row shimmers.
-              for (var i = 0; i < 3; i++)
-                _SkeletonBar(
-                  width: double.infinity,
-                  height: 56,
-                  colour: theme.colorScheme.surfaceContainerHighest,
-                ),
-            ],
-          ),
+        child: Column(
+          children: [
+            SizedBox(height: 24),
+            OBTSkeletonCircle(diameter: 96),
+            SizedBox(height: 12),
+            OBTSkeleton(width: 160, height: 20),
+            SizedBox(height: 8),
+            OBTSkeleton(width: 120, height: 16),
+            SizedBox(height: 24),
+            Divider(height: 1),
+            OBTSkeletonList(itemCount: 3),
+          ],
         ),
       ),
     );
@@ -118,6 +105,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ? 'Still not working. Try again or contact support.'
         : 'We could not load your profile. '
               'Check your connection and try again.';
+    final link =
+        theme.extension<OBTColors>()?.link ?? theme.colorScheme.primary;
 
     return SafeArea(
       child: Center(
@@ -165,7 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Text(
                   'Still stuck? Contact Support',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: link,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -382,7 +371,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.logout,
               label: 'Sign Out',
               iconColour: theme.colorScheme.onSurface,
-              onTap: () => _showSignOutDialog(context, ref),
+              onTap: _showSignOutDialog,
             ),
           ),
           Semantics(
@@ -454,58 +443,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  void _showSignOutDialog(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-
-    showDialog<void>(
+  Future<void> _showSignOutDialog() async {
+    // Use the OBTConfirmationDialog widget directly (not the .show helper) so
+    // sign_out_cancelled is emitted ONLY on an explicit Cancel tap, matching
+    // the previous AlertDialog where a scrim / back dismiss logged nothing
+    // (no telemetry behaviour change).
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'Are you sure you want to sign out? You will need '
-          'to verify your phone number again to sign back in.',
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              ref
-                  .read(analyticsServiceProvider)
-                  .logEvent(name: 'sign_out_cancelled');
-            },
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              try {
-                await signOutWithFcmCleanup(ref);
-                await ref
-                    .read(analyticsServiceProvider)
-                    .logEvent(name: 'sign_out_completed');
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Could not sign out. Please try again.'),
-                  ),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
-            child: const Text('Sign Out'),
-          ),
-        ],
+      builder: (dialogContext) => OBTConfirmationDialog(
+        title: 'Sign out?',
+        body:
+            'Are you sure you want to sign out? You will need to verify '
+            'your phone number again to sign back in.',
+        confirmLabel: 'Sign Out',
+        onCancel: () {
+          unawaited(
+            ref
+                .read(analyticsServiceProvider)
+                .logEvent(name: 'sign_out_cancelled'),
+          );
+          Navigator.of(dialogContext).pop(false);
+        },
+        onConfirm: () => Navigator.of(dialogContext).pop(true),
       ),
     );
+
+    if (confirmed != true) return;
+
+    try {
+      await signOutWithFcmCleanup(ref);
+      await ref
+          .read(analyticsServiceProvider)
+          .logEvent(name: 'sign_out_completed');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not sign out. Please try again.')),
+      );
+    }
   }
 }
 
@@ -554,49 +529,6 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-/// Skeleton circle shimmer placeholder.
-class _SkeletonCircle extends StatelessWidget {
-  const _SkeletonCircle({required this.size, required this.colour});
-
-  final double size;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: colour, shape: BoxShape.circle),
-    );
-  }
-}
-
-/// Skeleton bar shimmer placeholder.
-class _SkeletonBar extends StatelessWidget {
-  const _SkeletonBar({
-    required this.width,
-    required this.height,
-    required this.colour,
-  });
-
-  final double width;
-  final double height;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: colour,
-        borderRadius: BorderRadius.circular(8),
-      ),
-    );
-  }
-}
-
 /// Formats a phone number for accessible screen reader output.
 ///
 /// Converts "+919876543210" to "plus 91 98765 43210".
@@ -618,61 +550,4 @@ String _friendCountLabel(AsyncValue<int> friendCount) {
     AsyncData(:final value) => '$value',
     _ => '\u2014',
   };
-}
-
-/// Animated shimmer overlay for skeleton loading placeholders.
-class _ShimmerEffect extends StatefulWidget {
-  const _ShimmerEffect({required this.child});
-  final Widget child;
-
-  @override
-  State<_ShimmerEffect> createState() => _ShimmerEffectState();
-}
-
-class _ShimmerEffectState extends State<_ShimmerEffect>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: const [
-                Color(0xFFE0E0E0),
-                Color(0xFFF5F5F5),
-                Color(0xFFE0E0E0),
-              ],
-              stops: [
-                _controller.value - 0.3,
-                _controller.value,
-                _controller.value + 0.3,
-              ],
-            ).createShader(bounds);
-          },
-          blendMode: BlendMode.srcATop,
-          child: child,
-        );
-      },
-      child: widget.child,
-    );
-  }
 }

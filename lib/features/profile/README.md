@@ -107,13 +107,6 @@ delegated to the notifications feature for FCM-token cleanup.
   the only profile file importing `cloud_functions`; translates
   `FirebaseFunctionsException` to `DeleteAccountException`.
 
-### Legacy stub
-
-- `presentation/profile_placeholder_screen.dart` —
-  `ProfilePlaceholderScreen`, an early sign-out stub superseded by
-  `ProfileScreen`. Not wired into the live navigation; retained as a
-  legacy artefact.
-
 ## Layout
 
 ```
@@ -137,7 +130,7 @@ presentation/
   notification_preferences_screen.dart    # SCR-27 toggles + banner + offline snackbar
   contact_support_fallback_dialog.dart    # FR-SH-04 no-mail-client dialog
   delete_account_screen.dart              # SCR-28 Part B five-step deletion flow
-  profile_placeholder_screen.dart         # legacy sign-out stub (not on the live nav)
+  change_phone_screen.dart                # FR-PR-02 Phase3g two-OTP re-auth flow
   widgets/
     photo_picker_sheet.dart               # PhotoPickerSheet + PhotoPickerAction
 ```

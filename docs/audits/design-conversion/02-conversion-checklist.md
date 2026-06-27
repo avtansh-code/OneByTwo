@@ -281,6 +281,38 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `profile/presentation/profile_placeholder_screen.dart` | — | **delete** | Superseded by the real `profile_screen.dart` (Haldi 27). Remove (do not convert). | — | S |
 | `profile/presentation/widgets/photo_picker_sheet.dart` | 5/27 | reskin | Sheet top radius → 28; ListTile rows → Hanken; destructive "Remove" → error token. | — | S |
 
+> **Status — Profile cluster converted (DC-10 / Sprint 3 PR #11 = #122, branch
+> `feat/haldi-profile-conversion`).** All eight rows are reconciled — the seven
+> reskins plus the one deletion. `profile_screen.dart` (27) reskins to marigold
+> tokens + Hanken with the avatar fallback on `primaryContainer` ink, the inline
+> sign-out `AlertDialog` → `OBTConfirmationDialog`, delete → error token, and the
+> hand-rolled `_ShimmerEffect` (and its hard-coded greys) replaced by the shared
+> `OBTSkeleton` set. `edit_profile_screen.dart` (27) moves the camera badge to
+> **onPrimary ink (not white)**, the field radius → `radiusChipInput`, Save →
+> `radiusButton`, the photo sheet → `radiusSheet`, and migrates its
+> `radiusLarge`/`radiusXL` references; `+91` stays locked.
+> `change_phone_screen.dart` (Phase3g) reskins the five states with masked numbers
+> and a `+91` lock, and the ADR-0015 "sync pending → Try again" recovery uses the
+> **warning** token (not danger); the two-OTP re-auth state machine is
+> behaviour-frozen (AC-2). `notification_preferences_screen.dart` (28) gains
+> marigold toggles, a warm-tonal OS-permission card, an inert "Language" "Coming
+> soon" slot (not a switch), and an `OBTSkeletonList` page loader.
+> `delete_account_screen.dart` (30) keeps the error token for destructive actions
+> and migrates its `radiusLarge`/`radiusMedium` references (warning callout →
+> `radiusCard`, fields → `radiusChipInput`, buttons → `radiusButton`); the re-auth
+> `OtpInput` and the server cascade are unchanged.
+> `contact_support_fallback_dialog.dart` (29) moves the dialog radius →
+> `radiusCard` and the selectable email → the `OBTColors.link` token (the `mailto:`
+> + copy fallback unchanged, Invariant 3). `widgets/photo_picker_sheet.dart`
+> (5/27) takes a Hanken header and the destructive "Remove" → error token (the
+> `radiusSheet` top is applied by the caller). `profile_placeholder_screen.dart` is
+> **deleted, not converted** (AC-3). **No hard-coded Haldi hex remains** (asserted
+> by a no-`Color(0x…)` grep over the converted surfaces). Light golden scaffolds
+> for the cluster (27 / Phase3g / 28 / 29 / 30) are queued in the DC-13 harness.
+> All four invariants hold — no on-screen amount, no `simplifiedBalances`, Contact
+> Support stays `mailto:` + copy, the account-deletion cascade is server-driven on
+> the single project.
+
 ### Shell / nav
 
 | file | Haldi № | class | key changes | states to add | effort |

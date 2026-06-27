@@ -216,7 +216,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: danger.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             ),
             child: Text(
               'This cannot be undone. Data is removed within 30 days of your '
@@ -237,7 +237,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 backgroundColor: danger,
                 foregroundColor: theme.colorScheme.onError,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusButton),
                 ),
               ),
               child: const Text('Continue'),
@@ -257,7 +257,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               },
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusButton),
                 ),
               ),
               child: const Text('Cancel'),
@@ -299,7 +299,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             decoration: InputDecoration(
               labelText: 'Your number',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
               ),
             ),
           ),
@@ -384,7 +384,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             decoration: InputDecoration(
               hintText: 'DELETE',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
               ),
             ),
             onChanged: c.updateConfirmationText,
@@ -408,7 +408,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   alpha: 0.12,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusButton),
                 ),
               ),
               child: const Text('Delete My Account'),
@@ -502,7 +502,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     child: Text(
       text,
       style: theme.textTheme.headlineMedium?.copyWith(
-        color: theme.colorScheme.primary,
+        color: theme.colorScheme.onSurface,
       ),
     ),
   );
@@ -555,7 +555,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           onPressed: isLoading ? null : onPressed,
           style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              borderRadius: BorderRadius.circular(AppTheme.radiusButton),
             ),
           ),
           child: isLoading

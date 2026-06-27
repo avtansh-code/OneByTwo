@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/connectivity/connectivity_provider.dart';
 import 'package:onebytwo/core/services/app_settings_service.dart';
 import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/user_repository.dart';
@@ -229,6 +230,36 @@ void main() {
       expect(values, [true, false, true]);
     });
 
+    testWidgets('renders the inert Language "Coming soon" slot (DC-10)', (
+      tester,
+    ) async {
+      final repo = _FakeUserRepository()
+        ..userToReturn = _userWithPrefs({
+          'newExpense': true,
+          'settlement': true,
+          'reminder': true,
+        });
+
+      await tester.pumpWidget(
+        _buildSubject(repository: repo, analytics: _FakeAnalyticsService()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
+      // The Language slot is inert: still exactly three toggle switches.
+      expect(find.byType(Switch), findsNWidgets(3));
+
+      // Announced as a single merged node (excludeSemantics), not four.
+      final handle = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Language, coming soon'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Choose your preferred language.'),
+        findsNothing,
+      );
+      handle.dispose();
+    });
+
     testWidgets('renders the SCR-27 app bar title', (tester) async {
       final repo = _FakeUserRepository()
         ..userToReturn = _userWithPrefs({
@@ -247,7 +278,7 @@ void main() {
   });
 
   group('NotificationPreferencesScreen — loading state', () {
-    testWidgets('renders a progress indicator while loading', (tester) async {
+    testWidgets('renders skeleton placeholders while loading', (tester) async {
       // The fake's getUser completes on a microtask — pump zero so we
       // observe the loading state before the future resolves.
       final repo = _FakeUserRepository()
@@ -262,10 +293,10 @@ void main() {
         _buildSubject(repository: repo, analytics: analytics),
       );
       // No pumpAndSettle — assert the loading frame.
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(OBTSkeleton), findsWidgets);
 
       await tester.pumpAndSettle();
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(OBTSkeleton), findsNothing);
     });
   });
 

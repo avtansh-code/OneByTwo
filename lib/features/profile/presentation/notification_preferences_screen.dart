@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/services/app_settings_service.dart';
 import 'package:onebytwo/core/telemetry/permission_settings_telemetry.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
@@ -176,7 +179,14 @@ class _LoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    // Skeletons, not spinners (DC-03): three row silhouettes stand in for
+    // the toggle rows while preferences load.
+    return const SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: OBTSkeletonList(itemCount: 3),
+      ),
+    );
   }
 }
 
@@ -286,6 +296,8 @@ class _ReadyBody extends StatelessWidget {
             value: prefs[notificationPrefCategoryReminder] ?? true,
             onChanged: onReminderChanged,
           ),
+          const Divider(height: 1),
+          const _LanguageSlot(),
         ],
       ),
     );
@@ -339,6 +351,58 @@ class _ToggleRow extends StatelessWidget {
   }
 }
 
+class _LanguageSlot extends StatelessWidget {
+  const _LanguageSlot();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final disabled =
+        theme.extension<OBTColors>()?.disabledText ??
+        theme.colorScheme.onSurfaceVariant;
+    // Inert "Coming soon" slot: announced disabled, never a switch, so the
+    // language picker is discoverable without shipping a switcher (no real
+    // language switching is built in DC-10).
+    return Semantics(
+      enabled: false,
+      excludeSemantics: true,
+      label: 'Language, coming soon',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.language, color: disabled),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Language',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: disabled,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Choose your preferred language.',
+                    style: theme.textTheme.bodySmall?.copyWith(color: disabled),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              'Coming soon',
+              style: theme.textTheme.bodySmall?.copyWith(color: disabled),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _OsPermissionBanner extends ConsumerWidget {
   const _OsPermissionBanner();
 
@@ -370,39 +434,51 @@ class _OsPermissionBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return Container(
-      color: theme.colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Notifications are turned off for this app. '
-                  'Enable them in your device settings to receive alerts.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          border: Border.all(color: theme.colorScheme.outline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Notifications are turned off for this app. '
+                    'Enable them in your device settings to receive alerts.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => _openNotificationSettings(ref),
-              child: const Text('Open Settings'),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor:
+                      theme.extension<OBTColors>()?.link ??
+                      theme.colorScheme.primary,
+                ),
+                onPressed: () => _openNotificationSettings(ref),
+                child: const Text('Open Settings'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
