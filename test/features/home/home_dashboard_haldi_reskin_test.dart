@@ -158,6 +158,32 @@ void main() {
     });
   }
 
+  // --- DC-11 (#123): the hero card KEEPS its shadow in dark (AC-1) ---
+  // net_balance_header_card is a heroShadow surface, not a row: heroShadow is
+  // non-empty in dark, so the card keeps its soft lift and is NOT given an
+  // outline (03 §2.2 — only rowShadow collapses to a border in dark).
+  testWidgets('NetBalanceHeaderCard keeps heroShadow and has no outline in '
+      'dark', (tester) async {
+    await pumpThemed(
+      tester,
+      const NetBalanceHeaderCard(netBalancePaise: 150000),
+      brightness: Brightness.dark,
+    );
+
+    final container = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(NetBalanceHeaderCard),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final deco = container.decoration! as BoxDecoration;
+    expect(deco.boxShadow, isNotEmpty, reason: 'heroShadow is kept in dark');
+    expect(deco.boxShadow, OBTColors.dark.heroShadow);
+    expect(deco.border, isNull, reason: 'a heroShadow surface gets no outline');
+  });
+
   // --- AC-1: the top-balance tile pill trio + marigold Settle Up link ---
   testWidgets('top-balance tile uses the OBTBalancePill trio icon and a '
       'marigold Settle Up text link', (tester) async {
@@ -243,19 +269,23 @@ void main() {
     await expectAllTapTargetsMeetMinSize(tester);
   });
 
-  // --- §C: dynamic type to 2.0x, no overflow at 390 and 320 dp ---
-  for (final width in <double>[390, 320]) {
-    testWidgets('populated state does not overflow at 2.0x text scale '
-        '(${width.toInt()} dp wide)', (tester) async {
-      await pumpThemed(
-        tester,
-        _composedPopulated(),
-        textScale: 2,
-        surfaceSize: Size(width, 844),
-      );
+  // --- §C: dynamic type 2.0x, no overflow at 390/320 (light + dark) ---
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    for (final width in <double>[390, 320]) {
+      testWidgets('populated state does not overflow at 2.0x text scale '
+          '(${width.toInt()} dp, $mode)', (tester) async {
+        await pumpThemed(
+          tester,
+          _composedPopulated(),
+          brightness: brightness,
+          textScale: 2,
+          surfaceSize: Size(width, 844),
+        );
 
-      expect(tester.takeException(), isNull);
-    });
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 
   // --- §C: reduced motion freezes the loading shimmer ---

@@ -179,4 +179,64 @@ void main() {
       );
     });
   });
+
+  // --- DC-11 (#123): warm-fill-takes-ink in DARK (the load-bearing AC-2) ---
+  // In dark, onPrimary / onError / onSecondary are ink #1A1510 on the warm
+  // fills marigold #EAA24A / salmon #F2856B / terracotta #E07A55. White on any
+  // of them is ~2.5:1 and MUST fail the gate (03-foundation-plan §1.2 / §1.3),
+  // while the on* ink token clears its role threshold. This is the negative
+  // case DC-11 locks alongside the white-on-marigold one above.
+  group('DC-11 — warm-fill-takes-ink in dark (negative cases)', () {
+    test('white on dark marigold FAILS; ink (onPrimary) clears AA', () {
+      final white = contrastRatio(Colors.white, dark.primary);
+      expect(white, lessThan(3.0));
+      expect(white, closeTo(2.15, 0.1));
+      expect(
+        contrastRatio(dark.onPrimary, dark.primary),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(dark.onPrimary, isNot(Colors.white));
+    });
+
+    test('white on dark danger salmon FAILS; ink (onError) clears AA', () {
+      final white = contrastRatio(Colors.white, dark.error);
+      expect(white, lessThan(3.0));
+      expect(white, closeTo(2.52, 0.1));
+      expect(
+        contrastRatio(dark.onError, dark.error),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(dark.onError, isNot(Colors.white));
+    });
+
+    test('white on dark terracotta FAILS; ink (onSecondary) passes UI', () {
+      final white = contrastRatio(Colors.white, dark.secondary);
+      expect(white, lessThan(3.0));
+      expect(white, closeTo(2.96, 0.1));
+      expect(
+        contrastRatio(dark.onSecondary, dark.secondary),
+        greaterThanOrEqualTo(3.0),
+      );
+      expect(dark.onSecondary, isNot(Colors.white));
+    });
+  });
+
+  group('DC-11 — dark balance trio clears AA on the dark surface', () {
+    // The hero balance signal renders the trio as a foreground on the dark
+    // surface (net-balance card, balance pill, friend / expense detail).
+    test('balancePositive / balanceNegative / balanceZero on dark surface', () {
+      expect(
+        contrastRatio(obtDark.balancePositive, dark.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(obtDark.balanceNegative, dark.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(obtDark.balanceZero, dark.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+  });
 }

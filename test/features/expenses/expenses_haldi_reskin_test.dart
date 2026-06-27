@@ -250,17 +250,21 @@ void main() {
     await expectAllTapTargetsMeetMinSize(tester);
   });
 
-  for (final width in <double>[390, 320]) {
-    testWidgets('Step 2 does not overflow at 2.0x text scale '
-        '(${width.toInt()} dp wide)', (tester) async {
-      await _pumpAddExpenseToStep2(
-        tester,
-        textScale: 2,
-        surfaceSize: Size(width, 844),
-      );
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    for (final width in <double>[390, 320]) {
+      testWidgets('Step 2 does not overflow at 2.0x text scale '
+          '(${width.toInt()} dp, $mode)', (tester) async {
+        await _pumpAddExpenseToStep2(
+          tester,
+          brightness: brightness,
+          textScale: 2,
+          surfaceSize: Size(width, 844),
+        );
 
-      expect(tester.takeException(), isNull);
-    });
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 
   // --- AC-1: Step 3 inert "Coming soon" extension slots ---
@@ -356,6 +360,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(OBTSkeleton), findsWidgets);
   });
+
+  // --- DC-11 (#123): the step-3 confirm summary border is the warm `outline`
+  // in BOTH themes, never the onSurface that `outlineVariant` falls back to
+  // (locks FINDING-B). `outlineVariant` is unset in AppTheme -> resolves to
+  // onSurface: near-white #F3EBDD (dark) / near-black #2A211B (light); the fix
+  // re-points to `outline` (#3A322A dark / #E7DDCD light) for both. The light
+  // border is a latent correction (near-black -> soft grey), flagged in review.
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    testWidgets('step-3 summary card border is the warm outline ($mode)', (
+      tester,
+    ) async {
+      await _pumpAddExpenseToStep2(tester, brightness: brightness);
+
+      // Advance to step 3 (the default equal split balances, Next enabled).
+      final next = find.widgetWithText(FilledButton, 'Next').last;
+      await tester.ensureVisible(next);
+      await tester.pumpAndSettle();
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Summary'), findsOneWidget);
+
+      final scheme = brightness == Brightness.light
+          ? AppTheme.light.colorScheme
+          : AppTheme.dark.colorScheme;
+      final summaryDeco = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .firstWhere(
+            (d) =>
+                d.color == scheme.surface &&
+                d.border != null &&
+                d.borderRadius == BorderRadius.circular(AppTheme.radiusCard),
+          );
+      final side = (summaryDeco.border! as Border).top;
+      expect(side.color, scheme.outline);
+      // Never the onSurface that `outlineVariant` falls back to.
+      expect(side.color, isNot(scheme.onSurface));
+    });
+  }
 
   // --- B.1/B.2: contrast gate incl. the white-on-marigold negative case ---
   group('contrast gate', () {

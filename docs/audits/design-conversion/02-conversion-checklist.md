@@ -93,6 +93,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > / Firebase-project path; light + dark golden scaffolds are queued in the DC-13
 > harness.
 
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Splash (1)
+> renders the Haldi dark tokens — the ink-on-marigold ÷ brand mark + wordmark sits
+> on the warm marigold `OBTSplashGradient` within the dark theme — every warm-fill
+> foreground resolves `colorScheme.on*` ink (warm-fill-takes-ink), and row/tile
+> separation uses a 1px `outline` border where the light soft-warm `rowShadow`
+> collapses (`heroShadow` retained on hero/elevated surfaces); dark-mode widget
+> tests + dark golden scaffolds (skipped pending DC-13) lock it.
+
 ### Home
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -119,6 +127,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > `OBTColors.category` (no duplicated hex). Invariants 1 + 2 hold — money only via
 > `formatInrFromPaise()`, `simplifiedBalances` read-only. Light + dark golden scaffolds
 > for the four states are queued in the DC-13 harness.
+
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Home (6)
+> renders the Haldi dark tokens — the net-balance hero card keeps its
+> `OBTColors.heroShadow` and the `OBTBalancePill` trio + spending donut 8-hue read
+> on the dark surface — with 1px `outline` borders replacing the light soft-warm
+> `rowShadow` for row/tile separation (`heroShadow` retained on the hero card);
+> every warm-fill foreground resolves `colorScheme.on*` ink (warm-fill-takes-ink);
+> dark-mode widget tests + dark golden scaffolds (skipped pending DC-13) lock it.
 
 ### Friends
 
@@ -161,6 +177,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > via the system share sheet only. Light + dark golden scaffolds for the four states of
 > Friends list 9, Friend detail 11 and Friend history 12 are queued in the DC-13 harness.
 
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Friends
+> (9/10/11/12) renders the Haldi dark tokens — `friend_list_tile.dart` is the
+> **reference** outline swap, its collapsed light `rowShadow` replaced by a 1px
+> `outline` border for row/tile separation (`heroShadow` retained on the hero
+> card) — and every warm-fill foreground resolves `colorScheme.on*` ink
+> (warm-fill-takes-ink); dark-mode widget tests + dark golden scaffolds (skipped
+> pending DC-13) lock it.
+
 ### Expenses
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -195,6 +219,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > (incl. step-2 green/red), 22 and the context picker 8 queued in the DC-13
 > harness.
 
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Add-expense
+> (21/22) renders the Haldi dark tokens — the `OBTSegmentedSplitControl` adds-up
+> success / over-under error tints read on the dark surface — with 1px `outline`
+> borders replacing the light soft-warm `rowShadow` for row/tile separation
+> (`heroShadow` retained on the hero card); every warm-fill foreground resolves
+> `colorScheme.on*` ink (warm-fill-takes-ink); dark-mode widget tests + dark golden
+> scaffolds (skipped pending DC-13) lock it.
+
 ### Settlements
 
 | file | Haldi № | class | key changes | states to add | effort |
@@ -227,6 +259,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > component gap (#128):** the frozen `OBTSettleUpSheet` focal `amountHero`
 > (48 → 96px at 2.0x) overflows the 320 dp column at 2.0x dynamic type; the
 > amount stays whole (never truncated).
+
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Settle-up
+> (23/24) renders the Haldi dark tokens — the suggested-payment header and the
+> in-sheet success moment read on the dark surface — with 1px `outline` borders
+> replacing the light soft-warm `rowShadow` for row/tile separation (`heroShadow`
+> retained on the hero card); every warm-fill foreground resolves `colorScheme.on*`
+> ink (warm-fill-takes-ink); dark-mode widget tests + dark golden scaffolds (skipped
+> pending DC-13) lock it.
 
 ### Activity
 
@@ -267,6 +307,14 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 > banner 26 are queued in the DC-13 harness. Invariants 1 + 2 hold — the feed-row
 > amount via `formatInrFromPaise()` inside the frozen `OBTActivityRow`, no
 > `simplifiedBalances` read/write.
+
+> **Status — Heroes verified in dark (DC-11 / Sprint 3 PR #12, #123).** Activity
+> (25) renders the Haldi dark tokens — the `OBTActivityRow` rows, the shimmer
+> `OBTSkeletonList` (reduced-motion freeze) and the empty / error states read on the
+> dark surface — with 1px `outline` borders replacing the light soft-warm `rowShadow`
+> for row/tile separation (`heroShadow` retained on the hero card); every warm-fill
+> foreground resolves `colorScheme.on*` ink (warm-fill-takes-ink); dark-mode widget
+> tests + dark golden scaffolds (skipped pending DC-13) lock it.
 
 ### Profile
 
