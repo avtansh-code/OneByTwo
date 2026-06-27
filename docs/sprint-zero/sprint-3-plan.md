@@ -376,7 +376,11 @@ Matching `.github/ISSUE_TEMPLATE/user_story.md`, plus conversion-specific gates:
      pre-filled suggested payment (recipient + amount)** from the projection, an
      editable amount, the disabled "Pay via UPI" slot ("Coming soon"), and the
      success moment ("You're all settled up — high five!" + haptic) replacing the
-     placeholder — in light **and** dark.
+     placeholder — in light **and** dark. **(Reconcile, DC-08: the success copy is
+     the shipped DC-03 `OBTSettleUpSheet` wording "Payment recorded"; the AC-1
+     "high five" phrasing is superseded by the frozen-component ruling — the
+     component is consumed, not edited; any genuine copy change routes to the
+     Architect / issue #128.)**
   2. **Given** the settle-up sheet, **When** it renders, **Then** it shows exactly
      **one** suggested payment and **never a who-owes-who debt graph**; the client
      **reads** `simplifiedBalances` and never writes it; amounts render via

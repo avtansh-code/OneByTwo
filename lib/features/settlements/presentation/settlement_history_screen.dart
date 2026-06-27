@@ -3,15 +3,20 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/settlements/application/settlement_history_provider.dart';
 import 'package:onebytwo/features/settlements/application/settlement_history_telemetry.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 
-/// Settlement History screen (SCR-24 / FR-SE-08).
+/// Settlement History screen (SCR-24 / FR-SE-08; Haldi 24, DC-08 reskin).
 ///
 /// Renders a reverse-chronological list of every settlement recorded
 /// against a single context (a friendship or — in a future Sprint —
@@ -19,12 +24,14 @@ import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 /// the Sprint 3 Group Detail surface can push it with
 /// `contextType: 'group'`; only the friendship arm is wired today.
 ///
-/// State contract (per SCR-24 §States):
-/// - Loading: a centred `CircularProgressIndicator`.
-/// - Populated: a `ListView` of settlement rows ordered by `date`
-///   descending (the repository stream guarantees the order; no
-///   client-side sort).
-/// - Empty: "No settlements yet" placeholder, no CTA.
+/// State contract (per SCR-24 §States, Haldi-converted):
+/// - Loading: the shimmer `OBTSkeleton` set (skeletons, not spinners).
+/// - Populated: a lazy `ListView.builder` of settlement rows ordered by
+///   `date` descending (the repository stream guarantees the order; no
+///   client-side sort). Each row carries a **sent/received direction icon
+///   + signed amount** derived from `fromUserId`/`toUserId` vs the current
+///   user (DC-08 AC-3) — never a recomputed balance.
+/// - Empty: the shared `OBTEmptyState` scaffold, no CTA.
 /// - Error: "Something went wrong" placeholder with a Retry button.
 ///
 /// Telemetry (both events pre-declared in `telemetry-plan.md` §1.3):
@@ -38,11 +45,13 @@ import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 /// emitted raw.
 ///
 /// Invariant compliance:
-/// - **Invariant 1 (paise)**: the per-row amount flows through
-///   `formatInrFromPaise()`; no inline arithmetic.
+/// - **Invariant 1 (paise)**: every per-row amount flows through
+///   `formatInrFromPaise()`; the sign glyph is the only addition and there
+///   is no inline `/100` or `double` arithmetic.
 /// - **Invariant 2 (`simplifiedBalances` read-only)**: this screen reads
 ///   only top-level `settlements/{id}` documents and never references
-///   `simplifiedBalances`.
+///   `simplifiedBalances`; the direction sign is derived from the
+///   settlement document, not from any recomputed balance.
 class SettlementHistoryScreen extends ConsumerStatefulWidget {
   /// Creates a [SettlementHistoryScreen].
   const SettlementHistoryScreen({
@@ -60,7 +69,7 @@ class SettlementHistoryScreen extends ConsumerStatefulWidget {
   /// The friendship or group document ID this history is scoped to.
   final String contextId;
 
-  /// Authenticated user UID — used to label the payer/payee avatars.
+  /// Authenticated user UID — used to derive the per-row direction.
   final String currentUserUid;
 
   /// The other party UID.
@@ -213,9 +222,30 @@ class _SettlementHistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateText = DateFormat('dd MMM yyyy').format(settlement.date);
-    final amountText = formatInrFromPaise(settlement.amountPaise);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final dateText = formatIstLongDate(settlement.date);
 
+    // Direction is derived from the settlement document (Invariant 2 — never
+    // a recomputed balance): incoming = the friend paid the current user.
+    final isIncoming = settlement.toUserId == currentUserUid;
+    final amountHue = isIncoming
+        ? obtColors.balancePositive
+        : obtColors.balanceNegative;
+    // The sign glyph is the only addition to the formatter output; the rupee
+    // conversion stays inside formatInrFromPaise() (Invariant 1). Outgoing
+    // payments use formatInrFromPaise(-amount) so the Unicode minus prefix is
+    // produced by the single formatter, never inline arithmetic.
+    final signedAmountText = isIncoming
+        ? '+${formatInrFromPaise(settlement.amountPaise)}'
+        : formatInrFromPaise(-settlement.amountPaise);
+    final friendFirstName = _firstName(otherDisplayName);
+    final title = isIncoming
+        ? '$friendFirstName paid you'
+        : 'You paid $friendFirstName';
+
+    // The semantic label keeps the full, unsigned descriptive sentence so a
+    // screen reader announces the transaction once, regardless of the visual
+    // sign glyph (SCR-24 §Accessibility).
     final payerLabel = settlement.fromUserId == currentUserUid
         ? 'You'
         : otherDisplayName;
@@ -228,7 +258,7 @@ class _SettlementHistoryRow extends StatelessWidget {
       label: _semanticLabel(
         payerLabel: payerLabel,
         payeeLabel: payeeLabel,
-        amountText: amountText,
+        amountText: formatInrFromPaise(settlement.amountPaise),
         dateText: dateText,
       ),
       child: ExcludeSemantics(
@@ -236,53 +266,54 @@ class _SettlementHistoryRow extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  dateText,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                _DirectionIconTile(isIncoming: isIncoming, hue: amountHue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        dateText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: OBTColors.metaText(theme),
+                        ),
+                      ),
+                      if (settlement.note != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          settlement.note!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: OBTColors.metaText(theme),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _InitialAvatar(label: payerLabel),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                const SizedBox(width: 12),
+                // The signed amount must never truncate; it shares the row
+                // with the title via flex and scales down only at extreme
+                // text scales / narrow widths (so it stays whole — Inv 1).
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      signedAmountText,
+                      style: OBTText.amount(context).copyWith(color: amountHue),
                     ),
-                    _InitialAvatar(label: payeeLabel),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            amountText,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (settlement.note != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              settlement.note!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -296,7 +327,7 @@ class _SettlementHistoryRow extends StatelessWidget {
   /// `<payer> paid <payee> rupees <amount> on <date>. Note: <note or
   /// no note>.` The spoken amount strips the leading currency symbol
   /// so the screen reader announces "rupees 800.00" rather than the
-  /// glyph.
+  /// glyph, and uses the unsigned amount for natural speech.
   String _semanticLabel({
     required String payerLabel,
     required String payeeLabel,
@@ -308,41 +339,62 @@ class _SettlementHistoryRow extends StatelessWidget {
     return '$payerLabel paid $payeeLabel rupees $spokenAmount on '
         '$dateText. Note: $noteClause.';
   }
+
+  static String _firstName(String full) {
+    final trimmed = full.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed.split(RegExp(r'\s+')).first;
+  }
 }
 
-class _InitialAvatar extends StatelessWidget {
-  const _InitialAvatar({required this.label});
+/// The Haldi leading tile for a settlement row: a rounded square holding a
+/// directional glyph on a ~12%-opacity bed of [hue], the glyph itself in the
+/// full [hue]. Purely decorative — the row owns the textual label, so this
+/// tile is [ExcludeSemantics].
+class _DirectionIconTile extends StatelessWidget {
+  const _DirectionIconTile({required this.isIncoming, required this.hue});
 
-  final String label;
+  final bool isIncoming;
+  final Color hue;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      child: Text(_initial(label), style: theme.textTheme.labelMedium),
+    return ExcludeSemantics(
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: hue.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        ),
+        // Received money points inward (south-west); sent money points
+        // outward (north-east).
+        child: Icon(
+          isIncoming ? Icons.south_west : Icons.north_east,
+          size: 20,
+          color: hue,
+        ),
+      ),
     );
-  }
-
-  static String _initial(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) return '?';
-    return trimmed.substring(0, 1).toUpperCase();
   }
 }
 
 // ---------------------------------------------------------------------------
 // Inline state widgets (per Architect Notes §2.3 — no OBT* primitive
-// extraction; mirrors the friend_detail_states.dart precedent).
+// extraction beyond the shared DC-03 set).
 // ---------------------------------------------------------------------------
 
+/// Shimmer loading skeleton for the settlement-history list. Freezes under
+/// reduced motion via the shared `OBTSkeleton` set (skeletons, not spinners).
 class _SettlementHistoryLoadingState extends StatelessWidget {
   const _SettlementHistoryLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: OBTSkeletonList(itemCount: 6),
+    );
   }
 }
 
@@ -351,37 +403,19 @@ class _SettlementHistoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ExcludeSemantics(
-              child: Icon(
-                Icons.history,
-                size: 64,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No settlements yet',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Once you settle up, it will appear here.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    final colors = Theme.of(context).colorScheme;
+    return OBTEmptyState(
+      illustration: Container(
+        width: 110,
+        height: 110,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
         ),
+        child: Icon(Icons.history, size: 52, color: colors.primary),
       ),
+      headline: 'No settlements yet',
+      supportingText: 'Once you settle up, it will appear here.',
     );
   }
 }
@@ -411,7 +445,7 @@ class _SettlementHistoryErrorState extends StatelessWidget {
             Text(
               'We could not load settlement history. Please try again.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: OBTColors.metaText(theme),
               ),
               textAlign: TextAlign.center,
             ),

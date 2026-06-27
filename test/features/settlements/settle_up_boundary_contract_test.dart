@@ -33,7 +33,6 @@ void main() {
     'lib/features/settlements/application/settle_up_state.dart',
     'lib/features/settlements/application/settle_up_telemetry.dart',
     'lib/features/settlements/presentation/settle_up_bottom_sheet.dart',
-    'lib/features/settlements/presentation/widgets/settle_up_header.dart',
     'lib/features/friends/presentation/widgets/obt_settle_up_card.dart',
   ];
 

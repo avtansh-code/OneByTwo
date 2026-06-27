@@ -199,9 +199,34 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 
 | file | Haldi № | class | key changes | states to add | effort |
 |---|---|---|---|---|---|
-| `settlements/presentation/settle_up_bottom_sheet.dart` | 23 ★ | **rebuild** | Add the disabled **"Pay via UPI"** extension slot (Coming soon); build the success moment ("You're all settled up — high five!" + haptic) replacing the snackbar/`SizedBox` placeholder; reskin amount/date/note/record. New-component #6. | success-moment state; dark hero | M |
-| `settlements/presentation/widgets/settle_up_header.dart` | 23 ★ | reskin | Payer → arrow → payee tints → marigold; suggested amount → Bricolage tabular. | — | S |
-| `settlements/presentation/settlement_history_screen.dart` | 24 | reskin | Marigold tokens + type; loading `CircularProgressIndicator` → skeleton; rows gain sent/received direction icon + sign; amounts → Bricolage tabular. **Friend/group filter + "Send a reminder" compose are PM-reconcile flags** (per `01-coverage-gap` §C), not pure conversion. | loading-skeleton (replace spinner) | M |
+| `settlements/presentation/settle_up_bottom_sheet.dart` | 23 ★ | **rebuild** | Rebuilt onto the shared `OBTSettleUpSheet`: the disabled **"Pay via UPI"** slot (Coming soon), the in-sheet **success moment** + a single haptic replacing the snackbar/`SizedBox` placeholder. **Success-copy reconcile:** the AC-1 "You're all settled up — high five!" wording is **superseded** by the shipped DC-03 component copy ("Payment recorded"); the frozen component is not edited (any genuine copy change routes to the Architect / issue #128). New-component #6. | success-moment state; dark hero | M |
+| `settlements/presentation/widgets/settle_up_header.dart` | 23 ★ | **deleted** | Superseded by `OBTSettleUpSheet`'s own payer → arrow → payee suggested-payment header; **deleted** once no call site referenced it (mirrors DC-05 `groups_list_placeholder.dart` / DC-06 `balance_pill.dart` deletions). The §B reskin row is satisfied by the supersession. | — | S |
+| `settlements/presentation/settlement_history_screen.dart` | 24 | reskin | Marigold tokens + type; loading `CircularProgressIndicator` → shimmer `OBTSkeleton`; rows gain sent/received direction icon + sign (derived from `fromUserId`/`toUserId`); amounts → Bricolage tabular via `formatInrFromPaise()`; empty `Icon` → `OBTEmptyState`; IST dates via the core `formatIstLongDate()`. **Friend/group filter + "Send a reminder" compose are PM-reconcile flags** (per `01-coverage-gap` §C), not pure conversion. | loading-skeleton (replace spinner) | M |
+
+> **Status — Settlements converted (DC-08 / Sprint 3 PR #9 = #120, branch
+> `feat/haldi-settlements-conversion`).** `settle_up_bottom_sheet.dart` is
+> **rebuilt** onto `OBTSettleUpSheet`: the controller state machine
+> (`SettleUpEditing`/`Saving`/`Success`/`Error`) maps to
+> `isSaving`/`isSuccess`/`amountErrorText`, the in-sheet success moment (check
+> + a single `HapticFeedback.lightImpact`) replaces the old auto-dismiss +
+> "Settlement recorded." snackbar (AC-1), and the inert "Pay via UPI" slot
+> ships disabled; the **success copy is the shipped component's "Payment
+> recorded"** (the AC-1 "high five" wording superseded — the frozen DC-03
+> component is not edited). `widgets/settle_up_header.dart` is **deleted**
+> (superseded). `settlement_history_screen.dart` reskins to marigold tokens +
+> Bricolage tabular, spinner → shimmer skeleton, rows gain the sent/received
+> direction icon + sign (the balance trio, derived from the settlement doc),
+> empty → `OBTEmptyState`, IST dates via the core formatter; the list stays
+> lazy. Invariants 1 + 2 hold — amounts via `formatInrFromPaise()`, the
+> suggestion a single read-only `simplifiedBalances` projection read, recompute
+> server-side. The **reminder-compose + friend/group filter remain §C item 6
+> PM-reconcile flags** (the existing one-tap "Remind" is reskinned in place;
+> nothing new built). Light + dark golden scaffolds for 23 (populated incl.
+> "Pay via UPI", success-moment, settled, loading, error) and 24
+> (loading/empty/populated/error) queued in the DC-13 harness. **Known
+> component gap (#128):** the frozen `OBTSettleUpSheet` focal `amountHero`
+> (48 → 96px at 2.0x) overflows the 320 dp column at 2.0x dynamic type; the
+> amount stays whole (never truncated).
 
 ### Activity
 
