@@ -243,6 +243,31 @@ rebuild or hero light+dark bespoke work (multi-day). Hero screens marked ★.
 | `notifications/presentation/widgets/in_app_notification_banner.dart` | 26 | reskin | Re-point **hard-coded** hex (`#2A9D8F` success, `#F4A261` secondary) to Haldi tokens; card radius → 20; black → warm shadow; type → Hanken. | — | S |
 | `notifications/presentation/pre_permission_dialog.dart` | 26 | reskin | Marigold tokens; dialog radius → card 20; CTA → onPrimary ink + radius 16; replace literal `fontSize` with type slots; bell → brand illustration (optional). | — | S |
 
+> **Status — Activity + Notifications converted (DC-09 / Sprint 3 PR #10 = #121, branch
+> `feat/haldi-activity-notifications-conversion`).** `activity_feed_screen.dart` reskins
+> to marigold tokens + Bricolage/Hanken; the static grey `ActivityFeedSkeleton` is
+> rebuilt on the shared shimmer `OBTSkeletonList`/`OBTSkeletonRow` (keeps
+> `Key('activity_feed_skeleton')` + the `liveRegion` announcement; freezes under
+> reduced motion); the hand-rolled empty `Icon` + `FilledButton.icon` becomes
+> `OBTEmptyState`; the error-state greys re-point to `OBTColors.metaText`; rows stay
+> on the frozen `OBTActivityRow` and still deep-link unchanged (FR-AC-02); the list
+> stays a lazy `ListView.builder`. `in_app_notification_banner.dart` re-points the two
+> hard-coded hexes (`#2A9D8F` success → `OBTColors.balancePositive`, `#F4A261`
+> secondary → `OBTColors.warning`), moves the card radius to `radiusCard` (20), swaps
+> the black shadow for the warm `OBTColors.rowShadow` (light) / outline (dark), and
+> moves body greys + type to `OBTColors.metaText` + Hanken; the swipe-up dismiss,
+> `Semantics` label and auto-dismiss timer are unchanged. `pre_permission_dialog.dart`
+> moves the dialog radius to card 20, the CTA to `radiusButton` (16) with `onPrimary`
+> ink, and replaces the literal `fontSize` with a `textTheme` slot; the
+> `Semantics(header: true)` heading + button labels are unchanged.
+> `notifications_lifecycle_host.dart` **conforms** (no visual surface). **No
+> hard-coded Haldi hex remains** (AC-3, asserted by a no-`Color(0x…)` grep over the
+> banner + dialog). Light + dark golden scaffolds for the Activity hero 25
+> (loading-skeleton, empty, populated, error) and **light** scaffolds for the in-app
+> banner 26 are queued in the DC-13 harness. Invariants 1 + 2 hold — the feed-row
+> amount via `formatInrFromPaise()` inside the frozen `OBTActivityRow`, no
+> `simplifiedBalances` read/write.
+
 ### Profile
 
 | file | Haldi № | class | key changes | states to add | effort |

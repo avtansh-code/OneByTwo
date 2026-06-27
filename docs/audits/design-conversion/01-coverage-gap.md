@@ -69,8 +69,8 @@ table below the main matrix and in §C.
 | 22 — View expense + edit/delete | `expenses/presentation/expense_detail_screen.dart` (SCR-22, FR-EX-06) | covered |
 | 23 — Settle up | `settlements/presentation/settle_up_bottom_sheet.dart` (SCR-23, FR-SE-05) | covered (DC-08 rebuild onto `OBTSettleUpSheet`) |
 | 24 — Settlement history (+ reminder compose) | `settlements/presentation/settlement_history_screen.dart` (SCR-24, FR-SE-08); reminder via `reminders/` + Friend detail (FR-SE-09) | covered ³ (DC-08 reskin) |
-| 25 — Activity feed | `activity/presentation/activity_feed_screen.dart` (SCR-25, FR-AC-01, FR-AC-02) | covered |
-| 26 — Push notifications | `notifications/presentation/notifications_lifecycle_host.dart` + `widgets/in_app_notification_banner.dart` + `pre_permission_dialog.dart` (FR-AC-03, FR-AC-05) | covered ⁴ |
+| 25 — Activity feed | `activity/presentation/activity_feed_screen.dart` (SCR-25, FR-AC-01, FR-AC-02) | covered (DC-09 reskin) |
+| 26 — Push notifications | `notifications/presentation/notifications_lifecycle_host.dart` + `widgets/in_app_notification_banner.dart` + `pre_permission_dialog.dart` (FR-AC-03, FR-AC-05) | covered ⁴ (DC-09 reskin) |
 | 27 — Profile view + edit | `profile/presentation/profile_screen.dart` + `edit_profile_screen.dart` (FR-PR-01) | covered |
 | 28 — Notification preferences | `profile/presentation/notification_preferences_screen.dart` (FR-PR-03) | covered |
 | 29 — Contact support | `profile/presentation/contact_support_fallback_dialog.dart` + `contact_support_controller` (FR-SH-03, FR-SH-04, FR-PR-05) | covered |

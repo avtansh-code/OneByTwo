@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+
 /// Shows the "Stay in the loop" pre-permission dialog (FR-AC-03,
 /// wireframes §1.1).
 ///
@@ -71,8 +74,14 @@ class _PrePermissionDialogState extends State<_PrePermissionDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dialogShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+    );
+    final ctaShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppTheme.radiusButton),
+    );
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: dialogShape,
       elevation: 8,
       backgroundColor: theme.colorScheme.surface,
       child: Padding(
@@ -104,7 +113,7 @@ class _PrePermissionDialogState extends State<_PrePermissionDialog> {
               'Get notified when friends add expenses or settle up. '
               'You can change this any time in Settings.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color: OBTColors.metaText(theme),
               ),
               textAlign: TextAlign.center,
             ),
@@ -120,13 +129,11 @@ class _PrePermissionDialogState extends State<_PrePermissionDialog> {
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: ctaShape,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Enable Notifications',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: theme.textTheme.labelLarge,
                   ),
                 ),
               ),
@@ -143,7 +150,7 @@ class _PrePermissionDialogState extends State<_PrePermissionDialog> {
                   child: Text(
                     'Not now',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: OBTColors.metaText(theme),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
