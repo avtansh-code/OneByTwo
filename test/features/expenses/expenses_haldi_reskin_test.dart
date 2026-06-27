@@ -362,38 +362,46 @@ void main() {
   });
 
   // --- DC-11 (#123): the step-3 confirm summary border is the warm `outline`
-  // in dark, never the near-white onSurface that `outlineVariant` falls back
-  // to (locks the FINDING-B regression; `outlineVariant` is unset in
-  // AppTheme.dark -> resolves to onSurface #F3EBDD). ---
-  testWidgets('step-3 summary card border is the warm outline in dark', (
-    tester,
-  ) async {
-    await _pumpAddExpenseToStep2(tester, brightness: Brightness.dark);
+  // in BOTH themes, never the onSurface that `outlineVariant` falls back to
+  // (locks FINDING-B). `outlineVariant` is unset in AppTheme -> resolves to
+  // onSurface: near-white #F3EBDD (dark) / near-black #2A211B (light); the fix
+  // re-points to `outline` (#3A322A dark / #E7DDCD light) for both. The light
+  // border is a latent correction (near-black -> soft grey), flagged in review.
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    testWidgets('step-3 summary card border is the warm outline ($mode)', (
+      tester,
+    ) async {
+      await _pumpAddExpenseToStep2(tester, brightness: brightness);
 
-    // Advance to step 3 (the default equal split balances, so Next is enabled).
-    final next = find.widgetWithText(FilledButton, 'Next').last;
-    await tester.ensureVisible(next);
-    await tester.pumpAndSettle();
-    await tester.tap(next);
-    await tester.pumpAndSettle();
+      // Advance to step 3 (the default equal split balances, Next enabled).
+      final next = find.widgetWithText(FilledButton, 'Next').last;
+      await tester.ensureVisible(next);
+      await tester.pumpAndSettle();
+      await tester.tap(next);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Summary'), findsOneWidget);
+      expect(find.text('Summary'), findsOneWidget);
 
-    final dark = AppTheme.dark.colorScheme;
-    final summaryDeco = tester
-        .widgetList<Container>(find.byType(Container))
-        .map((c) => c.decoration)
-        .whereType<BoxDecoration>()
-        .firstWhere(
-          (d) =>
-              d.color == dark.surface &&
-              d.border != null &&
-              d.borderRadius == BorderRadius.circular(AppTheme.radiusCard),
-        );
-    final side = (summaryDeco.border! as Border).top;
-    expect(side.color, dark.outline);
-    expect(side.color, isNot(dark.onSurface));
-  });
+      final scheme = brightness == Brightness.light
+          ? AppTheme.light.colorScheme
+          : AppTheme.dark.colorScheme;
+      final summaryDeco = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .firstWhere(
+            (d) =>
+                d.color == scheme.surface &&
+                d.border != null &&
+                d.borderRadius == BorderRadius.circular(AppTheme.radiusCard),
+          );
+      final side = (summaryDeco.border! as Border).top;
+      expect(side.color, scheme.outline);
+      // Never the onSurface that `outlineVariant` falls back to.
+      expect(side.color, isNot(scheme.onSurface));
+    });
+  }
 
   // --- B.1/B.2: contrast gate incl. the white-on-marigold negative case ---
   group('contrast gate', () {
