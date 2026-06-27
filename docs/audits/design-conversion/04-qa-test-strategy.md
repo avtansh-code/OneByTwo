@@ -427,11 +427,14 @@ engine-sensitive, whereas `a11y-checks` floats the stable channel and runs no
 byte comparison.
 
 - **Job key / name:** `golden-a11y-checks` / "Golden & A11y Checks".
-- **Trigger:** rides the existing `pull_request → main` (and `workflow_dispatch`)
-  triggers of `pr.yml`. Gated via the existing `changes` detection:
-  runs when `needs.changes.outputs.flutter == 'true'` or `…ci == 'true'`, with
-  the same fail-safe (`needs.changes.result != 'success'` → run anyway). A
-  skipped run reports "skipped", which the ruleset counts as passing.
+- **Trigger:** rides the existing `pull_request → main` trigger of `pr.yml`.
+  Gated via the existing `changes` detection: runs when
+  `needs.changes.outputs.flutter == 'true'` or `…ci == 'true'`, with the same
+  fail-safe (`needs.changes.result != 'success'` → run anyway). It explicitly
+  **skips `workflow_dispatch`** (`github.event_name != 'workflow_dispatch'`) —
+  the `golden-refresh` job owns that path, and a compare there would only fail
+  against the not-yet-updated committed baselines. A skipped run reports
+  "skipped", which the ruleset counts as passing.
 - **Runner / setup:** `ubuntu-latest` (the canonical golden host — see §A.2.2);
   `actions/checkout@v4`; `subosito/flutter-action@v2` **pinned to
   `flutter-version: 3.44.3`** (not just `channel: stable`, §A.2.3 — do not float
@@ -491,6 +494,7 @@ manual-only refresh path:
     needs: [changes]
     if: >-
       !cancelled()
+      && github.event_name != 'workflow_dispatch'
       && (needs.changes.result != 'success'
       || needs.changes.outputs.flutter == 'true'
       || needs.changes.outputs.ci == 'true')
