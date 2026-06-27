@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+
 /// FR-SH-04 no-mail-client fallback dialog for the Contact Support flow.
 ///
 /// Shown when `canLaunchUrl(mailto:)` is false (no mail client
@@ -38,7 +41,12 @@ class ContactSupportFallbackDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final link =
+        theme.extension<OBTColors>()?.link ?? theme.colorScheme.primary;
     return AlertDialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusCard)),
+      ),
       semanticLabel: 'Alert: No Mail App Found',
       title: Semantics(header: true, child: const Text('No Mail App Found')),
       content: Column(
@@ -57,9 +65,7 @@ class ContactSupportFallbackDialog extends StatelessWidget {
             label: 'Support email address: $supportEmailAddress',
             child: SelectableText(
               supportEmailAddress,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: theme.textTheme.bodyLarge?.copyWith(color: link),
             ),
           ),
         ],

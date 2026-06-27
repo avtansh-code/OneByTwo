@@ -47,7 +47,7 @@ class PhotoPickerSheet extends StatelessWidget {
                 ),
                 child: Text(
                   'Change Profile Photo',
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
               const SizedBox(height: 8),

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/providers/phone_auth_provider.dart';
 import 'package:onebytwo/core/result.dart';
+import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -180,6 +181,10 @@ void main() {
 
       await tester.tap(find.text('Sign Out'));
       await tester.pumpAndSettle();
+
+      // The hand-rolled AlertDialog is now the shared OBTConfirmationDialog
+      // (DC-10); sign-out is not destructive, so the confirm stays marigold.
+      expect(find.byType(OBTConfirmationDialog), findsOneWidget);
 
       // Dialog title.
       expect(find.text('Sign out?'), findsOneWidget);

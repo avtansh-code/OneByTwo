@@ -114,7 +114,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           : '',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          AppTheme.radiusLarge,
+                          AppTheme.radiusChipInput,
                         ),
                       ),
                       suffixIcon:
@@ -155,7 +155,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               builder: (_) => const ChangePhoneScreen(),
                             ),
                           ),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                    borderRadius: BorderRadius.circular(
+                      AppTheme.radiusChipInput,
+                    ),
                     child: InputDecorator(
                       decoration: InputDecoration(
                         labelText: 'Phone number',
@@ -163,7 +165,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         suffixIcon: const Icon(Icons.chevron_right),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppTheme.radiusLarge,
+                            AppTheme.radiusChipInput,
                           ),
                         ),
                       ),
@@ -192,7 +194,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
-                            AppTheme.radiusLarge,
+                            AppTheme.radiusButton,
                           ),
                         ),
                       ),
@@ -303,7 +305,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXL),
+          top: Radius.circular(AppTheme.radiusSheet),
         ),
       ),
       builder: (_) => PhotoPickerSheet(hasExistingPhoto: hasPhoto),

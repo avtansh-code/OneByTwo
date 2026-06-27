@@ -7,6 +7,7 @@ import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/result.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/core/services/url_launcher_service.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/data/phone_auth_repository.dart';
@@ -587,8 +588,8 @@ void main() {
       // Pump a single frame so loading state is rendered.
       await tester.pump();
 
-      // Skeleton placeholders should be present (ShaderMask from shimmer).
-      expect(find.byType(ShaderMask), findsOneWidget);
+      // Shared Haldi OBTSkeleton placeholders replace the old shimmer.
+      expect(find.byType(OBTSkeleton), findsWidgets);
     });
 
     testWidgets('error state shows error message and retry', (tester) async {

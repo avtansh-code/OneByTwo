@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/otp_input.dart';
 import 'package:onebytwo/features/profile/application/change_phone_controller.dart';
@@ -209,16 +210,10 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
           onBackspace: (_) {},
         ),
         const SizedBox(height: 16),
-        if (state.errorMessage != null) _errorText(theme, state.errorMessage!),
-        if (state.syncPending) ...[
-          const SizedBox(height: 8),
-          _primaryButton(
-            context,
-            label: 'Try again',
-            isLoading: state.isLoading,
-            onPressed: controller.retrySync,
-          ),
-        ],
+        if (state.syncPending)
+          _syncPendingRecovery(context, state, controller)
+        else if (state.errorMessage != null)
+          _errorText(theme, state.errorMessage!),
         if (state.isLoading) _loadingRow(theme),
       ],
     );
@@ -243,8 +238,8 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
+                topLeft: Radius.circular(AppTheme.radiusChipInput),
+                bottomLeft: Radius.circular(AppTheme.radiusChipInput),
               ),
               border: Border.all(color: colorScheme.outline),
             ),
@@ -270,8 +265,8 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
+                    topRight: Radius.circular(AppTheme.radiusChipInput),
+                    bottomRight: Radius.circular(AppTheme.radiusChipInput),
                   ),
                 ),
               ),
@@ -291,12 +286,65 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
 
   // --- Small shared building blocks ---
 
+  /// The ADR-0015 "sync pending" recovery: the auth number changed but the
+  /// Firestore mirror did not, so we surface a [OBTColors.warning]-toned
+  /// caution (never the danger token) plus a retry. The re-auth state
+  /// machine is unchanged — this only restyles the recovery affordance.
+  Widget _syncPendingRecovery(
+    BuildContext context,
+    ChangePhoneState state,
+    ChangePhoneController controller,
+  ) {
+    final theme = Theme.of(context);
+    final warning =
+        theme.extension<OBTColors>()?.warning ?? theme.colorScheme.secondary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.sync_problem, color: warning, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    state.errorMessage ??
+                        'Your number was verified but we could not finish '
+                            'updating it. Please try again.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _primaryButton(
+          context,
+          label: 'Try again',
+          isLoading: state.isLoading,
+          onPressed: controller.retrySync,
+        ),
+      ],
+    );
+  }
+
   Widget _heading(ThemeData theme, String text) => Semantics(
     header: true,
     child: Text(
       text,
       style: theme.textTheme.headlineMedium?.copyWith(
-        color: theme.colorScheme.primary,
+        color: theme.colorScheme.onSurface,
       ),
     ),
   );
@@ -338,7 +386,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
   }) => InputDecoration(
     labelText: label,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
     ),
   );
 
@@ -359,7 +407,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
           onPressed: isLoading ? null : onPressed,
           style: FilledButton.styleFrom(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              borderRadius: BorderRadius.circular(AppTheme.radiusButton),
             ),
           ),
           child: isLoading
