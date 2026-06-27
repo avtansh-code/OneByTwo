@@ -140,8 +140,9 @@ void main() {
   testWidgets('no PII leaks after a successful save', (tester) async {
     await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Record Settlement'));
+    await tester.tap(find.text('Record payment'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1500));
 
     for (final pii in _piiStrings) {
       expect(
@@ -156,8 +157,9 @@ void main() {
       'settlement_id_hash (not raw values)', (tester) async {
     await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Record Settlement'));
+    await tester.tap(find.text('Record payment'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1500));
 
     final recorded = analytics.loggedEvents
         .where((e) => e.name == SettleUpTelemetry.settlementRecorded)
@@ -206,8 +208,9 @@ void main() {
   testWidgets('no PII in event names', (tester) async {
     await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Record Settlement'));
+    await tester.tap(find.text('Record payment'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1500));
 
     for (final event in analytics.loggedEvents) {
       for (final pii in _piiStrings) {
@@ -223,8 +226,9 @@ void main() {
   testWidgets('no PII in event parameter keys', (tester) async {
     await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Record Settlement'));
+    await tester.tap(find.text('Record payment'));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1500));
 
     for (final event in analytics.loggedEvents) {
       if (event.parameters == null) continue;

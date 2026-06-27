@@ -84,14 +84,15 @@ round-trip:
   transitions Editing → Saving → (Success | SettleUpError) and emits
   the appropriate telemetry. Validation-failure path fires
   `settle_up_validation_failed` and is a no-op.
-- `presentation/settle_up_bottom_sheet.dart` — root host. Drag handle
-  + sheet title + `SettleUpHeader` + `OBTAmountInput` (PR #38 extract)
-  + date picker + optional note field + Record Settlement button.
-  `ref.listen<SettleUpState>` drives the success snackbar +
-  auto-dismiss / error snackbar. `settle_up_screen_viewed` fires
-  exactly once via `addPostFrameCallback`.
-- `presentation/widgets/settle_up_header.dart` — payer avatar →
-  arrow → payee avatar row with centred suggested-amount echo.
+- `presentation/settle_up_bottom_sheet.dart` — root host. Rebuilt (DC-08)
+  onto the shared `OBTSettleUpSheet` (DC-03): it projects each
+  `SettleUpState` onto the component's props — the suggested-payment
+  header (the single `simplifiedBalances` projection read), the editable
+  `OBTAmountInput`, the inert "Pay via UPI" slot, and the in-sheet
+  **success moment** (check + single haptic) that replaces the old
+  auto-dismiss + "Settlement recorded." snackbar. `ref.listen<SettleUpState>`
+  drives the post-success auto-dismiss timer + the error snackbar.
+  `settle_up_screen_viewed` fires exactly once via `addPostFrameCallback`.
 
 The host wires the bottom sheet via
 `lib/features/friends/presentation/widgets/obt_settle_up_card.dart`
@@ -157,10 +158,8 @@ domain/
   settlement_create_error.dart    # typed exception + enum
   settlement_doc.dart             # strict-parsing value type + toCreateMap
 presentation/
-  settle_up_bottom_sheet.dart     # root sheet host
+  settle_up_bottom_sheet.dart     # root sheet host (OBTSettleUpSheet rebuild)
   settlement_history_screen.dart  # SCR-24 full-history screen (FR-SE-08)
-  widgets/
-    settle_up_header.dart         # payer → arrow → payee + amount echo
 ```
 
 ## Invariants honoured

@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/settlements/application/settlement_history_telemetry.dart';
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
@@ -124,7 +125,7 @@ void main() {
   });
 
   group('Loading state (AC-3)', () {
-    testWidgets('renders a centred CircularProgressIndicator', (tester) async {
+    testWidgets('renders the shimmer skeleton, not a spinner', (tester) async {
       final repo = FakeSettlementRepository(
         () => Stream<List<SettlementDoc>>.fromFuture(
           Completer<List<SettlementDoc>>().future,
@@ -133,7 +134,8 @@ void main() {
       await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(OBTSkeleton), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('does NOT fire settlement_history_viewed while loading', (
@@ -278,7 +280,9 @@ void main() {
       expect(find.text('25 Mar 2025'), findsOneWidget);
     });
 
-    testWidgets('AC-7 amount renders via formatInrFromPaise', (tester) async {
+    testWidgets('AC-7 amount renders signed via formatInrFromPaise', (
+      tester,
+    ) async {
       final repo = FakeSettlementRepository(
         () => Stream.value([
           _settlement(
@@ -291,8 +295,10 @@ void main() {
       await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
-      expect(find.text(formatInrFromPaise(80000)), findsOneWidget);
-      expect(find.text('₹800.00'), findsOneWidget);
+      // Current user is the payer (outgoing) -> negative signed amount, the
+      // Unicode minus produced by the single formatter (Invariant 1).
+      expect(find.text(formatInrFromPaise(-80000)), findsOneWidget);
+      expect(find.text('\u2212₹800.00'), findsOneWidget);
     });
 
     testWidgets('AC-8 note is visible when non-null', (tester) async {
@@ -323,7 +329,7 @@ void main() {
       expect(find.text('GPay transfer'), findsNothing);
     });
 
-    testWidgets('AC-9 two avatars with payer/payee initials + an arrow', (
+    testWidgets('AC-9 sent settlement shows the outgoing direction + title', (
       tester,
     ) async {
       final repo = FakeSettlementRepository(
@@ -333,12 +339,33 @@ void main() {
       await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
       await tester.pumpAndSettle();
 
-      expect(find.byType(CircleAvatar), findsNWidgets(2));
-      expect(find.byIcon(Icons.arrow_forward), findsOneWidget);
-      // Payer is the current user ("You" -> "Y"); payee is the friend
-      // ("Priya" -> "P").
-      expect(find.text('Y'), findsOneWidget);
-      expect(find.text('P'), findsOneWidget);
+      // Current user is the payer (fromUserId == 'uid-me') -> outgoing.
+      expect(find.text('You paid Priya'), findsOneWidget);
+      expect(find.byIcon(Icons.north_east), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_forward), findsNothing);
+    });
+
+    testWidgets('AC-9 received settlement shows incoming direction + sign', (
+      tester,
+    ) async {
+      final repo = FakeSettlementRepository(
+        () => Stream.value([
+          _settlement(
+            id: 's-1',
+            date: DateTime(2025, 3, 25),
+            amountPaise: 80000,
+            fromUserId: 'uid-friend',
+            toUserId: 'uid-me',
+          ),
+        ]),
+      );
+      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
+      await tester.pumpAndSettle();
+
+      // Current user is the payee (toUserId == 'uid-me') -> incoming (+).
+      expect(find.text('Priya paid you'), findsOneWidget);
+      expect(find.byIcon(Icons.south_west), findsOneWidget);
+      expect(find.text('+${formatInrFromPaise(80000)}'), findsOneWidget);
     });
 
     testWidgets('AC-10 row height is at least 64 dp', (tester) async {

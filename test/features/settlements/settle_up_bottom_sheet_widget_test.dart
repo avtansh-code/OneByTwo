@@ -1,15 +1,15 @@
-// SettleUpBottomSheet widget tests (FR-SE-05 / SCR-23).
+// SettleUpBottomSheet widget tests (FR-SE-05 / SCR-23; DC-08 rebuild).
 //
-// Tests the SCR-23 bottom-sheet UI: state rendering, validation
-// feedback, telemetry side-effects via the injected controller, and
-// snackbar behaviour on Success / SettleUpError.
+// The sheet is rebuilt onto the shared OBTSettleUpSheet (DC-03). These
+// tests pin the host wiring the component does not own: the controller
+// state machine -> OBTSettleUpSheet prop mapping, the single-fire
+// `settle_up_screen_viewed` telemetry, the validation feedback, the
+// record/error flow, and the in-sheet success moment that replaces the old
+// auto-dismiss + "Settlement recorded." snackbar.
 //
-// Mirrors test/features/expenses/add_expense_bottom_sheet_widget_test.dart
-// — uses a ProviderScope with overridden analytics service and a fake
-// settlement repository injected via Riverpod overrides.
-//
-// Written test-first; will fail to compile until the Step C
-// implementation lands.
+// The OBTSettleUpSheet is a min-height (non-scrolling) Column, so every
+// test pumps on the 390x844 Haldi reference frame (mirroring
+// obt_settle_up_sheet_test.dart) so the "Record payment" CTA is on-screen.
 
 // ignore_for_file: cascade_invocations
 
@@ -99,6 +99,34 @@ Widget _buildSubject({
   );
 }
 
+/// Pumps the sheet on the 390x844 Haldi reference frame so the non-scrolling
+/// OBTSettleUpSheet body (header + amount + UPI slot + CTA) is fully on-screen.
+Future<void> _pumpSheet(
+  WidgetTester tester, {
+  required FakeSettlementRepository repo,
+  required FakeAnalyticsService analytics,
+  int suggestedAmountPaise = _suggested,
+}) async {
+  tester.view.physicalSize = const Size(390, 844) * 3;
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  await tester.pumpWidget(
+    _buildSubject(
+      repo: repo,
+      analytics: analytics,
+      suggestedAmountPaise: suggestedAmountPaise,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Drains the success auto-dismiss timer (`_successDismissDelay` = 1400 ms)
+/// so it does not linger past test teardown.
+Future<void> _drainDismiss(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 1500));
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -116,87 +144,81 @@ void main() {
     testWidgets('renders the friend display name in the header', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
       expect(find.textContaining('Bina'), findsWidgets);
     });
 
-    testWidgets('renders the suggested amount echo', (tester) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+    testWidgets('renders the suggested amount echo (amountHero)', (
+      tester,
+    ) async {
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
       expect(find.textContaining(formatInrFromPaise(_suggested)), findsWidgets);
     });
 
-    testWidgets('renders the Record Settlement button', (tester) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
-      expect(find.text('Record Settlement'), findsOneWidget);
+    testWidgets('renders the Record payment button', (tester) async {
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
+      expect(
+        find.widgetWithText(FilledButton, 'Record payment'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('fires settle_up_screen_viewed exactly once on first paint', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
       expect(analytics.countOf(SettleUpTelemetry.screenViewed), 1);
     });
 
     testWidgets('settle_up_screen_viewed does not re-fire on rebuild', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
       await tester.pumpAndSettle();
       expect(analytics.countOf(SettleUpTelemetry.screenViewed), 1);
     });
   });
 
   group('Amount editing', () {
-    testWidgets('typing a partial amount keeps the Save button enabled', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+    testWidgets('typing a partial amount keeps record enabled', (tester) async {
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
       final amountField = find.byType(TextField).first;
       await tester.enterText(amountField, '30');
       await tester.pump();
 
-      // Tap save; assert the repository was called (the button is
-      // enabled).
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pumpAndSettle();
       expect(repo.called, isTrue);
       expect(repo.capturedDoc!.amountPaise, 3000);
+      await _drainDismiss(tester);
     });
 
-    testWidgets('typing 0 disables save and shows the inline error', (
+    testWidgets('typing 0 blocks save and shows the inline error', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
       final amountField = find.byType(TextField).first;
       await tester.enterText(amountField, '0');
       await tester.pump();
 
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pump();
       expect(repo.called, isFalse);
       expect(find.text('Amount must be greater than zero.'), findsOneWidget);
     });
 
-    testWidgets('typing an amount > suggested disables save with error', (
+    testWidgets('typing an amount > suggested blocks save with error', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
       final amountField = find.byType(TextField).first;
       await tester.enterText(amountField, '70');
       await tester.pump();
 
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pump();
       expect(repo.called, isFalse);
       expect(
@@ -206,31 +228,48 @@ void main() {
     });
   });
 
-  group('Save success path', () {
-    testWidgets('Record Settlement → success snackbar + repository called', (
+  group('Save success path (in-sheet success moment)', () {
+    testWidgets('Record payment → success moment + repository called', (
       tester,
     ) async {
       repo.returnSettlementId = 'sid-1';
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pumpAndSettle();
 
       expect(repo.called, isTrue);
-      expect(find.text('Settlement recorded.'), findsOneWidget);
+      // The DC-03 success moment replaces the old "Settlement recorded."
+      // snackbar (the AC-1 "high five" copy is superseded by the shipped
+      // component copy per the Architect reconcile).
+      expect(find.text('Payment recorded'), findsOneWidget);
+      expect(find.text('Settlement recorded.'), findsNothing);
       expect(analytics.countOf(SettleUpTelemetry.settlementRecorded), 1);
+      await _drainDismiss(tester);
+    });
+
+    testWidgets('success hides the editable form (no Record payment button)', (
+      tester,
+    ) async {
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(FilledButton, 'Record payment'),
+        findsNothing,
+        reason: 'the success moment replaces the editable form',
+      );
+      await _drainDismiss(tester);
     });
 
     testWidgets(
       'doc shape: amountPaise == suggested, fromUserId == currentUid',
       (tester) async {
-        await tester.pumpWidget(
-          _buildSubject(repo: repo, analytics: analytics),
-        );
-        await tester.pumpAndSettle();
+        await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-        await tester.tap(find.text('Record Settlement'));
+        await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
         await tester.pumpAndSettle();
 
         final doc = repo.capturedDoc!;
@@ -239,6 +278,7 @@ void main() {
         expect(doc.toUserId, _otherUid);
         expect(doc.contextType, 'friendship');
         expect(doc.contextId, _friendshipId);
+        await _drainDismiss(tester);
       },
     );
   });
@@ -248,10 +288,9 @@ void main() {
       repo.throwError = const SettlementCreateError(
         type: SettlementCreateErrorType.permissionDenied,
       );
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pumpAndSettle();
 
       expect(
@@ -265,10 +304,9 @@ void main() {
       repo.throwError = const SettlementCreateError(
         type: SettlementCreateErrorType.network,
       );
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pumpAndSettle();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-      await tester.tap(find.text('Record Settlement'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Record payment'));
       await tester.pumpAndSettle();
 
       expect(
@@ -282,57 +320,28 @@ void main() {
   });
 
   group('Accessibility', () {
-    testWidgets('every interactive widget has a semantic label', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildSubject(repo: repo, analytics: analytics));
-      await tester.pump();
+    testWidgets('the record button exposes its label', (tester) async {
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-      // Close button + Save button + amount input must all be
-      // surfaced to a11y. Verify a Semantics scope exists for each.
       expect(
-        find.bySemanticsLabel('Close'),
-        findsOneWidget,
-        reason: 'close button must expose Close label',
-      );
-      expect(
-        find.bySemanticsLabel(RegExp(r'^Record Settlement$')),
+        find.bySemanticsLabel(RegExp(r'^Record payment$')),
         findsAtLeastNWidgets(1),
-        reason: 'save button must expose its label',
+        reason: 'the record button must expose its label',
       );
     });
-  });
 
-  group('Code-review §R2 — Saving → Success transition', () {
-    testWidgets(
-      'never shows the body with draft == null after a successful save',
-      (tester) async {
-        repo.returnSettlementId = 'sid-r2';
-        await tester.pumpWidget(
-          _buildSubject(repo: repo, analytics: analytics),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('the inert "Pay via UPI" slot is announced disabled', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSheet(tester, repo: repo, analytics: analytics);
 
-        // Tap Save; do a single pump so we are between Saving and the
-        // post-frame Navigator.pop(). The body MUST NOT render the
-        // editable form fields with their fall-back values.
-        await tester.tap(find.text('Record Settlement'));
-        await tester.pump();
-
-        // The success-placeholder is visible; the Record Settlement
-        // button is gone because the form fields no longer render.
-        expect(
-          find.text('Record Settlement'),
-          findsNothing,
-          reason:
-              'Saving → Success transition must not re-render the '
-              'editable form with reset values',
-        );
-
-        // Drain the rest of the animation; the sheet auto-dismisses.
-        await tester.pumpAndSettle();
-        expect(find.text('Settlement recorded.'), findsOneWidget);
-      },
-    );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Pay via UPI. Coming soon.')),
+        isSemantics(hasEnabledState: true, isEnabled: false),
+        reason: 'the UPI slot is inert — announced disabled, not wired',
+      );
+      handle.dispose();
+    });
   });
 }

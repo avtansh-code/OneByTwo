@@ -62,10 +62,11 @@ void main() {
       // 6. Tap the Settle Up CTA. Assert the SettleUpBottomSheet
       //    opens with the amount pre-filled to ₹50.00.
       // 7. Accept the suggested amount (no edit). Tap 'Record
-      //    Settlement'.
+      //    payment'.
       // 8. Await:
-      //    a. The 'Settlement recorded.' snackbar appears.
-      //    b. The sheet auto-dismisses.
+      //    a. The in-sheet success moment ('Payment recorded') appears
+      //       with a single haptic pulse (DC-08 AC-1).
+      //    b. The sheet auto-dismisses after the success moment.
       // 9. Poll the screen for ≤ 10 s (NFR-PE-04 budget is 2.5 s P95)
       //    until:
       //    a. The balance pill flips to 'Settled up'.
@@ -95,7 +96,7 @@ void main() {
       // - Seed simplifiedBalances == { 'uid-A': { 'uid-B': 10000 } }
       //   (uid-A owes uid-B ₹100).
       // - In the Settle Up sheet, edit the amount to ₹40 (4000 paise).
-      // - Tap Record Settlement.
+      // - Tap Record payment.
       // - Poll until the balance pill reads 'You owe ₹60.00'.
       // - Assert the new settlement row reads 'You paid B ₹40.00'.
       // - Assert the OBTSettleUpCard is STILL rendered (non-zero
