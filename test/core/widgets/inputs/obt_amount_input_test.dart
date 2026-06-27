@@ -29,9 +29,11 @@ Future<void> _pumpInput(
   String? errorText,
   bool enabled = true,
   bool autoFocus = false,
+  ThemeData? theme,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       home: Scaffold(
         body: OBTAmountInput(
           onChanged: onChanged,
@@ -239,21 +241,41 @@ void main() {
   });
 
   group('OBTAmountInput — Haldi token reskin (DC-02)', () {
-    testWidgets('amount uses Bricolage tabular figures and the field uses the '
-        'chip/input radius', (tester) async {
-      await _pumpInput(tester, onChanged: (_) {});
+    testWidgets('entered amount uses Bricolage tabular amount-hero (48px) and '
+        'the field uses the chip/input radius', (tester) async {
+      await _pumpInput(tester, onChanged: (_) {}, theme: AppTheme.light);
 
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(
         field.style?.fontFeatures,
         contains(const FontFeature.tabularFigures()),
-        reason: 'Amounts use Bricolage tabular figures (OBTText.amount).',
+        reason: 'Amounts use Bricolage tabular figures (OBTText.amountHero).',
+      );
+      expect(
+        field.style?.fontSize,
+        48,
+        reason: 'Amount entry renders focal at 48px (#128 §B).',
       );
       final border = field.decoration?.border;
       expect(border, isA<OutlineInputBorder>());
       expect(
         (border! as OutlineInputBorder).borderRadius,
         BorderRadius.circular(AppTheme.radiusChipInput),
+      );
+    });
+
+    testWidgets('the ₹ prefix renders in textSecondary (onSurfaceVariant), '
+        'not marigold primary (#128 §C1)', (tester) async {
+      await _pumpInput(tester, onChanged: (_) {}, theme: AppTheme.light);
+
+      final scheme = AppTheme.light.colorScheme;
+      final prefix = tester.widget<Text>(find.text('₹'));
+      expect(prefix.style?.color, scheme.onSurfaceVariant);
+      expect(prefix.style?.color, isNot(scheme.primary));
+      expect(
+        prefix.style?.fontSize,
+        48,
+        reason: 'The prefix reuses the hero style for glyph sizing.',
       );
     });
   });

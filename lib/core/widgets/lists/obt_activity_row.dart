@@ -60,11 +60,20 @@ class OBTActivityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final colour = _colourFor(item.type, theme);
     final icon = _iconFor(item.type);
     final primary = _primaryText();
     final amountPaise = _amountPaise();
     final semanticLabel = _semanticLabel(primary, amountPaise);
+
+    // #128 §C2: colour is reserved for BALANCE signals, so the trailing
+    // amount renders in neutral ink for expense events; only a settlement
+    // keeps the green success hue. The leading event icon keeps its per-event
+    // colour (below) unchanged.
+    final amountColour = item.type == ActivityEventType.settlementRecorded
+        ? scheme.tertiary
+        : scheme.onSurface;
 
     return Semantics(
       button: true,
@@ -109,7 +118,9 @@ class OBTActivityRow extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     formatInrFromPaise(amountPaise),
-                    style: OBTText.amount(context).copyWith(color: colour),
+                    style: OBTText.amount(
+                      context,
+                    ).copyWith(color: amountColour),
                   ),
                 ],
               ],

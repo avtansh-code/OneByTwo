@@ -253,11 +253,14 @@ at the listed size (e.g. Bricolage −0.01em at 48 px = −0.48).
 
 **Amounts are a cross-cutting style, not just one slot.** Amount-hero (`displayLarge`) and
 Amount-row both use Bricolage with `FontFeature.tabularFigures()`, but amounts also appear inside
-rows, summaries and the settle-up sheet. The plan is a shared text-style helper (e.g.
-`OBTText.amount(context)` / `OBTText.amountHero(context)`) that returns the Bricolage-tabular
-style, applied at every amount site **in addition to** the global slots. This keeps digits
-column-aligned everywhere and keeps amount rendering co-located with the `formatInrFromPaise()`
-boundary (§5).
+rows, summaries and the settle-up sheet. The plan is a shared text-style helper family
+(`OBTText.amount(context)` 16px row / `OBTText.amountFocal(context)` 32px focal /
+`OBTText.amountHero(context)` 48px hero — the focal tier added by the issue #128 §4.1
+reconciliation) that returns the Bricolage-tabular style, applied at every amount site **in
+addition to** the global slots. The tier is chosen by emphasis: row amounts stay 16px; the
+amount **entry** field and the settle-up card suggestion are focal; the net-balance figure is the
+hero. This keeps digits column-aligned everywhere and keeps amount rendering co-located with the
+`formatInrFromPaise()` boundary (§5).
 
 Note two deliberate family shifts from the old theme: `titleLarge`/`titleMedium` move from a
 heading face to **Hanken** (Haldi makes row names a text-face role), and `titleSmall` becomes a
@@ -279,10 +282,10 @@ survives the visual change intact.
 |---|---|---|---|
 | `OBTBottomNav` (`core/widgets/nav/`) | **Reskin** | Active tint → `primary` marigold; filled/outlined icon pair stays; label type → Hanken caption; selected/unselected colours from new scheme. | 5-tab structure, fixed type, telemetry tokens, tap targets. *Optional structural follow-up:* the Haldi active-pill needs Material 3 `NavigationBar` (the current `BottomNavigationBar` cannot draw it) — decide in the nav conversion PR; not required for the foundation. |
 | `OBTFloatingActionButton` (`core/widgets/nav/`) | **Reskin** | `backgroundColor` `secondary` → **`primary`** marigold; `foregroundColor` `Colors.white` → **`onPrimary` ink** (§1.2); radius → `radiusPill` 18. | `Icons.add`, hero-tag contract, semantic label, 56 dp target. *Optional:* the press-spring (§2.3) — currently deferred. |
-| `OBTAmountInput` (`core/widgets/inputs/`) | **Reskin** | Amount text → Bricolage tabular (`OBTText.amount`); `₹` prefix colour → `primary`; field radius → `radiusChipInput`; error text → `error` token. | **All paise logic, the formatter, the `onChanged(int paise)` contract — untouched (Invariant 1).** |
-| `OBTActivityRow` (`core/widgets/lists/`) | **Reskin** | Event-icon colours → Haldi semantics; trailing amount → Bricolage tabular; primary/secondary text type → Hanken; leading avatar tint from new scheme. | Row layout, 56 dp min height, semantics, `formatInrFromPaise()` boundary. |
+| `OBTAmountInput` (`core/widgets/inputs/`) | **Reskin** | Amount **entry** text → Bricolage tabular **amount-hero** (`OBTText.amountHero`, 48px focal per #128 §B); `₹` prefix colour → **`textSecondary`** (`onSurfaceVariant`), marigold reserved for the cursor (#128 §C1); field radius → `radiusChipInput`; error text → `error` token. | **All paise logic, the formatter, the `onChanged(int paise)` contract — untouched (Invariant 1).** |
+| `OBTActivityRow` (`core/widgets/lists/`) | **Reskin** | Event-icon colours → Haldi semantics; trailing amount → Bricolage tabular in **neutral `onSurface`** (green `tertiary` kept **only** for `settlementRecorded`; colour stays reserved for balance signals per #128 §C2); primary/secondary text type → Hanken; leading avatar tint from new scheme. | Row layout, 56 dp min height, semantics, `formatInrFromPaise()` boundary. |
 | `OBTConfirmationDialog` (`core/widgets/dialogs/`) | **Reskin** | Dialog radius → `radiusCard`; destructive confirm uses `error`/`onError` (ink per §1.3); button type → Hanken button. | Confirm/cancel structure, destructive semantics, back/escape-as-cancel. |
-| `OBTSettleUpCard` (`features/friends/.../widgets/`) | **Reskin** | Card fill → `surfaceVariant` hero tone; arrow → marigold; amount → Bricolage tabular; CTA radius/type; cooldown caption → `textTertiary`. | Directional/countdown logic, avatar stack, `formatInrFromPaise()` boundary, deferred extraction note. |
+| `OBTSettleUpCard` (`features/friends/.../widgets/`) | **Reskin** | Card fill → `surfaceContainerHighest` hero tone with §2.2 separation (marigold **`heroShadow`** in light, 1px **`outline`** border in dark, via `Container`/`BoxDecoration` at `radiusCard`, elevation:0 base, #128 §C3); arrow → marigold; amount → Bricolage tabular **amount-focal** (`OBTText.amountFocal`, 32px per #128 §B); CTA radius/type; cooldown caption → `textTertiary`. | Directional/countdown logic, avatar stack, `formatInrFromPaise()` boundary, deferred extraction note. |
 
 ### 4.2 New components the Haldi catalogue requires (do not exist yet)
 

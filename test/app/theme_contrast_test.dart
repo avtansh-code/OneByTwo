@@ -162,6 +162,22 @@ void main() {
     });
   });
 
+  group('Amount-field prefix textSecondary on surface (#128 §C1)', () {
+    // The `₹` prefix moves from marigold primary to the textSecondary slot
+    // (onSurfaceVariant). As a glyph beside the entry it must clear AA 4.5:1
+    // on the field surface in both themes (marigold stays for the cursor).
+    test('onSurfaceVariant clears AA on surface (light + dark)', () {
+      expect(
+        contrastRatio(light.onSurfaceVariant, light.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(dark.onSurfaceVariant, dark.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+  });
+
   group('Canonical negative case — white on marigold (AC #3)', () {
     test('white on marigold FAILS AA (~2.5:1)', () {
       final r = contrastRatio(Colors.white, light.primary);

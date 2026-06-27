@@ -161,69 +161,74 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
       ctaOnPressed = widget.onSettleUp;
     }
 
-    return Card(
+    // #128 §C3 / foundation-plan §2.2: lift the CTA card off the warm canvas
+    // with the marigold hero shadow in light and a 1px outline border in dark
+    // (the same separation model as NetBalanceHeaderCard / FriendListTile).
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        boxShadow: isDark ? null : obtColors.heroShadow,
+        border: isDark ? Border.all(color: theme.colorScheme.outline) : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _AvatarLabel(
-                  displayName: widget.payerDisplayName,
-                  photoUrl: widget.payerPhotoUrl,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    Icons.arrow_forward,
-                    color: theme.colorScheme.primary,
-                    semanticLabel: isReceiving ? 'owes' : 'pays',
-                  ),
-                ),
-                _AvatarLabel(
-                  displayName: widget.payeeDisplayName,
-                  photoUrl: widget.payeePhotoUrl,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formatInrFromPaise(widget.suggestedAmountPaise),
-              style: OBTText.amount(context),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: ctaOnPressed,
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusButton),
-                  ),
-                ),
-                icon: Icon(ctaIcon),
-                label: Text(ctaLabel),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _AvatarLabel(
+                displayName: widget.payerDisplayName,
+                photoUrl: widget.payerPhotoUrl,
               ),
-            ),
-            if (cooling) ...[
-              const SizedBox(height: 8),
-              Text(
-                _cooldownCaption(),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: OBTColors.metaText(theme),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(
+                  Icons.arrow_forward,
+                  color: theme.colorScheme.primary,
+                  semanticLabel: isReceiving ? 'owes' : 'pays',
                 ),
+              ),
+              _AvatarLabel(
+                displayName: widget.payeeDisplayName,
+                photoUrl: widget.payeePhotoUrl,
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            formatInrFromPaise(widget.suggestedAmountPaise),
+            style: OBTText.amountFocal(context),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: ctaOnPressed,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusButton),
+                ),
+              ),
+              icon: Icon(ctaIcon),
+              label: Text(ctaLabel),
+            ),
+          ),
+          if (cooling) ...[
+            const SizedBox(height: 8),
+            Text(
+              _cooldownCaption(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: OBTColors.metaText(theme),
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
