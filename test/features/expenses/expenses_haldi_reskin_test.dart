@@ -333,8 +333,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        // Invariant 1: the hero amount stays whole at 2.0x (never truncated).
+        // Invariant 1: the hero total AND both reflowed per-person split
+        // amounts stay whole at 2.0x (never truncated).
         expect(find.text(formatInrFromPaise(50000)), findsOneWidget);
+        expect(find.text(formatInrFromPaise(25000)), findsNWidgets(2));
       });
     }
   }

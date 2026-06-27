@@ -510,7 +510,10 @@ class _SplitBalanceRow extends StatelessWidget {
             // On a narrow width or at a large dynamic-type scale the dense
             // single row cannot hold the name beside the balance cluster, so
             // it reflows to a stacked layout where the cluster owns the full
-            // width and the amount wraps whole (04 section C.2).
+            // width and the amount wraps whole (04 section C.2). The
+            // thresholds: reflow once a 16 dp body size scales to >= 22 dp
+            // (~1.375x dynamic type), or the available width drops below a
+            // 240 dp floor.
             final scale = MediaQuery.textScalerOf(context).scale(16);
             final reflow = scale >= 22 || constraints.maxWidth < 240;
             if (reflow) {
