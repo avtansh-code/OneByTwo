@@ -444,21 +444,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _showSignOutDialog() async {
-    final confirmed = await OBTConfirmationDialog.show(
-      context,
-      title: 'Sign out?',
-      body:
-          'Are you sure you want to sign out? You will need to verify '
-          'your phone number again to sign back in.',
-      confirmLabel: 'Sign Out',
+    // Use the OBTConfirmationDialog widget directly (not the .show helper) so
+    // sign_out_cancelled is emitted ONLY on an explicit Cancel tap, matching
+    // the previous AlertDialog where a scrim / back dismiss logged nothing
+    // (no telemetry behaviour change).
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => OBTConfirmationDialog(
+        title: 'Sign out?',
+        body:
+            'Are you sure you want to sign out? You will need to verify '
+            'your phone number again to sign back in.',
+        confirmLabel: 'Sign Out',
+        onCancel: () {
+          unawaited(
+            ref
+                .read(analyticsServiceProvider)
+                .logEvent(name: 'sign_out_cancelled'),
+          );
+          Navigator.of(dialogContext).pop(false);
+        },
+        onConfirm: () => Navigator.of(dialogContext).pop(true),
+      ),
     );
 
-    if (!confirmed) {
-      await ref
-          .read(analyticsServiceProvider)
-          .logEvent(name: 'sign_out_cancelled');
-      return;
-    }
+    if (confirmed != true) return;
 
     try {
       await signOutWithFcmCleanup(ref);

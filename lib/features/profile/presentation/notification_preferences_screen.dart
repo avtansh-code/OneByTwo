@@ -365,6 +365,7 @@ class _LanguageSlot extends StatelessWidget {
     // language switching is built in DC-10).
     return Semantics(
       enabled: false,
+      excludeSemantics: true,
       label: 'Language, coming soon',
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -249,6 +249,15 @@ void main() {
       expect(find.text('Coming soon'), findsOneWidget);
       // The Language slot is inert: still exactly three toggle switches.
       expect(find.byType(Switch), findsNWidgets(3));
+
+      // Announced as a single merged node (excludeSemantics), not four.
+      final handle = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Language, coming soon'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Choose your preferred language.'),
+        findsNothing,
+      );
+      handle.dispose();
     });
 
     testWidgets('renders the SCR-27 app bar title', (tester) async {

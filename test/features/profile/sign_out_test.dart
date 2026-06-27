@@ -234,6 +234,30 @@ void main() {
       },
     );
 
+    testWidgets('dismissing via the barrier does not log sign_out_cancelled', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildProfile(analytics: analytics, authRepo: authRepo),
+      );
+      await tester.pumpAndSettle();
+
+      // Open dialog.
+      await tester.tap(find.text('Sign Out'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign out?'), findsOneWidget);
+
+      // Dismiss by tapping the scrim outside the dialog (not Cancel).
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Dialog dismissed, but — like the previous AlertDialog — a barrier
+      // dismiss logs nothing (no telemetry behaviour change).
+      expect(find.text('Sign out?'), findsNothing);
+      expect(analytics.loggedEvents, isNot(contains('sign_out_cancelled')));
+      expect(authRepo.signOutCalled, isFalse);
+    });
+
     testWidgets('tapping Sign Out (confirm) calls signOut and fires '
         'sign_out_completed', (tester) async {
       await tester.pumpWidget(
