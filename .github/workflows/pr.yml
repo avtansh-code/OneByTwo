@@ -146,7 +146,12 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Run unit & widget tests with coverage
-        run: flutter test --coverage
+        # Golden byte-comparisons are excluded here and run on the pinned
+        # golden-a11y-checks job instead: their baselines are engine/host-
+        # sensitive and must not float the stable channel (04 sec A.2). The
+        # a11y-contrast / a11y-dynamic-type families are not byte-comparisons,
+        # so they still run here and keep contributing coverage.
+        run: flutter test --coverage --exclude-tags golden
 
       - name: Check coverage threshold
         run: |
@@ -204,6 +209,80 @@ jobs:
         # `--tags a --tags b` is last-wins and would silently skip the first
         # family, so the `||` selector is required (see 04 §E).
         run: flutter test --tags "a11y-contrast || a11y-dynamic-type"
+
+  # ── Golden visual-regression gate + manual baseline refresh (DC-13) ──────────
+  # The golden comparison runs on a PINNED Flutter version (not the floating
+  # stable channel) because golden bytes are engine/host-sensitive (04 sec A.2);
+  # the manual golden-refresh job authors the baselines on the SAME pinned
+  # ubuntu image so a developer commits bytes the compare job will accept.
+  # No Firebase, no emulator, no secrets — pure `flutter test` runs (04 sec E,
+  # invariant 4 trivially holds).
+  golden-a11y-checks:
+    name: Golden & A11y Checks
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: >-
+      !cancelled()
+      && (needs.changes.result != 'success'
+      || needs.changes.outputs.flutter == 'true'
+      || needs.changes.outputs.ci == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Pinned (not just channel: stable) so the rasteriser matches the
+          # committed baselines on every run (04 sec A.2.2 / A.2.3).
+          flutter-version: 3.44.3
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Golden + contrast + dynamic-type checks (compare only)
+        # Boolean OR selector runs all three families in one pass; repeated
+        # `--tags a --tags b` is last-wins and would silently skip families
+        # (see 04 sec E). Compare only — CI never passes --update-goldens.
+        run: flutter test --tags "golden || a11y-contrast || a11y-dynamic-type"
+
+      - name: Upload golden failure diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-failures
+          path: '**/failures/*.png'
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # Manual-only: regenerates the golden baselines on the canonical ubuntu image
+  # and uploads them as an artifact for a developer to review and commit. Never
+  # runs on a pull request, so it can never silently overwrite a baseline (AC-2).
+  golden-refresh:
+    name: Golden Refresh (manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.3
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Regenerate golden baselines (ubuntu-latest)
+        run: flutter test --update-goldens --tags golden
+
+      - name: Upload regenerated baselines for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-baselines
+          path: test/golden/goldens/**
+          retention-days: 14
 
   # ── Cloud Functions: lint, test ─────────────────────────────────────────────
   functions-checks:

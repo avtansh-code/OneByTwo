@@ -8,13 +8,18 @@ library;
 // over-under red, the settle-up success moment and the inert UPI slot) are
 // queued here in light + dark (04-qa-test-strategy.md sections A.5 / A.6).
 //
-// The pixel comparison is intentionally SKIPPED, consistent with DC-01 /
-// DC-02: golden bytes are byte-sensitive across macOS/Linux, so baselines
-// must be authored on ubuntu-latest by the DC-13 `golden-a11y-checks` job
-// (04-qa-test-strategy.md sections A.2.2 and E). DC-13 un-skips this group,
-// bundles the fonts in `loadHaldiFonts`, and runs `--update-goldens` on the
-// canonical host. Animated surfaces (shimmer, sync spin, segment selection)
-// are captured at a pinned, reduced-motion frame (section A.2.5 / C.3).
+// This group is ENABLED, consistent with DC-01 / DC-02: the pixel
+// comparison runs and is no longer skipped. Determinism comes from the
+// bundled OFL fonts (Bricolage Grotesque + Hanken Grotesk), loaded once
+// via `loadHaldiFonts` in `golden_harness.dart` and served to google_fonts
+// through its test http seam, so the real Haldi type ramp rasterises
+// identically offline. Baselines are authored on ubuntu-latest via the
+// manual `golden-refresh` workflow and committed under `goldens/`; the
+// `golden-a11y-checks` CI job (pinned Flutter version) compares against
+// them on every PR and fails on any unintended pixel diff
+// (04-qa-test-strategy.md sections A.2.2 and E). Animated surfaces
+// (shimmer, sync spin, segment selection) are captured at a pinned,
+// reduced-motion frame (section A.2.5 / C.3).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -228,26 +233,20 @@ Widget _settleUp({
 }
 
 void main() {
-  group(
-    'Haldi shared components (DC-03)',
-    () {
-      setUp(loadHaldiFonts);
+  group('Haldi shared components (DC-03)', () {
+    setUp(loadHaldiFonts);
 
-      _cases().forEach((name, build) {
-        for (final brightness in Brightness.values) {
-          final theme = brightness.name;
-          testWidgets('$name ($theme)', (tester) async {
-            await pumpForGolden(tester, build(), brightness: brightness);
-            await expectLater(
-              find.byType(MaterialApp),
-              matchesGoldenFile('goldens/haldi_${name}__$theme.png'),
-            );
-          });
-        }
-      });
-    },
-    skip:
-        'Baselines authored on ubuntu-latest by DC-13 '
-        '(04-qa-test-strategy.md sections A.2.2 and E).',
-  );
+    _cases().forEach((name, build) {
+      for (final brightness in Brightness.values) {
+        final theme = brightness.name;
+        testWidgets('$name ($theme)', (tester) async {
+          await pumpForGolden(tester, build(), brightness: brightness);
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/haldi_${name}__$theme.png'),
+          );
+        });
+      }
+    });
+  });
 }
