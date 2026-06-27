@@ -224,6 +224,9 @@ void main() {
 
   // --- B.1 / B.2: contrast gate incl. the white-on-marigold negative case ---
   group('contrast gate', () {
+    // Only the balancePositive "received" hue carries a text-legibility floor.
+    // The saffron `warning` reminder hue is a decorative caution tint paired
+    // with the AA-legible title + body, so it is deliberately left un-floored.
     test('the balancePositive settlement hue clears AA on the surface '
         '(light + dark)', () {
       final cases = <(OBTColors, ColorScheme)>[
@@ -235,9 +238,8 @@ void main() {
           _contrastRatio(obt.balancePositive, scheme.surface),
           greaterThanOrEqualTo(4.5),
           reason:
-              'the settlement-received positive signal must be legible; '
-              'the saffron warning hue is a decorative caution tint paired '
-              'with the AA-legible title + body, so it carries no text floor',
+              'the settlement-received positive signal must stay legible on '
+              'the surface',
         );
       }
     });
