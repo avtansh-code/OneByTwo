@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/features/notifications/domain/notification_payload.dart';
 
 /// Foreground in-app notification banner (FR-AC-03, wireframes §2).
@@ -110,8 +112,10 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final isDark = theme.brightness == Brightness.dark;
     final iconData = _iconForType(widget.payload.type);
-    final iconColor = _iconColorForType(widget.payload.type, theme);
+    final iconColor = _iconColorForType(widget.payload.type, theme, obtColors);
     final semanticLabel =
         '${widget.payload.title}. ${widget.payload.body}. '
         'Tap to view details. Swipe up to dismiss.';
@@ -134,14 +138,11 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
               constraints: const BoxConstraints(minHeight: 64),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                boxShadow: obtColors.rowShadow,
+                border: isDark
+                    ? Border.all(color: theme.colorScheme.outline)
+                    : null,
               ),
               padding: const EdgeInsets.all(12),
               child: Row(
@@ -158,9 +159,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                           widget.payload.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -168,9 +167,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
-                            ),
+                            color: OBTColors.metaText(theme),
                           ),
                         ),
                       ],
@@ -199,18 +196,25 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
     }
   }
 
-  Color _iconColorForType(NotificationType type, ThemeData theme) {
+  Color _iconColorForType(
+    NotificationType type,
+    ThemeData theme,
+    OBTColors obtColors,
+  ) {
     switch (type) {
       case NotificationType.expenseAdded:
       case NotificationType.expenseEdited:
       case NotificationType.expenseDeleted:
         return theme.colorScheme.primary;
       case NotificationType.settlementReceived:
-        // Success token #2A9D8F per design tokens.
-        return const Color(0xFF2A9D8F);
+        // Haldi success/positive token (DC-09 re-point of the old #2A9D8F):
+        // the settlement-received event reuses the balance-positive hue,
+        // matching the OBTSettleUpSheet success check.
+        return obtColors.balancePositive;
       case NotificationType.reminder:
-        // Secondary saffron #F4A261 per design tokens.
-        return const Color(0xFFF4A261);
+        // Haldi caution token (DC-09 re-point of the old #F4A261): a reminder
+        // is a nudge/cooldown, so it takes the saffron warning hue.
+        return obtColors.warning;
       case NotificationType.groupInvite:
         return theme.colorScheme.primary;
     }

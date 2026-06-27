@@ -139,6 +139,38 @@ void main() {
       );
     });
   });
+
+  group('notifications boundary contract — no hard-coded Haldi hex in the '
+      'converted surfaces (invariant: tokens only, AC-3, DC-09)', () {
+    const bannerPath =
+        'lib/features/notifications/presentation/widgets/'
+        'in_app_notification_banner.dart';
+    const dialogPath =
+        'lib/features/notifications/presentation/pre_permission_dialog.dart';
+    for (final path in <String>[bannerPath, dialogPath]) {
+      test('$path contains no `Color(0x…)` literal — every colour flows from '
+          'Theme.of(context).colorScheme / OBTColors tokens', () {
+        final file = File(path);
+        if (!file.existsSync()) {
+          fail('Expected $path to exist (DC-09 converted surface)');
+        }
+        final violations = <String>[];
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          final line = lines[i];
+          if (_isCommentLine(line)) continue;
+          if (line.contains(RegExp(r'Color\(0x'))) {
+            violations.add(
+              '$path:${i + 1}: forbidden hard-coded hex `Color(0x…)` — '
+              're-point to a Haldi token (ColorScheme / OBTColors); a literal '
+              'hex left at a call site is a blocking defect',
+            );
+          }
+        }
+        expect(violations, isEmpty, reason: violations.join('\n'));
+      });
+    }
+  });
 }
 
 List<String> _scanForFloatViolations(Directory dir) {

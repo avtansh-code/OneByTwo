@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/core/routing/notification_deep_links.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
 import 'package:onebytwo/core/widgets/lists/obt_activity_row.dart';
 import 'package:onebytwo/features/activity/application/activity_feed_provider.dart';
 import 'package:onebytwo/features/activity/application/relative_timestamp_formatter.dart';
@@ -339,46 +341,26 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ExcludeSemantics(
-              child: Icon(
-                Icons.notifications_none_outlined,
-                size: 64,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Semantics(
-              header: true,
-              child: Text(
-                'All quiet here',
-                style: theme.textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Your activity will show up as you add expenses and settle up.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onAddExpense,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Expense'),
-            ),
-          ],
+    final colors = Theme.of(context).colorScheme;
+    return OBTEmptyState(
+      illustration: Container(
+        width: 110,
+        height: 110,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.notifications_none_outlined,
+          size: 52,
+          color: colors.primary,
         ),
       ),
+      headline: 'All quiet here',
+      supportingText:
+          'Your activity will show up as you add expenses and settle up.',
+      ctaLabel: 'Add Expense',
+      onCta: onAddExpense,
     );
   }
 }
@@ -408,7 +390,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               'We could not load your activity. Please try again.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: OBTColors.metaText(theme),
               ),
               textAlign: TextAlign.center,
             ),
