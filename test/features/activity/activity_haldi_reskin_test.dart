@@ -212,6 +212,22 @@ void main() {
     expect(find.text(formatInrFromPaise(12345)), findsOneWidget);
   });
 
+  testWidgets('feed does not overflow at 2.0x (390 dp), dark', (tester) async {
+    await _pumpFeed(
+      tester,
+      repo: FakeActivityFeedRepository(
+        items: <ActivityFeedItem>[fakeExpenseAdded()],
+      ),
+      analytics: RecordingAnalytics(),
+      profiles: <String, UserModel?>{_otherUid: _user('Priya')},
+      brightness: Brightness.dark,
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(formatInrFromPaise(12345)), findsOneWidget);
+  });
+
   testWidgets('feed amount never truncates at 2.0x (320 dp)', (tester) async {
     await _pumpFeed(
       tester,

@@ -283,29 +283,34 @@ void main() {
   // to issue #128 (the component is not editable in this flow PR); the
   // Invariant-1 guarantee this gate pins is that the amount stays WHOLE
   // (never truncated) at both widths.
-  for (final width in <double>[390, 320]) {
-    testWidgets('history does not overflow at 2.0x (${width.toInt()} dp)', (
-      tester,
-    ) async {
-      await _pumpHistory(
-        tester,
-        repo: FakeSettlementRepository(
-          history: <SettlementDoc>[
-            fakeSettlement(
-              id: 'out',
-              date: DateTime(2026, 6, 24),
-              note: 'UPI transfer',
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    for (final width in <double>[390, 320]) {
+      testWidgets(
+        'history does not overflow at 2.0x (${width.toInt()} dp, $mode)',
+        (tester) async {
+          await _pumpHistory(
+            tester,
+            repo: FakeSettlementRepository(
+              history: <SettlementDoc>[
+                fakeSettlement(
+                  id: 'out',
+                  date: DateTime(2026, 6, 24),
+                  note: 'UPI transfer',
+                ),
+              ],
             ),
-          ],
-        ),
-        analytics: RecordingAnalytics(),
-        textScale: 2,
-        surfaceSize: Size(width, 844),
-      );
+            analytics: RecordingAnalytics(),
+            brightness: brightness,
+            textScale: 2,
+            surfaceSize: Size(width, 844),
+          );
 
-      expect(tester.takeException(), isNull);
-      expect(find.text(formatInrFromPaise(-50000)), findsOneWidget);
-    });
+          expect(tester.takeException(), isNull);
+          expect(find.text(formatInrFromPaise(-50000)), findsOneWidget);
+        },
+      );
+    }
   }
 
   testWidgets('settle-up does not overflow at 2.0x (390 dp), amount whole', (
@@ -315,6 +320,21 @@ void main() {
       tester,
       repo: FakeSettlementRepository(),
       analytics: RecordingAnalytics(),
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(formatInrFromPaise(50000)), findsOneWidget);
+  });
+
+  testWidgets('settle-up does not overflow at 2.0x (390 dp), dark', (
+    tester,
+  ) async {
+    await _pumpSheet(
+      tester,
+      repo: FakeSettlementRepository(),
+      analytics: RecordingAnalytics(),
+      brightness: Brightness.dark,
       textScale: 2,
     );
 

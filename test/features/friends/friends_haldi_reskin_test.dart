@@ -174,6 +174,23 @@ double _contrastRatio(Color a, Color b) {
   return la > lb ? la / lb : lb / la;
 }
 
+/// The [BoxDecoration] of the [FriendListTile]'s outer surface card — the one
+/// rounded to [AppTheme.radiusLarge] that carries the `rowShadow` / outline.
+BoxDecoration _tileDecoration(WidgetTester tester) {
+  return tester
+      .widgetList<DecoratedBox>(
+        find.descendant(
+          of: find.byType(FriendListTile),
+          matching: find.byType(DecoratedBox),
+        ),
+      )
+      .map((box) => box.decoration)
+      .whereType<BoxDecoration>()
+      .firstWhere(
+        (d) => d.borderRadius == BorderRadius.circular(AppTheme.radiusLarge),
+      );
+}
+
 void main() {
   for (final brightness in Brightness.values) {
     final mode = brightness == Brightness.light ? 'light' : 'dark';
@@ -286,6 +303,42 @@ void main() {
     });
   }
 
+  // --- DC-11 (#123): the canonical shadow -> outline swap (AC-1) ---
+  // friend_list_tile is the one hero surface that leans on rowShadow for
+  // separation; in dark rowShadow collapses to [] and a 1px `outline` border
+  // takes over so the tile never vanishes into the dark surface (03 §2.2).
+  testWidgets('FriendListTile swaps rowShadow -> outline border in dark', (
+    tester,
+  ) async {
+    await pumpThemed(
+      tester,
+      FriendListTile(item: _item(netBalancePaise: 150000), onTap: () {}),
+      brightness: Brightness.dark,
+    );
+
+    final deco = _tileDecoration(tester);
+    expect(deco.boxShadow, isEmpty, reason: 'rowShadow collapses in dark');
+    expect(deco.border, isNotNull, reason: 'a 1px outline border replaces it');
+    expect(
+      (deco.border! as Border).top.color,
+      AppTheme.dark.colorScheme.outline,
+    );
+  });
+
+  testWidgets('FriendListTile keeps the soft rowShadow (no border) in light', (
+    tester,
+  ) async {
+    await pumpThemed(
+      tester,
+      FriendListTile(item: _item(netBalancePaise: 150000), onTap: () {}),
+    );
+
+    final deco = _tileDecoration(tester);
+    expect(deco.boxShadow, OBTColors.light.rowShadow);
+    expect(deco.boxShadow, isNotEmpty);
+    expect(deco.border, isNull, reason: 'light mode separates by shadow');
+  });
+
   // --- section B.1/B.2: contrast gate incl. the negative case ---
   group('contrast gate', () {
     test('balance-trio colours clear AA (>= 4.5:1) on the surface, '
@@ -348,27 +401,31 @@ void main() {
     await expectAllTapTargetsMeetMinSize(tester);
   });
 
-  // --- section C: dynamic type to 2.0x, no overflow at 390 and 320 dp ---
-  for (final width in <double>[390, 320]) {
-    testWidgets('populated list does not overflow at 2.0x text scale '
-        '(${width.toInt()} dp wide)', (tester) async {
-      await _pumpFriendsList(
-        tester,
-        <FriendListItem>[
-          _item(netBalancePaise: 695000),
-          _item(
-            netBalancePaise: -210000,
-            displayName: 'Bina Kapoor',
-            friendshipId: 'uid-b_uid-me',
-            otherUserId: 'uid-b',
-          ),
-        ],
-        textScale: 2,
-        surfaceSize: Size(width, 844),
-      );
+  // --- section C: dynamic type 2.0x, no overflow at 390/320 (light + dark) ---
+  for (final brightness in Brightness.values) {
+    final mode = brightness == Brightness.light ? 'light' : 'dark';
+    for (final width in <double>[390, 320]) {
+      testWidgets('populated list does not overflow at 2.0x text scale '
+          '(${width.toInt()} dp, $mode)', (tester) async {
+        await _pumpFriendsList(
+          tester,
+          <FriendListItem>[
+            _item(netBalancePaise: 695000),
+            _item(
+              netBalancePaise: -210000,
+              displayName: 'Bina Kapoor',
+              friendshipId: 'uid-b_uid-me',
+              otherUserId: 'uid-b',
+            ),
+          ],
+          brightness: brightness,
+          textScale: 2,
+          surfaceSize: Size(width, 844),
+        );
 
-      expect(tester.takeException(), isNull);
-    });
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 
   // --- section C.3: reduced motion freezes the loading shimmer ---
