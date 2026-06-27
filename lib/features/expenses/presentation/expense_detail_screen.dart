@@ -467,23 +467,73 @@ class _SplitBalanceRow extends StatelessWidget {
     final icon = isPayer ? Icons.arrow_upward : Icons.arrow_downward;
     final label = isPayer ? 'gets back' : 'owes';
     final amount = formatInrFromPaise(paise);
+
+    final nameText = Text(
+      name,
+      style: theme.textTheme.bodyLarge,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    final iconLabel = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 16, color: hue),
+        const SizedBox(width: 4),
+        Text(label, style: theme.textTheme.labelMedium?.copyWith(color: hue)),
+      ],
+    );
+
+    final amountText = Text(
+      amount,
+      style: OBTText.amount(context).copyWith(color: hue),
+    );
+
+    // Colour + icon + label + tabular amount (never colour alone); the
+    // amount is always rendered whole (Invariant 1 — the rupee figure must
+    // never truncate), wrapping onto its own line when the label and amount
+    // cannot share one (04 section C.2 — the row may grow).
+    final balanceCluster = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 2,
+      children: <Widget>[iconLabel, amountText],
+    );
+
     return Semantics(
       excludeSemantics: true,
       label: '$name $label $amount',
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: <Widget>[
-            Expanded(child: Text(name, style: theme.textTheme.bodyLarge)),
-            Icon(icon, size: 16, color: hue),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(color: hue),
-            ),
-            const SizedBox(width: 8),
-            Text(amount, style: OBTText.amount(context).copyWith(color: hue)),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // On a narrow width or at a large dynamic-type scale the dense
+            // single row cannot hold the name beside the balance cluster, so
+            // it reflows to a stacked layout where the cluster owns the full
+            // width and the amount wraps whole (04 section C.2). The
+            // thresholds: reflow once a 16 dp body size scales to >= 22 dp
+            // (~1.375x dynamic type), or the available width drops below a
+            // 240 dp floor.
+            final scale = MediaQuery.textScalerOf(context).scale(16);
+            final reflow = scale >= 22 || constraints.maxWidth < 240;
+            if (reflow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  nameText,
+                  const SizedBox(height: 4),
+                  balanceCluster,
+                ],
+              );
+            }
+            return Row(
+              children: <Widget>[
+                Expanded(child: nameText),
+                const SizedBox(width: 8),
+                balanceCluster,
+              ],
+            );
+          },
         ),
       ),
     );
