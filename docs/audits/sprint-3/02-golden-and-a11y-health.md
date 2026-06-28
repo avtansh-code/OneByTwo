@@ -72,22 +72,24 @@ green in the affected-area run (989 passed).
 
 ## 2.3 Golden authoring discipline
 
-Confirmed from `.github/workflows/pr.yml`:
+Confirmed from `.github/workflows/`:
 
-- `golden-refresh` (**Golden Refresh (manual)**): `if: github.event_name == 'workflow_dispatch'`,
-  `runs-on: ubuntu-latest`, `flutter-version: 3.44.3`, runs
-  `flutter test --update-goldens --tags golden`, uploads the `golden-baselines` artifact.
-  This is the sole authoring path.
-- `golden-a11y-checks` (**Golden & A11y Checks**): `runs-on: ubuntu-latest`,
-  `flutter-version: 3.44.3`, `if: … && github.event_name != 'workflow_dispatch'` (the #141 fix
-  — compare skips on dispatch), runs the **compare-only** boolean-OR selector
+- `golden-refresh` (**Golden Refresh**): now a **standalone** `.github/workflows/golden-refresh.yml`
+  workflow (`on: workflow_dispatch`), `runs-on: ubuntu-latest`, `flutter-version: 3.44.3`, runs
+  `flutter test --update-goldens --tags golden`, uploads the `golden-baselines` artifact. This is
+  the sole authoring path. (Extracted from `pr.yml` in this cleanup PR so a refresh no longer
+  spins up the whole PR pipeline; invoke with `gh workflow run golden-refresh.yml --ref <branch>`.)
+- `golden-a11y-checks` (**Golden & A11y Checks**, in `pr.yml`): `runs-on: ubuntu-latest`,
+  `flutter-version: 3.44.3`, runs the **compare-only** boolean-OR selector
   `--tags "golden || a11y-contrast || a11y-dynamic-type"`; CI never passes `--update-goldens`.
+  (Now that golden refresh is its own workflow, the former `&& github.event_name != 'workflow_dispatch'`
+  guard — the #141 fix — is removed, so a manual `pr.yml` dispatch validates goldens too.)
 - `flutter-checks` runs `flutter test --coverage --exclude-tags golden`.
 - `a11y-checks` (**Accessibility Gate (WCAG AA)**): `runs-on: ubuntu-latest`, runs
   `--tags "a11y-contrast || a11y-dynamic-type"` on `pull_request`.
 
 Both golden jobs run on **ubuntu-latest at the same pinned Flutter 3.44.3**, so baselines the
-refresh job authors are byte-comparable to what the compare job checks. **No macOS bytes crept
+refresh workflow authors are byte-comparable to what the compare job checks. **No macOS bytes crept
 in this session** — every local `--update-goldens` run (the rupee inspection and the dc07/08/09
 guard verification) was discarded; `git status test/golden/goldens/` is clean. Provenance of
 every committed baseline is the ubuntu refresh job.

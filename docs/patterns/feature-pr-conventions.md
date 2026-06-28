@@ -96,11 +96,11 @@ test/features/<feature>/
 | Integration | `integration_test` + Emulator Suite | End-to-end user journeys against Firebase emulators. | `integration_test/` |
 
 Goldens pin the Haldi *look* (a thin tier on top of the wide unit/widget base — they do not
-substitute for behaviour tests). Author baselines only on `ubuntu-latest` via the
-`golden-refresh` `workflow_dispatch` job, never macOS `--update-goldens`; build single-use
-streams as `Stream Function()` builders and add the `expectGoldenState` guard to error-bearing
-loops. Full rules live in `.github/shared/coding-standards.md` (golden tests) and ADR-0026 — do
-not duplicate them here.
+substitute for behaviour tests). Author baselines only on `ubuntu-latest` via the standalone
+`.github/workflows/golden-refresh.yml` workflow (`gh workflow run golden-refresh.yml --ref
+<branch>`), never macOS `--update-goldens`; build single-use streams as `Stream Function()`
+builders and add the `expectGoldenState` guard to error-bearing loops. Full rules live in
+`.github/shared/coding-standards.md` (golden tests) and ADR-0026 — do not duplicate them here.
 
 ### Minimum coverage shape for a feature
 

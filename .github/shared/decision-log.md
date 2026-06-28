@@ -2165,8 +2165,9 @@ draws on one line must fit one line; (c) a golden can pass while rendering the w
 3. **Golden fixtures render the intended state.** Single-subscription streams in golden fixtures use
    `Stream Function()` builders (fresh per pump), and every error-bearing state loop carries the
    self-validating `expectGoldenState` guard so a wrong-state render fails loudly instead of blessing
-   a broken baseline. Baselines are authored only on `ubuntu-latest` via the `golden-refresh`
-   `workflow_dispatch` job; macOS `--update-goldens` bytes are never committed.
+   a broken baseline. Baselines are authored only on `ubuntu-latest` via the standalone
+   `golden-refresh` `workflow_dispatch` workflow (`.github/workflows/golden-refresh.yml`); macOS
+   `--update-goldens` bytes are never committed.
 
 ### Consequences
 

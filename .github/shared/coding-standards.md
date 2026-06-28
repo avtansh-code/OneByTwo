@@ -50,10 +50,12 @@ skill must follow them. Reference: SRS section 5.7.
 
 - The Haldi handoff (`design_handoff_one_by_two/`) is the canonical visual source of truth
   (ADR-0024). Match its tokens; do not build against the superseded `docs/design/` visual docs.
-- **Goldens are host-sensitive and authored only on `ubuntu-latest`** via the `golden-refresh`
-  `workflow_dispatch` job (`flutter test --update-goldens --tags golden`). Never commit macOS
-  `--update-goldens` bytes. The `golden-a11y-checks` job compares (never updates) and skips on
-  `workflow_dispatch`. Review every changed PNG as an image before merge.
+- **Goldens are host-sensitive and authored only on `ubuntu-latest`** via the standalone
+  `.github/workflows/golden-refresh.yml` workflow (`gh workflow run golden-refresh.yml --ref
+  <branch>`, which runs `flutter test --update-goldens --tags golden` and uploads the
+  `golden-baselines` artifact). Never commit macOS `--update-goldens` bytes. The
+  `golden-a11y-checks` job compares (never updates). Review every changed PNG as an image
+  before merge.
 - **Golden fixtures must render the intended state.** Build any single-subscription `Stream`
   (`Stream.value` / `Stream.error` / `StreamController().stream`) with a `Stream Function()`
   builder so each pump gets a fresh stream (a shared one is consumed by the first pump and
