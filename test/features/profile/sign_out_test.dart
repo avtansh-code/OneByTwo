@@ -230,7 +230,7 @@ void main() {
         expect(authRepo.signOutCalled, isFalse);
 
         // User should still be on the profile screen.
-        expect(find.text('Profile'), findsOneWidget);
+        expect(find.text('Edit profile'), findsOneWidget);
       },
     );
 

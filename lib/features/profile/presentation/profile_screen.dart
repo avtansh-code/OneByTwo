@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/constants/legal_urls.dart';
+import 'package:onebytwo/core/services/url_launcher_service.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
@@ -54,10 +58,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authAsync = ref.watch(authStateProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        automaticallyImplyLeading: false,
-      ),
       body: authAsync.when(
         loading: _buildLoadingState,
         error: (error, _) => _buildErrorState(theme, ref),
@@ -177,6 +177,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // `friendsListProvider`; a count read failure renders an em dash
     // (never a crash) and never blocks the rest of the screen.
     final friendCountAsync = ref.watch(friendCountProvider);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
     final friendsCountText = _friendCountLabel(friendCountAsync);
     final friendsSemanticsLabel = switch (friendCountAsync) {
       AsyncData(:final value) => 'My Friends, $value, button',
@@ -184,10 +185,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     };
     return SafeArea(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Section 1 — Profile header.
+          // Header — avatar, name, +91, and the "Edit profile" pill.
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
             child: Column(
               children: [
                 Semantics(
@@ -208,178 +210,192 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Semantics(
                   label:
                       'Phone number: ${_formatPhoneForA11y(user.phoneNumber)}',
                   child: Text(
                     _formatPhoneDisplay(user.phoneNumber),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: OBTColors.metaText(theme),
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.onSurface,
+                    backgroundColor: theme.colorScheme.surface,
+                    side: BorderSide(color: theme.colorScheme.outline),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 9,
+                    ),
+                  ),
+                  icon: const Icon(Icons.edit, size: 17),
+                  label: const Text('Edit profile'),
+                ),
+              ],
+            ),
+          ),
+
+          // Stat cards — Friends + Groups.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.group,
+                    iconColour: theme.colorScheme.primary,
+                    value: friendsCountText,
+                    label: 'Friends',
+                    semanticsLabel: friendsSemanticsLabel,
+                    onTap: () {
+                      ref
+                          .read(analyticsServiceProvider)
+                          .logEvent(name: ProfileStatsTelemetry.friendsTapped);
+                      ref
+                          .read(shellNavigationControllerProvider.notifier)
+                          .selectTab(1);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.groups,
+                    // The category-violet from the Haldi palette (Rent hue).
+                    iconColour: obtColors.categoryColor(OBTCategory.rent),
+                    // Groups are README-only (Sprint 4 epic) — literal stub.
+                    value: '0',
+                    label: 'Groups',
+                    semanticsLabel: 'My Groups, 0, button',
+                    onTap: () {
+                      ref
+                          .read(analyticsServiceProvider)
+                          .logEvent(name: ProfileStatsTelemetry.groupsTapped);
+                      ref
+                          .read(shellNavigationControllerProvider.notifier)
+                          .selectTab(2);
+                    },
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
 
-          // Section 2 — Stats.
-          Semantics(
-            button: true,
-            label: friendsSemanticsLabel,
-            child: _ProfileRow(
-              icon: Icons.people,
-              label: 'My Friends',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    friendsCountText,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ],
-              ),
-              onTap: () {
-                // Fire-and-forget telemetry (no await) then switch to the
-                // Friends tab via the shell controller — NOT a duplicate
-                // FriendsListScreen push (AC-5). Parameter-free event
-                // (AC-9): a friend count is a non-identifying integer.
-                ref
-                    .read(analyticsServiceProvider)
-                    .logEvent(name: ProfileStatsTelemetry.friendsTapped);
-                ref
-                    .read(shellNavigationControllerProvider.notifier)
-                    .selectTab(1);
-              },
+          // Settings card.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.notifications_outlined,
+                  label: 'Notifications',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const NotificationPreferencesScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _SettingsRow(
+                  icon: Icons.dark_mode_outlined,
+                  label: 'Appearance',
+                  trailingText: 'System',
+                  onTap: _openAppearance,
+                ),
+                _SettingsRow(
+                  icon: Icons.help_outline,
+                  label: 'Help & support',
+                  onTap: _contactSupport,
+                ),
+                _SettingsRow(
+                  icon: Icons.shield_outlined,
+                  label: 'Privacy & terms',
+                  onTap: _openPrivacyAndTerms,
+                ),
+              ],
             ),
           ),
-          Semantics(
-            button: true,
-            label: 'My Groups, 0, button',
-            child: _ProfileRow(
-              icon: Icons.groups,
-              label: 'My Groups',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    // Groups are README-only (Sprint 3 epic); the count
-                    // is a literal stub. The Sprint 3 Groups epic swaps
-                    // this for a real `groupCountProvider` without
-                    // changing the row or navigation contract.
-                    '0',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ],
-              ),
-              onTap: () {
-                ref
-                    .read(analyticsServiceProvider)
-                    .logEvent(name: ProfileStatsTelemetry.groupsTapped);
-                ref
-                    .read(shellNavigationControllerProvider.notifier)
-                    .selectTab(2);
-              },
-            ),
-          ),
-          const Divider(height: 1),
 
-          // Section 3 — Actions.
-          Semantics(
-            button: true,
-            label: 'Edit Profile, button',
-            child: _ProfileRow(
-              icon: Icons.edit,
-              label: 'Edit Profile',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const EditProfileScreen(),
-                  ),
-                );
-              },
+          // Sign out (danger).
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+            child: _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.logout,
+                  label: 'Sign out',
+                  danger: true,
+                  showChevron: false,
+                  onTap: _showSignOutDialog,
+                ),
+              ],
             ),
           ),
-          Semantics(
-            button: true,
-            label: 'Notification Preferences, button',
-            child: _ProfileRow(
-              icon: Icons.notifications_outlined,
-              label: 'Notification Preferences',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const NotificationPreferencesScreen(),
-                  ),
-                );
-              },
-            ),
-          ),
-          Semantics(
-            button: true,
-            label: 'Contact Support, button',
-            child: _ProfileRow(
-              icon: Icons.mail,
-              label: 'Contact Support',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-              onTap: _contactSupport,
-            ),
-          ),
-          const Divider(height: 1),
 
-          // Section 4 — Destructive.
-          Semantics(
-            button: true,
-            label: 'Sign Out, button',
-            child: _ProfileRow(
-              icon: Icons.logout,
-              label: 'Sign out',
-              iconColour: theme.colorScheme.error,
-              labelColour: theme.colorScheme.error,
-              onTap: _showSignOutDialog,
-            ),
-          ),
-          Semantics(
-            button: true,
-            label: 'Delete Account, button',
-            child: _ProfileRow(
-              icon: Icons.delete_forever,
-              label: 'Delete Account',
-              iconColour: theme.colorScheme.error,
-              labelColour: theme.colorScheme.error,
-              onTap: _openDeleteAccount,
+          // Delete account — kept reachable (FR-AU-09); a quiet danger row
+          // below sign-out (the handoff root omits it, but the shipped
+          // feature must not be orphaned).
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+            child: _SettingsCard(
+              children: [
+                _SettingsRow(
+                  icon: Icons.delete_forever,
+                  label: 'Delete account',
+                  danger: true,
+                  showChevron: false,
+                  onTap: _openDeleteAccount,
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// Appearance (theme) is designed but not yet built — surface a
+  /// "coming soon" hint rather than a dead control.
+  void _openAppearance() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Appearance options are coming soon.')),
+    );
+  }
+
+  /// Opens the Privacy Policy in the system browser (the "Privacy & terms"
+  /// settings row). Falls back to a hint snackbar if no handler exists.
+  Future<void> _openPrivacyAndTerms() async {
+    final launcher = ref.read(urlLauncherServiceProvider);
+    final uri = Uri.parse(LegalUrls.privacyPolicy);
+    var launched = false;
+    if (await launcher.canLaunch(uri)) {
+      launched = await launcher.launchExternal(uri);
+    }
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not open the link. Visit ${LegalUrls.privacyPolicy}',
+          ),
+        ),
+      );
+    }
   }
 
   /// Runs the Contact Support flow (FR-PR-05 / FR-SH-03): launches the
@@ -467,45 +483,188 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
-/// A single row in the profile screen with consistent 56dp
-/// height, leading icon, label, and optional trailing widget.
-class _ProfileRow extends StatelessWidget {
-  const _ProfileRow({
+/// A profile stat card (Friends / Groups) — a white surface card holding a
+/// hued icon, a Bricolage count, and a label, per the Haldi 27 stat row.
+class _StatCard extends StatelessWidget {
+  const _StatCard({
     required this.icon,
+    required this.iconColour,
+    required this.value,
     required this.label,
-    this.trailing,
-    this.onTap,
-    this.iconColour,
-    this.labelColour,
+    required this.semanticsLabel,
+    required this.onTap,
   });
 
   final IconData icon;
+  final Color iconColour;
+  final String value;
   final String label;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? iconColour;
-  final Color? labelColour;
+  final String semanticsLabel;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColour ?? theme.colorScheme.primary),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(color: labelColour),
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: Material(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+              boxShadow: obtColors.rowShadow,
+              border: theme.brightness == Brightness.dark
+                  ? Border.all(color: theme.colorScheme.outline)
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(icon, size: 22, color: iconColour),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        value,
+                        style: OBTText.amount(context).copyWith(fontSize: 17),
+                      ),
+                      Text(
+                        label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: OBTColors.metaText(theme),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            if (trailing != null) trailing!,
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rounded settings card grouping [_SettingsRow]s with hairline dividers
+/// between them (the Haldi 27 settings list).
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      rows.add(children[i]);
+      if (i != children.length - 1) {
+        rows.add(
+          Divider(
+            height: 1,
+            indent: 15,
+            endIndent: 15,
+            color: theme.dividerColor,
+          ),
+        );
+      }
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        boxShadow: obtColors.rowShadow,
+        border: theme.brightness == Brightness.dark
+            ? Border.all(color: theme.colorScheme.outline)
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+      ),
+    );
+  }
+}
+
+/// A single row inside a [_SettingsCard]: a neutral leading icon, a label,
+/// an optional trailing value, and a chevron. [danger] tints the icon +
+/// label with the error colour (sign-out / delete).
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailingText,
+    this.danger = false,
+    this.showChevron = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? trailingText;
+  final bool danger;
+  final bool showChevron;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColour = danger
+        ? theme.colorScheme.error
+        : OBTColors.metaText(theme);
+    final labelColour = danger ? theme.colorScheme.error : null;
+    return Semantics(
+      button: true,
+      label: '$label, button',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: 52,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Row(
+              children: [
+                Icon(icon, size: 22, color: iconColour),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: labelColour,
+                    ),
+                  ),
+                ),
+                if (trailingText != null) ...[
+                  Text(
+                    trailingText!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: OBTColors.metaText(theme),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                if (showChevron)
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
