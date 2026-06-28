@@ -1,14 +1,17 @@
 # Sprint 3 Plan
 
-> **Sprint theme:** Design Conversion (Haldi visual system). **Status:** Planned.
+> **Sprint theme:** Design Conversion (Haldi visual system). **Status:** CLOSED
+> (2026-06-28) — milestone `Sprint 3` at 18/18 issues, 0 open. DC-01..DC-13 (#113–#125),
+> the trailing #128 (§4.1 reconciliation / ADR-0025) and #110 (nightly deploy / #142), the
+> design-fidelity follow-up #143, and the **Sprint 3 → Sprint 4 boundary sweep**
+> (`docs/audits/sprint-3/`, cleanup **PR #144**) all shipped. The boundary sweep is treated as
+> a cleanup PR (not a velocity-counted story PR), mirroring the Sprint-1/2 retro precedent.
 > This plan executes the Design Conversion planning pack
 > (`docs/audits/design-conversion/`) and ADR-0024. It migrates the already-built
 > app and the shared component library onto the **"Direction A — Haldi"** visual
 > system (`design_handoff_one_by_two/`). The migration is **visual/UX only**: it
 > changes no data model, Firestore security rule, simplified-debts algorithm, or
-> Cloud Function. The four invariants are re-affirmed, never weakened. This planning
-> document touches no `lib/**` file; the first conversion PR (PR #1, the design-token
-> foundation) is the next session.
+> Cloud Function. The four invariants are re-affirmed, never weakened.
 
 ---
 
