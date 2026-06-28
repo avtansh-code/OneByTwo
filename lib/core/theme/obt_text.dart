@@ -51,4 +51,19 @@ class OBTText {
     final base = Theme.of(context).textTheme.displayLarge ?? const TextStyle();
     return base.copyWith(fontFeatures: _tabularFigures);
   }
+
+  /// Appends the Bricolage Grotesque family (the amount-row `titleSmall`
+  /// slot of [theme]) to [style]'s font fallbacks so the rupee sign
+  /// (U+20B9) renders from Bricolage when an amount is embedded in a Hanken
+  /// text run: the bundled Hanken static instance has no rupee glyph, so
+  /// without this fallback the sign renders as a missing-glyph box. Only the
+  /// missing glyph borrows Bricolage; the surrounding prose is unchanged.
+  static TextStyle? rupeeAware(ThemeData theme, TextStyle? style) {
+    if (style == null) return null;
+    final bricolage = theme.textTheme.titleSmall?.fontFamily;
+    if (bricolage == null) return style;
+    return style.copyWith(
+      fontFamilyFallback: <String>[...?style.fontFamilyFallback, bricolage],
+    );
+  }
 }
