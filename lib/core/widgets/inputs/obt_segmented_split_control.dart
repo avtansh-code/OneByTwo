@@ -175,7 +175,10 @@ class _OBTSegmentedSplitControlState extends State<OBTSegmentedSplitControl> {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(color: signal),
+              style: OBTText.rupeeAware(
+                theme,
+                theme.textTheme.bodyMedium?.copyWith(color: signal),
+              ),
             ),
           ),
           Text(

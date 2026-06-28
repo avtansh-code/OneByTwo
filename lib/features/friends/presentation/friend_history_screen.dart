@@ -274,17 +274,28 @@ class _HistoryRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$dateStr • $descriptor',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: OBTColors.metaText(theme),
+                    style: OBTText.rupeeAware(
+                      theme,
+                      theme.textTheme.bodySmall?.copyWith(
+                        color: OBTColors.metaText(theme),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              amountText,
-              style: OBTText.amount(context).copyWith(color: amountHue),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  amountText,
+                  style: OBTText.amount(context).copyWith(color: amountHue),
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
             ),
           ],
         ),

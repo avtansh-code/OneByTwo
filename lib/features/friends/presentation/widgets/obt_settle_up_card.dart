@@ -201,9 +201,14 @@ class _OBTSettleUpCardState extends State<OBTSettleUpCard> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            formatInrFromPaise(widget.suggestedAmountPaise),
-            style: OBTText.amountFocal(context),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              formatInrFromPaise(widget.suggestedAmountPaise),
+              style: OBTText.amountFocal(context),
+              maxLines: 1,
+              softWrap: false,
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(

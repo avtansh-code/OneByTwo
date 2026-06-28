@@ -116,11 +116,19 @@ class OBTActivityRow extends StatelessWidget {
                 ),
                 if (amountPaise != null) ...[
                   const SizedBox(width: 12),
-                  Text(
-                    formatInrFromPaise(amountPaise),
-                    style: OBTText.amount(
-                      context,
-                    ).copyWith(color: amountColour),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        formatInrFromPaise(amountPaise),
+                        style: OBTText.amount(
+                          context,
+                        ).copyWith(color: amountColour),
+                        maxLines: 1,
+                        softWrap: false,
+                      ),
+                    ),
                   ),
                 ],
               ],
