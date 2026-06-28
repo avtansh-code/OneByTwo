@@ -14,7 +14,7 @@ directive, the triage biases to **Bucket A**.
 | # | Finding (phase) | Fix | Files |
 |---|---|---|---|
 | A1 | ₹-in-Hanken tofu: standalone "Total" on `titleMedium` (1) | swap to `OBTText.amount` | `step_2_split_and_payer.dart` |
-| A2 | ₹-in-Hanken tofu: 3 sentence sites (1) | new `OBTText.rupeeAware(theme, style)` glyph fallback | `obt_settle_up_sheet.dart`, `obt_segmented_split_control.dart`, `friend_history_screen.dart` |
+| A2 | ₹-in-Hanken tofu: 5 sentence/message sites — 3 found by grep + 2 decoupled domain→presentation renders caught by golden image review (1) | new `OBTText.rupeeAware(theme, style)` glyph fallback | `obt_settle_up_sheet.dart`, `obt_segmented_split_control.dart`, `friend_history_screen.dart`, `split_validation_message.dart`, `obt_amount_input.dart` |
 | A3 | single-line-fit: 7 unprotected amount figures (1) | `FittedBox(scaleDown)` + `maxLines:1`/`softWrap:false` (`Flexible` in rows) | settle-up sheet/card, activity row, friend-history, friend-detail-timeline, spending-breakdown, split-row |
 | A4 | new pinned cases (1) | `rupeeAware` contract test + focal scale-to-fit test | `test/core/theme/obt_text_test.dart`, `obt_settle_up_card_test.dart` |
 | A5 | golden blind-spot: no content guard on dc07/08/09 (2) | shared `expectGoldenState` + wired into the 3 error loops | `golden_harness.dart`, `dc07/dc08/dc09` |

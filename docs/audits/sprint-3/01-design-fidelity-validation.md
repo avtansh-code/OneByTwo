@@ -40,9 +40,10 @@ rendered in `bodyMedium` shows "You paid Riya **□**450.00" (tofu) versus, with
 Every `formatInrFromPaise(...)` render site in `lib/**` (79 occurrences across 31 files) was
 classified by the actual resolved style. **Semantics-only** strings (screen-reader labels)
 and **non-render** uses (draft/validation strings in domain/application code) are not visual
-defects. Result: **7 visible money renders across 4 files resolved to a Hanken slot (tofu);
-all are fixed.** Every other visible amount already resolved to an `OBTText.amount*` Bricolage
-helper (PASS).
+defects. Result: **9 visible money renders across 6 files resolved to a Hanken slot (tofu);
+all are fixed** — 7 found by the render-site grep plus 2 decoupled domain→presentation renders
+surfaced by golden image review (see the note below). Every other visible amount already
+resolved to an `OBTText.amount*` Bricolage helper (PASS).
 
 ### Findings (fixed)
 
@@ -52,6 +53,17 @@ helper (PASS).
 | `core/widgets/sheets/obt_settle_up_sheet.dart:246` | success sentence "You paid … ₹…" on `bodyMedium` | High | **Fix now** — `OBTText.rupeeAware` fallback | Flutter Dev |
 | `core/widgets/inputs/obt_segmented_split_control.dart:178` | "Over by ₹…" / "Short by ₹…" on `bodyMedium` | High | **Fix now** — `OBTText.rupeeAware` fallback | Flutter Dev |
 | `features/friends/.../friend_history_screen.dart:277` | subtitle "you lent/borrowed ₹…" on `bodySmall` | High | **Fix now** — `OBTText.rupeeAware` fallback | Flutter Dev |
+| `features/expenses/.../widgets/split_validation_message.dart:62` | split-mismatch message "Splits must sum to ₹…" on `bodySmall` (string built in the controller) | High | **Fix now** — `OBTText.rupeeAware` fallback | Flutter Dev |
+| `core/widgets/inputs/obt_amount_input.dart:125` | amount-field `errorText` embedding "…balance of ₹…" (string built in `settle_up_draft`) on the default Hanken error style | High | **Fix now** — `rupeeAware` `errorStyle` | Flutter Dev |
+
+> **Decoupled-render class (found during golden image review).** The last two sites were **not**
+> caught by the `formatInrFromPaise`-anchored grep: the money string is built in a domain/application
+> layer (`add_expense_controller` / `settle_up_draft`) and rendered far away in a presentation widget
+> that never calls `formatInrFromPaise` itself. The dc07 step-2 golden showed the pink validation
+> banner still rendering `□` after the first refresh, which surfaced both. A targeted follow-up audit
+> of every domain/application money string traced to its render site confirmed these two are the only
+> decoupled cases (the rest resolve to `OBTText.amount*`). Lesson: image-review every changed golden;
+> the comparator and a render-site grep both miss a format/ render split.
 
 (#143 already fixed the Friends-summary band; `expense_detail_screen.dart`,
 `settlement_history_screen.dart`, both spending-donut files, the balance pill, the
