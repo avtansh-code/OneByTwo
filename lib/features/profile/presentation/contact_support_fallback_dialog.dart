@@ -41,13 +41,27 @@ class ContactSupportFallbackDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final link =
-        theme.extension<OBTColors>()?.link ?? theme.colorScheme.primary;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final link = obtColors.link;
     return AlertDialog(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusCard)),
       ),
       semanticLabel: 'Alert: No mail app found',
+      icon: Container(
+        width: 52,
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: obtColors.warning.withValues(alpha: 0.16),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.mail_outline,
+          size: 26,
+          color: theme.colorScheme.primary,
+        ),
+      ),
       title: Semantics(header: true, child: const Text('No mail app found')),
       content: Column(
         mainAxisSize: MainAxisSize.min,

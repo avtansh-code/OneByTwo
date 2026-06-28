@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
@@ -14,7 +15,7 @@ import 'package:onebytwo/features/profile/presentation/widgets/photo_picker_shee
 /// Edit profile screen for FR-PR-01 (SCR-26 edit sub-screen).
 ///
 /// Allows the user to update their display name and profile
-/// photo. Pushed from the "Edit Profile" row on the profile screen.
+/// photo. Pushed from the "Edit profile" pill on the profile screen.
 class EditProfileScreen extends ConsumerStatefulWidget {
   /// Creates an [EditProfileScreen].
   const EditProfileScreen({super.key});
@@ -80,7 +81,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: const Text('Edit profile'),
         leading: BackButton(
           onPressed: state.isSaving ? null : () => Navigator.of(context).pop(),
         ),
@@ -94,7 +95,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               children: [
                 // Avatar with camera badge.
                 _buildAvatar(context, theme, state, controller, hasPhoto),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+
+                // "Change photo" text link (the Haldi 27-edit affordance).
+                Semantics(
+                  button: true,
+                  label: 'Change photo, button',
+                  excludeSemantics: true,
+                  child: TextButton(
+                    onPressed: state.isSaving
+                        ? null
+                        : () => _showPhotoPicker(context, controller, hasPhoto),
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          theme.extension<OBTColors>()?.link ??
+                          theme.colorScheme.primary,
+                      textStyle: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: const Text('Change photo'),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Display name text field.
                 Semantics(
