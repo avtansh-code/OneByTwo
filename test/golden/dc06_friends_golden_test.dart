@@ -133,30 +133,38 @@ Widget _friendDetail(Widget body) {
 }
 
 void main() {
+  // List/history values are BUILDERS, not pre-built streams: each golden runs
+  // once per brightness and a `Stream.value`/`Stream.error`/`StreamController`
+  // stream is single-subscription, so a shared instance would be consumed by
+  // the first brightness and throw on the second — silently rendering the
+  // error state. (The detail states are plain widgets, safe to reuse.)
   // ---- Friends list 9 ----
-  final listStates = <String, Stream<List<FriendListItem>>>{
-    'loading': StreamController<List<FriendListItem>>().stream,
-    'empty': Stream.value(const <FriendListItem>[]),
-    'populated': Stream.value(<FriendListItem>[
+  final listStates = <String, Stream<List<FriendListItem>> Function()>{
+    'loading': () => StreamController<List<FriendListItem>>().stream,
+    'empty': () => Stream.value(const <FriendListItem>[]),
+    'populated': () => Stream.value(<FriendListItem>[
       _item(425000, 'Rahul Sharma', 'uid-r_uid-me', 'uid-r'),
       _item(-210000, 'Bina Kapoor', 'uid-b_uid-me', 'uid-b'),
       _item(0, 'Aditya Menon', 'uid-a_uid-me', 'uid-a'),
     ]),
-    'error': Stream<List<FriendListItem>>.error(Exception('FR-FIRESTORE-READ')),
+    'error': () =>
+        Stream<List<FriendListItem>>.error(Exception('FR-FIRESTORE-READ')),
   };
 
   // ---- Friend history 12 ----
-  final historyStates = <String, Stream<List<FriendDetailTimelineEvent>>>{
-    'loading': StreamController<List<FriendDetailTimelineEvent>>().stream,
-    'empty': Stream.value(const <FriendDetailTimelineEvent>[]),
-    'populated': Stream.value(<FriendDetailTimelineEvent>[
-      TimelineExpense(doc: _expense()),
-      TimelineSettlement(doc: _settlement()),
-    ]),
-    'error': Stream<List<FriendDetailTimelineEvent>>.error(
-      Exception('FH-FIRESTORE-READ'),
-    ),
-  };
+  final historyStates =
+      <String, Stream<List<FriendDetailTimelineEvent>> Function()>{
+        'loading': () =>
+            StreamController<List<FriendDetailTimelineEvent>>().stream,
+        'empty': () => Stream.value(const <FriendDetailTimelineEvent>[]),
+        'populated': () => Stream.value(<FriendDetailTimelineEvent>[
+          TimelineExpense(doc: _expense()),
+          TimelineSettlement(doc: _settlement()),
+        ]),
+        'error': () => Stream<List<FriendDetailTimelineEvent>>.error(
+          Exception('FH-FIRESTORE-READ'),
+        ),
+      };
 
   // ---- Friend detail 11 ----
   final detailStates = <String, Widget>{
@@ -204,9 +212,10 @@ void main() {
           await loadHaldiFonts();
           await pumpForGolden(
             tester,
-            _friendsList(entry.value),
+            _friendsList(entry.value()),
             brightness: brightness,
           );
+          _expectNotErrorUnless(entry.key);
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc06/list_${entry.key}_$mode.png'),
@@ -230,9 +239,10 @@ void main() {
           await loadHaldiFonts();
           await pumpForGolden(
             tester,
-            _friendHistory(entry.value),
+            _friendHistory(entry.value()),
             brightness: brightness,
           );
+          _expectNotErrorUnless(entry.key);
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc06/history_${entry.key}_$mode.png'),
@@ -241,4 +251,21 @@ void main() {
       }
     }
   });
+}
+
+/// Asserts the friends surface rendered the state named [key] rather than
+/// silently falling through to the error screen: `'error'` must show it,
+/// every other state must not. Guards against a fixture rendering the wrong
+/// state (which the pixel comparator alone cannot detect).
+void _expectNotErrorUnless(String key) {
+  final errorFinder = find.text('Something went wrong');
+  if (key == 'error') {
+    expect(errorFinder, findsOneWidget, reason: 'error state must render');
+  } else {
+    expect(
+      errorFinder,
+      findsNothing,
+      reason: '"$key" must not render the error screen',
+    );
+  }
 }

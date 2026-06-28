@@ -134,16 +134,22 @@ Widget _home(Stream<List<FriendListItem>> friends) {
 }
 
 void main() {
-  final states = <String, Stream<List<FriendListItem>>>{
+  // Each value is a BUILDER, not a pre-built stream: `pumpForGolden` runs once
+  // per brightness, and a `Stream.value`/`Stream.error`/`StreamController`
+  // stream is single-subscription, so a shared instance would be consumed by
+  // the first brightness and throw "Stream already listened" on the second —
+  // silently rendering the error state instead of the intended one.
+  final states = <String, Stream<List<FriendListItem>> Function()>{
     // Loading: a stream that never emits keeps the skeleton on screen.
-    'loading': StreamController<List<FriendListItem>>().stream,
-    'empty': Stream.value(const <FriendListItem>[]),
-    'populated': Stream.value(<FriendListItem>[
+    'loading': () => StreamController<List<FriendListItem>>().stream,
+    'empty': () => Stream.value(const <FriendListItem>[]),
+    'populated': () => Stream.value(<FriendListItem>[
       _item(425000, 'Rahul Sharma', 'uid-r_uid-me', 'uid-r'),
       _item(-210000, 'Goa Trip 2026', 'uid-g_uid-me', 'uid-g'),
       _item(120000, 'Aditya Menon', 'uid-a_uid-me', 'uid-a'),
     ]),
-    'error': Stream<List<FriendListItem>>.error(Exception('HD-FIRESTORE-READ')),
+    'error': () =>
+        Stream<List<FriendListItem>>.error(Exception('HD-FIRESTORE-READ')),
   };
 
   group('DC-05 Home dashboard goldens', () {
@@ -154,9 +160,14 @@ void main() {
           await loadHaldiFonts();
           await pumpForGolden(
             tester,
-            _home(entry.value),
+            _home(entry.value()),
             brightness: brightness,
           );
+          // Guard: the golden comparator alone cannot tell that a fixture
+          // accidentally rendered the WRONG state (a baseline authored from a
+          // broken render still matches it). Assert the rendered state is the
+          // intended one before capturing, so a fixture regression fails loud.
+          _expectState(entry.key);
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc05/${entry.key}_$mode.png'),
@@ -165,4 +176,20 @@ void main() {
       }
     }
   });
+}
+
+/// Asserts the dashboard rendered the state named [key] rather than silently
+/// falling through to the error screen — `'error'` must show it, every other
+/// state must not.
+void _expectState(String key) {
+  final errorFinder = find.text('Something went wrong');
+  if (key == 'error') {
+    expect(errorFinder, findsOneWidget, reason: 'error state must render');
+  } else {
+    expect(
+      errorFinder,
+      findsNothing,
+      reason: '"$key" must not render the error screen',
+    );
+  }
 }
