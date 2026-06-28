@@ -65,6 +65,11 @@ const String notificationPrefCategorySettlement = 'settlement';
 /// Reminder notification category.
 const String notificationPrefCategoryReminder = 'reminder';
 
+/// Group-activity notification category. Defaults to `false` (opt-in):
+/// members joining, edits, and changes in shared groups. Optional on
+/// `users.notificationPrefs` so legacy three-key documents remain valid.
+const String notificationPrefCategoryGroupActivity = 'groupActivity';
+
 // ---------------------------------------------------------------------------
 // error_code taxonomy — classified by the controller's _classifyError
 // helper before emission.

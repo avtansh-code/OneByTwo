@@ -1,6 +1,6 @@
 // FR-PR-03 NotificationPreferencesScreen widget tests.
 //
-// Verifies the SCR-27 screen renders three toggle rows, single-fires
+// Verifies the SCR-27 screen renders four toggle rows, single-fires
 // telemetry on mount, surfaces the load/error states from the
 // controller, and shows the OS-permission banner when the
 // `notificationPermissionControllerProvider` reports `denied` or
@@ -190,7 +190,9 @@ Widget _buildSubject({
 
 void main() {
   group('NotificationPreferencesScreen — populated state', () {
-    testWidgets('renders three toggle rows with SCR-27 labels', (tester) async {
+    testWidgets('renders four toggle rows with screen-28 labels', (
+      tester,
+    ) async {
       final repo = _FakeUserRepository()
         ..userToReturn = _userWithPrefs({
           'newExpense': true,
@@ -204,30 +206,28 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('New Expenses'), findsOneWidget);
+      expect(find.text('New expenses'), findsOneWidget);
       expect(find.text('Settlements'), findsOneWidget);
-      expect(find.text('Reminders'), findsOneWidget);
+      expect(find.text('Reminders & nudges'), findsOneWidget);
+      expect(find.text('Group activity'), findsOneWidget);
 
-      // Descriptions per SCR-27 §Toggle Mapping.
+      // Descriptions per Haldi screen 28 §Toggle Mapping.
       expect(
-        find.text('Get notified when someone adds an expense involving you.'),
+        find.text('When someone adds an expense with you'),
         findsOneWidget,
       );
-      expect(
-        find.text('Get notified when someone records a payment involving you.'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Receive reminders about outstanding balances.'),
-        findsOneWidget,
-      );
+      expect(find.text('When a payment is recorded with you'), findsOneWidget);
+      expect(find.text('When a friend nudges you to pay'), findsOneWidget);
+      expect(find.text('Members joining, edits & changes'), findsOneWidget);
 
-      // Three switches — values reflect persisted state.
+      // Four switches — values reflect persisted state (groupActivity is
+      // opt-in and absent here, so it renders off).
       final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
-      expect(switches.length, 3);
-      // Persisted values: newExpense=true, settlement=false, reminder=true.
+      expect(switches.length, 4);
+      // Persisted: newExpense=true, settlement=false, reminder=true,
+      // groupActivity=off (absent).
       final values = switches.map((s) => s.value).toList();
-      expect(values, [true, false, true]);
+      expect(values, [true, false, true, false]);
     });
 
     testWidgets('renders the inert Language "Coming soon" slot (DC-10)', (
@@ -246,16 +246,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Language'), findsOneWidget);
-      expect(find.text('Coming soon'), findsOneWidget);
-      // The Language slot is inert: still exactly three toggle switches.
-      expect(find.byType(Switch), findsNWidgets(3));
+      expect(find.text('COMING SOON'), findsOneWidget);
+      expect(find.text('English (India)'), findsOneWidget);
+      // The Language slot is inert: still exactly four toggle switches
+      // (the Language row is a badge, not a switch).
+      expect(find.byType(Switch), findsNWidgets(4));
 
-      // Announced as a single merged node (excludeSemantics), not four.
+      // Announced as a single merged node (excludeSemantics), not many.
       final handle = tester.ensureSemantics();
-      expect(find.bySemanticsLabel('Language, coming soon'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Choose your preferred language.'),
-        findsNothing,
+        find.bySemanticsLabel('Language, English India, coming soon'),
+        findsOneWidget,
       );
       handle.dispose();
     });
@@ -273,7 +274,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Notification Preferences'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
     });
   });
 
@@ -347,9 +348,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Retry'), findsNothing);
-        expect(find.text('New Expenses'), findsOneWidget);
+        expect(find.text('New expenses'), findsOneWidget);
         expect(find.text('Settlements'), findsOneWidget);
-        expect(find.text('Reminders'), findsOneWidget);
+        expect(find.text('Reminders & nudges'), findsOneWidget);
       },
     );
   });
@@ -648,7 +649,7 @@ void main() {
 
       expect(find.text('Please sign in again.'), findsOneWidget);
       // Toggles are NOT rendered.
-      expect(find.text('New Expenses'), findsNothing);
+      expect(find.text('New expenses'), findsNothing);
       // The repository was never asked to persist anything.
       expect(repo.updateCalls, isEmpty);
     });
@@ -671,7 +672,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Please sign in again.'), findsOneWidget);
-        expect(find.text('New Expenses'), findsNothing);
+        expect(find.text('New expenses'), findsNothing);
       },
     );
   });

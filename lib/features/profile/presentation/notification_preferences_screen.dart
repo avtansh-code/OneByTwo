@@ -17,10 +17,13 @@ import 'package:onebytwo/features/profile/application/notification_preferences_t
 
 /// SCR-27 Notification Preferences screen (FR-PR-03).
 ///
-/// Three per-category toggle rows with optimistic-with-revert
-/// persistence driven by [notificationPreferencesControllerProvider].
-/// Surfaces an OS-permission info banner at the top when push
-/// permission is `denied` / `permanentlyDenied` (AC-11 / AC-12).
+/// Four per-category toggle rows (new expenses, settlements, reminders &
+/// nudges, group activity) grouped in a card with optimistic-with-revert
+/// persistence driven by [notificationPreferencesControllerProvider],
+/// plus a disabled "Coming soon" Language row and a rate-limit info
+/// callout (Haldi screen 28). Surfaces an OS-permission info banner at
+/// the top when push permission is `denied` / `permanentlyDenied`
+/// (AC-11 / AC-12).
 ///
 /// The AC-11 banner shows an "Open Settings" CTA that deep-links to the
 /// OS notification settings via [appSettingsServiceProvider] (backed by
@@ -117,7 +120,7 @@ class _NotificationPreferencesScreenState
     );
     if (!isAuthed) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Notification Preferences')),
+        appBar: AppBar(title: const Text('Notifications')),
         body: _ErrorBody(
           message: 'Please sign in again.',
           onRetry: () => Navigator.of(context).maybePop(),
@@ -134,7 +137,7 @@ class _NotificationPreferencesScreenState
     final permission = ref.watch(notificationPermissionControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notification Preferences')),
+      appBar: AppBar(title: const Text('Notifications')),
       body: switch (state) {
         NotificationPreferencesLoading() => const _LoadingBody(),
         NotificationPreferencesError(:final message) => _ErrorBody(
@@ -157,6 +160,9 @@ class _NotificationPreferencesScreenState
             onReminderChanged: (v) => ref
                 .read(notificationPreferencesControllerProvider.notifier)
                 .setReminder(v),
+            onGroupActivityChanged: (v) => ref
+                .read(notificationPreferencesControllerProvider.notifier)
+                .setGroupActivity(v),
           ),
       },
     );
@@ -246,6 +252,7 @@ class _ReadyBody extends StatelessWidget {
     required this.onNewExpenseChanged,
     required this.onSettlementChanged,
     required this.onReminderChanged,
+    required this.onGroupActivityChanged,
   });
 
   final Map<String, bool> prefs;
@@ -254,51 +261,166 @@ class _ReadyBody extends StatelessWidget {
   final ValueChanged<bool> onNewExpenseChanged;
   final ValueChanged<bool> onSettlementChanged;
   final ValueChanged<bool> onReminderChanged;
+  final ValueChanged<bool> onGroupActivityChanged;
 
   bool _isPermissionBlocked(PermissionState s) =>
       s == PermissionState.denied || s == PermissionState.permanentlyDenied;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SafeArea(
       child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
           if (_isPermissionBlocked(permission)) const _OsPermissionBanner(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              'Choose which notifications you would like to receive.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+          const _SectionHeader('Push notifications'),
+          _PrefsCard(
+            children: [
+              _ToggleRow(
+                label: 'New expenses',
+                description: 'When someone adds an expense with you',
+                value: prefs[notificationPrefCategoryNewExpense] ?? true,
+                onChanged: onNewExpenseChanged,
+              ),
+              _ToggleRow(
+                label: 'Settlements',
+                description: 'When a payment is recorded with you',
+                value: prefs[notificationPrefCategorySettlement] ?? true,
+                onChanged: onSettlementChanged,
+              ),
+              _ToggleRow(
+                label: 'Reminders & nudges',
+                description: 'When a friend nudges you to pay',
+                value: prefs[notificationPrefCategoryReminder] ?? true,
+                onChanged: onReminderChanged,
+              ),
+              _ToggleRow(
+                label: 'Group activity',
+                description: 'Members joining, edits & changes',
+                value: prefs[notificationPrefCategoryGroupActivity] ?? false,
+                onChanged: onGroupActivityChanged,
+              ),
+            ],
+          ),
+          const _SectionHeader('Preferences'),
+          const _PrefsCard(children: [_LanguageSlot()]),
+          const _InfoCallout(
+            'Reminders you receive are always rate-limited to protect '
+            'everyone from spam.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small uppercase section label above a [_PrefsCard] (the Haldi 28
+/// "PUSH NOTIFICATIONS" / "PREFERENCES" group headers).
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
+      child: Semantics(
+        header: true,
+        child: Text(
+          text.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: OBTColors.metaText(theme),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rounded white card grouping notification rows with hairline dividers
+/// (the Haldi 28 settings card).
+class _PrefsCard extends StatelessWidget {
+  const _PrefsCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      rows.add(children[i]);
+      if (i != children.length - 1) {
+        rows.add(
+          Divider(
+            height: 1,
+            indent: 15,
+            endIndent: 15,
+            color: theme.dividerColor,
+          ),
+        );
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          boxShadow: obtColors.rowShadow,
+          border: theme.brightness == Brightness.dark
+              ? Border.all(color: theme.colorScheme.outline)
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+        ),
+      ),
+    );
+  }
+}
+
+/// A cream info callout with a leading info glyph (the Haldi 28
+/// rate-limit notice).
+class _InfoCallout extends StatelessWidget {
+  const _InfoCallout(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: obtColors.warning.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 18, color: obtColors.link),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                text,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: OBTColors.metaText(theme),
+                  height: 1.4,
+                ),
               ),
             ),
-          ),
-          _ToggleRow(
-            label: 'New Expenses',
-            description:
-                'Get notified when someone adds an expense involving you.',
-            value: prefs[notificationPrefCategoryNewExpense] ?? true,
-            onChanged: onNewExpenseChanged,
-          ),
-          const Divider(height: 1),
-          _ToggleRow(
-            label: 'Settlements',
-            description:
-                'Get notified when someone records a payment involving you.',
-            value: prefs[notificationPrefCategorySettlement] ?? true,
-            onChanged: onSettlementChanged,
-          ),
-          const Divider(height: 1),
-          _ToggleRow(
-            label: 'Reminders',
-            description: 'Receive reminders about outstanding balances.',
-            value: prefs[notificationPrefCategoryReminder] ?? true,
-            onChanged: onReminderChanged,
-          ),
-          const Divider(height: 1),
-          const _LanguageSlot(),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -320,30 +442,40 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
     return Semantics(
       toggled: value,
       label: '$label notifications, switch, ${value ? "on" : "off"}',
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: theme.textTheme.titleMedium),
+                  Text(
+                    label,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: OBTColors.metaText(theme),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 16),
-            Switch(value: value, onChanged: onChanged),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeTrackColor: obtColors.balancePositive,
+            ),
           ],
         ),
       ),
@@ -357,46 +489,61 @@ class _LanguageSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final disabled =
-        theme.extension<OBTColors>()?.disabledText ??
-        theme.colorScheme.onSurfaceVariant;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final disabled = obtColors.disabledText;
+    final meta = OBTColors.metaText(theme);
     // Inert "Coming soon" slot: announced disabled, never a switch, so the
     // language picker is discoverable without shipping a switcher (no real
     // language switching is built in DC-10).
     return Semantics(
       enabled: false,
       excludeSemantics: true,
-      label: 'Language, coming soon',
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(Icons.language, color: disabled),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Language',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: disabled,
+      label: 'Language, English India, coming soon',
+      child: Opacity(
+        opacity: 0.7,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
+          child: Row(
+            children: [
+              Icon(Icons.translate, size: 22, color: meta),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Language',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: disabled,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Choose your preferred language.',
-                    style: theme.textTheme.bodySmall?.copyWith(color: disabled),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'English (India)',
+                      style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              'Coming soon',
-              style: theme.textTheme.bodySmall?.copyWith(color: disabled),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: obtColors.warning.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'COMING SOON',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: obtColors.link,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

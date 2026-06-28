@@ -217,6 +217,11 @@ class NotificationPreferencesController
   void setReminder(bool value) =>
       _setKey(notificationPrefCategoryReminder, value);
 
+  /// Flip the `groupActivity` category (opt-in; defaults to off).
+  // ignore: avoid_positional_boolean_parameters
+  void setGroupActivity(bool value) =>
+      _setKey(notificationPrefCategoryGroupActivity, value);
+
   void _setKey(String key, bool value) {
     final current = state;
     if (current is! NotificationPreferencesReady) return;
@@ -302,9 +307,11 @@ class NotificationPreferencesController
     final current = state;
     if (current is! NotificationPreferencesReady) return;
     final reverted = Map<String, bool>.from(current.prefs);
-    // Fall back to true (the default in UserModel.toCreateMap) if no
-    // persisted value exists yet for this key.
-    reverted[key] = _persistedPrefs[key] ?? true;
+    // Fall back to the category default if no value has been persisted
+    // yet: `groupActivity` is opt-in (false); the other three default to
+    // true (mirrors UserModel.toCreateMap).
+    final categoryDefault = key != notificationPrefCategoryGroupActivity;
+    reverted[key] = _persistedPrefs[key] ?? categoryDefault;
     final newSaving = Set<String>.from(current.savingKeys)..remove(key);
     state = current.copyWith(prefs: reverted, savingKeys: newSaving);
   }

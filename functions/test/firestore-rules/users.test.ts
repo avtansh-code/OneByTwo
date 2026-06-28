@@ -66,6 +66,31 @@ describe("users/{userId} — create rules", () => {
     await assertSucceeds(setDoc(userDoc, validUserDoc()));
   });
 
+  it("allows creation with the optional four-key notificationPrefs " +
+    "(groupActivity)", async () => {
+    // be-group-pref: UserModel.toCreateMap now emits a fourth opt-in
+    // `groupActivity: false` key. The relaxed `isValidNotificationPrefs`
+    // permits it (optional, bool-typed), so the real create payload
+    // continues to satisfy the rules.
+    const ctx = testEnv.authenticatedContext(uid, {
+      phone_number: "+919876543210",
+    });
+    const userDoc = doc(ctx.firestore(), `users/${uid}`);
+    await assertSucceeds(
+      setDoc(
+        userDoc,
+        validUserDoc({
+          notificationPrefs: {
+            newExpense: true,
+            settlement: true,
+            reminder: true,
+            groupActivity: false,
+          },
+        })
+      )
+    );
+  });
+
   it("rejects creation when userId does not match auth uid", async () => {
     const ctx = testEnv.authenticatedContext("different-uid", {
       phone_number: "+919876543210",

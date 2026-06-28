@@ -98,11 +98,13 @@ service cloud.firestore {
       }
 
       function isValidNotificationPrefs(prefs) {
-        return prefs.keys().hasOnly(['newExpense', 'settlement', 'reminder'])
+        return prefs.keys().hasOnly(
+            ['newExpense', 'settlement', 'reminder', 'groupActivity'])
           && prefs.keys().hasAll(['newExpense', 'settlement', 'reminder'])
           && prefs.newExpense is bool
           && prefs.settlement is bool
-          && prefs.reminder is bool;
+          && prefs.reminder is bool
+          && (!('groupActivity' in prefs.keys()) || prefs.groupActivity is bool);
       }
     }
 

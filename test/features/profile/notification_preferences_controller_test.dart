@@ -319,6 +319,38 @@ void main() {
         );
       });
     });
+
+    test('setGroupActivity persists with the groupActivity key', () {
+      fakeAsync((async) {
+        final repo = _FakeUserRepository()
+          ..userToReturn = _userWithPrefs({
+            'newExpense': true,
+            'settlement': true,
+            'reminder': true,
+            'groupActivity': false,
+          });
+        final analytics = _FakeAnalyticsService();
+        final controller = _controller(repository: repo, analytics: analytics);
+        addTearDown(controller.dispose);
+
+        async.flushMicrotasks();
+
+        // groupActivity is opt-in (off) — flip it on.
+        controller.setGroupActivity(true);
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+
+        expect(repo.updateCalls.last.prefs, {'groupActivity': true});
+        final changed = analytics.events
+            .where((e) => e.name == notificationPrefChangedEvent)
+            .last;
+        expect(
+          changed.parameters?[notificationPrefCategoryParam],
+          notificationPrefCategoryGroupActivity,
+        );
+        expect(changed.parameters?[notificationPrefEnabledParam], true);
+      });
+    });
   });
 
   group('NotificationPreferencesController — AC-5 per-toggle isolation', () {
