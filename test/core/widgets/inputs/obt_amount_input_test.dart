@@ -232,6 +232,24 @@ void main() {
       expect(find.text('Amount cannot exceed ₹99,99,999.99.'), findsOneWidget);
     });
 
+    testWidgets('error text is rupee-aware so an embedded ₹ never tofus', (
+      tester,
+    ) async {
+      await _pumpInput(
+        tester,
+        onChanged: (_) {},
+        errorText: 'Amount cannot exceed ₹99,99,999.99.',
+      );
+
+      // The controller may surface an error embedding a rupee amount; the
+      // decoration's errorStyle must carry a font fallback so the ₹ renders
+      // from Bricolage rather than the glyphless Hanken error style.
+      final decoration = tester
+          .widget<TextField>(find.byType(TextField))
+          .decoration!;
+      expect(decoration.errorStyle?.fontFamilyFallback, isNotEmpty);
+    });
+
     testWidgets('the rupee prefix is always visible (₹ symbol)', (
       tester,
     ) async {

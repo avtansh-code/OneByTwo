@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 
 /// Inline split-sum validation pill (Haldi 21; SCR-20 / AC-7).
 ///
@@ -59,7 +60,10 @@ class SplitValidationMessage extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: theme.textTheme.bodySmall?.copyWith(color: signal),
+                style: OBTText.rupeeAware(
+                  theme,
+                  theme.textTheme.bodySmall?.copyWith(color: signal),
+                ),
               ),
             ),
           ],
