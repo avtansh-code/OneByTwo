@@ -51,7 +51,17 @@ The Flutter implementation instead **embeds the label inside the pill and stacks
 4. Re-evaluate the host `LayoutBuilder` reflow thresholds (currently sized for the "~187 dp" stacked pill): the new one-line pill is narrower, so the reflow can trigger later — re-tune so the single row holds at typical widths and the scale-to-fit covers the rest.
 
 ────────────────────────────────────
-LOAD-BEARING ITEM 3 — GOLDENS RE-BASELINE ON UBUNTU
+LOAD-BEARING ITEM 3 — THE RUPEE-GLYPH (₹-in-Hanken) FINDING (confirmed; systemic)
+────────────────────────────────────
+
+A second confirmed, systemic divergence found during the pill pass: **monetary amounts rendered in a Hanken Grotesque text slot show the rupee sign (U+20B9) as a missing-glyph box (tofu)**, because the bundled Hanken static instance has no ₹ glyph (verified with fontTools: Bricolage U+20B9 present = true, Hanken = false). On a real device the ₹ falls back to a mismatched system font; in goldens it renders as tofu. This violates the foundation rule (`docs/audits/design-conversion/03-foundation-plan.md` §3.3 / ADR-0025): **amounts always render in Bricolage Grotesque with tabular figures.**
+
+- **Rule:** every amount `Text` must take an `OBTText.amount*` style (Bricolage tabular — `amount` / `amountPill` / `amountFocal` / `amountHero`), **never** a Hanken `textTheme` slot (`titleLarge` / `titleMedium` / `bodyLarge` / `bodyMedium` / …). For an amount embedded in a sentence, split the figure into a Bricolage span (or give the run a `fontFamilyFallback` that carries ₹) so the rupee never renders from Hanken.
+- **Already fixed in the lead PR** (visible in the regenerated baselines): the Friends-list summary band (`friends_list_screen.dart`, the "You are owed" / "You owe" cards) moved from `titleLarge` (Hanken) to `OBTText.amount` at the handoff's 18px.
+- **Confirmed remaining sites to audit + fix in the sweep** (each needs its own golden re-baseline): `features/expenses/presentation/steps/step_2_split_and_payer.dart` (the "Total ₹…" summary, `titleMedium`), `core/widgets/sheets/obt_settle_up_sheet.dart` (the "You paid … ₹…" sentence, `bodyMedium`), `features/expenses/presentation/expense_detail_screen.dart` (the participant "gets back / owes ₹…" row), `features/settlements/presentation/settlement_history_screen.dart` (the signed amount), plus any other amount on a Hanken slot the Phase2/Phase3 matrix surfaces. Grep aid: for every `formatInrFromPaise(...)` render, assert the applied style resolves to an `OBTText.amount*` helper.
+
+────────────────────────────────────
+LOAD-BEARING ITEM 4 — GOLDENS RE-BASELINE ON UBUNTU
 ────────────────────────────────────
 
 Every visual fix re-baselines goldens. The harness + the compare gate already exist (DC-13). For each remediation: make the code change, run `flutter test --exclude-tags golden` to fix lockstep widget/contrast tests, then **regenerate baselines on `ubuntu-latest` via the `golden-refresh` `workflow_dispatch` job** (NEVER `--update-goldens` on macOS), download the artifact, **review every changed PNG as an image**, and commit. The `golden-a11y-checks` job must end green against the committed baselines. Add a NEW golden/widget case that pins the **single-line-fit** behaviour: the pill (and other one-line components) rendered in a deliberately narrow box must stay one line and scale down (assert `find.byType(FittedBox)` / one text line / no overflow).
@@ -103,6 +113,7 @@ DEFINITION OF DONE
 
 - A design-fidelity validation report exists (`docs/audits/sprint-3-retro/…`) mapping every Phase2 component + Phase3 screen/state to PASS / FINDING / fixed, against `design_handoff_one_by_two/`.
 - **The single-line-fit standard holds app-wide:** the balance pill is the handoff's one-line `[icon][amount]` (label moved to the row subtitle), and every other one-line handoff element fits one line and scales-to-fit — verified by a new pinned golden/widget case and by the regenerated baselines; **no money value wraps or truncates** at narrow widths / 2.0× type.
+- **No money renders the rupee as tofu:** every amount figure resolves to a Bricolage `OBTText.amount*` style (never a Hanken `textTheme` slot); the ₹-in-Hanken finding (Item 3) is either fixed app-wide or each remaining site is filed as a tracked issue.
 - Accessibility preserved (colour+icon+label trio visible; AA contrast; 2.0× dynamic-type; labelled controls) and all four invariants hold.
 - `flutter analyze lib test` clean, `dart format` clean, `flutter test` green (incl. the un-skipped goldens compared against the ubuntu baselines and the `a11y-checks` families), per-feature coverage ≥70% / overall ≥50%.
 - Each finding is either fixed in this pass or filed as a tracked issue; the retro report records the disposition.
