@@ -123,6 +123,14 @@ class _OBTAmountInputState extends State<OBTAmountInput> {
         prefixIconConstraints: const BoxConstraints(minWidth: 32),
         hintText: '0.00',
         errorText: widget.errorText,
+        // The controller may surface an error that embeds a rupee amount
+        // (e.g. "cannot exceed the outstanding balance of ₹500.00"); the
+        // default Hanken error style has no rupee glyph, so make it
+        // rupee-aware while keeping the standard error colour/size.
+        errorStyle: OBTText.rupeeAware(
+          theme,
+          theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+        ),
       ),
     );
   }

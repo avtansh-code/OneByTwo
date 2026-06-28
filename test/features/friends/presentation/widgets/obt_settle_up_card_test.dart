@@ -50,6 +50,40 @@ void main() {
     });
   });
 
+  group('OBTSettleUpCard — single-line fit (Sprint-3 retro)', () {
+    testWidgets('focal amount scales to fit a narrow box, never truncating', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: 300,
+            child: OBTSettleUpCard(
+              payerDisplayName: 'You',
+              payerPhotoUrl: null,
+              payeeDisplayName: 'Priya',
+              payeePhotoUrl: null,
+              suggestedAmountPaise: 1234567890,
+              onSettleUp: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // The focal amount is wrapped in a FittedBox so a large value scales
+      // down rather than overflowing or truncating at a tight width.
+      expect(
+        find.descendant(
+          of: find.byType(OBTSettleUpCard),
+          matching: find.byType(FittedBox),
+        ),
+        findsWidgets,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('OBTSettleUpCard — receiving-direction (FR-SE-09)', () {
     testWidgets('renders Send Reminder CTA when isReceivingDirection=true', (
       tester,

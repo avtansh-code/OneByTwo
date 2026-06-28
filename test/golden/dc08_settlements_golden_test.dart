@@ -133,6 +133,7 @@ void main() {
             _history(entry.value),
             brightness: brightness,
           );
+          expectGoldenState(entry.key, errorText: 'Something went wrong');
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc08/history_${entry.key}_$mode.png'),

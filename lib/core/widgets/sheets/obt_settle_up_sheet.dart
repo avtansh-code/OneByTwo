@@ -243,8 +243,11 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
           Text(
             'You paid ${widget.payeeDisplayName} '
             '${formatInrFromPaise(widget.suggestedAmountPaise)}.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: OBTColors.metaText(theme),
+            style: OBTText.rupeeAware(
+              theme,
+              theme.textTheme.bodyMedium?.copyWith(
+                color: OBTColors.metaText(theme),
+              ),
             ),
             textAlign: TextAlign.center,
           ),
@@ -296,9 +299,14 @@ class _SuggestedPaymentHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          formatInrFromPaise(suggestedAmountPaise),
-          style: OBTText.amountHero(context),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            formatInrFromPaise(suggestedAmountPaise),
+            style: OBTText.amountHero(context),
+            maxLines: 1,
+            softWrap: false,
+          ),
         ),
       ],
     );

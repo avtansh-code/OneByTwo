@@ -114,3 +114,21 @@ Future<void> pumpForGolden(
   );
   await tester.pumpAndSettle();
 }
+
+/// Asserts the rendered tree shows the error screen identified by [errorText]
+/// only when [key] is `'error'`. The golden comparator alone cannot tell that
+/// a fixture silently fell through to the error state — a baseline authored
+/// from a broken render still matches it — so this guard fails loudly before
+/// the baseline is captured (the self-validating pattern from PR #143).
+void expectGoldenState(String key, {required String errorText}) {
+  final errorFinder = find.text(errorText);
+  if (key == 'error') {
+    expect(errorFinder, findsOneWidget, reason: 'error state must render');
+  } else {
+    expect(
+      errorFinder,
+      findsNothing,
+      reason: '"$key" must not render the error screen',
+    );
+  }
+}

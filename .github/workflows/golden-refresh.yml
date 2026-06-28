@@ -1,0 +1,71 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# One By Two — Golden Refresh (manual baseline authoring)
+# SRS section 9.2 · DC-13 · 04-qa-test-strategy.md sec A.2 / sec E
+#
+# Purpose: regenerate the golden visual-regression baselines on the canonical
+# ubuntu-latest image at the PINNED Flutter version, then upload them as an
+# artifact for a developer to download, image-review and commit.
+#
+# Extracted from .github/workflows/pr.yml — it replaces the former in-pr.yml
+# `golden-refresh` job. While it shared pr.yml, dispatching it spun up the WHOLE
+# PR pipeline (Flutter Lint, Accessibility Gate, Build Android, Build iOS, …),
+# which is wasteful. As its own standalone workflow a refresh now runs nothing
+# but the golden generation below.
+#
+# DETERMINISM CONTRACT (load-bearing — do not weaken):
+#   - Golden bytes are engine/host-sensitive, so baselines are authored ONLY
+#     here, on ubuntu-latest, at the PINNED flutter-version below. Never
+#     `channel: stable` alone (the floating channel would drift the rasteriser)
+#     and never author on macOS — the pr.yml `golden-a11y-checks` compare job
+#     would reject those bytes (04 sec A.2.2 / A.2.3).
+#   - This workflow ONLY uploads an artifact. It MUST NOT auto-commit goldens.
+#     A developer downloads `golden-baselines`, IMAGE-REVIEWS every changed PNG,
+#     and commits the reviewed bytes under test/golden/goldens/. Image review is
+#     mandatory — never wire an auto-commit step here.
+#   - No Firebase, no emulator, no secrets, no `environment:` — a pure
+#     `flutter test` run, so invariant 4 (single Firebase project) holds trivially.
+#
+# USAGE: gh workflow run golden-refresh.yml --ref <branch>
+#   then: gh run download <id> --name golden-baselines --dir /tmp/dl
+#         cp -R /tmp/dl/. test/golden/goldens/  ->  review every PNG  ->  commit.
+#
+# DEFAULT-BRANCH GOTCHA: a brand-new `workflow_dispatch` workflow is only
+# dispatchable (via `gh workflow run` or the Actions UI) once this file exists on
+# the repository's DEFAULT branch (main). So `--ref <feature-branch>` will NOT
+# work until PR #144 merges. That is fine: PR #144's goldens are already
+# regenerated and green, so no refresh is pending before merge; the workflow
+# becomes usable for all future branches (Sprint 4 onward) once #144 merges.
+# ────────────────────────────────────────────────────────────────────────────────
+name: Golden Refresh
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  golden-refresh:
+    name: Golden Refresh (manual)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.3
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Regenerate golden baselines (ubuntu-latest)
+        run: flutter test --update-goldens --tags golden
+
+      - name: Upload regenerated baselines for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-baselines
+          path: test/golden/goldens/**
+          retention-days: 14

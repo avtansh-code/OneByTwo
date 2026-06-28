@@ -281,9 +281,17 @@ class _LegendRow extends StatelessWidget {
                 style: theme.textTheme.bodyMedium,
               ),
             ),
-            Text(
-              formatInrFromPaise(spend.totalPaise),
-              style: OBTText.amount(context),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  formatInrFromPaise(spend.totalPaise),
+                  style: OBTText.amount(context),
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             Text(

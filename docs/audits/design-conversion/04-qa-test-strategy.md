@@ -420,6 +420,14 @@ silently regress on a future PR. This is **separate** from the golden job below
 
 ### E.2 The golden job — `golden-a11y-checks` (DC-13, wired in `pr.yml`)
 
+> **Update (Sprint-3 retro / PR #144):** the `golden-refresh` baseline-authoring job described
+> below was subsequently **extracted into its own standalone workflow**,
+> `.github/workflows/golden-refresh.yml` (`gh workflow run golden-refresh.yml --ref <branch>`),
+> so a refresh no longer spins up the whole PR pipeline. The `golden-a11y-checks` compare job
+> stays in `pr.yml`, and its former `&& github.event_name != 'workflow_dispatch'` guard was
+> removed (the refresh no longer shares the `pr.yml` dispatch path). The YAML snippet below is the
+> as-of-DC-13 wiring; the live source of truth is `.github/workflows/{pr.yml,golden-refresh.yml}`.
+
 **DC-13 (#125) wires this job** in `.github/workflows/pr.yml` and commits the
 baselines. It is **separate** from the DC-12 `a11y-checks` gate above: the
 golden job **pins the Flutter version** because golden bytes are

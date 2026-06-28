@@ -212,6 +212,7 @@ void main() {
         testWidgets('expense_detail ${entry.key} ($mode)', (tester) async {
           await loadHaldiFonts();
           await pumpForGolden(tester, entry.value, brightness: brightness);
+          expectGoldenState(entry.key, errorText: 'Could not load expense');
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc07/detail_${entry.key}_$mode.png'),

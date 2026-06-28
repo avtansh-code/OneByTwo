@@ -146,9 +146,17 @@ class _ExpenseRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              shareLabel,
-              style: OBTText.amount(context).copyWith(color: shareHue),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  shareLabel,
+                  style: OBTText.amount(context).copyWith(color: shareHue),
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              ),
             ),
           ],
         ),

@@ -53,9 +53,14 @@ class SplitRow extends StatelessWidget {
                 )
               : Align(
                   alignment: Alignment.centerRight,
-                  child: Text(
-                    formatInrFromPaise(paise),
-                    style: OBTText.amount(context),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatInrFromPaise(paise),
+                      style: OBTText.amount(context),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
                   ),
                 ),
         ),

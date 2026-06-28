@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_segmented_split_control.dart';
 import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/domain/add_expense_state.dart';
@@ -162,7 +163,7 @@ class Step2SplitAndPayer extends ConsumerWidget {
             Text('Total', style: Theme.of(context).textTheme.titleMedium),
             Text(
               formatInrFromPaise(draft.amountPaise),
-              style: Theme.of(context).textTheme.titleMedium,
+              style: OBTText.amount(context),
             ),
           ],
         ),

@@ -104,6 +104,7 @@ void main() {
             ),
             brightness: brightness,
           );
+          expectGoldenState(entry.key, errorText: 'Something went wrong');
           await expectLater(
             find.byType(MaterialApp),
             matchesGoldenFile('goldens/dc09/activity_${entry.key}_$mode.png'),

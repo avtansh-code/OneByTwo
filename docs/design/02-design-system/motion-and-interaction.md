@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # Motion and Interaction Specification -- One By Two v1.0
 
 > **Implementation status (verified against `lib/`, this pass).** Specifies target motion. In v1.0 the **FAB spring is deferred** (default Material ink response — see `obt_floating_action_button.dart`), and the custom curves/haptics here are largely not yet codified as shared tokens. Tab switching is an `IndexedStack` swap (no cross-fade).

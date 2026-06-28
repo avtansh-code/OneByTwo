@@ -1,5 +1,17 @@
 # One By Two v1.0 — Design Package
 
+> [!WARNING]
+> **Visual layer superseded by the Haldi system (ADR-0024).** As of Sprint 3, the
+> **visual** artefacts in this package — `02-design-system/{tokens, components,
+> typography-and-formatting, motion-and-interaction}`, `04-wireframes/*`,
+> `05-mockups/*`, `06-screen-specs/*` — are **historical reference only**; the
+> canonical visual source of truth is the Haldi handoff (`design_handoff_one_by_two/`).
+> The **backend/data** artefacts — `03-architecture/*` and
+> `07-technical/{firestore-schema, firestore-security-rules,
+> cloud-functions-catalogue, telemetry-plan, state-management}` — **remain
+> authoritative** and are unchanged by the conversion (ADR-0024 item 3). Build new
+> visual work against the Haldi handoff, not the superseded files above.
+
 > **Status:** Complete — ready for development handover
 > **SRS baseline:** v1.1 (`docs/OneByTwo_Requirements_Spec.md`)
 > **Sprint-zero artefacts:** `docs/sprint-zero/`
