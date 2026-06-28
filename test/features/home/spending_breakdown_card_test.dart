@@ -502,7 +502,7 @@ void main() {
         HomeTelemetry.paramErrorCode: HomeTelemetry.errorCodeFirestoreRead,
       });
       // canLaunch == false → the no-mail-client fallback dialog.
-      expect(find.text('No Mail App Found'), findsOneWidget);
+      expect(find.text('No mail app found'), findsOneWidget);
     });
   });
 }

@@ -177,14 +177,25 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Semantics(
-          label: 'Warning',
-          image: true,
-          child: Icon(Icons.warning_amber_rounded, size: 56, color: danger),
+        Center(
+          child: Semantics(
+            label: 'Warning',
+            image: true,
+            child: Container(
+              width: 84,
+              height: 84,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: danger.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.delete_forever, size: 42, color: danger),
+            ),
+          ),
         ),
         const SizedBox(height: 24),
         Text(
-          'This will permanently delete your account',
+          'Delete your account?',
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge,
         ),

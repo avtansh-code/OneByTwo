@@ -180,7 +180,7 @@ void main() {
 
       // The FR-PR-02 entry point: number shown, "tap to change" helper,
       // a chevron, and the old read-only hint removed.
-      expect(find.text('+919876543210'), findsOneWidget);
+      expect(find.text('+91 98765 43210'), findsOneWidget);
       expect(find.text('Tap to change your phone number.'), findsOneWidget);
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       expect(
@@ -194,14 +194,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Camera badge icon should be present.
-      expect(find.byIcon(Icons.camera_alt), findsOneWidget);
+      expect(find.byIcon(Icons.photo_camera), findsOneWidget);
     });
 
-    testWidgets('Save button shows text "Save"', (tester) async {
+    testWidgets('Save button shows text "Save changes"', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Save changes'), findsOneWidget);
     });
 
     testWidgets('name exceeding 50 chars shows error', (tester) async {

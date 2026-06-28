@@ -157,7 +157,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign Out'), findsOneWidget);
+      expect(find.text('Sign out'), findsOneWidget);
       expect(find.byIcon(Icons.logout), findsOneWidget);
     });
 
@@ -168,9 +168,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Test User'), findsOneWidget);
-      expect(find.text('+919876543210'), findsOneWidget);
+      expect(find.text('+91 98765 43210'), findsOneWidget);
       // Initials in avatar.
-      expect(find.text('TU'), findsOneWidget);
+      expect(find.text('T'), findsOneWidget);
     });
 
     testWidgets('tapping Sign Out shows confirmation dialog', (tester) async {
@@ -179,7 +179,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign Out'));
+      await tester.tap(find.text('Sign out'));
       await tester.pumpAndSettle();
 
       // The hand-rolled AlertDialog is now the shared OBTConfirmationDialog
@@ -192,8 +192,8 @@ void main() {
       // Dialog body.
       expect(
         find.text(
-          'Are you sure you want to sign out? You will need to verify '
-          'your phone number again to sign back in.',
+          "You'll need your +91 number and a fresh code to sign back in. "
+          'Your expenses and groups stay safe.',
         ),
         findsOneWidget,
       );
@@ -201,7 +201,7 @@ void main() {
       // Dialog actions.
       expect(find.text('Cancel'), findsOneWidget);
       // 'Sign Out' in the dialog button (+ the ListTile behind).
-      expect(find.text('Sign Out'), findsNWidgets(2));
+      expect(find.text('Sign out'), findsNWidgets(2));
     });
 
     testWidgets(
@@ -213,7 +213,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Open dialog.
-        await tester.tap(find.text('Sign Out'));
+        await tester.tap(find.text('Sign out'));
         await tester.pumpAndSettle();
 
         // Tap Cancel.
@@ -243,7 +243,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open dialog.
-      await tester.tap(find.text('Sign Out'));
+      await tester.tap(find.text('Sign out'));
       await tester.pumpAndSettle();
       expect(find.text('Sign out?'), findsOneWidget);
 
@@ -266,12 +266,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open dialog.
-      await tester.tap(find.text('Sign Out'));
+      await tester.tap(find.text('Sign out'));
       await tester.pumpAndSettle();
 
       // Tap the confirm Sign Out button (the FilledButton in the
       // dialog, which is the last 'Sign Out' text widget).
-      await tester.tap(find.text('Sign Out').last);
+      await tester.tap(find.text('Sign out').last);
       await tester.pumpAndSettle();
 
       // signOut was called.
@@ -290,11 +290,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open dialog.
-      await tester.tap(find.text('Sign Out'));
+      await tester.tap(find.text('Sign out'));
       await tester.pumpAndSettle();
 
       // Tap confirm.
-      await tester.tap(find.text('Sign Out').last);
+      await tester.tap(find.text('Sign out').last);
       await tester.pumpAndSettle();
 
       // Error snackbar should be shown.

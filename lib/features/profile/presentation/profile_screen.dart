@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -192,21 +193,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Semantics(
                   label: '${user.displayName} profile photo',
                   image: true,
-                  child: user.photoUrl != null
-                      ? CircleAvatar(
-                          radius: 48,
-                          backgroundImage: NetworkImage(user.photoUrl!),
-                        )
-                      : CircleAvatar(
-                          radius: 48,
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            _initials(user.displayName),
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ),
+                  child: OBTGradientAvatar(
+                    size: 80,
+                    displayName: user.displayName,
+                    photoUrl: user.photoUrl,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Semantics(
@@ -222,7 +213,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   label:
                       'Phone number: ${_formatPhoneForA11y(user.phoneNumber)}',
                   child: Text(
-                    user.phoneNumber,
+                    _formatPhoneDisplay(user.phoneNumber),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -369,8 +360,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             label: 'Sign Out, button',
             child: _ProfileRow(
               icon: Icons.logout,
-              label: 'Sign Out',
-              iconColour: theme.colorScheme.onSurface,
+              label: 'Sign out',
+              iconColour: theme.colorScheme.error,
+              labelColour: theme.colorScheme.error,
               onTap: _showSignOutDialog,
             ),
           ),
@@ -388,15 +380,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
-  }
-
-  String _initials(String? name) {
-    if (name == null || name.trim().isEmpty) return '?';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return parts[0][0].toUpperCase();
   }
 
   /// Runs the Contact Support flow (FR-PR-05 / FR-SH-03): launches the
@@ -453,9 +436,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (dialogContext) => OBTConfirmationDialog(
         title: 'Sign out?',
         body:
-            'Are you sure you want to sign out? You will need to verify '
-            'your phone number again to sign back in.',
-        confirmLabel: 'Sign Out',
+            "You'll need your +91 number and a fresh code to sign back in. "
+            'Your expenses and groups stay safe.',
+        confirmLabel: 'Sign out',
         onCancel: () {
           unawaited(
             ref
@@ -536,6 +519,16 @@ String _formatPhoneForA11y(String phone) {
   if (phone.startsWith('+91') && phone.length == 13) {
     final digits = phone.substring(3);
     return 'plus 91 ${digits.substring(0, 5)} ${digits.substring(5)}';
+  }
+  return phone;
+}
+
+/// Formats "+919876543210" for display as "+91 98765 43210" (the design
+/// phone presentation). Falls back to the raw value for any other shape.
+String _formatPhoneDisplay(String phone) {
+  if (phone.startsWith('+91') && phone.length == 13) {
+    final digits = phone.substring(3);
+    return '+91 ${digits.substring(0, 5)} ${digits.substring(5)}';
   }
   return phone;
 }

@@ -118,10 +118,7 @@ void main() {
   ) async {
     await tester.pumpWidget(wrap(const DeleteAccountScreen()));
 
-    expect(
-      find.text('This will permanently delete your account'),
-      findsOneWidget,
-    );
+    expect(find.text('Delete your account?'), findsOneWidget);
     expect(
       find.textContaining('Data is removed within 30 days'),
       findsOneWidget,

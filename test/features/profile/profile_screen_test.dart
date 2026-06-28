@@ -289,22 +289,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Test User'), findsOneWidget);
-      expect(find.text('+919876543210'), findsOneWidget);
+      expect(find.text('+91 98765 43210'), findsOneWidget);
     });
 
     testWidgets('shows initials avatar when photoUrl is null', (tester) async {
       await tester.pumpWidget(buildSubject(user: _testUserNoPhoto));
       await tester.pumpAndSettle();
 
-      // "TU" initials should appear.
-      expect(find.text('TU'), findsOneWidget);
+      // The gradient avatar shows the single first initial.
+      expect(find.text('T'), findsOneWidget);
     });
 
     testWidgets('Sign Out row is present', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign Out'), findsOneWidget);
+      expect(find.text('Sign out'), findsOneWidget);
     });
 
     testWidgets('Edit Profile row is present', (tester) async {
@@ -630,7 +630,7 @@ void main() {
 
       expect(fakeLauncher.lastLaunchedUri?.scheme, 'mailto');
       expect(fakeLauncher.lastLaunchedUri?.path, 'support@onebytwo.app');
-      expect(find.text('No Mail App Found'), findsNothing);
+      expect(find.text('No mail app found'), findsNothing);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>
@@ -650,7 +650,7 @@ void main() {
       await tester.tap(find.text('Contact Support'));
       await tester.pumpAndSettle();
 
-      expect(find.text('No Mail App Found'), findsOneWidget);
+      expect(find.text('No mail app found'), findsOneWidget);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>

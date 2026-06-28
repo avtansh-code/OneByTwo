@@ -47,15 +47,15 @@ class ContactSupportFallbackDialog extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusCard)),
       ),
-      semanticLabel: 'Alert: No Mail App Found',
-      title: Semantics(header: true, child: const Text('No Mail App Found')),
+      semanticLabel: 'Alert: No mail app found',
+      title: Semantics(header: true, child: const Text('No mail app found')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'We could not open a mail app on your device. '
-            'You can reach us at:',
+            "We couldn't open a mail app on your device. Copy our support "
+            'address and reach us anytime:',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -77,7 +77,7 @@ class ContactSupportFallbackDialog extends StatelessWidget {
         ),
         FilledButton(
           onPressed: () => _copyAddress(context),
-          child: const Text('Copy Address'),
+          child: const Text('Copy email'),
         ),
       ],
     );
