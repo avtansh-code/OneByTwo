@@ -75,7 +75,8 @@ class TopBalanceTile extends StatelessWidget {
     // The Settle Up affordance is a compact marigold-family text link (the
     // Haldi link token, AA on the warm surface), not a fill — matching the
     // Phase3b "Settle up" affordance. The 48 dp tap target is preserved via
-    // minimumSize even though the visual is a small link.
+    // minimumSize, but the label is top-aligned so it sits tight under the
+    // pill (the handoff's 3 dp gap) while the hit area extends downward.
     final settleUp = Semantics(
       button: true,
       onTap: onSettleUp,
@@ -89,6 +90,7 @@ class TopBalanceTile extends StatelessWidget {
             minimumSize: const Size(48, 48),
             foregroundColor: obtColors.link,
             padding: const EdgeInsets.symmetric(horizontal: 12),
+            alignment: Alignment.topCenter,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: const Text('Settle Up'),
@@ -163,7 +165,7 @@ class TopBalanceTile extends StatelessWidget {
                 identity,
                 const SizedBox(height: 8),
                 pill,
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Align(alignment: Alignment.centerLeft, child: settleUp),
               ],
             ),
