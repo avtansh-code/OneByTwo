@@ -162,7 +162,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone number row — tappable "Change Phone Number"
+                // Phone number row — tappable "change number" affordance
                 // (FR-PR-02; resolves SCR-26 Open Question #1).
                 Semantics(
                   button: true,
