@@ -27,7 +27,11 @@ void main() {
       );
 
       expect(find.text('Add expense'), findsOneWidget);
-      expect(find.text('Step 2 of 3'), findsWidgets);
+      // The numeric counter is conveyed via the dot indicator's semantics
+      // label, not visible text.
+      final handle = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Step 2 of 3'), findsOneWidget);
+      handle.dispose();
       expect(find.text('Step two body'), findsOneWidget);
       expect(find.text('Step one body'), findsNothing);
     });
