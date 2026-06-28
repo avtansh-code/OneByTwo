@@ -121,7 +121,7 @@ void main() {
       );
 
       expect(find.byType(OBTEmptyState), findsOneWidget);
-      expect(find.text('All quiet here'), findsOneWidget);
+      expect(find.text("Nothing's happened yet"), findsOneWidget);
     });
 
     testWidgets('populated rows stay on OBTActivityRow with a paise amount '

@@ -28,6 +28,7 @@ import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/expenses/domain/split_method.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
+import 'package:onebytwo/features/friends/data/remove_friendship_repository.dart';
 import 'package:onebytwo/features/friends/presentation/friend_detail_screen.dart';
 import 'package:onebytwo/features/friends/presentation/friend_history_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_card.dart';
@@ -209,12 +210,28 @@ class FakeSettlementRepository implements SettlementRepository {
   }) => const Stream<List<SettlementDoc>>.empty();
 }
 
+class FakeRemoveFriendshipRepository implements RemoveFriendshipRepository {
+  FakeRemoveFriendshipRepository(this._result);
+
+  final RemoveFriendshipResult _result;
+  int callCount = 0;
+  String? lastFriendshipId;
+
+  @override
+  Future<RemoveFriendshipResult> removeFriendship(String friendshipId) async {
+    callCount++;
+    lastFriendshipId = friendshipId;
+    return _result;
+  }
+}
+
 Widget _buildSubject({
   required AsyncValue<FriendDetailState> initialValue,
   required FakeAnalyticsService analytics,
   FakeExpenseRepository? expenseRepository,
   FakeSettlementRepository? settlementRepository,
   ReminderRepository? reminderRepository,
+  RemoveFriendshipRepository? removeFriendshipRepository,
 }) {
   return ProviderScope(
     overrides: [
@@ -229,6 +246,10 @@ Widget _buildSubject({
         settlementRepositoryProvider.overrideWithValue(settlementRepository),
       if (reminderRepository != null)
         reminderRepositoryProvider.overrideWithValue(reminderRepository),
+      if (removeFriendshipRepository != null)
+        removeFriendshipRepositoryProvider.overrideWithValue(
+          removeFriendshipRepository,
+        ),
       friendDetailProvider(_args).overrideWith((ref) {
         switch (initialValue) {
           case AsyncData(:final value):
@@ -452,6 +473,71 @@ void main() {
         analytics.lastParamsFor('friend_detail_viewed')?['balance_state'],
         'settled',
       );
+    });
+  });
+
+  group('Remove friend (FR-FR-05)', () {
+    testWidgets('settled: overflow → Remove → confirm calls removeFriendship', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(),
+        timeline: const [],
+      );
+      final removeRepo = FakeRemoveFriendshipRepository(
+        const RemoveFriendshipSuccess(),
+      );
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          removeFriendshipRepository: removeRepo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove friend'));
+      await tester.pumpAndSettle();
+
+      // The destructive confirm dialog appears; confirm it.
+      expect(find.textContaining('Remove'), findsWidgets);
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      expect(removeRepo.callCount, 1);
+      expect(removeRepo.lastFriendshipId, 'uid-friend_uid-me');
+    });
+
+    testWidgets('outstanding balance: Remove routes to "Settle up first"', (
+      tester,
+    ) async {
+      final state = FriendDetailStatePopulated(
+        header: _header(netBalancePaise: 5000, balanceState: BalanceState.owed),
+        timeline: const [],
+      );
+      final removeRepo = FakeRemoveFriendshipRepository(
+        const RemoveFriendshipSuccess(),
+      );
+      await tester.pumpWidget(
+        _buildSubject(
+          initialValue: AsyncData(state),
+          analytics: analytics,
+          settlementRepository: FakeSettlementRepository(),
+          removeFriendshipRepository: removeRepo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove friend'));
+      await tester.pumpAndSettle();
+
+      // The blocked "Settle up first" dialog appears; removal is NOT called.
+      expect(find.text('Settle up first'), findsOneWidget);
+      expect(removeRepo.callCount, 0);
     });
   });
 
@@ -848,6 +934,8 @@ void main() {
 
         await tester.tap(find.text('Send Reminder'));
         await tester.pumpAndSettle();
+        await tester.tap(find.text('Send reminder'));
+        await tester.pumpAndSettle();
 
         expect(repo.callCount, 1);
         expect(repo.lastToUserId, 'uid-friend');
@@ -879,6 +967,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Send Reminder'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Send reminder'));
       await tester.pump();
 
       expect(find.byType(SnackBar), findsOneWidget);
@@ -913,6 +1003,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Send Reminder'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Send reminder'));
       await tester.pump();
 
       expect(find.byType(SnackBar), findsOneWidget);

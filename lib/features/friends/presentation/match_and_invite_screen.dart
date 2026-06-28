@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/friends/application/match_and_invite_controller.dart';
@@ -53,7 +55,9 @@ class MatchAndInviteScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: switch (state) {
             MatchAndInviteInitial() => const SizedBox.shrink(),
-            MatchAndInviteLoading() => const _LookingUpState(),
+            MatchAndInviteLoading(:final phoneNumber) => _LookingUpState(
+              phoneNumber: phoneNumber,
+            ),
             MatchAndInviteMatchFound(:final displayName, :final photoUrl) =>
               _MatchFoundCard(
                 displayName: displayName,
@@ -97,22 +101,179 @@ class MatchAndInviteScreen extends ConsumerWidget {
 // Private widgets
 // ---------------------------------------------------------------------------
 
-/// The looking-up state: a label over a shimmer result-card skeleton
-/// (no spinner). Freezes under reduced motion via the shared OBTSkeleton.
-class _LookingUpState extends StatelessWidget {
-  const _LookingUpState();
+/// The looking-up state (Haldi 10a): the disabled mobile-number input the
+/// lookup was launched from, a "Looking up this number…" line with a
+/// rotating `sync` icon, then a shimmer result-card skeleton (no spinner).
+/// The spin freezes under Reduce Motion.
+class _LookingUpState extends StatefulWidget {
+  const _LookingUpState({required this.phoneNumber});
+
+  /// The number being looked up (E.164 or local); shown in the input row.
+  final String phoneNumber;
+
+  @override
+  State<_LookingUpState> createState() => _LookingUpStateState();
+}
+
+class _LookingUpStateState extends State<_LookingUpState>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _spin;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Respect Reduce Motion: only animate the sync icon when animations
+    // are enabled, mirroring the skeleton's reduced-motion contract.
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (!reduceMotion && _spin == null) {
+      _spin = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 1),
+      )..repeat();
+    } else if (reduceMotion) {
+      _spin?.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spin?.dispose();
+    super.dispose();
+  }
+
+  /// Strips the country digits and groups the 10-digit local number as
+  /// "98765 43210" for display.
+  String _localNumber(String raw) {
+    var digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 10) {
+      digits = digits.substring(digits.length - 10);
+    }
+    if (digits.length == 10) {
+      return '${digits.substring(0, 5)} ${digits.substring(5)}';
+    }
+    return digits;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final meta = OBTColors.metaText(theme);
+    final syncIcon = Icon(Icons.sync, size: 18, color: meta);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        // Overline label — the input the lookup was launched from.
+        Text(
+          'BY MOBILE NUMBER',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: meta,
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text('Looking up this number…', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 16),
-        const OBTSkeletonCard(key: Key('match_lookup_skeleton'), height: 96),
+        // Disabled number input + disabled "Add" (the lookup is in flight).
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
+                  border: Border.all(color: colors.outline),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      height: 50,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        border: Border(
+                          right: BorderSide(color: colors.outline),
+                        ),
+                      ),
+                      child: Text('+91', style: theme.textTheme.titleMedium),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _localNumber(widget.phoneNumber),
+                        style: OBTText.amount(context).copyWith(fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ExcludeSemantics(
+              child: Container(
+                width: 60,
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: obtColors.disabledFill,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusChipInput),
+                ),
+                child: Text(
+                  'Add',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: obtColors.disabledText,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 34),
+        // "Looking up this number…" with a rotating sync icon.
+        Semantics(
+          liveRegion: true,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (_spin != null)
+                RotationTransition(turns: _spin!, child: syncIcon)
+              else
+                syncIcon,
+              const SizedBox(width: 8),
+              Text(
+                'Looking up this number…',
+                style: theme.textTheme.bodyMedium?.copyWith(color: meta),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        // Shimmer result-card skeleton (no spinner).
+        DecoratedBox(
+          key: const Key('match_lookup_skeleton'),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            boxShadow: obtColors.rowShadow,
+            border: theme.brightness == Brightness.dark
+                ? Border.all(color: colors.outline)
+                : null,
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: OBTSkeletonRow(
+              spec: OBTSkeletonRowSpec(leadingDiameter: 48),
+              announce: false,
+            ),
+          ),
+        ),
       ],
     );
   }

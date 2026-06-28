@@ -257,7 +257,10 @@ void main() {
 
       final listView = tester.widget<ListView>(find.byType(ListView));
       final delegate = listView.childrenDelegate as SliverChildBuilderDelegate;
-      expect(delegate.childCount, 50);
+      // 50 capped settlement rows interleaved with their IST month-group
+      // headers. The fixed input (DateTime(2025) + i days, capped to 50)
+      // spans January + February 2025 → 2 headers → 52 list items.
+      expect(delegate.childCount, 52);
 
       expect(
         analytics.lastParamsFor(
@@ -390,7 +393,7 @@ void main() {
 
       expect(
         find.ancestor(
-          of: find.text('Settlement History'),
+          of: find.text('Settlements'),
           matching: find.byWidgetPredicate(
             (w) => w is Semantics && (w.properties.header ?? false),
           ),

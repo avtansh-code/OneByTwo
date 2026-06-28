@@ -172,7 +172,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The success moment replaces the editable form, with one haptic.
-      expect(find.text('Payment recorded'), findsOneWidget);
+      expect(find.text("You're all settled up — high five!"), findsOneWidget);
       expect(
         calls.where((m) => m == 'HapticFeedback.vibrate').length,
         1,

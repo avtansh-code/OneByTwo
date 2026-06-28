@@ -14,3 +14,10 @@ DateTime toIst(DateTime timestamp) => timestamp.toUtc().add(kIstOffset);
 /// day) — no device-local `DateFormat`, no DST.
 String formatIstLongDate(DateTime timestamp) =>
     DateFormat('dd MMM yyyy').format(toIst(timestamp));
+
+/// IST-formatted month + year, e.g. `June 2026` (`MMMM yyyy`) — the
+/// Settlement History month-group overline header (SCR-24, Haldi 24). The
+/// caller upper-cases it at the render site to honour the overline/kicker
+/// type ramp (UPPERCASE applied at the call site).
+String formatIstMonthYear(DateTime timestamp) =>
+    DateFormat('MMMM yyyy').format(toIst(timestamp));

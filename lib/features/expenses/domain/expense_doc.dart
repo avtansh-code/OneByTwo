@@ -41,6 +41,7 @@ class ExpenseDoc {
     required this.createdBy,
     this.id,
     this.receiptUrl,
+    this.note,
   });
 
   // -------------------------------------------------------------------
@@ -72,6 +73,10 @@ class ExpenseDoc {
 
   /// Firestore field key for [receiptUrl] (FR-EX-05).
   static const String fieldReceiptUrl = 'receiptUrl';
+
+  /// Firestore field key for [note] — the optional free-text note shown on
+  /// Add-expense step 3 and View expense (Phase3e 21/22).
+  static const String fieldNote = 'note';
 
   /// Document ID. `null` when constructed via the create flow; populated
   /// when read from Firestore via [fromMap].
@@ -108,6 +113,13 @@ class ExpenseDoc {
   /// [toUpdateMap].
   final String? receiptUrl;
 
+  /// Optional free-text note shown on Add-expense step 3 and View expense
+  /// (Phase3e 21/22). `null` when the expense has no note. Populated on
+  /// read via [fromMap] and written on create / update via [toCreateMap] /
+  /// [toUpdateMap]. A plain string capped by the client validator and the
+  /// security rules; carries no monetary value (Invariant 1 N/A).
+  final String? note;
+
   /// Serialises to the Firestore create-map shape ratified in
   /// Architect Notes §2.4. Every field aligns with the security rules
   /// at `firestore.rules` lines 167–273.
@@ -127,6 +139,7 @@ class ExpenseDoc {
       ],
       fieldSplitMethod: splitMethod.name,
       fieldReceiptUrl: receiptUrl,
+      fieldNote: note,
       'createdBy': createdBy,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -176,6 +189,9 @@ class ExpenseDoc {
     }
     if (changedFields.contains(fieldReceiptUrl)) {
       map[fieldReceiptUrl] = receiptUrl;
+    }
+    if (changedFields.contains(fieldNote)) {
+      map[fieldNote] = note;
     }
     // Always refresh updatedAt — the rules at firestore.rules:283
     // require `data.updatedAt == request.time`.
@@ -245,6 +261,11 @@ class ExpenseDoc {
     final receiptUrlRaw = data[fieldReceiptUrl];
     final receiptUrl = receiptUrlRaw is String ? receiptUrlRaw : null;
 
+    // Parse the optional free-text note (tolerate missing / null /
+    // non-string as no note).
+    final noteRaw = data[fieldNote];
+    final note = noteRaw is String ? noteRaw : null;
+
     return ExpenseDoc(
       id: id,
       amountPaise: amountPaise,
@@ -256,6 +277,7 @@ class ExpenseDoc {
       splitMethod: splitMethod,
       createdBy: createdBy,
       receiptUrl: receiptUrl,
+      note: note,
     );
   }
 }

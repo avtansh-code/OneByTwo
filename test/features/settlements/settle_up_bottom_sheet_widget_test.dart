@@ -242,7 +242,7 @@ void main() {
       // The DC-03 success moment replaces the old "Settlement recorded."
       // snackbar (the AC-1 "high five" copy is superseded by the shipped
       // component copy per the Architect reconcile).
-      expect(find.text('Payment recorded'), findsOneWidget);
+      expect(find.text("You're all settled up — high five!"), findsOneWidget);
       expect(find.text('Settlement recorded.'), findsNothing);
       expect(analytics.countOf(SettleUpTelemetry.settlementRecorded), 1);
       await _drainDismiss(tester);

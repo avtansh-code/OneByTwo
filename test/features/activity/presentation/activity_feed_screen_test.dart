@@ -211,10 +211,10 @@ void main() {
       repo.controller.add(const <ActivityFeedItem>[]);
       await tester.pumpAndSettle();
 
-      expect(find.text('All quiet here'), findsOneWidget);
+      expect(find.text("Nothing's happened yet"), findsOneWidget);
       expect(
         find.textContaining(
-          'Your activity will show up as you add expenses and settle up.',
+          'When you or your friends add expenses or settle up',
         ),
         findsOneWidget,
       );

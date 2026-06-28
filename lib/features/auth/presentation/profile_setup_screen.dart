@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/profile_setup_controller.dart';
 
@@ -153,8 +155,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     child: GestureDetector(
                       onTap: state.isLoading ? null : _showPhotoPicker,
                       child: SizedBox(
-                        width: 88,
-                        height: 88,
+                        width: 104,
+                        height: 104,
                         child: Stack(
                           children: [
                             _buildAvatar(theme, state),
@@ -163,16 +165,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                               bottom: 0,
                               child: ExcludeSemantics(
                                 child: Container(
-                                  width: 24,
-                                  height: 24,
+                                  width: 34,
+                                  height: 34,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
+                                    color: theme.colorScheme.onSurface,
                                     shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: theme.scaffoldBackgroundColor,
+                                      width: 3,
+                                    ),
                                   ),
                                   child: Icon(
-                                    Icons.camera_alt,
-                                    size: 14,
-                                    color: theme.colorScheme.onPrimary,
+                                    Icons.photo_camera,
+                                    size: 16,
+                                    color: theme.colorScheme.surface,
                                   ),
                                 ),
                               ),
@@ -183,7 +189,38 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 10),
+                Center(
+                  child: Text(
+                    'Add a photo (optional)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: OBTColors.metaText(theme),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Display name overline label.
+                Row(
+                  children: [
+                    Text(
+                      'DISPLAY NAME',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w700,
+                        color: OBTColors.metaText(theme),
+                      ),
+                    ),
+                    Text(
+                      ' *',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
 
                 // Display name field.
                 Semantics(
@@ -210,9 +247,18 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           );
                         },
                     decoration: InputDecoration(
-                      labelText: 'Display name',
                       hintText: 'Enter your display name',
                       errorText: state.displayNameError,
+                      suffixIcon:
+                          (trimmedName.isNotEmpty &&
+                              state.displayNameError == null)
+                          ? Icon(
+                              Icons.check_circle,
+                              color: theme
+                                  .extension<OBTColors>()
+                                  ?.balancePositive,
+                            )
+                          : null,
                       border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(
                           Radius.circular(AppTheme.radiusChipInput),
@@ -220,6 +266,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       ),
                     ),
                     onChanged: controller.setDisplayName,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Required · you can change this later.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: OBTColors.metaText(theme),
                   ),
                 ),
 
@@ -238,8 +291,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     label: state.isLoading
                         ? 'Saving profile'
                         : state.canSubmit
-                        ? 'Continue'
-                        : 'Continue, disabled',
+                        ? 'Finish setup'
+                        : 'Finish setup, disabled',
                     excludeSemantics: true,
                     child: state.isLoading
                         ? Semantics(
@@ -277,7 +330,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                                 ),
                               ),
                             ),
-                            child: const Text('Continue'),
+                            child: const Text('Finish setup'),
                           ),
                   ),
                 ),
@@ -293,40 +346,28 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   Widget _buildAvatar(ThemeData theme, ProfileSetupState state) {
     final trimmedName = state.displayName.trim();
+    const size = 104.0;
 
-    // Photo selected.
+    // Locally-picked photo — a rounded-square preview matching the gradient
+    // avatar's shape.
     if (state.selectedPhotoPath != null) {
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: FileImage(File(state.selectedPhotoPath!)),
-      );
-    }
-
-    // Initials fallback — a marigold avatar with an ink initial (from the
-    // scheme; ink on marigold, never white — the DC-01 contrast rule).
-    if (trimmedName.isNotEmpty) {
-      final initial = trimmedName[0].toUpperCase();
-      return CircleAvatar(
-        radius: 40,
-        backgroundColor: theme.colorScheme.primary,
-        child: Text(
-          initial,
-          style: theme.textTheme.headlineLarge?.copyWith(
-            color: theme.colorScheme.onPrimary,
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(size * 0.33),
+          image: DecorationImage(
+            image: FileImage(File(state.selectedPhotoPath!)),
+            fit: BoxFit.cover,
           ),
         ),
       );
     }
 
-    // Generic person icon.
-    return CircleAvatar(
-      radius: 40,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      child: Icon(
-        Icons.person,
-        size: 40,
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-      ),
+    // The Haldi gradient avatar with the white initial (or "?" when empty).
+    return OBTGradientAvatar(
+      size: size,
+      displayName: trimmedName.isEmpty ? null : trimmedName,
     );
   }
 }

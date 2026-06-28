@@ -134,7 +134,7 @@ void main() {
 
       await pumpThemed(tester, sheet(isSuccess: true), wrapInScaffold: false);
 
-      expect(find.text('Payment recorded'), findsOneWidget);
+      expect(find.text("You're all settled up — high five!"), findsOneWidget);
       expect(
         calls.where((m) => m == 'HapticFeedback.vibrate').length,
         1,

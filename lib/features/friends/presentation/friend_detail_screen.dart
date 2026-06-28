@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/dialogs/obt_confirmation_dialog.dart';
 import 'package:onebytwo/core/widgets/nav/obt_floating_action_button.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/expenses/presentation/add_expense_bottom_sheet.dart';
 import 'package:onebytwo/features/friends/application/friend_detail_provider.dart';
+import 'package:onebytwo/features/friends/data/remove_friendship_repository.dart';
 import 'package:onebytwo/features/friends/presentation/friend_history_screen.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_header.dart';
 import 'package:onebytwo/features/friends/presentation/widgets/friend_detail_states.dart';
@@ -17,6 +20,7 @@ import 'package:onebytwo/features/friends/presentation/widgets/obt_settle_up_car
 import 'package:onebytwo/features/reminders/application/reminder_cooldown_provider.dart';
 import 'package:onebytwo/features/reminders/application/send_reminder_controller.dart';
 import 'package:onebytwo/features/reminders/domain/reminder_send_error.dart';
+import 'package:onebytwo/features/reminders/presentation/reminder_compose_sheet.dart';
 import 'package:onebytwo/features/settlements/application/settle_up_telemetry.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
 import 'package:onebytwo/features/settlements/presentation/settlement_history_screen.dart';
@@ -80,8 +84,12 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
     final obtColors =
         Theme.of(context).extension<OBTColors>() ?? OBTColors.light;
 
+    final overflowAction = _buildOverflowAction(asyncState);
     return Scaffold(
-      appBar: AppBar(title: Text(_appBarTitle(asyncState))),
+      appBar: AppBar(
+        title: Text(_appBarTitle(asyncState)),
+        actions: <Widget>[if (overflowAction != null) overflowAction],
+      ),
       body: asyncState.when(
         loading: () => const FriendDetailLoadingState(),
         error: (error, stack) => FriendDetailErrorState(
@@ -184,6 +192,117 @@ class _FriendDetailScreenState extends ConsumerState<FriendDetailScreen> {
         }
       },
       orElse: () => 'Friend',
+    );
+  }
+
+  /// The Friend-detail overflow menu (`more_horiz`) — the entry point to
+  /// FR-FR-05 Remove friend. Rendered only once the header has resolved (so
+  /// the name + balance are known); hidden during loading / error.
+  Widget? _buildOverflowAction(AsyncValue<FriendDetailState> async) {
+    final header = async.maybeWhen(
+      data: (state) => switch (state) {
+        FriendDetailStateEmpty(:final header) => header,
+        FriendDetailStatePopulated(:final header) => header,
+      },
+      orElse: () => null,
+    );
+    if (header == null) return null;
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_horiz),
+      tooltip: 'More options',
+      onSelected: (value) {
+        if (value == 'remove') _onRemoveFriendTapped(header);
+      },
+      itemBuilder: (context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'remove',
+          child: Text('Remove friend'),
+        ),
+      ],
+    );
+  }
+
+  /// Remove-friend entry (design screen 13): when a balance is outstanding,
+  /// show the "Settle up first" blocked dialog that routes to Settle up;
+  /// when settled, show the destructive confirm and, on confirm, call the
+  /// `removeFriendship` Cloud Function via the repository.
+  Future<void> _onRemoveFriendTapped(FriendDetailHeader header) async {
+    if (header.netBalancePaise != 0) {
+      await _showBlockedRemoveDialog(header);
+      return;
+    }
+    final confirmed = await OBTConfirmationDialog.show(
+      context,
+      title: 'Remove ${header.displayName}?',
+      body:
+          "You're all settled up. They'll be removed from your friends — "
+          'you can always add them back later.',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+    );
+    if (!confirmed || !mounted) return;
+    await _performRemove(header);
+  }
+
+  /// The "Settle up first" blocked dialog — explains the outstanding
+  /// balance and routes to the Settle Up sheet instead of removing.
+  Future<void> _showBlockedRemoveDialog(FriendDetailHeader header) async {
+    final owesYou = header.netBalancePaise > 0;
+    final amount = formatInrFromPaise(header.netBalancePaise.abs());
+    final body = owesYou
+        ? '${header.displayName} still owes you $amount. Clear the balance '
+              'before removing them as a friend.'
+        : 'You still owe ${header.displayName} $amount. Clear the balance '
+              'before removing them as a friend.';
+    final settle = await OBTConfirmationDialog.show(
+      context,
+      title: 'Settle up first',
+      body: body,
+      confirmLabel: 'Settle up now',
+    );
+    if (settle && mounted) {
+      await _openSettleUp(header);
+    }
+  }
+
+  Future<void> _performRemove(FriendDetailHeader header) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final result = await ref
+        .read(removeFriendshipRepositoryProvider)
+        .removeFriendship(widget.friendshipId);
+    if (!mounted) return;
+    switch (result) {
+      case RemoveFriendshipSuccess():
+        navigator.pop();
+        messenger.showSnackBar(
+          SnackBar(content: Text('${header.displayName} removed.')),
+        );
+      case RemoveFriendshipNotSettled():
+        await _showBlockedRemoveDialog(header);
+      case RemoveFriendshipFailed():
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Could not remove this friend. Please try again.'),
+          ),
+        );
+    }
+  }
+
+  Future<void> _openSettleUp(FriendDetailHeader header) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (_) => SettleUpBottomSheet(
+        friendshipId: widget.friendshipId,
+        currentUserUid: widget.currentUserUid,
+        otherUserUid: widget.otherUserUid,
+        otherDisplayName: header.displayName,
+        otherUserPhotoUrl: header.photoUrl,
+        suggestedAmountPaise: header.netBalancePaise.abs(),
+      ),
     );
   }
 
@@ -361,6 +480,15 @@ class _ReceivingDirectionCardState
   }
 
   Future<void> _onSendReminderTapped(BuildContext context) async {
+    // Open the pre-filled compose sheet (Haldi 24); the user reviews / edits
+    // a friendly nudge, and the free text is sent as the reminder message
+    // (FR-SE-09). Dismissing without sending is a no-op.
+    final message = await ReminderComposeSheet.show(
+      context,
+      recipientName: widget.otherDisplayName,
+      suggestedAmountPaise: widget.suggestedAmountPaise,
+    );
+    if (message == null) return;
     final controller = ref.read(
       sendReminderControllerProvider(widget.friendshipId).notifier,
     );
@@ -368,6 +496,7 @@ class _ReceivingDirectionCardState
       toUserId: widget.otherUserUid,
       contextType: 'friendship',
       contextId: widget.friendshipId,
+      message: message,
     );
   }
 

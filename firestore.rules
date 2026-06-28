@@ -174,7 +174,7 @@ service cloud.firestore {
       function hasOnlyKnownKeys(data) {
         return data.keys().hasOnly([
           'amountPaise', 'description', 'category', 'date', 'payerId',
-          'splits', 'splitMethod', 'receiptUrl', 'createdBy',
+          'splits', 'splitMethod', 'receiptUrl', 'note', 'createdBy',
           'createdAt', 'updatedAt', 'deleted',
           'source', 'currency', 'recurringRule'
         ]);
@@ -210,6 +210,7 @@ service cloud.firestore {
           && data.splits.size() <= 2
           && data.splitMethod in ['equal', 'unequal', 'percentage', 'shares', 'exact']
           && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
+          && (!('note' in data) || data.note == null || (data.note is string && data.note.size() <= 500))
           && data.createdBy is string
           && data.createdAt is timestamp
           && data.updatedAt is timestamp

@@ -157,6 +157,7 @@ class _SettleUpBottomSheetState extends ConsumerState<SettleUpBottomSheet> {
         isSaving: state is SettleUpSaving,
         isSuccess: state is SettleUpSuccess,
         amountErrorText: amountErrorText,
+        onDone: () => Navigator.of(context).maybePop(),
         onAmountChanged: (paise) => ref
             .read(settleUpControllerProvider(_args).notifier)
             .setAmount(paise),

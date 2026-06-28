@@ -53,6 +53,15 @@ export {sendReminderNotification} from "./send-reminder-notification/index";
 // ADR-0016.
 export {deleteUserAccount} from "./delete-user-account/index";
 
+// FR-FR-05 remove-friend callable (design screen 13). Like FR-AU-09 account
+// deletion, removal runs entirely under the Admin SDK because clients have NO
+// delete path (firestore.rules keeps `allow delete: if false` on
+// friendships/{id}) and a friendship owns an `expenses` subcollection a client
+// delete cannot recurse. Validates membership and a fully-settled balance gate
+// (READS simplifiedBalances only — Invariant 2), then recursiveDeletes the
+// friendship doc and its expenses subtree.
+export {removeFriendship} from "./remove-friendship/index";
+
 // Firestore trigger: recompute simplifiedBalances when an expense is
 // created, updated, or deleted under a friendship (FR-SE-03/04).
 // First non-callable producer of simplifiedBalances (Invariant 2).

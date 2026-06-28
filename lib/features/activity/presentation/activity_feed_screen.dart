@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:onebytwo/core/formatters/ist_date_formatter.dart';
 import 'package:onebytwo/core/routing/notification_deep_links.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
@@ -18,6 +19,7 @@ import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/application/user_profile_provider.dart';
 import 'package:onebytwo/features/notifications/domain/notification_payload.dart';
+import 'package:onebytwo/features/shell/presentation/add_expense_context_picker_sheet.dart';
 
 /// SCR-25 — Activity Feed screen (FR-AC-01 / FR-AC-02).
 ///
@@ -161,12 +163,14 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   void _onEmptyAddExpenseTapped() {
-    // The multi-context FAB chooser is deferred per architect §2.1.
-    // For v1.0 the Empty-state CTA surfaces a hint snackbar.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Open a friend from the Friends list to add an expense.'),
-      ),
+    // Open the add-expense context picker (the same surface the Home FAB
+    // and empty state use) so the friendly empty CTA actually starts the
+    // add flow rather than only hinting.
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const AddExpenseContextPickerSheet(),
     );
   }
 
@@ -286,12 +290,33 @@ class _PopulatedList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUid = ref.watch(currentUserIdProvider);
     final now = DateTime.now().toUtc();
+
+    // Flatten into IST day-grouped sections (Today / Yesterday / date), each
+    // header followed by its rows — the SCR-25 chronological grouping.
+    final entries = <_FeedEntry>[];
+    String? currentDay;
+    for (final item in items) {
+      final label = _dayGroupLabel(
+        now: now,
+        createdAt: item.createdAt?.toUtc(),
+      );
+      if (label != currentDay) {
+        currentDay = label;
+        entries.add(_DayHeaderEntry(label));
+      }
+      entries.add(_RowEntry(item));
+    }
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.builder(
-        itemCount: items.length,
+        itemCount: entries.length,
         itemBuilder: (context, index) {
-          final item = items[index];
+          final entry = entries[index];
+          if (entry is _DayHeaderEntry) {
+            return _DayHeader(label: entry.label);
+          }
+          final item = (entry as _RowEntry).item;
           final otherUid = _otherUidFor(item, currentUid);
           final profileAsync = otherUid == null
               ? const AsyncValue<UserModel?>.data(null)
@@ -300,19 +325,35 @@ class _PopulatedList extends ConsumerWidget {
             data: (profile) => profile?.displayName ?? 'Unknown',
             orElse: () => 'Unknown',
           );
-          return OBTActivityRow(
-            item: item,
-            currentUserUid: currentUid,
-            otherPartyDisplayName: otherName,
-            secondaryText: formatRelativeTimestamp(
-              now: now,
-              createdAt: item.createdAt?.toUtc(),
+          return _ActivityCard(
+            child: OBTActivityRow(
+              item: item,
+              currentUserUid: currentUid,
+              otherPartyDisplayName: otherName,
+              secondaryText: formatRelativeTimestamp(
+                now: now,
+                createdAt: item.createdAt?.toUtc(),
+              ),
+              onTap: () => onRowTap(item),
             ),
-            onTap: () => onRowTap(item),
           );
         },
       ),
     );
+  }
+
+  /// The IST day-group label for [createdAt]: "Today", "Yesterday", or the
+  /// IST long date for older entries (SCR-25 grouping; UTC+5:30 fixed).
+  String _dayGroupLabel({required DateTime now, DateTime? createdAt}) {
+    if (createdAt == null) return 'Earlier';
+    final nowIst = toIst(now);
+    final itemIst = toIst(createdAt);
+    final today = DateTime(nowIst.year, nowIst.month, nowIst.day);
+    final day = DateTime(itemIst.year, itemIst.month, itemIst.day);
+    final diff = today.difference(day).inDays;
+    if (diff <= 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    return formatIstLongDate(createdAt);
   }
 
   String? _otherUidFor(ActivityFeedItem item, String currentUid) {
@@ -331,6 +372,75 @@ class _PopulatedList extends ConsumerWidget {
     if (parts[0] == currentUid) return parts[1];
     if (parts[1] == currentUid) return parts[0];
     return null;
+  }
+}
+
+/// A flattened activity-feed entry: a day-group header or an activity row.
+sealed class _FeedEntry {
+  const _FeedEntry();
+}
+
+class _DayHeaderEntry extends _FeedEntry {
+  const _DayHeaderEntry(this.label);
+  final String label;
+}
+
+class _RowEntry extends _FeedEntry {
+  const _RowEntry(this.item);
+  final ActivityFeedItem item;
+}
+
+/// The "Today" / "Yesterday" / date overline header opening each day's run
+/// of activity rows (SCR-25).
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 8),
+      child: Semantics(
+        header: true,
+        child: Text(
+          label.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w700,
+            color: OBTColors.metaText(theme),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A soft surface card wrapping an activity row (SCR-25 row card).
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: obtColors.rowShadow,
+          border: theme.brightness == Brightness.dark
+              ? Border.all(color: theme.colorScheme.outline)
+              : null,
+        ),
+        child: child,
+      ),
+    );
   }
 }
 
@@ -356,10 +466,11 @@ class _EmptyState extends StatelessWidget {
           color: colors.primary,
         ),
       ),
-      headline: 'All quiet here',
+      headline: "Nothing's happened yet",
       supportingText:
-          'Your activity will show up as you add expenses and settle up.',
-      ctaLabel: 'Add Expense',
+          'When you or your friends add expenses or settle up, '
+          "it'll all show up here.",
+      ctaLabel: 'Add an expense',
       onCta: onAddExpense,
     );
   }

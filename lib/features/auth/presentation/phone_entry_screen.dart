@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/application/phone_entry_controller.dart';
@@ -54,6 +55,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
     final colorScheme = theme.colorScheme;
 
     final hasExactlyTenDigits = state.phoneNumber.length == 10;
+    final hasError = state.validationError != null;
 
     // Navigate to OTP screen when verification session is set.
     ref.listen<PhoneEntryState>(phoneEntryControllerProvider, (previous, next) {
@@ -99,7 +101,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
 
               // Heading.
               Text(
-                'Enter your mobile number',
+                "What's your number?",
                 style: theme.textTheme.headlineLarge?.copyWith(
                   color: colorScheme.onSurface,
                 ),
@@ -108,12 +110,25 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
 
               // Subtitle.
               Text(
-                "We'll send you a 6-digit code to verify.",
+                "We'll text a 6-digit code to verify it's you.",
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 26),
+
+              // Overline field label (turns danger in the invalid state).
+              Text(
+                'MOBILE NUMBER',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700,
+                  color: hasError
+                      ? colorScheme.error
+                      : OBTColors.metaText(theme),
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // Phone input row.
               Row(
@@ -136,7 +151,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        '+91',
+                        '🇮🇳 +91',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: colorScheme.onSurface,
                         ),
@@ -206,17 +221,35 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                 ],
               ),
 
-              // Error text.
-              if (state.validationError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    state.validationError!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.error,
-                    ),
-                  ),
-                ),
+              // Helper text, or the inline validation error when invalid.
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: hasError
+                    ? Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 15,
+                            color: colorScheme.error,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              state.validationError!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        'Standard SMS rates may apply.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: OBTColors.metaText(theme),
+                        ),
+                      ),
+              ),
 
               const Spacer(),
 
@@ -241,7 +274,15 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Continue'),
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Send OTP'),
+                            SizedBox(width: 8),
+                            Icon(Icons.arrow_forward, size: 20),
+                          ],
+                        ),
                 ),
               ),
 
