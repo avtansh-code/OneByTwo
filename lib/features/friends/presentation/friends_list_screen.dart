@@ -7,6 +7,7 @@ import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/theme/obt_text.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_empty_state.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
@@ -231,10 +232,7 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               amount,
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: hue,
-                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-              ),
+              style: OBTText.amount(context).copyWith(color: hue, fontSize: 18),
             ),
           ],
         ),
