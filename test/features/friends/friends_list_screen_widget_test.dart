@@ -216,17 +216,20 @@ void main() {
       expect(find.text('Chandra'), findsOneWidget);
     });
 
-    testWidgets('balance pill text reflects the direction', (tester) async {
+    testWidgets('balance direction shows as subtitle + one-line pill', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildSubject());
       streamController.add(items);
       await tester.pumpAndSettle();
 
-      // Positive → "owes you"
+      // The directional label is the row subtitle (DC-06): positive →
+      // "owes you", negative → "you owe", zero → "settled up".
       expect(find.text('owes you'), findsOneWidget);
-      // Negative → "you owe"
       expect(find.text('you owe'), findsOneWidget);
-      // Zero → "Settled up" (the shared OBTBalancePill label; DC-06)
-      expect(find.text('Settled up'), findsOneWidget);
+      expect(find.text('settled up'), findsOneWidget);
+      // The zero pill carries the one-word "Settled" copy (no amount).
+      expect(find.text('Settled'), findsOneWidget);
     });
 
     testWidgets('balance amount uses the shared INR formatter (not inline)', (

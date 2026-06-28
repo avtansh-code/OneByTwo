@@ -184,9 +184,11 @@ void main() {
     expect(deco.border, isNull, reason: 'a heroShadow surface gets no outline');
   });
 
-  // --- AC-1: the top-balance tile pill trio + marigold Settle Up link ---
-  testWidgets('top-balance tile uses the OBTBalancePill trio icon and a '
-      'marigold Settle Up text link', (tester) async {
+  // --- AC-1: the top-balance tile one-line pill + subtitle + Settle Up ---
+  testWidgets('top-balance tile uses the one-line OBTBalancePill (icon + '
+      'amount), a directional subtitle, and a marigold Settle Up link', (
+    tester,
+  ) async {
     await pumpThemed(
       tester,
       TopBalanceTile(
@@ -197,14 +199,29 @@ void main() {
     );
 
     expect(find.byType(OBTBalancePill), findsOneWidget);
-    // The pill carries the directional icon (colour + icon + label, not
-    // colour alone).
+    // The pill carries the directional icon + the amount on one line.
     expect(
       find.descendant(
         of: find.byType(OBTBalancePill),
         matching: find.byIcon(Icons.arrow_upward),
       ),
       findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(OBTBalancePill),
+        matching: find.text('₹1,500.00'),
+      ),
+      findsOneWidget,
+    );
+    // The directional label is the identity subtitle, NOT inside the pill.
+    expect(find.text('owes you'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(OBTBalancePill),
+        matching: find.text('owes you'),
+      ),
+      findsNothing,
     );
 
     // Settle Up is the AA-tuned marigold link token, not the low-contrast

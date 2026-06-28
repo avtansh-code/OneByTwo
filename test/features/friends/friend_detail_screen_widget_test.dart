@@ -312,21 +312,22 @@ void main() {
       expect(find.text('Bina'), findsWidgets);
     });
 
-    testWidgets('renders the owed balance pill copy and INR amount', (
-      tester,
-    ) async {
+    testWidgets('renders the owed inline hero balance and the suggested '
+        'amount', (tester) async {
       await tester.pumpWidget(
         _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      // The shared OBTBalancePill (large form) carries the label and the
-      // magnitude amount as separate Texts (colour + icon + label trio;
-      // DC-06), so the header reads "you are owed" + "₹123.45". The amount
-      // also appears in the receiving-direction OBTSettleUpCard (same
-      // suggested amount), so it renders twice.
-      expect(find.text('you are owed'), findsOneWidget);
-      expect(find.text(formatInrFromPaise(12345)), findsNWidgets(2));
+      // The detail header is inline hero text (NOT a pill; DC-06): it reads
+      // "<name> owes you <amount>" on one line. The bare amount also appears
+      // in the receiving-direction OBTSettleUpCard, so it renders once there
+      // (the header now embeds it in the longer hero string).
+      expect(
+        find.text('Bina owes you ${formatInrFromPaise(12345)}'),
+        findsOneWidget,
+      );
+      expect(find.text(formatInrFromPaise(12345)), findsOneWidget);
     });
 
     testWidgets('renders the intermixed timeline rows in order', (
@@ -385,18 +386,20 @@ void main() {
       ],
     );
 
-    testWidgets('renders the owes balance pill copy', (tester) async {
+    testWidgets('renders the owes inline hero balance', (tester) async {
       await tester.pumpWidget(
         _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      // The shared OBTBalancePill renders the "you owe" label and the
-      // magnitude "₹50.00" (the sign is the icon + colour, not a minus on
-      // the amount; DC-06). The amount also appears in the OBTSettleUpCard
-      // (same suggested amount), so it renders twice.
-      expect(find.text('you owe'), findsOneWidget);
-      expect(find.text(formatInrFromPaise(5000)), findsNWidgets(2));
+      // The inline hero header reads "You owe <name> <magnitude>" (the sign
+      // is the icon + colour, not a minus; DC-06). The bare magnitude also
+      // appears in the OBTSettleUpCard, so it renders once there.
+      expect(
+        find.text('You owe Bina ${formatInrFromPaise(5000)}'),
+        findsOneWidget,
+      );
+      expect(find.text(formatInrFromPaise(5000)), findsOneWidget);
     });
 
     testWidgets('friend_detail_viewed fires with owes balance_state', (
@@ -427,13 +430,14 @@ void main() {
       ],
     );
 
-    testWidgets('renders the settled-up pill copy', (tester) async {
+    testWidgets('renders the settled-up inline hero balance', (tester) async {
       await tester.pumpWidget(
         _buildSubject(initialValue: AsyncData(state), analytics: analytics),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Settled up'), findsOneWidget);
+      // Settled: the inline hero reads "You're all settled up" (no amount).
+      expect(find.text("You're all settled up"), findsOneWidget);
     });
 
     testWidgets('friend_detail_viewed fires with settled balance_state', (

@@ -456,6 +456,16 @@ void main() {
     });
 
     testWidgets('shows at most five top-balance rows', (tester) async {
+      // One By Two targets phones only (SRS 12.3), and the Phase3b
+      // top-balance row is a single line with a trailing pill-over-link
+      // column. Pin the reference phone surface so the lazy ListView
+      // realises the full capped set of five rows; the default 800x600
+      // desktop surface would page the fifth row out of the build window.
+      tester.view.physicalSize = const Size(390, 844) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(buildSubject());
       controller.add([
         for (var i = 0; i < 7; i++)
