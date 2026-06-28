@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # Groups Flow Wireframes
 
 > **Status: planned — not yet implemented in the client.** `lib/features/groups/` contains no UI; the Groups tab renders `GroupsListPlaceholder` ('Coming in Sprint 3') and the Add-Expense picker shows a disabled Groups stub. The Firestore schema/rules exist server-side. This spec is retained as the build target.

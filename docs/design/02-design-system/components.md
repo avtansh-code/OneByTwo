@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # One By Two v1.0 -- Component Catalogue
 
 This document defines the reusable widget library for One By Two v1.0. Every component is specified with its visual description, data inputs, interactive states, accessibility behaviour, and the SRS requirements it satisfies. The Flutter Developer should consume this catalogue as the authoritative design contract when implementing the `lib/core/widgets/` and feature-specific widget directories.

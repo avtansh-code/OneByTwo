@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # Typography and Formatting
 
 Text formatting rules for One By Two v1.0. This document is the single reference for every currency, date, phone number, and name display rule in the application. It is authored by the UX/UI Designer and consumed by the Flutter Developer during implementation.

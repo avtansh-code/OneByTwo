@@ -2127,3 +2127,61 @@ untouched here.
   `NetBalanceHeaderCard`.
 
 ---
+
+## ADR-0026: Sprint-3 Retro — Money-Glyph, Single-Line-Fit, and Golden-Fixture Contracts
+
+**Status:** Accepted
+
+**Date:** 2026-06-28
+
+### Context
+
+The Sprint 3 → Sprint 4 boundary sweep (`docs/audits/sprint-3/`) re-validated the shipped Haldi
+conversion against the handoff and surfaced design decisions made implicitly across the DC PRs and
+the #143 follow-up that were not yet written down as contracts. Sprint 4 (Groups) will build many
+new amount-bearing and one-line surfaces, so these must be inherited as contracts, not folklore.
+Three were load-bearing: (a) amounts rendered in a Hanken slot show the rupee sign (U+20B9) as a
+missing-glyph box because the bundled Hanken static instance has no `₹`; (b) elements the handoff
+draws on one line must fit one line; (c) a golden can pass while rendering the wrong state.
+
+### Decision
+
+1. **Money renders in Bricolage; the rupee never tofus.** Every amount `Text` resolves to an
+   `OBTText.amount*` Bricolage tabular style, never a Hanken `textTheme` slot. For an amount embedded
+   in a Hanken sentence, the run takes `OBTText.rupeeAware(theme, style)` — a helper that appends the
+   Bricolage family (the `titleSmall` amount slot) to `fontFamilyFallback`, so only the missing `₹`
+   glyph borrows Bricolage while the prose stays Hanken. This restates and operationalises the §3.3 /
+   ADR-0025 "amounts are Bricolage" rule; `formatInrFromPaise()` remains the sole paise→INR boundary
+   (Invariant 1) — only the display font changes.
+
+2. **Single-line-fit standard.** Every element the handoff draws on one line — pills/chips,
+   amount/balance figures, one-line row titles — renders on one line and **scales its text down to
+   fit** (`FittedBox(BoxFit.scaleDown)` + `maxLines: 1` + `softWrap: false`), never wrapping and
+   never truncating/ellipsising money. `Flexible` is used in row contexts so short content is
+   byte-identical and only long content scales. This generalises the #143 one-line balance-pill
+   contract (`[icon] [amount]` on one line; the directional label is the row subtitle, never inside
+   the pill) app-wide.
+
+3. **Golden fixtures render the intended state.** Single-subscription streams in golden fixtures use
+   `Stream Function()` builders (fresh per pump), and every error-bearing state loop carries the
+   self-validating `expectGoldenState` guard so a wrong-state render fails loudly instead of blessing
+   a broken baseline. Baselines are authored only on `ubuntu-latest` via the `golden-refresh`
+   `workflow_dispatch` job; macOS `--update-goldens` bytes are never committed.
+
+### Consequences
+
+- No data, rule, function, trigger, schema, or telemetry contract moves — these are display/test
+  conventions. They are codified in `.github/shared/coding-standards.md` (Money + the visual-fidelity
+  / golden section) so they are enforced at authoring time.
+- The Sprint-3 cleanup PR applies them to the remaining divergences (the four ₹-in-Hanken sentence
+  sites, the standalone Total, seven scale-to-fit amount figures, and the dc07/dc08/dc09 content
+  guards); Sprint 4 inherits them as the baseline for every new Groups surface.
+
+### Alternatives Considered
+
+- **Split each sentence-embedded amount into an explicit Bricolage span (`Text.rich`).** Rejected as
+  the default: it shifts the whole amount run to Bricolage mid-sentence (a visible font change) and is
+  more code per site; the `fontFamilyFallback` helper matches the handoff's uniform sentence and is
+  DRY. (A Bricolage span remains acceptable where an amount is a clearly separable token.)
+- **Leave the patterns in PR descriptions / the retro only.** Rejected: Sprint 4 would re-derive or
+  miss them. An ADR plus a coding-standards entry makes them discoverable contracts.

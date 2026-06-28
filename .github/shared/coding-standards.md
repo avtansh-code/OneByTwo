@@ -35,6 +35,31 @@ skill must follow them. Reference: SRS section 5.7.
 - Conversion to display rupees (two decimal places, Indian numbering system) happens
   exclusively in the UI layer via `formatInrFromPaise` in
   `lib/core/formatters/inr_formatter.dart`.
+- **Amounts render in Bricolage, never a Hanken slot.** Every amount `Text` must take an
+  `OBTText.amount*` style (`amount` / `amountPill` / `amountFocal` / `amountHero`), never a
+  Hanken `textTheme` slot (`titleMedium` / `bodyMedium` / `bodyLarge` / …): the bundled Hanken
+  static instance has no rupee glyph (U+20B9), so it renders `₹` as a missing-glyph box. For an
+  amount embedded in a Hanken sentence, wrap the style in `OBTText.rupeeAware(theme, style)` so
+  the `₹` borrows Bricolage while the prose stays Hanken.
+- **Money never wraps or truncates.** Single-line amounts (and any element the Haldi handoff
+  draws on one line) render inside `FittedBox(fit: BoxFit.scaleDown)` with `maxLines: 1` +
+  `softWrap: false`, so they scale down to fit rather than wrapping or ellipsising. Use
+  `Flexible` in row contexts so short amounts are unchanged and only long ones scale.
+
+### Visual fidelity and golden tests (Haldi)
+
+- The Haldi handoff (`design_handoff_one_by_two/`) is the canonical visual source of truth
+  (ADR-0024). Match its tokens; do not build against the superseded `docs/design/` visual docs.
+- **Goldens are host-sensitive and authored only on `ubuntu-latest`** via the `golden-refresh`
+  `workflow_dispatch` job (`flutter test --update-goldens --tags golden`). Never commit macOS
+  `--update-goldens` bytes. The `golden-a11y-checks` job compares (never updates) and skips on
+  `workflow_dispatch`. Review every changed PNG as an image before merge.
+- **Golden fixtures must render the intended state.** Build any single-subscription `Stream`
+  (`Stream.value` / `Stream.error` / `StreamController().stream`) with a `Stream Function()`
+  builder so each pump gets a fresh stream (a shared one is consumed by the first pump and
+  silently renders the error screen on the second). Add a self-validating content guard
+  (`expectGoldenState` in `test/golden/golden_harness.dart`) so a wrong-state render fails loud
+  rather than blessing a broken baseline.
 
 ### State management
 

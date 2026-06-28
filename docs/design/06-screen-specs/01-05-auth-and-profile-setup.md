@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # Screen Specifications: Authentication and Profile Setup (SCR-01 to SCR-05)
 
 > **Document status:** Draft

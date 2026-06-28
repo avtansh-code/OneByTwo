@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Superseded — historical reference only.** As of **ADR-0024** the Haldi visual
+> system (`design_handoff_one_by_two/`) is the canonical source of truth for colour,
+> type, shape, motion and visuals. This document predates the Sprint-3 Haldi
+> conversion and is retained for history; do **not** build new work against its
+> tokens, type, or visuals. See `.github/shared/decision-log.md` (ADR-0024).
+
 # Home Dashboard Wireframes
 
 This document specifies the wireframe layouts for the Home Dashboard screen (SRS section 6.3, Core Screen 5) across all required states. Each layout references components from the One By Two Component Catalogue (`docs/design/02-design-system/components.md`) and satisfies functional requirements FR-HD-01 through FR-HD-04 (SRS section 4.8).
