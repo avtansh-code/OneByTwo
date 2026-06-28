@@ -22,6 +22,20 @@ class OBTText {
     return base.copyWith(fontFeatures: _tabularFigures);
   }
 
+  /// Bricolage tabular style for the compact balance-pill amount — the
+  /// one-line `[icon] [amount]` chip (Phase2 Components "Balance pills":
+  /// Bricolage Grotesque 700, 13px, tabular figures). Sized down from the
+  /// `titleSmall` amount-row slot with a 1.0 line height so the chip stays
+  /// a single tight line; colour is set by the caller (the balance hue).
+  static TextStyle amountPill(BuildContext context) {
+    final base = Theme.of(context).textTheme.titleSmall ?? const TextStyle();
+    return base.copyWith(
+      fontSize: 13,
+      height: 1,
+      fontFeatures: _tabularFigures,
+    );
+  }
+
   /// Bricolage tabular style for a focal amount that sits between a row
   /// amount and the hero figure — the settle-up card suggestion and similar
   /// mid-emphasis money (the `displayMedium` 32px amount-focal slot, issue

@@ -198,11 +198,10 @@ void main() {
         ? OBTColors.light
         : OBTColors.dark;
 
-    // --- AC-1: friend-list row pill trio (colour + icon + label) ---
-    group('friend-list row pill trio ($mode)', () {
-      testWidgets('owed: arrow_upward + "owes you" in the positive hue', (
-        tester,
-      ) async {
+    // --- AC-1: friend-list row — one-line pill + directional subtitle ---
+    group('friend-list row signal ($mode)', () {
+      testWidgets('owed: pill arrow_upward + amount; "owes you" subtitle in '
+          'the positive hue', (tester) async {
         await pumpThemed(
           tester,
           FriendListTile(item: _item(netBalancePaise: 150000), onTap: () {}),
@@ -217,12 +216,27 @@ void main() {
           ),
         );
         expect(icon.color, obt.balancePositive);
+        // The amount lives INSIDE the pill (one-line [icon] [amount]).
+        expect(
+          find.descendant(
+            of: find.byType(OBTBalancePill),
+            matching: find.text(formatInrFromPaise(150000)),
+          ),
+          findsOneWidget,
+        );
+        // The directional label is the row subtitle, NOT inside the pill.
         expect(find.text('owes you'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(OBTBalancePill),
+            matching: find.text('owes you'),
+          ),
+          findsNothing,
+        );
       });
 
-      testWidgets('owe: arrow_downward + "you owe" in the negative hue', (
-        tester,
-      ) async {
+      testWidgets('owe: pill arrow_downward + amount; "you owe" subtitle in '
+          'the negative hue', (tester) async {
         await pumpThemed(
           tester,
           FriendListTile(item: _item(netBalancePaise: -25000), onTap: () {}),
@@ -236,12 +250,19 @@ void main() {
           ),
         );
         expect(icon.color, obt.balanceNegative);
+        // Magnitude only inside the pill; the sign is the icon + colour.
+        expect(
+          find.descendant(
+            of: find.byType(OBTBalancePill),
+            matching: find.text(formatInrFromPaise(25000)),
+          ),
+          findsOneWidget,
+        );
         expect(find.text('you owe'), findsOneWidget);
       });
 
-      testWidgets('settled: check + "Settled up" in the zero hue', (
-        tester,
-      ) async {
+      testWidgets('settled: pill check + "Settled"; "settled up" subtitle in '
+          'the zero hue', (tester) async {
         await pumpThemed(
           tester,
           FriendListTile(item: _item(netBalancePaise: 0), onTap: () {}),
@@ -255,30 +276,30 @@ void main() {
           ),
         );
         expect(icon.color, obt.balanceZero);
-        expect(find.text('Settled up'), findsOneWidget);
+        // The zero pill copy is "Settled" (no amount); the subtitle is the
+        // lower-case "settled up".
+        expect(find.text('Settled'), findsOneWidget);
+        expect(find.text('settled up'), findsOneWidget);
       });
     });
 
-    // --- AC-4: friend-detail header pill trio ---
-    testWidgets('friend-detail header uses the OBTBalancePill trio ($mode)', (
-      tester,
-    ) async {
+    // --- AC-4: friend-detail header inline hero balance (not a pill) ---
+    testWidgets('friend-detail header renders the inline hero balance '
+        '($mode)', (tester) async {
       await pumpThemed(
         tester,
         FriendDetailHeaderWidget(header: _header(425000, BalanceState.owed)),
         brightness: brightness,
       );
 
-      expect(find.byType(OBTBalancePill), findsOneWidget);
-      final icon = tester.widget<Icon>(
-        find.descendant(
-          of: find.byType(OBTBalancePill),
-          matching: find.byIcon(Icons.arrow_upward),
-        ),
-      );
+      // The detail header is inline hero text, NOT a pill.
+      expect(find.byType(OBTBalancePill), findsNothing);
+      final hero = 'Rahul Sharma owes you ${formatInrFromPaise(425000)}';
+      expect(find.text(hero), findsOneWidget);
+      final text = tester.widget<Text>(find.text(hero));
+      expect(text.style?.color, obt.balancePositive);
+      final icon = tester.widget<Icon>(find.byIcon(Icons.arrow_upward));
       expect(icon.color, obt.balancePositive);
-      expect(find.text('you are owed'), findsOneWidget);
-      expect(find.text(formatInrFromPaise(425000)), findsOneWidget);
     });
 
     // --- AC-5: friend-history signed amounts in the trio hues ---
