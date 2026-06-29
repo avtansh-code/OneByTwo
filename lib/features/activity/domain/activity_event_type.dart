@@ -7,12 +7,11 @@
 /// `docs/design/07-technical/firestore-schema.md` line 202. The
 /// client converts on read via [ActivityEventTypeX.parseSnakeCase].
 ///
-/// PR #52 only renders the four expense + settlement variants —
-/// `groupCreated`, `groupMemberAdded`, `groupMemberRemoved`, and
-/// `friendAdded` are declared in the SCR-25 Event Type Mapping
-/// (lines 305-312) but have no producer in v1.0. They are NOT in
-/// this enum until Sprint 3 ships the group-trigger activity
-/// emission.
+/// PR #52 rendered the four expense + settlement variants; `friendAdded`
+/// is now produced by the `onFriendshipCreate` trigger. `groupCreated`,
+/// `groupMemberAdded`, and `groupMemberRemoved` remain in the SCR-25
+/// Event Type Mapping (lines 305-312) but have no producer in v1.0 and
+/// are NOT in this enum until the group epic ships.
 enum ActivityEventType {
   /// An expense was created (Firestore: `'expense_added'`).
   expenseAdded,
@@ -25,6 +24,10 @@ enum ActivityEventType {
 
   /// A settlement was recorded (Firestore: `'settlement'`).
   settlementRecorded,
+
+  /// A friendship was created (Firestore: `'friend_added'`); rendered as
+  /// "X added you as a friend" and deep-links to the friend detail.
+  friendAdded,
 }
 
 /// Extension methods on [ActivityEventType] for snake_case parsing.
@@ -50,6 +53,8 @@ extension ActivityEventTypeX on ActivityEventType {
         return ActivityEventType.expenseDeleted;
       case 'settlement':
         return ActivityEventType.settlementRecorded;
+      case 'friend_added':
+        return ActivityEventType.friendAdded;
       default:
         return null;
     }
@@ -67,6 +72,8 @@ extension ActivityEventTypeX on ActivityEventType {
         return 'expenseDeleted';
       case ActivityEventType.settlementRecorded:
         return 'settlementRecorded';
+      case ActivityEventType.friendAdded:
+        return 'friendAdded';
     }
   }
 }

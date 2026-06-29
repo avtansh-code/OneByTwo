@@ -73,3 +73,10 @@ export {onExpenseWriteFriendship} from "./triggers/on-expense-write/index";
 // from the document data (the settlements collection is top-level so the
 // discriminator is not in the trigger path).
 export {onSettlementWrite} from "./triggers/on-settlement-write/index";
+
+// Firestore trigger: emit a `friend_added` activity-feed item to BOTH
+// members when a friendship is created at friendships/{friendshipId}
+// (be-activity-types / SCR-25). Pure activity producer — no money, so no
+// simplifiedBalances recompute and no FCM. Reuses the FR-EX-07
+// writeExpenseActivity fan-out writer.
+export {onFriendshipCreate} from "./triggers/on-friendship-create/index";

@@ -149,6 +149,8 @@ class OBTActivityRow extends StatelessWidget {
         return Icons.delete;
       case ActivityEventType.settlementRecorded:
         return Icons.check_circle;
+      case ActivityEventType.friendAdded:
+        return Icons.person_add;
     }
   }
 
@@ -166,6 +168,9 @@ class OBTActivityRow extends StatelessWidget {
         // do not map a dedicated `success` colour to colorScheme. The
         // green semantic is preserved by the OBT theme's tertiary
         // mapping.
+        return scheme.tertiary;
+      case ActivityEventType.friendAdded:
+        // person_add reads as a positive/"success" event (SCR-25).
         return scheme.tertiary;
     }
   }
@@ -196,6 +201,11 @@ class OBTActivityRow extends StatelessWidget {
           return 'You settled up with $otherPartyDisplayName';
         }
         return '$otherPartyDisplayName settled up with you';
+      case ActivityEventType.friendAdded:
+        if (authorUid == currentUserUid) {
+          return 'You added $otherPartyDisplayName as a friend';
+        }
+        return '$otherPartyDisplayName added you as a friend';
     }
   }
 

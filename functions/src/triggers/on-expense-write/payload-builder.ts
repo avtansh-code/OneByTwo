@@ -27,13 +27,18 @@ import type {Timestamp} from "firebase-admin/firestore";
  *
  * `'settlement'` is emitted by the settlement-trigger
  * (functions/src/triggers/on-settlement-write/) per FR-AC-01.
+ *
+ * `'friend_added'` is emitted by the friendship-create trigger
+ * (functions/src/triggers/on-friendship-create/) — one item fans out to
+ * BOTH members so the SCR-25 activity feed shows "friend added" events.
  */
 export type ActivityItemType =
   | "expense_added"
   | "expense_edited"
   | "expense_deleted"
   | "settlement"
-  | "reminder";
+  | "reminder"
+  | "friend_added";
 
 /** Trigger change discriminator (mirrors `function.ts` `ChangeType`). */
 export type ChangeType = "create" | "update" | "delete";
@@ -122,13 +127,30 @@ export interface ReminderPayload {
   message?: string;
 }
 
+/**
+ * `friend_added` payload — emitted by the friendship-create trigger
+ * (functions/src/triggers/on-friendship-create/). A single
+ * `friendships/{friendshipId}` create fans this out to BOTH members so
+ * the SCR-25 activity feed renders a "friend added" row for each party.
+ * `authorUid` is the friendship's `createdBy` (the inviter who accepted
+ * the friend), falling back to the first member when absent;
+ * `friendshipId` is the deterministic `{uidA}_{uidB}` document ID, used
+ * as the deep-link target. No monetary fields — friend creation has no
+ * money component.
+ */
+export interface FriendAddedPayload {
+  authorUid: string;
+  friendshipId: string;
+}
+
 /** Discriminated union of every payload shape this builder emits. */
 export type ActivityPayload =
   | ExpenseAddedPayload
   | ExpenseEditedPayload
   | ExpenseDeletedPayload
   | SettlementPayload
-  | ReminderPayload;
+  | ReminderPayload
+  | FriendAddedPayload;
 
 /** Result tuple of `buildExpenseActivityPayload`. */
 export interface BuiltActivityPayload {

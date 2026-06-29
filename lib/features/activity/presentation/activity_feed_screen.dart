@@ -215,6 +215,8 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
         itemId = item.payload['expenseId'] as String?;
       case ActivityEventType.settlementRecorded:
         contextId = item.payload['contextId'] as String?;
+      case ActivityEventType.friendAdded:
+        contextId = item.payload['friendshipId'] as String?;
     }
     if (contextId == null) {
       return const DeepLinkUnavailable();
@@ -237,6 +239,10 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
         return NotificationType.expenseDeleted;
       case ActivityEventType.settlementRecorded:
         return NotificationType.settlementReceived;
+      case ActivityEventType.friendAdded:
+        // friend_added deep-links to the friend detail, the same target
+        // as a settlement (resolved from the friendshipId contextId).
+        return NotificationType.settlementReceived;
     }
   }
 
@@ -251,6 +257,8 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
         return (item.payload['expenseId'] as String?) ?? '';
       case ActivityEventType.settlementRecorded:
         return (item.payload['contextId'] as String?) ?? '';
+      case ActivityEventType.friendAdded:
+        return (item.payload['friendshipId'] as String?) ?? '';
     }
   }
 
@@ -262,6 +270,10 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   String _hashEntityId(String entityId, ActivityFeedItem item) {
     switch (item.type) {
       case ActivityEventType.settlementRecorded:
+        return hashFriendshipId(entityId);
+      case ActivityEventType.friendAdded:
+        // friend_added's entity id is the friendship composite, hashed
+        // the same way as a settlement context id.
         return hashFriendshipId(entityId);
       case ActivityEventType.expenseAdded:
       case ActivityEventType.expenseEdited:
@@ -365,6 +377,8 @@ class _PopulatedList extends ConsumerWidget {
         friendshipId = item.payload['friendshipId'] as String?;
       case ActivityEventType.settlementRecorded:
         friendshipId = item.payload['contextId'] as String?;
+      case ActivityEventType.friendAdded:
+        friendshipId = item.payload['friendshipId'] as String?;
     }
     if (friendshipId == null) return null;
     final parts = friendshipId.split('_');
