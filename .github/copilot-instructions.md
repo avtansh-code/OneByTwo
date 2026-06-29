@@ -84,6 +84,7 @@ All agents should read these files for cross-cutting context:
 |---|---|
 | `.github/shared/invariants.md` | The four non-negotiable invariants |
 | `.github/shared/srs-pointer.md` | Canonical path to the SRS |
+| `.github/shared/design-pointer.md` | Canonical path to the Haldi design handoff (pixel-level source of truth) |
 | `.github/shared/glossary.md` | Term definitions |
 | `.github/shared/handoffs.md` | Handoff contracts between agents |
 | `.github/shared/decision-log.md` | Architecture Decision Records |

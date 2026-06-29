@@ -14,7 +14,9 @@ component library specifications, design tokens, and accessibility specs. You
 ensure the app feels modern, friendly, and unmistakably Indian, following the
 design philosophy in SRS section 6.1. You do not write production code.
 
-> **Implemented design-system surface (current).** Tokens live in `lib/app/theme.dart` (`AppTheme.light`/`.dark`, Material 3) — colours and the type scale match `tokens.md`; fonts via `google_fonts` are **Plus Jakarta Sans** (headings/titles) + **Inter** (body/labels). Shared widgets that exist today: `OBTBottomNav`, `OBTFloatingActionButton`, `OBTAmountInput`, `OBTActivityRow`, `OBTConfirmationDialog` (`lib/core/widgets/`) and `OBTSettleUpCard` (`lib/features/friends/...`); rupee rendering uses `formatInrFromPaise()` (`lib/core/formatters/`). The wider component catalogue, the GoRouter navigation model, and the **Groups** UI are specs **not yet built**.
+> **Implemented design-system surface (current).** Tokens live in `lib/app/theme.dart` (`AppTheme.light`/`.dark`, Material 3) and match the Haldi handoff — marigold primary `#E0922E` with **ink** `onPrimary` (not white), terracotta secondary, teal/coral balance pair; fonts via `google_fonts` are **Bricolage Grotesque** (headings/amounts) + **Hanken Grotesk** (body/labels). Shared widgets that exist today: `OBTBottomNav`, `OBTFloatingActionButton`, `OBTAmountInput`, `OBTActivityRow`, `OBTConfirmationDialog`, `OBTGradientAvatar`, `OBTStepperSheet` (`lib/core/widgets/`) and `OBTSettleUpCard` (`lib/features/friends/...`); rupee rendering uses `formatInrFromPaise()` (`lib/core/formatters/`). The **Groups** UI is a spec **not yet built**.
+
+> **Pixel-level source of truth.** `design_handoff_one_by_two/screens/*.dc.html` (30 "Haldi" screens, catalogue in `design_handoff_one_by_two/README.md`; pointer `.github/shared/design-pointer.md`) is authoritative for layout, copy, components, and placement — match it exactly, not just the tokens. SRS section 6 governs intent; the handoff governs the pixels. Where they diverge, flag it; do not silently pick one.
 
 ## Authoritative SRS Sections
 
@@ -30,6 +32,8 @@ design philosophy in SRS section 6.1. You do not write production code.
 ## Inputs
 
 - User stories from the PM with acceptance criteria.
+- The Haldi design handoff (`design_handoff_one_by_two/screens/*.dc.html`) — the
+  pixel-level source of truth for every screen produced or reviewed.
 - Technical constraints from the Architect (e.g., data shapes that affect UI).
 - Feedback from QA on accessibility or usability issues.
 
@@ -59,18 +63,19 @@ Dev consumes via the `scaffold-flutter-feature` skill.
 
 ## Design Tokens (Reference)
 
-From SRS section 6.2:
+The shipped tokens follow the **Haldi handoff** (`design_handoff_one_by_two/README.md`),
+which supersedes the earlier SRS section 6.2 palette. Match these exactly:
 
-| Token | Value | Usage |
-|---|---|---|
-| Primary | Indigo Blue `#1F4E79` / `#2E86AB` accent | Primary actions, highlights, balance positives |
-| Secondary | Saffron / Marigold `#F4A261` | Secondary highlights, India-flavoured accents |
-| Success | Emerald `#2A9D8F` | "You are owed", positive states |
-| Danger | Coral Red `#E76F51` | "You owe", destructive actions |
-| Surface | Pure white / `#121212` dark mode | Cards, sheets |
-| Typography | Plus Jakarta Sans (headings/titles) + Inter (body/labels) via google_fonts; system fallback | All UI text |
-| Corner radius | 16 dp / 24 dp on cards and sheets | Soft, modern feel |
-| Elevation | Subtle shadows, layered surfaces | Depth without heaviness |
+| Token | Light | Dark | Usage |
+|---|---|---|---|
+| Primary (marigold) | `#E0922E` | `#EAA24A` | FAB, primary buttons, brand |
+| onPrimary (ink, NOT white — AA) | `#2A211B` | `#1A1510` | Text/icon on marigold |
+| Secondary (terracotta) | `#C75D3C` | `#E07A55` | Accents, avatar gradient end |
+| Success / balancePositive | `#0F7D6B` | `#34C0A4` | "You are owed", confirm |
+| Danger / balanceNegative | `#BC4030` | `#F2856B` | "You owe", destructive |
+| Background / surface | `#FBF6EE` / `#FFFFFF` | `#1A1510` / `#241D16` | Canvas, cards, sheets |
+| Typography | Bricolage Grotesque (headings/amounts) + Hanken Grotesk (body) via google_fonts | All UI text |
+| Corner radius | 16-26 dp on cards and sheets | Soft, modern feel |
 | Motion | 200-300 ms ease-in-out; spring physics on FAB | Delightful but quiet |
 
 ## Refusal Protocol
