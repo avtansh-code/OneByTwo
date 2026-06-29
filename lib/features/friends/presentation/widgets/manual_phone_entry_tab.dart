@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/validators.dart';
-import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
+import 'package:onebytwo/core/widgets/inputs/obt_locked_phone_field.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/friends/domain/selected_contact.dart';
 
@@ -101,84 +100,11 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
           const SizedBox(height: 24),
 
           // Phone input row: locked +91 prefix + text field.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Locked +91 prefix container.
-              Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(AppTheme.radiusChipInput),
-                    bottomLeft: Radius.circular(AppTheme.radiusChipInput),
-                  ),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '+91',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-
-              // Phone number text field.
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: TextField(
-                    controller: _controller,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      IndianPhoneInputFormatter(),
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'Enter mobile number',
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(AppTheme.radiusChipInput),
-                          bottomRight: Radius.circular(
-                            AppTheme.radiusChipInput,
-                          ),
-                        ),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(AppTheme.radiusChipInput),
-                          bottomRight: Radius.circular(
-                            AppTheme.radiusChipInput,
-                          ),
-                        ),
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(AppTheme.radiusChipInput),
-                          bottomRight: Radius.circular(
-                            AppTheme.radiusChipInput,
-                          ),
-                        ),
-                        borderSide: BorderSide(
-                          color: colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-              ),
-            ],
+          OBTLockedPhoneField(
+            controller: _controller,
+            hasError: _validationError != null,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (_) => setState(() {}),
           ),
 
           // Validation error text.

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
-import 'package:onebytwo/core/widgets/india_phone_input_formatter.dart';
+import 'package:onebytwo/core/widgets/inputs/obt_locked_phone_field.dart';
 import 'package:onebytwo/features/auth/presentation/widgets/otp_input.dart';
 import 'package:onebytwo/features/profile/application/change_phone_controller.dart';
 
@@ -224,63 +224,11 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     ChangePhoneState state,
     ChangePhoneController controller,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Semantics(
-          label: 'Country code, India, plus 91',
-          excludeSemantics: true,
-          child: Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppTheme.radiusChipInput),
-                bottomLeft: Radius.circular(AppTheme.radiusChipInput),
-              ),
-              border: Border.all(color: colorScheme.outline),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '+91',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: SizedBox(
-            height: 56,
-            child: TextField(
-              enabled: !state.isLoading,
-              decoration: const InputDecoration(
-                hintText: 'Enter new mobile number',
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(AppTheme.radiusChipInput),
-                    bottomRight: Radius.circular(AppTheme.radiusChipInput),
-                  ),
-                ),
-              ),
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                IndianPhoneInputFormatter(),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              onChanged: controller.updateNewPhone,
-              style: theme.textTheme.titleMedium,
-            ),
-          ),
-        ),
-      ],
+    return OBTLockedPhoneField(
+      enabled: !state.isLoading,
+      hintText: 'Enter new mobile number',
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      onChanged: controller.updateNewPhone,
     );
   }
 
