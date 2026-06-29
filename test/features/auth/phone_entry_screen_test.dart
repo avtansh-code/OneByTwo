@@ -96,9 +96,9 @@ void main() {
     testWidgets('+91 prefix is visible and not editable', (tester) async {
       await tester.pumpWidget(buildSubject());
 
-      expect(find.text('+91'), findsOneWidget);
+      expect(find.text('🇮🇳 +91'), findsOneWidget);
 
-      final prefixFinder = find.text('+91');
+      final prefixFinder = find.text('🇮🇳 +91');
       final prefixWidget = tester.widget<Text>(prefixFinder);
       expect(prefixWidget, isA<Text>());
 
@@ -120,7 +120,7 @@ void main() {
       await tester.pumpWidget(buildSubject());
 
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Continue'),
+        find.widgetWithText(FilledButton, 'Send OTP'),
       );
       expect(button.onPressed, isNull);
     });
@@ -134,7 +134,7 @@ void main() {
       await tester.pump();
 
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Continue'),
+        find.widgetWithText(FilledButton, 'Send OTP'),
       );
       expect(button.onPressed, isNull);
     });
@@ -147,7 +147,7 @@ void main() {
       await tester.pump();
 
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Continue'),
+        find.widgetWithText(FilledButton, 'Send OTP'),
       );
       expect(button.onPressed, isNotNull);
     });
@@ -159,7 +159,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '5678901234');
       await tester.pump();
 
-      final button = find.widgetWithText(FilledButton, 'Continue');
+      final button = find.widgetWithText(FilledButton, 'Send OTP');
       await tester.tap(button);
       await tester.pump();
 
@@ -182,7 +182,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '9876543210');
       await tester.pump();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Send OTP'));
       await tester.pump();
 
       expect(
@@ -203,9 +203,9 @@ void main() {
     testWidgets('heading and subtitle text are displayed', (tester) async {
       await tester.pumpWidget(buildSubject());
 
-      expect(find.text('Enter your mobile number'), findsOneWidget);
+      expect(find.text("What's your number?"), findsOneWidget);
       expect(
-        find.text("We'll send you a 6-digit code to verify."),
+        find.text("We'll text a 6-digit code to verify it's you."),
         findsOneWidget,
       );
     });
@@ -227,7 +227,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '9876543210');
       await tester.pump();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Send OTP'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 750));
 
@@ -258,6 +258,43 @@ void main() {
       await tester.pump();
 
       expect(find.text('98765 43210'), findsOneWidget);
+    });
+
+    group('unified +91/input height (issue #150)', () {
+      testWidgets('phone input row is an IntrinsicHeight wrapping a '
+          'stretched Row', (tester) async {
+        await tester.pumpWidget(buildSubject());
+
+        final intrinsicFinder = find.ancestor(
+          of: find.byType(TextField),
+          matching: find.byType(IntrinsicHeight),
+        );
+        expect(intrinsicFinder, findsOneWidget);
+
+        final intrinsic = tester.widget<IntrinsicHeight>(intrinsicFinder);
+        expect(intrinsic.child, isA<Row>());
+        expect(
+          (intrinsic.child! as Row).crossAxisAlignment,
+          CrossAxisAlignment.stretch,
+        );
+      });
+
+      testWidgets('the +91 prefix and the input field render at equal '
+          'heights', (tester) async {
+        await tester.pumpWidget(buildSubject());
+
+        final prefixBox = find
+            .ancestor(
+              of: find.text('🇮🇳 +91'),
+              matching: find.byType(Container),
+            )
+            .first;
+        final prefixHeight = tester.getSize(prefixBox).height;
+        final fieldHeight = tester.getSize(find.byType(TextField)).height;
+
+        expect(prefixHeight, greaterThan(0));
+        expect(fieldHeight, moreOrLessEquals(prefixHeight, epsilon: 0.5));
+      });
     });
   });
 }

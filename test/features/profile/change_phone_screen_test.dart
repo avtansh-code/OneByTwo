@@ -136,10 +136,10 @@ void main() {
 
     expect(find.text('Verify your current number'), findsOneWidget);
     expect(find.text('Send verification code'), findsOneWidget);
-    expect(find.text('+919876543210'), findsOneWidget);
+    expect(find.text('+91 98765 43210'), findsOneWidget);
   });
 
-  testWidgets('walks the full happy path and pops with a success snackbar', (
+  testWidgets('walks the full happy path to the success screen and returns', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -172,7 +172,7 @@ void main() {
     // Step 2: enter the re-auth OTP (paste-distribute via first cell).
     await tester.enterText(find.byType(TextField).first, '123456');
     await tester.pumpAndSettle();
-    expect(find.text('Enter your new number'), findsOneWidget);
+    expect(find.text('Your new number'), findsOneWidget);
 
     // Step 3: enter the new number and request its OTP.
     await tester.enterText(find.byType(TextField).last, '9123456780');
@@ -181,12 +181,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Verify your new number'), findsOneWidget);
 
-    // Step 4: enter the new-number OTP -> success.
+    // Step 4: enter the new-number OTP -> success brand screen.
     await tester.enterText(find.byType(TextField).first, '654321');
     await tester.pumpAndSettle();
 
     expect(find.text('Phone number updated'), findsOneWidget);
-    expect(find.text('open'), findsOneWidget); // popped back to home
+    expect(find.text('Back to Profile'), findsOneWidget);
+
+    // "Back to Profile" pops to the home screen.
+    await tester.tap(find.text('Back to Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
   });
 
   testWidgets('shows an error when the re-auth OTP is wrong', (tester) async {
@@ -200,6 +205,6 @@ void main() {
 
     expect(find.text(AuthError.invalidOtp.message), findsOneWidget);
     // Still on the re-auth OTP step (not advanced).
-    expect(find.text('Enter your new number'), findsNothing);
+    expect(find.text('Your new number'), findsNothing);
   });
 }

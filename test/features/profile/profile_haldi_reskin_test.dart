@@ -161,7 +161,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // New-number entry: the +91 country code is a fixed, non-editable chip.
-      expect(find.text('Enter your new number'), findsOneWidget);
+      expect(find.text('Your new number'), findsOneWidget);
       expect(find.text('+91'), findsOneWidget);
     });
 

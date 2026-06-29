@@ -395,4 +395,40 @@ describe("users/{userId} — notificationPrefs updates", () => {
         })
       );
     });
+
+  it("allows a partial-map dot-path flip of the optional " +
+    "notificationPrefs.groupActivity to true",
+    async () => {
+      // be-group-pref: `groupActivity` is an optional fourth key (opt-in).
+      // A dot-path flip on a legacy three-key doc yields a post-merge
+      // four-key map {newExpense, settlement, reminder, groupActivity:true}
+      // — `hasOnly` permits the fourth key, `hasAll` still requires the
+      // mandatory three, and `groupActivity is bool` holds, so it succeeds.
+      const ctx = testEnv.authenticatedContext(uid, {
+        phone_number: "+919876543210",
+      });
+      const userDoc = doc(ctx.firestore(), `users/${uid}`);
+      await assertSucceeds(
+        updateDoc(userDoc, {
+          "notificationPrefs.groupActivity": true,
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+  it("rejects a non-bool notificationPrefs.groupActivity value",
+    async () => {
+      // The optional-key guard still type-checks: a string groupActivity
+      // fails the `prefs.groupActivity is bool` clause.
+      const ctx = testEnv.authenticatedContext(uid, {
+        phone_number: "+919876543210",
+      });
+      const userDoc = doc(ctx.firestore(), `users/${uid}`);
+      await assertFails(
+        updateDoc(userDoc, {
+          "notificationPrefs.groupActivity": "yes",
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
 });

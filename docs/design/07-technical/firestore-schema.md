@@ -287,14 +287,15 @@ Firestore document ID. Activity items are written **only by the Cloud Functions*
 
 | Field | Type | Required | Default | Description | Indexed |
 |---|---|---|---|---|---|
-| `type` | `string` | Yes | — | One of `'expense_added'`, `'expense_edited'`, `'expense_deleted'`, `'settlement'`, or `'reminder'`. The first four are produced by `onExpenseWriteFriendship` and `onSettlementWrite`; `'reminder'` is produced by `sendReminderNotification`. There is **no** `'group_change'` producer in v1.0. | No |
+| `type` | `string` | Yes | — | One of `'expense_added'`, `'expense_edited'`, `'expense_deleted'`, `'settlement'`, `'friend_added'`, or `'reminder'`. The first four are produced by `onExpenseWriteFriendship` and `onSettlementWrite`; `'friend_added'` is produced by `onFriendshipCreate`; `'reminder'` is produced by `sendReminderNotification`. There is **no** `'group_change'` producer in v1.0. | No |
 | `payload` | `map` | Yes | — | Event-specific data; the shape varies by `type` (see `functions/src/triggers/on-expense-write/payload-builder.ts` and the settlement payload builder). Carries enough to render a feed item without extra reads. | No |
 | `createdAt` | `timestamp` | Yes | Server timestamp | Event timestamp. Used for ordering the activity feed. | Single-field (descending) |
 
 > **Client note:** The v1.0 client enum `ActivityEventType`
-> (`lib/features/activity/domain/activity_event_type.dart`) parses only the four
-> expense and settlement variants. A `'reminder'` item is written server-side but has
-> no client renderer yet, so the feed silently drops it (forward-compatible parsing).
+> (`lib/features/activity/domain/activity_event_type.dart`) parses the four expense
+> and settlement variants plus `'friend_added'`. A `'reminder'` item is written
+> server-side but has no client renderer yet, so the feed silently drops it
+> (forward-compatible parsing).
 
 **Security rules summary (SRS section 7.5):**
 

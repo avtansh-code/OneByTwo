@@ -289,29 +289,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Test User'), findsOneWidget);
-      expect(find.text('+919876543210'), findsOneWidget);
+      expect(find.text('+91 98765 43210'), findsOneWidget);
     });
 
     testWidgets('shows initials avatar when photoUrl is null', (tester) async {
       await tester.pumpWidget(buildSubject(user: _testUserNoPhoto));
       await tester.pumpAndSettle();
 
-      // "TU" initials should appear.
-      expect(find.text('TU'), findsOneWidget);
+      // The gradient avatar shows the single first initial.
+      expect(find.text('T'), findsOneWidget);
     });
 
     testWidgets('Sign Out row is present', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign Out'), findsOneWidget);
+      expect(find.text('Sign out'), findsOneWidget);
     });
 
     testWidgets('Edit Profile row is present', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit Profile'), findsOneWidget);
+      expect(find.text('Edit profile'), findsOneWidget);
     });
 
     testWidgets('stats rows show the live friend count and the group stub', (
@@ -320,8 +320,8 @@ void main() {
       await tester.pumpWidget(buildSubject(friendCount: const AsyncData(3)));
       await tester.pumpAndSettle();
 
-      expect(find.text('My Friends'), findsOneWidget);
-      expect(find.text('My Groups'), findsOneWidget);
+      expect(find.text('Friends'), findsOneWidget);
+      expect(find.text('Groups'), findsOneWidget);
       // The live friend count renders "3"; the group stub renders "0".
       expect(find.text('3'), findsOneWidget);
       expect(find.text('0'), findsOneWidget);
@@ -375,7 +375,7 @@ void main() {
       // Em dash (U+2014) trailing instead of a number; the row still
       // renders and the rest of the screen is unaffected (AC-3).
       expect(find.text('\u2014'), findsOneWidget);
-      expect(find.text('My Friends'), findsOneWidget);
+      expect(find.text('Friends'), findsOneWidget);
       expect(find.text('Test User'), findsOneWidget);
       // Loading semantics omit the count.
       expect(
@@ -401,7 +401,7 @@ void main() {
 
       // AC-4 — em dash, NOT a crash, NOT an error dialog, NOT a "0".
       expect(find.text('\u2014'), findsOneWidget);
-      expect(find.text('My Friends'), findsOneWidget);
+      expect(find.text('Friends'), findsOneWidget);
       expect(find.text('Test User'), findsOneWidget);
       expect(tester.takeException(), isNull);
       // The error sub-state semantics omit the count too.
@@ -428,7 +428,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('My Friends'));
+      await tester.tap(find.text('Friends'));
       await tester.pumpAndSettle();
 
       expect(
@@ -464,7 +464,7 @@ void main() {
       // Precondition: we are in the error sub-state (em dash, no count).
       expect(find.text('\u2014'), findsOneWidget);
 
-      await tester.tap(find.text('My Friends'));
+      await tester.tap(find.text('Friends'));
       await tester.pumpAndSettle();
 
       expect(
@@ -495,7 +495,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('My Groups'));
+      await tester.tap(find.text('Groups'));
       await tester.pumpAndSettle();
 
       expect(
@@ -513,9 +513,9 @@ void main() {
       await tester.pumpWidget(buildSubject(friendCount: const AsyncData(5)));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('My Friends'));
+      await tester.tap(find.text('Friends'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('My Groups'));
+      await tester.tap(find.text('Groups'));
       await tester.pumpAndSettle();
 
       final statEvents = fakeAnalytics.loggedEvents
@@ -560,27 +560,27 @@ void main() {
 
       // Scroll down to reveal the Delete Account row.
       await tester.scrollUntilVisible(
-        find.text('Delete Account'),
+        find.text('Delete account'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Delete Account'), findsOneWidget);
+      expect(find.text('Delete account'), findsOneWidget);
     });
 
     testWidgets('Notification Preferences row is present', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Notification Preferences'), findsOneWidget);
+      expect(find.text('Notifications'), findsOneWidget);
     });
 
     testWidgets('Contact Support row is present', (tester) async {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Contact Support'), findsOneWidget);
+      expect(find.text('Help & support'), findsOneWidget);
     });
 
     testWidgets('loading state shows skeleton placeholders', (tester) async {
@@ -610,7 +610,7 @@ void main() {
       expect(
         find.byWidgetPredicate(
           (w) =>
-              w is Semantics && w.properties.label == 'Contact Support, button',
+              w is Semantics && w.properties.label == 'Help & support, button',
         ),
         findsOneWidget,
       );
@@ -625,12 +625,12 @@ void main() {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Contact Support'));
+      await tester.tap(find.text('Help & support'));
       await tester.pumpAndSettle();
 
       expect(fakeLauncher.lastLaunchedUri?.scheme, 'mailto');
       expect(fakeLauncher.lastLaunchedUri?.path, 'support@onebytwo.app');
-      expect(find.text('No Mail App Found'), findsNothing);
+      expect(find.text('No mail app found'), findsNothing);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>
@@ -647,10 +647,10 @@ void main() {
       await tester.pumpWidget(buildSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Contact Support'));
+      await tester.tap(find.text('Help & support'));
       await tester.pumpAndSettle();
 
-      expect(find.text('No Mail App Found'), findsOneWidget);
+      expect(find.text('No mail app found'), findsOneWidget);
       expect(
         fakeAnalytics.loggedEvents.any(
           (e) =>

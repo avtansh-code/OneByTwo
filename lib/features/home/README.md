@@ -69,11 +69,13 @@ parameter-key and enum-token constants. The only identifier parameter,
 - `presentation/home_dashboard_screen.dart` — `HomeDashboardScreen`
   (`ConsumerStatefulWidget`). Renders the four SCR-06 states:
   - **loading** — skeleton; `home_viewed` not yet emitted.
-  - **empty** — "No expenses yet" + an "Add Expense" CTA opening the
-    Add Expense context picker.
-  - **populated** — net-balance header card + "Top Balances" list (each
-    row with Settle Up + tile-tap) + the FR-HD-03 "This Month"
-    spend-breakdown card.
+  - **empty** — a settled-up `₹0.00` hero (`formatInrFromPaise(0)`), a
+    receipt illustration, and the dual "Add an expense" (opens the Add
+    Expense context picker) / "Invite a friend" (opens the add-friend
+    flow, which hands off to the OS system share sheet) CTAs.
+  - **populated** — net-balance header card + a "Top balances" list (each
+    row with Settle Up + tile-tap) with a trailing "See all" jump to the
+    Friends tab + the FR-HD-03 "This Month" spend-breakdown card.
   - **error** (`HD-FIRESTORE-READ`) — Retry + a "Contact Support" link
     reusing the FR-PR-05 `ContactSupportController` (the first reuse
     outside Profile).
@@ -81,11 +83,21 @@ parameter-key and enum-token constants. The only identifier parameter,
   `home_viewed` is single-fire on the first terminal (data/error) frame,
   matching `friends_list_viewed` / `settlement_history_viewed`.
 
+  A greeting header (`_GreetingHeader`, a `ConsumerWidget`) replaces the
+  AppBar and sits above every state: a "Namaste," label over the signed-in
+  user's first name (from `authStateProvider`; omitted with no crash when
+  the profile is unavailable), a search affordance (a "coming soon"
+  SnackBar until SCR-07 ships), and the `OBTGradientAvatar` profile tile
+  (tap → Profile tab).
+
 - `presentation/widgets/net_balance_header_card.dart` —
-  `NetBalanceHeaderCard`. The FR-HD-01 header — a tonal
-  `surfaceContainerHighest` hero (marigold `OBTColors.heroShadow`) whose
-  Bricolage `OBTText.amountHero` amount carries the balance trio (colour +
-  directional icon + text label), never colour alone (SRS section 5.6).
+  `NetBalanceHeaderCard`. The FR-HD-01 header — a warm gradient hero
+  (light `#FFFFFF → #FFF4E2`, dark `#2A2218 → #241D16`, 26 px radius;
+  marigold `OBTColors.heroShadow` in light, a 1 px `ColorScheme.outline`
+  border in dark) whose Bricolage `OBTText.amountHero` amount carries the
+  balance trio (colour + a trio-filled directional icon badge + text
+  label), never colour alone (SRS section 5.6), above an "across N
+  friends" meta subtitle.
 - `presentation/widgets/top_balance_tile.dart` — `TopBalanceTile`. A
   Top Balances row: avatar + name + the shared `OBTBalancePill` (colour +
   icon + label) + a marigold-link "Settle Up" (48×48 dp tap target). The

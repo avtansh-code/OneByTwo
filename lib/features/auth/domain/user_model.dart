@@ -17,6 +17,7 @@ class UserModel {
       'newExpense': true,
       'settlement': true,
       'reminder': true,
+      'groupActivity': false,
     },
     this.locale = 'en-IN',
   });
@@ -43,7 +44,12 @@ class UserModel {
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       notificationPrefs: Map<String, bool>.from(
         data['notificationPrefs'] as Map? ??
-            {'newExpense': true, 'settlement': true, 'reminder': true},
+            {
+              'newExpense': true,
+              'settlement': true,
+              'reminder': true,
+              'groupActivity': false,
+            },
       ),
       locale: data['locale'] as String? ?? 'en-IN',
     );
@@ -107,6 +113,7 @@ class UserModel {
         'newExpense': true,
         'settlement': true,
         'reminder': true,
+        'groupActivity': false,
       },
       'locale': 'en-IN',
     };

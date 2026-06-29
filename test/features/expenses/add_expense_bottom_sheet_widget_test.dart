@@ -179,7 +179,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Add Expense'), findsOneWidget);
-      expect(find.text('Step 1 of 3'), findsOneWidget);
+      final handle = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Step 1 of 3'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('renders the eight FR-EX-08 category chips', (tester) async {
@@ -298,7 +300,9 @@ void main() {
         await tapStepCta(tester, 'Next');
 
         expect(find.text('Add Expense'), findsOneWidget);
-        expect(find.text('Step 2 of 3'), findsOneWidget);
+        final handle = tester.ensureSemantics();
+        expect(find.bySemanticsLabel('Step 2 of 3'), findsOneWidget);
+        handle.dispose();
       },
     );
 
@@ -518,7 +522,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Edit Expense'), findsOneWidget);
-      expect(find.text('Step 1 of 3'), findsOneWidget);
+      final handle = tester.ensureSemantics();
+      expect(find.bySemanticsLabel('Step 1 of 3'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets(

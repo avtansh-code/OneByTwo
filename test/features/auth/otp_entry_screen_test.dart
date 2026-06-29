@@ -104,11 +104,12 @@ void main() {
       expect(find.textContaining('0:30'), findsOneWidget);
     });
 
-    testWidgets('phone number in subtitle is masked '
-        '(last 4 digits visible)', (tester) async {
+    testWidgets('phone number in subtitle is shown in full with an Edit '
+        'link', (tester) async {
       await tester.pumpWidget(buildSubject());
-      expect(find.textContaining('XXXXXX3210'), findsOneWidget);
-      expect(find.textContaining('9876543210'), findsNothing);
+      expect(find.textContaining('98765 43210'), findsOneWidget);
+      expect(find.textContaining('XXXXXX'), findsNothing);
+      expect(find.text('Edit'), findsOneWidget);
     });
 
     testWidgets('Resend OTP link is disabled during countdown', (tester) async {

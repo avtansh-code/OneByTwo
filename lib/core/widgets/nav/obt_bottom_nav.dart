@@ -10,9 +10,9 @@ import 'package:onebytwo/features/shell/application/shell_telemetry.dart';
 /// | Index | Label | Outlined / Filled icon |
 /// |---|---|---|
 /// | 0 | Home | [Icons.home_outlined] / [Icons.home] |
-/// | 1 | Friends | [Icons.people_outline] / [Icons.people] |
+/// | 1 | Friends | [Icons.group_outlined] / [Icons.group] |
 /// | 2 | Groups | [Icons.groups_outlined] / [Icons.groups] |
-/// | 3 | Activity | [Icons.notifications_outlined] / [Icons.notifications] |
+/// | 3 | Activity | [Icons.bolt_outlined] / [Icons.bolt] |
 /// | 4 | Profile | [Icons.person_outline] / [Icons.person] |
 ///
 /// The active tab uses [ColorScheme.primary] for the label colour and
@@ -58,8 +58,8 @@ class OBTBottomNav extends StatelessWidget {
     OBTBottomNavTab(
       label: 'Friends',
       telemetryLabel: tabLabelFriends,
-      outlinedIcon: Icons.people_outline,
-      filledIcon: Icons.people,
+      outlinedIcon: Icons.group_outlined,
+      filledIcon: Icons.group,
     ),
     OBTBottomNavTab(
       label: 'Groups',
@@ -70,8 +70,8 @@ class OBTBottomNav extends StatelessWidget {
     OBTBottomNavTab(
       label: 'Activity',
       telemetryLabel: tabLabelActivity,
-      outlinedIcon: Icons.notifications_outlined,
-      filledIcon: Icons.notifications,
+      outlinedIcon: Icons.bolt_outlined,
+      filledIcon: Icons.bolt,
     ),
     OBTBottomNavTab(
       label: 'Profile',

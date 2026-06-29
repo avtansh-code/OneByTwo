@@ -47,6 +47,13 @@ void main() {
       );
     });
 
+    test('friend_added → ActivityEventType.friendAdded', () {
+      expect(
+        ActivityEventTypeX.parseSnakeCase('friend_added'),
+        ActivityEventType.friendAdded,
+      );
+    });
+
     test('unknown snake_case returns null', () {
       expect(ActivityEventTypeX.parseSnakeCase('group_change'), isNull);
       expect(ActivityEventTypeX.parseSnakeCase('mystery_event'), isNull);

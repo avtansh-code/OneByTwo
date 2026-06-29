@@ -30,7 +30,9 @@ and real test surfaces.
    Invariant Checklist, Testing, Quality, Telemetry, Documentation, and
    Screenshots/Recordings from `.github/PULL_REQUEST_TEMPLATE.md`.
 4. **Design and contract references** — for a PR that changes schema, contracts,
-   or a screen: the screen spec / wireframe, the relevant ADR(s) in
+   or a screen: the Haldi design handoff (`design_handoff_one_by_two/screens/*.dc.html`,
+   the pixel-level source of truth; pointer `.github/shared/design-pointer.md`), the
+   screen spec / wireframe, the relevant ADR(s) in
    `.github/shared/decision-log.md` (latest ADR-0020), the Firestore schema
    (`docs/design/07-technical/firestore-schema.md`), the extension points
    (`docs/design/03-architecture/extension-points.md`), the telemetry plan
@@ -99,6 +101,11 @@ and real test surfaces.
      `autoDispose` / `ref.onDispose`).
 
    **UI, async state & formatting:**
+   - A new or changed screen/component matches its Haldi handoff reference
+     (`design_handoff_one_by_two/screens/*.dc.html`) exactly — layout, copy,
+     components, and placement, not just colour/type tokens. Hard-coded `Color(0x…)`
+     literals on converted surfaces are a finding (boundary-contract grep tests);
+     colours flow from `OBTColors` tokens, money from `formatInrFromPaise`.
    - Every `AsyncValue` surface handles loading / data / empty / error (e.g. via
      `.when(...)`); no unguarded `.value!` or ignored error branch.
    - Error and offline states show user-facing messaging, not a silent failure.
@@ -221,6 +228,9 @@ invariant, ADR, convention, or SRS section it relates to.
       `dependencies` lists, no `BuildContext` in providers.
 - [ ] UI async states (loading/data/empty/error), `formatInrFromPaise` for money,
       and locale-free `DateFormat` checked.
+- [ ] Screen/component fidelity checked against the Haldi handoff
+      (`design_handoff_one_by_two/screens/*.dc.html`): layout, copy, components,
+      and placement match; no hard-coded hex on converted surfaces.
 - [ ] Accessibility reviewed: semantic labels, live regions, dark mode, dynamic
       type, 48 dp tap targets.
 - [ ] Telemetry events are in the plan, `snake_case`, and PII-free: amounts

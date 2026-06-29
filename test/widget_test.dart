@@ -115,6 +115,6 @@ void main() {
       ),
     );
 
-    expect(find.text('Enter your mobile number'), findsOneWidget);
+    expect(find.text("What's your number?"), findsOneWidget);
   });
 }

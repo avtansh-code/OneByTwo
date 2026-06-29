@@ -39,20 +39,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   static const List<_SlideData> _slides = <_SlideData>[
     _SlideData(
-      icon: Icons.currency_rupee,
+      art: _SlideArt.track,
       headline: 'Track every shared spend',
       body: 'Log who paid for what in seconds — dinners, rent, trips, the lot.',
     ),
-    // The ÷ brand mark stands literally between two friends (no icon).
+    // The ÷ brand mark stands literally between two friends.
     _SlideData(
-      icon: null,
+      art: _SlideArt.split,
       headline: 'Split it any way you like',
       body:
           'Equally, by shares, by percentage, or exact rupees — '
           'we do the maths.',
     ),
     _SlideData(
-      icon: Icons.check_rounded,
+      art: _SlideArt.settle,
       headline: 'Settle up in a single tap',
       body:
           "We simplify everyone's debts to the fewest payments. "
@@ -181,6 +181,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           elevation: 0,
                           backgroundColor: colorScheme.primary,
                           foregroundColor: colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                           child: const Icon(
                             Icons.arrow_forward_rounded,
                             semanticLabel: 'Next',
@@ -197,22 +200,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 /// Immutable copy + illustration descriptor for one onboarding slide.
+enum _SlideArt { track, split, settle }
+
 class _SlideData {
   const _SlideData({
-    required this.icon,
+    required this.art,
     required this.headline,
     required this.body,
   });
 
-  /// The slide icon; `null` renders the ÷ brand mark instead.
-  final IconData? icon;
+  /// Which flat spot-illustration to render in the slide's panel.
+  final _SlideArt art;
   final String headline;
   final String body;
 }
 
-/// A single onboarding slide: a brand illustration holder, a Bricolage
-/// hero headline, and a Hanken supporting line. Scrolls (rather than
-/// overflows) under large dynamic type.
+/// A single onboarding slide: a flat spot-illustration in a tonal panel, a
+/// left-aligned Bricolage hero headline, and a Hanken supporting line.
+/// Scrolls (rather than overflows) under large dynamic type.
 class _OnboardingSlide extends StatelessWidget {
   const _OnboardingSlide({required this.data});
 
@@ -223,50 +228,173 @@ class _OnboardingSlide extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ExcludeSemantics(
-              child: Container(
-                width: 132,
-                height: 132,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // The flat spot-illustration panel (300 dp tall, tonal, radius 28).
+          ExcludeSemantics(
+            child: Container(
+              height: 288,
+              margin: const EdgeInsets.fromLTRB(28, 8, 28, 0),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Center(child: _SlideArtwork(art: data.art)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 32, 30, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Semantics(
+                  header: true,
+                  child: Text(
+                    data.headline,
+                    style: theme.textTheme.displayMedium?.copyWith(
+                      fontSize: 27,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                 ),
-                child: data.icon == null
-                    ? OBTBrandMark(size: 72, color: colorScheme.primary)
-                    : Icon(data.icon, size: 60, color: colorScheme.primary),
-              ),
-            ),
-            const SizedBox(height: 40),
-            Semantics(
-              header: true,
-              child: Text(
-                data.headline,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  color: colorScheme.onSurface,
+                const SizedBox(height: 10),
+                Text(
+                  data.body,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              data.body,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// The flat, geometric spot-illustration for each slide, recreated from the
+/// handoff's rounded shapes (receipt + rupee coin; the ÷ between two
+/// friends; a success check with accent dots).
+class _SlideArtwork extends StatelessWidget {
+  const _SlideArtwork({required this.art});
+
+  final _SlideArt art;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final teal = obtColors.balancePositive;
+
+    switch (art) {
+      case _SlideArt.track:
+        return Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            Transform.rotate(
+              angle: -0.105,
+              child: Container(
+                width: 128,
+                height: 160,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 30,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: <Widget>[
+                    Container(height: 13, color: colorScheme.primary),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: <Widget>[
+                          for (final w in const <double>[1, 0.72, 1, 0.55])
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: w,
+                                child: Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.outlineVariant,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 56,
+              bottom: 54,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(color: teal, shape: BoxShape.circle),
+                child: const Icon(
+                  Icons.currency_rupee,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
+          ],
+        );
+      case _SlideArt.split:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _dot(58, colorScheme.primary),
+            const SizedBox(width: 10),
+            OBTBrandMark(size: 44, color: colorScheme.secondary),
+            const SizedBox(width: 10),
+            _dot(58, teal),
+          ],
+        );
+      case _SlideArt.settle:
+        return Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(color: teal, shape: BoxShape.circle),
+              child: const Icon(Icons.check, color: Colors.white, size: 58),
+            ),
+            Positioned(left: 72, top: 58, child: _dot(24, colorScheme.primary)),
+            Positioned(
+              right: 64,
+              bottom: 64,
+              child: _dot(16, colorScheme.secondary),
+            ),
+          ],
+        );
+    }
+  }
+
+  Widget _dot(double size, Color color) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 }
 
 /// Pagination dots — the active dot is an elongated marigold pill, the

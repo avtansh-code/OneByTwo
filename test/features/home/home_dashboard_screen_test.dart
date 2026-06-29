@@ -21,6 +21,9 @@ import 'package:onebytwo/core/remote_config/remote_config_service.dart';
 import 'package:onebytwo/core/services/url_launcher_service.dart';
 import 'package:onebytwo/core/telemetry/event_id_hash.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
+import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
+import 'package:onebytwo/features/auth/domain/auth_state.dart';
+import 'package:onebytwo/features/auth/domain/user_model.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/domain/expense_doc.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
@@ -36,6 +39,7 @@ import 'package:onebytwo/features/profile/presentation/contact_support_fallback_
 import 'package:onebytwo/features/settlements/data/settlement_repository.dart';
 import 'package:onebytwo/features/settlements/domain/settlement_doc.dart';
 import 'package:onebytwo/features/settlements/presentation/settle_up_bottom_sheet.dart';
+import 'package:onebytwo/features/shell/application/shell_navigation_controller.dart';
 
 class FakeAnalyticsService implements AnalyticsService {
   final List<({String name, Map<String, Object>? parameters})> loggedEvents =
@@ -131,6 +135,16 @@ FriendListItem _item({
   );
 }
 
+UserModel _user(String displayName) {
+  final now = DateTime.utc(2026, 6, 28);
+  return UserModel(
+    phoneNumber: '+919876500000',
+    displayName: displayName,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
 void main() {
   late FakeAnalyticsService analytics;
   late StreamController<List<FriendListItem>> controller;
@@ -146,11 +160,21 @@ void main() {
     await controller.close();
   });
 
-  Widget buildSubject({Override? friendsOverride}) {
+  Widget buildSubject({Override? friendsOverride, Override? authOverride}) {
     return ProviderScope(
       overrides: [
         analyticsServiceProvider.overrideWithValue(analytics),
         currentUserIdProvider.overrideWithValue('uid-me'),
+        currentUserPhoneProvider.overrideWithValue('+919876500000'),
+        // Default: no profile resolved → the greeting shows "Namaste,"
+        // with no name. Individual tests pass an [authOverride] to exercise
+        // the named path. Overriding here also keeps the real
+        // Firebase-backed provider (and its `FirebaseAuth.instance`) out of
+        // the widget tests.
+        authOverride ??
+            authStateProvider.overrideWith(
+              (ref) => const Stream<AuthState>.empty(),
+            ),
         friendsOverride ??
             friendsListProvider.overrideWith((ref) => controller.stream),
         remoteConfigServiceProvider.overrideWithValue(
@@ -179,7 +203,10 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('home_dashboard_skeleton')), findsOneWidget);
-      expect(find.text('Home'), findsOneWidget);
+      // The AppBar (and its "Home" title) is gone; the greeting header
+      // sits above every state instead.
+      expect(find.text('Home'), findsNothing);
+      expect(find.text('Namaste,'), findsOneWidget);
     });
 
     testWidgets('does not log home_viewed while loading', (tester) async {
@@ -189,16 +216,68 @@ void main() {
     });
   });
 
-  group('empty state', () {
-    testWidgets('renders empty copy + CTA when no non-zero balances', (
+  group('greeting header', () {
+    testWidgets('shows "Namaste," with the first name when a profile is '
+        'resolved', (tester) async {
+      await tester.pumpWidget(
+        buildSubject(
+          authOverride: authStateProvider.overrideWith(
+            (ref) => Stream<AuthState>.value(
+              AuthenticatedWithProfile(
+                uid: 'uid-me',
+                user: _user('Priya Sharma'),
+              ),
+            ),
+          ),
+        ),
+      );
+      controller.add(const []);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Namaste,'), findsOneWidget);
+      // First name only — not the full display name.
+      expect(find.text('Priya'), findsOneWidget);
+      expect(find.text('Priya Sharma'), findsNothing);
+    });
+
+    testWidgets('omits the name (no crash) when no profile is available', (
       tester,
     ) async {
       await tester.pumpWidget(buildSubject());
       controller.add(const []);
       await tester.pumpAndSettle();
 
-      expect(find.text('No expenses yet'), findsOneWidget);
-      expect(find.text('Add Expense'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(find.text('Namaste,'), findsOneWidget);
+    });
+
+    testWidgets('search button is labelled and shows a "coming soon" '
+        'SnackBar', (tester) async {
+      await tester.pumpWidget(buildSubject());
+      controller.add(const []);
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Search'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Search'));
+      await tester.pump();
+
+      expect(find.text('Search is coming soon.'), findsOneWidget);
+    });
+  });
+
+  group('empty state', () {
+    testWidgets('renders the designed empty composition when no non-zero '
+        'balances', (tester) async {
+      await tester.pumpWidget(buildSubject());
+      controller.add(const []);
+      await tester.pumpAndSettle();
+
+      expect(find.text("You're all settled up"), findsOneWidget);
+      expect(find.text("Let's split your first bill"), findsOneWidget);
+      expect(find.text('Add an expense'), findsOneWidget);
+      expect(find.text('Invite a friend'), findsOneWidget);
+      // The settled-up zero hero shows ₹0.00 via formatInrFromPaise.
+      expect(find.text('₹0.00'), findsOneWidget);
     });
 
     testWidgets('all-settled friendships still render the empty state', (
@@ -215,7 +294,7 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
-      expect(find.text('No expenses yet'), findsOneWidget);
+      expect(find.text("Let's split your first bill"), findsOneWidget);
     });
 
     testWidgets('logs home_viewed with zero state once', (tester) async {
@@ -236,7 +315,8 @@ void main() {
       controller.add(const []);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Add Expense'));
+      await tester.ensureVisible(find.text('Add an expense'));
+      await tester.tap(find.text('Add an expense'));
       await tester.pumpAndSettle();
 
       expect(analytics.countOf(HomeTelemetry.emptyCtaTapped), 1);
@@ -266,7 +346,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Top Balances'), findsOneWidget);
+      expect(find.text('Top balances'), findsOneWidget);
       expect(find.byType(SpendingBreakdownCard), findsOneWidget);
     });
 
@@ -286,7 +366,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.getSemantics(find.text('Top Balances')).flagsCollection.isHeader,
+        tester.getSemantics(find.text('Top balances')).flagsCollection.isHeader,
         isTrue,
       );
       expect(
@@ -535,6 +615,64 @@ void main() {
         ),
         findsNothing,
       );
+    });
+  });
+
+  group('shell navigation', () {
+    ProviderContainer containerFor(WidgetTester tester) {
+      return ProviderScope.containerOf(
+        tester.element(find.byType(HomeDashboardScreen)),
+        listen: false,
+      );
+    }
+
+    testWidgets('tapping the avatar selects the Profile tab (index 4)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+      controller.add(const []);
+      await tester.pumpAndSettle();
+
+      // Keep the autoDispose nav controller alive across the tap + read.
+      final container = containerFor(tester);
+      final sub = container.listen(
+        shellNavigationControllerProvider,
+        (_, _) {},
+      );
+      addTearDown(sub.close);
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pump();
+
+      expect(container.read(shellNavigationControllerProvider), 4);
+    });
+
+    testWidgets('tapping "See all" selects the Friends tab (index 1)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildSubject());
+      controller.add([
+        _item(
+          friendshipId: 'uid-a_uid-me',
+          otherUserId: 'uid-a',
+          displayName: 'Aarav',
+          netBalancePaise: 5000,
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      final container = containerFor(tester);
+      final sub = container.listen(
+        shellNavigationControllerProvider,
+        (_, _) {},
+      );
+      addTearDown(sub.close);
+
+      expect(find.text('See all'), findsOneWidget);
+      await tester.tap(find.text('See all'));
+      await tester.pump();
+
+      expect(container.read(shellNavigationControllerProvider), 1);
     });
   });
 

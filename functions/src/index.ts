@@ -53,6 +53,15 @@ export {sendReminderNotification} from "./send-reminder-notification/index";
 // ADR-0016.
 export {deleteUserAccount} from "./delete-user-account/index";
 
+// FR-FR-05 remove-friend callable (design screen 13). Like FR-AU-09 account
+// deletion, removal runs entirely under the Admin SDK because clients have NO
+// delete path (firestore.rules keeps `allow delete: if false` on
+// friendships/{id}) and a friendship owns an `expenses` subcollection a client
+// delete cannot recurse. Validates membership and a fully-settled balance gate
+// (READS simplifiedBalances only — Invariant 2), then recursiveDeletes the
+// friendship doc and its expenses subtree.
+export {removeFriendship} from "./remove-friendship/index";
+
 // Firestore trigger: recompute simplifiedBalances when an expense is
 // created, updated, or deleted under a friendship (FR-SE-03/04).
 // First non-callable producer of simplifiedBalances (Invariant 2).
@@ -64,3 +73,10 @@ export {onExpenseWriteFriendship} from "./triggers/on-expense-write/index";
 // from the document data (the settlements collection is top-level so the
 // discriminator is not in the trigger path).
 export {onSettlementWrite} from "./triggers/on-settlement-write/index";
+
+// Firestore trigger: emit a `friend_added` activity-feed item to BOTH
+// members when a friendship is created at friendships/{friendshipId}
+// (be-activity-types / SCR-25). Pure activity producer — no money, so no
+// simplifiedBalances recompute and no FCM. Reuses the FR-EX-07
+// writeExpenseActivity fan-out writer.
+export {onFriendshipCreate} from "./triggers/on-friendship-create/index";

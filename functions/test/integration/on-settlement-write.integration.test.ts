@@ -457,20 +457,26 @@ describe("onSettlementWrite — integration (registered trigger)", () => {
       await waitForBalances(contextPath, {});
 
       // Then poll each party's activity subcollection.
+      // The on-friendship-create trigger fans out a `friend_added` item to
+      // each party on the seeded friendship, so wait for and assert on the
+      // settlement item specifically.
       const itemsA = await waitForActivityItems(
         "activityA",
-        (items) => items.length >= 1,
+        (items) => items.some((i) => i.data.type === "settlement"),
       );
       const itemsB = await waitForActivityItems(
         "activityB",
-        (items) => items.length >= 1,
+        (items) => items.some((i) => i.data.type === "settlement"),
       );
 
-      expect(itemsA).toHaveLength(1);
-      expect(itemsB).toHaveLength(1);
+      const settlementItemsA = settlementItems(itemsA);
+      const settlementItemsB = settlementItems(itemsB);
+      expect(settlementItemsA).toHaveLength(1);
+      expect(settlementItemsB).toHaveLength(1);
 
-      const payloadA = itemsA[0].data.payload as Record<string, unknown>;
-      expect(itemsA[0].data.type).toBe("settlement");
+      const payloadA =
+        settlementItemsA[0].data.payload as Record<string, unknown>;
+      expect(settlementItemsA[0].data.type).toBe("settlement");
       expect(payloadA.settlementId).toBe("int-on-settle-activity-create-s1");
       expect(payloadA.fromUserId).toBe("activityB");
       expect(payloadA.toUserId).toBe("activityA");
@@ -482,8 +488,9 @@ describe("onSettlementWrite — integration (registered trigger)", () => {
 
       // Symmetric check on the second party (same payload, different
       // recipient).
-      const payloadB = itemsB[0].data.payload as Record<string, unknown>;
-      expect(itemsB[0].data.type).toBe("settlement");
+      const payloadB =
+        settlementItemsB[0].data.payload as Record<string, unknown>;
+      expect(settlementItemsB[0].data.type).toBe("settlement");
       expect(payloadB.amountPaise).toBe(5000);
       expect(payloadB.contextId).toBe(fid);
 
@@ -541,16 +548,19 @@ describe("onSettlementWrite — integration (registered trigger)", () => {
       }));
       await waitForBalances(contextPath, {});
 
+      // The on-friendship-create trigger also emits a `friend_added` item;
+      // wait for the settlement item and count only settlement items so the
+      // assertion isolates the settlement soft-delete behaviour.
       const itemsAfterCreateA = await waitForActivityItems(
         "softA",
-        (items) => items.length >= 1,
+        (items) => items.some((i) => i.data.type === "settlement"),
       );
       const itemsAfterCreateB = await waitForActivityItems(
         "softB",
-        (items) => items.length >= 1,
+        (items) => items.some((i) => i.data.type === "settlement"),
       );
-      const createdAtCountA = itemsAfterCreateA.length;
-      const createdAtCountB = itemsAfterCreateB.length;
+      const createdAtCountA = settlementItems(itemsAfterCreateA).length;
+      const createdAtCountB = settlementItems(itemsAfterCreateB).length;
 
       // Step 2: Soft-delete the settlement.
       await db.doc(settlementPath).update({deleted: true});
@@ -566,9 +576,9 @@ describe("onSettlementWrite — integration (registered trigger)", () => {
       const finalB = await readActivityItems("softB");
 
       // Per architect §2.2: settlement soft-delete emits NO activity item.
-      // The count is unchanged from before the soft-delete.
-      expect(finalA).toHaveLength(createdAtCountA);
-      expect(finalB).toHaveLength(createdAtCountB);
+      // The settlement-item count is unchanged from before the soft-delete.
+      expect(settlementItems(finalA)).toHaveLength(createdAtCountA);
+      expect(settlementItems(finalB)).toHaveLength(createdAtCountB);
 
       // Cleanup activity items.
       await Promise.all([
@@ -607,4 +617,15 @@ async function waitForActivityItems(
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   return items;
+}
+
+/**
+ * Filters activity items to the `settlement`-typed ones. The
+ * on-friendship-create trigger also fans out a `friend_added` item to each
+ * member, so settlement assertions must isolate the settlement item(s).
+ */
+function settlementItems(
+  items: Array<{id: string; data: FirebaseFirestore.DocumentData}>,
+): Array<{id: string; data: FirebaseFirestore.DocumentData}> {
+  return items.filter((item) => item.data.type === "settlement");
 }

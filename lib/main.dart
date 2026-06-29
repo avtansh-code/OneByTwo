@@ -20,6 +20,8 @@ import 'package:onebytwo/features/auth/presentation/splash_screen.dart';
 import 'package:onebytwo/features/friends/application/friends_list_provider.dart';
 import 'package:onebytwo/features/friends/data/matching_callable_adapter.dart';
 import 'package:onebytwo/features/friends/data/matching_repository.dart';
+import 'package:onebytwo/features/friends/data/remove_friendship_callable_adapter.dart';
+import 'package:onebytwo/features/friends/data/remove_friendship_repository.dart';
 import 'package:onebytwo/features/notifications/data/notification_handler.dart';
 import 'package:onebytwo/features/notifications/presentation/notifications_lifecycle_host.dart';
 import 'package:onebytwo/features/profile/data/delete_account_callable_adapter.dart';
@@ -89,6 +91,9 @@ void main() async {
   final deleteAccountAdapter = DeleteAccountCallableAdapter(
     functions.httpsCallable('deleteUserAccount'),
   );
+  final removeFriendshipAdapter = RemoveFriendshipCallableAdapter(
+    functions.httpsCallable('removeFriendship'),
+  );
 
   // FR-PR-05: initialise Firebase Remote Config (the app's first
   // consumer, ADR-0006). `initialise()` awaits the fast local
@@ -123,6 +128,11 @@ void main() async {
         ),
         deleteAccountRepositoryProvider.overrideWithValue(
           DeleteAccountRepository(callable: deleteAccountAdapter.asCallable),
+        ),
+        removeFriendshipRepositoryProvider.overrideWithValue(
+          RemoveFriendshipRepository(
+            callable: removeFriendshipAdapter.asCallable,
+          ),
         ),
         remoteConfigServiceProvider.overrideWithValue(remoteConfig),
       ],

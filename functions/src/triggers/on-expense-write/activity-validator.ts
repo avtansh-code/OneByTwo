@@ -20,6 +20,7 @@ import type {
   ExpenseAddedPayload,
   ExpenseDeletedPayload,
   ExpenseEditedPayload,
+  FriendAddedPayload,
   ReminderPayload,
   SettlementPayload,
 } from "./payload-builder";
@@ -59,6 +60,9 @@ export function validateActivityPayload(
       return;
     case "reminder":
       validateReminderPayload(payload as ReminderPayload);
+      return;
+    case "friend_added":
+      validateFriendAddedPayload(payload as FriendAddedPayload);
       return;
     default: {
       const _exhaustive: never = eventType;
@@ -288,6 +292,38 @@ function validateReminderPayload(payload: ReminderPayload): void {
           "characters.",
       );
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Friend-added validator
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates a `friend_added` payload. Required fields: authorUid,
+ * friendshipId. Emitted by the friendship-create trigger — has no
+ * monetary fields, so the contract is two non-empty strings.
+ */
+function validateFriendAddedPayload(payload: FriendAddedPayload): void {
+  assertHasFields("friend_added", payload, [
+    "authorUid",
+    "friendshipId",
+  ] as const);
+
+  if (typeof payload.authorUid !== "string" || payload.authorUid.length === 0) {
+    throw new Error(
+      "validateActivityPayload: friend_added.authorUid must be a " +
+        "non-empty string.",
+    );
+  }
+  if (
+    typeof payload.friendshipId !== "string" ||
+    payload.friendshipId.length === 0
+  ) {
+    throw new Error(
+      "validateActivityPayload: friend_added.friendshipId must be a " +
+        "non-empty string.",
+    );
   }
 }
 

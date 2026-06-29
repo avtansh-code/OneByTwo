@@ -24,8 +24,9 @@ stubs created under `lib/features/` and `test/`.
 1. **Feature name** — snake_case name for the feature folder (e.g., `expenses`).
 2. **SRS requirement IDs** — the functional requirements this feature covers.
 3. **Schema** — the Firestore document structure from the Architect.
-4. **Screens** — list of screens this feature includes (from SRS section 6.3 or
-   the Designer's specs).
+4. **Screens** — list of screens this feature includes (from SRS section 6.3,
+   the Designer's specs, or the matching Haldi handoff screens in
+   `design_handoff_one_by_two/screens/*.dc.html` — the pixel-level reference).
 
 ## Procedure
 
@@ -87,7 +88,9 @@ stubs created under `lib/features/` and `test/`.
       in the codebase is `NotificationPermissionController`.
    d. **Screen:** `ConsumerWidget` (or `ConsumerStatefulWidget`) with a
       `ref.watch` on the provider. Include a placeholder `build` returning a
-      `Scaffold`.
+      `Scaffold`. Match the matching Haldi handoff screen
+      (`design_handoff_one_by_two/screens/*.dc.html`) for layout, copy, and
+      placement; pull colours from `OBTColors` tokens, never hard-coded hex.
    e. **README.md:** follow the friends structure — short intro, implemented
       scope, layout tree, invariants honoured, hand-off boundaries.
    f. **Test stubs:** import the unit under test and add one passing placeholder

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/theme/obt_text.dart';
@@ -20,14 +19,19 @@ import 'package:onebytwo/core/theme/obt_text.dart';
 /// - **settled** (`netBalancePaise == 0`) — [OBTColors.balanceZero] +
 ///   `check` + "You're all settled up — high five!", no amount.
 ///
-/// The card is a tonal hero on [ColorScheme.surfaceContainerHighest] (the
-/// warm Haldi surface-variant) lifted by the marigold-tinted
-/// [OBTColors.heroShadow]; the amount renders in the Bricolage tabular
-/// amount-hero style ([OBTText.amountHero]) tinted by the balance-trio
-/// colour, and is wrapped in a [FittedBox] so it never clips at large
-/// dynamic-type scales or for long values. Direction is always conveyed
-/// by the icon and text label as well as colour (no colour-only meaning;
-/// SRS section 5.6).
+/// The card is a warm tonal hero with a subtle vertical gradient fill
+/// (light `#FFFFFF → #FFF4E2`, dark `#2A2218 → #241D16`) at a 26 px radius.
+/// In light it is lifted by the marigold-tinted [OBTColors.heroShadow]; in
+/// dark it drops the shadow for a 1 px [ColorScheme.outline] border (the
+/// Haldi dark hero treatment, DC). The direction arrow sits inside a small
+/// circular badge filled with the balance-trio colour (a contrasting glyph
+/// on top), ahead of the trio-coloured headline. The amount renders in the
+/// Bricolage tabular amount-hero style ([OBTText.amountHero]) tinted by the
+/// trio colour and wrapped in a [FittedBox] so it never clips at large
+/// dynamic-type scales or for long values, and a meta subtitle states how
+/// many friends the balance spans. Direction is always conveyed by the icon
+/// and text label as well as colour (no colour-only meaning; SRS section
+/// 5.6).
 ///
 /// All paise → INR conversion goes through [formatInrFromPaise]; the
 /// absolute amount is formatted so the textual label carries the
@@ -37,17 +41,29 @@ import 'package:onebytwo/core/theme/obt_text.dart';
 class NetBalanceHeaderCard extends StatelessWidget {
   /// Creates a [NetBalanceHeaderCard] for the signed overall
   /// [netBalancePaise].
-  const NetBalanceHeaderCard({required this.netBalancePaise, super.key});
+  const NetBalanceHeaderCard({
+    required this.netBalancePaise,
+    this.friendCount = 0,
+    super.key,
+  });
 
   /// Signed overall net balance in paise. Positive ⇒ owed to the user;
   /// negative ⇒ the user owes; zero ⇒ all settled up.
   final int netBalancePaise;
+
+  /// Number of friends the overall balance spans, shown in the meta
+  /// subtitle ("across N friends"). Passed in from the dashboard (which
+  /// already holds the friends list) so this card stays a plain,
+  /// provider-free widget. Groups are intentionally omitted from the count
+  /// (the Groups area is not yet built).
+  final int friendCount;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    final isDark = theme.brightness == Brightness.dark;
 
     final Color trio;
     final IconData icon;
@@ -75,16 +91,30 @@ class NetBalanceHeaderCard extends StatelessWidget {
       semanticLabel = 'Overall balance: all settled up';
     }
 
+    // Contrasting glyph on the trio-filled badge: white on the saturated
+    // light hues, ink (onPrimary) on the brighter dark hues — exactly the
+    // pairing in the handoff (`#fff` light, `#1A1510` dark).
+    final badgeIconColor = isDark ? colors.onPrimary : Colors.white;
+
     return Semantics(
       label: semanticLabel,
       excludeSemantics: true,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        margin: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          boxShadow: obtColors.heroShadow,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? const <Color>[Color(0xFF2A2218), Color(0xFF241D16)]
+                : const <Color>[Color(0xFFFFFFFF), Color(0xFFFFF4E2)],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          // Light hero: soft marigold lift. Dark hero: no shadow, a 1 px
+          // outline border instead (Haldi dark hero treatment).
+          boxShadow: isDark ? null : obtColors.heroShadow,
+          border: isDark ? Border.all(color: colors.outline) : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -92,20 +122,31 @@ class NetBalanceHeaderCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: trio),
-                const SizedBox(width: 8),
+                Container(
+                  key: const ValueKey('net_balance_badge'),
+                  width: 19,
+                  height: 19,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: trio,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 13, color: badgeIconColor),
+                ),
+                const SizedBox(width: 7),
                 Flexible(
                   child: Text(
                     headline,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.onSurface,
+                      fontSize: 13,
+                      color: trio,
                     ),
                   ),
                 ),
               ],
             ),
             if (amount != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -115,9 +156,24 @@ class NetBalanceHeaderCard extends StatelessWidget {
                 ),
               ),
             ],
+            const SizedBox(height: 9),
+            Text(
+              _friendCountSubtitle(friendCount),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12.5,
+                color: OBTColors.metaText(theme),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// "across 1 friend" / "across N friends". Groups are omitted from the
+  /// count until the Groups area ships.
+  static String _friendCountSubtitle(int count) {
+    final noun = count == 1 ? 'friend' : 'friends';
+    return 'across $count $noun';
   }
 }

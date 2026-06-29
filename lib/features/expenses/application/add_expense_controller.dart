@@ -1474,6 +1474,15 @@ class _OriginalSnapshot {
   final String? receiptUrl;
 }
 
+/// Injectable wall-clock for [addExpenseControllerProvider], mirroring
+/// `homeClockProvider`. Defaults to [DateTime.now]; overridden in widget and
+/// golden tests so the Step 1 expense date renders deterministically (the
+/// date defaults to "today", which would otherwise make dated goldens
+/// non-deterministic across day boundaries).
+final addExpenseClockProvider = Provider<DateTime Function()>(
+  (ref) => DateTime.now,
+);
+
 /// Family provider keyed by friendship + user-pair tuple. The host
 /// widget (`AddExpenseBottomSheet`) reads via this provider; the
 /// widget tests override `expenseRepositoryProvider` and
@@ -1489,6 +1498,7 @@ final addExpenseControllerProvider = StateNotifierProvider.autoDispose
         analytics: ref.watch(analyticsServiceProvider),
         receiptStorage: ref.watch(receiptStorageServiceProvider),
         imagePicker: ref.watch(imagePickerServiceProvider),
+        clock: ref.watch(addExpenseClockProvider),
         initialExpense: args.initialExpense,
         initialExpenseId: args.initialExpenseId,
       );

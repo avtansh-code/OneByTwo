@@ -177,7 +177,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Enter your mobile number'), findsOneWidget);
+      expect(find.text("What's your number?"), findsOneWidget);
     });
 
     testWidgets('AuthUnauthenticated first launch (unseen) renders '
@@ -197,7 +197,7 @@ void main() {
       // OneBytwoApp (not just the gate-reproduction widget).
       expect(find.byType(OnboardingScreen), findsOneWidget);
       expect(find.text('Track every shared spend'), findsOneWidget);
-      expect(find.text('Enter your mobile number'), findsNothing);
+      expect(find.text("What's your number?"), findsNothing);
     });
 
     testWidgets('AuthenticatedNoProfile renders ProfileSetupScreen', (
@@ -243,8 +243,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Shell mounts with Home tab active. The HomeDashboardScreen
-      // AppBar title is "Home".
+      // Shell mounts with Home tab active; the bottom navigation bar
+      // carries a "Home" tab label (the dashboard greeting header
+      // replaced the old AppBar title).
       expect(find.byType(AuthenticatedShell), findsOneWidget);
       expect(find.text('Home'), findsWidgets);
     });
@@ -268,7 +269,7 @@ void main() {
       // Emit unauthenticated.
       controller.add(const AuthUnauthenticated());
       await tester.pumpAndSettle();
-      expect(find.text('Enter your mobile number'), findsOneWidget);
+      expect(find.text("What's your number?"), findsOneWidget);
 
       // Emit authenticated with profile.
       final user = UserModel(

@@ -124,3 +124,5 @@ secrets/
 
 # FVM Version Cache
 .fvm/
+# Flutter golden comparator diff artifacts
+test/golden/failures/

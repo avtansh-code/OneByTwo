@@ -32,6 +32,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:onebytwo/core/services/image_picker_service.dart';
 import 'package:onebytwo/features/auth/application/analytics_provider.dart';
 import 'package:onebytwo/features/auth/domain/user_model.dart';
+import 'package:onebytwo/features/expenses/application/add_expense_controller.dart';
 import 'package:onebytwo/features/expenses/application/expense_detail_provider.dart';
 import 'package:onebytwo/features/expenses/data/expense_repository.dart';
 import 'package:onebytwo/features/expenses/data/receipt_storage_service.dart';
@@ -80,6 +81,11 @@ List<Override> _serviceOverrides() => <Override>[
   expenseRepositoryProvider.overrideWithValue(NoopExpenseRepository()),
   receiptStorageServiceProvider.overrideWithValue(FakeReceiptStorageService()),
   imagePickerServiceProvider.overrideWithValue(FakeImagePickerService()),
+  // Pin the clock so Step 1's default "today" expense date renders a fixed
+  // value; otherwise the dated golden breaks at the IST day boundary.
+  addExpenseClockProvider.overrideWithValue(
+    () => DateTime.utc(2026, 6, 24, 12),
+  ),
 ];
 
 Widget _addExpenseHost() => ProviderScope(

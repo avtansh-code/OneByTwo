@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:onebytwo/app/theme.dart';
-import 'package:onebytwo/core/theme/obt_colors.dart';
 
 /// Generic 3-step bottom-sheet shell (foundation plan section 4.2 #4).
 ///
@@ -124,30 +123,35 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Haldi 21 header: a leading close (left), a centred title, and a
+    // balancing trailing spacer so the title stays optically centred. The
+    // numeric "Step N of total" counter is conveyed by the dot indicator
+    // below, not as text here.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
       child: Row(
         children: <Widget>[
+          SizedBox(
+            width: 48,
+            child: onClose != null
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Close',
+                    onPressed: onClose,
+                  )
+                : null,
+          ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(title, style: theme.textTheme.titleLarge),
-                Text(
-                  'Step $currentStep of $totalSteps',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: OBTColors.metaText(theme),
-                  ),
-                ),
-              ],
+            child: Semantics(
+              header: true,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
           ),
-          if (onClose != null)
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Close',
-              onPressed: onClose,
-            ),
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -170,20 +174,20 @@ class _StepperIndicator extends StatelessWidget {
       label: 'Step $currentStep of $totalSteps',
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             for (var i = 0; i < totalSteps; i++) ...<Widget>[
               if (i > 0) const SizedBox(width: 6),
-              Expanded(
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: i < currentStep
-                        ? colors.primary
-                        : colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                  ),
+              Container(
+                width: i == currentStep - 1 ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == currentStep - 1
+                      ? colors.primary
+                      : colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                 ),
               ),
             ],

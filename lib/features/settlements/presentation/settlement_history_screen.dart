@@ -99,7 +99,7 @@ class _SettlementHistoryScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Semantics(header: true, child: const Text('Settlement History')),
+        title: Semantics(header: true, child: const Text('Settlements')),
       ),
       body: settlementsAsync.when(
         loading: () => const _SettlementHistoryLoadingState(),
@@ -189,11 +189,29 @@ class _SettlementHistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Flatten the date-ordered settlements into a list interleaving IST
+    // month-group overline headers (e.g. "JUNE 2026") with their rows, so a
+    // lazy ListView keeps the SCR-24 month grouping (Haldi 24).
+    final items = <_HistoryItem>[];
+    String? currentMonth;
+    for (final settlement in settlements) {
+      final month = formatIstMonthYear(settlement.date);
+      if (month != currentMonth) {
+        currentMonth = month;
+        items.add(_MonthHeaderItem(month));
+      }
+      items.add(_SettlementRowItem(settlement));
+    }
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: settlements.length,
+      padding: const EdgeInsets.only(bottom: 8),
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        final settlement = settlements[index];
+        final item = items[index];
+        if (item is _MonthHeaderItem) {
+          return _MonthHeader(label: item.label);
+        }
+        final settlement = (item as _SettlementRowItem).settlement;
         return _SettlementHistoryRow(
           key: ValueKey<String>(
             'settlement_history_row_${settlement.settlementId}',
@@ -203,6 +221,47 @@ class _SettlementHistoryList extends StatelessWidget {
           otherDisplayName: otherDisplayName,
         );
       },
+    );
+  }
+}
+
+/// A flattened settlement-history entry: a month header or a settlement row.
+sealed class _HistoryItem {
+  const _HistoryItem();
+}
+
+class _MonthHeaderItem extends _HistoryItem {
+  const _MonthHeaderItem(this.label);
+  final String label;
+}
+
+class _SettlementRowItem extends _HistoryItem {
+  const _SettlementRowItem(this.settlement);
+  final SettlementDoc settlement;
+}
+
+/// The IST month-group overline header (SCR-24 / Haldi 24).
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 8),
+      child: Semantics(
+        header: true,
+        child: Text(
+          label.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w700,
+            color: OBTColors.metaText(theme),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -262,10 +321,19 @@ class _SettlementHistoryRow extends StatelessWidget {
         dateText: dateText,
       ),
       child: ExcludeSemantics(
-        child: ConstrainedBox(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(18, 0, 18, 8),
           constraints: const BoxConstraints(minHeight: 64),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            boxShadow: obtColors.rowShadow,
+            border: theme.brightness == Brightness.dark
+                ? Border.all(color: theme.colorScheme.outline)
+                : null,
+          ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
             child: Row(
               children: [
                 _DirectionIconTile(isIncoming: isIncoming, hue: amountHue),

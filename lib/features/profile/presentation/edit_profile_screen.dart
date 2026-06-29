@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onebytwo/app/theme.dart';
+import 'package:onebytwo/core/theme/obt_colors.dart';
+import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/features/auth/application/auth_state_provider.dart';
 import 'package:onebytwo/features/auth/domain/auth_state.dart';
 import 'package:onebytwo/features/profile/application/edit_profile_controller.dart';
@@ -13,7 +15,7 @@ import 'package:onebytwo/features/profile/presentation/widgets/photo_picker_shee
 /// Edit profile screen for FR-PR-01 (SCR-26 edit sub-screen).
 ///
 /// Allows the user to update their display name and profile
-/// photo. Pushed from the "Edit Profile" row on the profile screen.
+/// photo. Pushed from the "Edit profile" pill on the profile screen.
 class EditProfileScreen extends ConsumerStatefulWidget {
   /// Creates an [EditProfileScreen].
   const EditProfileScreen({super.key});
@@ -79,7 +81,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: const Text('Edit profile'),
         leading: BackButton(
           onPressed: state.isSaving ? null : () => Navigator.of(context).pop(),
         ),
@@ -93,7 +95,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               children: [
                 // Avatar with camera badge.
                 _buildAvatar(context, theme, state, controller, hasPhoto),
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+
+                // "Change photo" text link (the Haldi 27-edit affordance).
+                Semantics(
+                  button: true,
+                  label: 'Change photo, button',
+                  excludeSemantics: true,
+                  child: TextButton(
+                    onPressed: state.isSaving
+                        ? null
+                        : () => _showPhotoPicker(context, controller, hasPhoto),
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          theme.extension<OBTColors>()?.link ??
+                          theme.colorScheme.primary,
+                      textStyle: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: const Text('Change photo'),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Display name text field.
                 Semantics(
@@ -138,7 +162,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone number row — tappable "Change Phone Number"
+                // Phone number row — tappable "change number" affordance
                 // (FR-PR-02; resolves SCR-26 Open Question #1).
                 Semantics(
                   button: true,
@@ -170,7 +194,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         ),
                       ),
                       child: Text(
-                        phoneNumber,
+                        _formatPhoneDisplay(phoneNumber),
                         style: theme.textTheme.titleMedium,
                       ),
                     ),
@@ -187,8 +211,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: state.isSaving
                         ? 'Saving profile'
                         : (state.canSave
-                              ? 'Save, button'
-                              : 'Save, button, disabled'),
+                              ? 'Save changes, button'
+                              : 'Save changes, button, disabled'),
                     child: FilledButton(
                       onPressed: state.canSave ? controller.save : null,
                       style: FilledButton.styleFrom(
@@ -207,7 +231,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 color: theme.colorScheme.onPrimary,
                               ),
                             )
-                          : const Text('Save'),
+                          : const Text('Save changes'),
                     ),
                   ),
                 ),
@@ -227,33 +251,30 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     bool hasPhoto,
   ) {
     Widget avatarChild;
+    const avatarSize = 96.0;
 
     if (state.selectedPhotoPath != null) {
-      // Newly-selected local photo.
-      avatarChild = CircleAvatar(
-        radius: 48,
-        backgroundImage: FileImage(File(state.selectedPhotoPath!)),
-      );
-    } else if (!state.isPhotoRemoved && state.originalPhotoUrl != null) {
-      // Existing remote photo.
-      avatarChild = CircleAvatar(
-        radius: 48,
-        backgroundImage: NetworkImage(state.originalPhotoUrl!),
+      // Newly-selected local photo — a rounded-square preview.
+      avatarChild = Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(avatarSize * 0.33),
+          image: DecorationImage(
+            image: FileImage(File(state.selectedPhotoPath!)),
+            fit: BoxFit.cover,
+          ),
+        ),
       );
     } else {
-      // Initials fallback.
+      // Existing remote photo, or the gradient initial fallback.
       final name = state.currentName.trim().isNotEmpty
           ? state.currentName
           : state.originalName;
-      avatarChild = CircleAvatar(
-        radius: 48,
-        backgroundColor: theme.colorScheme.primaryContainer,
-        child: Text(
-          _initials(name),
-          style: theme.textTheme.headlineMedium?.copyWith(
-            color: theme.colorScheme.onPrimaryContainer,
-          ),
-        ),
+      avatarChild = OBTGradientAvatar(
+        size: avatarSize,
+        displayName: name,
+        photoUrl: state.isPhotoRemoved ? null : state.originalPhotoUrl,
       );
     }
 
@@ -270,24 +291,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             avatarChild,
             // Upload progress overlay.
             if (state.isUploadingPhoto)
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: Colors.black.withValues(alpha: 0.5),
-                child: const CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 3,
+              Container(
+                width: avatarSize,
+                height: avatarSize,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(avatarSize * 0.33),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 ),
               ),
+            // Camera badge — dark disc with a cream glyph and a background
+            // ring (the Haldi photo affordance, matching profile setup).
             Container(
-              padding: const EdgeInsets.all(6),
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.onSurface,
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.scaffoldBackgroundColor,
+                  width: 3,
+                ),
               ),
               child: Icon(
-                Icons.camera_alt,
+                Icons.photo_camera,
                 size: 16,
-                color: theme.colorScheme.onPrimary,
+                color: theme.colorScheme.surface,
               ),
             ),
           ],
@@ -322,15 +356,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         await controller.removePhotoWithTelemetry();
     }
   }
+}
 
-  String _initials(String? name) {
-    if (name == null || name.trim().isEmpty) return '?';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return parts[0][0].toUpperCase();
+/// Formats "+919876543210" for display as "+91 98765 43210".
+String _formatPhoneDisplay(String phone) {
+  if (phone.startsWith('+91') && phone.length == 13) {
+    final digits = phone.substring(3);
+    return '+91 ${digits.substring(0, 5)} ${digits.substring(5)}';
   }
+  return phone;
 }
 
 /// Formats a phone number for accessible screen reader output.

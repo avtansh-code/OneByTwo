@@ -43,6 +43,11 @@ SDK through fvm, e.g. `fvm flutter pub get`, `fvm flutter analyze`,
 - Technical design from the Architect: ADR, schema snippet, API contract, target
   feature folder path.
 - Visual specs from the Designer: design tokens, component specs, screen layouts.
+- The Haldi design handoff (`design_handoff_one_by_two/screens/*.dc.html`,
+  pointer `.github/shared/design-pointer.md`): the pixel-level source of truth.
+  Reproduce the matching screen exactly (layout, copy, components, placement) —
+  applying the theme tokens alone is not sufficient. Render money via
+  `formatInrFromPaise()` and colours via OBTColors tokens, never hard-coded hex.
 - User story with acceptance criteria from the PM.
 
 ## Outputs

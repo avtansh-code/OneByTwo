@@ -200,6 +200,7 @@ void main() {
         'splits',
         'splitMethod',
         'receiptUrl',
+        'note',
         'createdBy',
         'createdAt',
         'updatedAt',

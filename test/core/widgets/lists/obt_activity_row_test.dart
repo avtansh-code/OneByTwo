@@ -69,6 +69,18 @@ ActivityFeedItem _settlementItem({
   );
 }
 
+ActivityFeedItem _friendAddedItem({required String authorUid}) {
+  return ActivityFeedItem(
+    id: 'f1',
+    type: ActivityEventType.friendAdded,
+    payload: <String, dynamic>{
+      'friendshipId': 'uidA_uidB',
+      'authorUid': authorUid,
+    },
+    createdAt: DateTime.utc(2026, 6, 8, 12),
+  );
+}
+
 Widget _wrap(Widget child) {
   return MaterialApp(
     home: Scaffold(body: ListView(children: [child])),
@@ -222,6 +234,49 @@ void main() {
         ),
       );
       expect(find.textContaining('Rahul settled up with you'), findsOneWidget);
+    });
+
+    testWidgets('friendAdded by other party: "Rahul added you as a friend"', (
+      tester,
+    ) async {
+      final item = _friendAddedItem(authorUid: 'uidB');
+      await tester.pumpWidget(
+        _wrap(
+          OBTActivityRow(
+            item: item,
+            currentUserUid: 'uidA',
+            otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
+            onTap: () {},
+          ),
+        ),
+      );
+      expect(find.byIcon(Icons.person_add), findsOneWidget);
+      expect(
+        find.textContaining('Rahul added you as a friend'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('friendAdded by current user: "You added Rahul as a friend"', (
+      tester,
+    ) async {
+      final item = _friendAddedItem(authorUid: 'uidA');
+      await tester.pumpWidget(
+        _wrap(
+          OBTActivityRow(
+            item: item,
+            currentUserUid: 'uidA',
+            otherPartyDisplayName: 'Rahul',
+            secondaryText: '2 hours ago',
+            onTap: () {},
+          ),
+        ),
+      );
+      expect(
+        find.textContaining('You added Rahul as a friend'),
+        findsOneWidget,
+      );
     });
   });
 

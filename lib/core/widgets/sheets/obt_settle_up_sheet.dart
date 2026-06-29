@@ -5,6 +5,7 @@ import 'package:onebytwo/app/theme.dart';
 import 'package:onebytwo/core/formatters/inr_formatter.dart';
 import 'package:onebytwo/core/theme/obt_colors.dart';
 import 'package:onebytwo/core/theme/obt_text.dart';
+import 'package:onebytwo/core/widgets/branding/obt_gradient_avatar.dart';
 import 'package:onebytwo/core/widgets/feedback/obt_skeleton.dart';
 import 'package:onebytwo/core/widgets/inputs/obt_amount_input.dart';
 
@@ -35,6 +36,7 @@ class OBTSettleUpSheet extends StatefulWidget {
     this.isLoading = false,
     this.isSaving = false,
     this.isSuccess = false,
+    this.onDone,
     this.amountErrorText,
     super.key,
   });
@@ -69,6 +71,11 @@ class OBTSettleUpSheet extends StatefulWidget {
 
   /// When true, the success moment is shown (check + single haptic).
   final bool isSuccess;
+
+  /// Optional "Done" handler for the success moment. When provided, a
+  /// "Done" button dismisses the sheet immediately (the host also keeps a
+  /// timed auto-dismiss fallback).
+  final VoidCallback? onDone;
 
   /// Optional inline amount error message.
   final String? amountErrorText;
@@ -230,19 +237,35 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.check_circle, size: 56, color: obtColors.balancePositive),
-          const SizedBox(height: 12),
+          // Cream check disc — the brand "high five" moment.
+          Container(
+            width: 96,
+            height: 96,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: obtColors.balancePositive.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle,
+              size: 60,
+              color: obtColors.balancePositive,
+            ),
+          ),
+          const SizedBox(height: 16),
           Semantics(
             header: true,
             child: Text(
-              'Payment recorded',
+              "You're all settled up — high five!",
               style: theme.textTheme.headlineMedium,
+              textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            'You paid ${widget.payeeDisplayName} '
-            '${formatInrFromPaise(widget.suggestedAmountPaise)}.',
+            'Recorded '
+            '${formatInrFromPaise(widget.suggestedAmountPaise)} '
+            'paid to ${widget.payeeDisplayName}.',
             style: OBTText.rupeeAware(
               theme,
               theme.textTheme.bodyMedium?.copyWith(
@@ -251,7 +274,58 @@ class _OBTSettleUpSheetState extends State<OBTSettleUpSheet> {
             ),
             textAlign: TextAlign.center,
           ),
+          if (widget.onDone != null) ...<Widget>[
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: widget.onDone,
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                minimumSize: const Size(200, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusButton),
+                ),
+              ),
+              child: const Text('Done'),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// The "Suggested from simplified debts" provenance pill shown above the
+/// settle-up amount — a tonal marigold chip that reinforces the
+/// single-suggestion contract (Invariant 2).
+class _SuggestedFromDebtsPill extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final obtColors = theme.extension<OBTColors>() ?? OBTColors.light;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.auto_awesome, size: 16, color: obtColors.link),
+            const SizedBox(width: 6),
+            Text(
+              'Suggested from simplified debts',
+              maxLines: 1,
+              softWrap: false,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: obtColors.link,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -298,7 +372,11 @@ class _SuggestedPaymentHeader extends StatelessWidget {
             color: OBTColors.metaText(theme),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 10),
+        // The single-suggestion provenance pill (Invariant 2: one
+        // pre-filled simplified payment, never a debt graph).
+        _SuggestedFromDebtsPill(),
+        const SizedBox(height: 8),
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
@@ -321,16 +399,8 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: colors.surfaceContainerHighest,
-      backgroundImage: photoUrl != null ? NetworkImage(photoUrl!) : null,
-      child: photoUrl == null
-          ? Text(initial, style: TextStyle(color: colors.onSurfaceVariant))
-          : null,
-    );
+    // The Haldi 54 dp rounded-square gradient avatar (reused brand widget).
+    return OBTGradientAvatar(size: 54, displayName: name, photoUrl: photoUrl);
   }
 }
 

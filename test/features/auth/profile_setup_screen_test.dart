@@ -131,7 +131,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
+      expect(find.text('Finish setup'), findsOneWidget);
     });
 
     testWidgets('Continue button is disabled when '

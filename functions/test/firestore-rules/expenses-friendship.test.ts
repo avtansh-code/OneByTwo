@@ -222,6 +222,48 @@ describe("friendships/{fid}/expenses/{eid} — create rules", () => {
     );
   });
 
+  // ── Optional free-text note (Add-expense step 3 / View expense) ──
+
+  it("allows creating an expense with a string note", async () => {
+    const ctx = testEnv.authenticatedContext(memberA);
+    await assertSucceeds(
+      setDoc(
+        doc(ctx.firestore(), `friendships/${FID}/expenses/exp1`),
+        validExpenseDoc({note: "Team celebration dinner"}),
+      ),
+    );
+  });
+
+  it("allows creating an expense with a null note", async () => {
+    const ctx = testEnv.authenticatedContext(memberA);
+    await assertSucceeds(
+      setDoc(
+        doc(ctx.firestore(), `friendships/${FID}/expenses/exp1`),
+        validExpenseDoc({note: null}),
+      ),
+    );
+  });
+
+  it("rejects a non-string note", async () => {
+    const ctx = testEnv.authenticatedContext(memberA);
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), `friendships/${FID}/expenses/exp1`),
+        validExpenseDoc({note: 123}),
+      ),
+    );
+  });
+
+  it("rejects a note longer than 500 characters", async () => {
+    const ctx = testEnv.authenticatedContext(memberA);
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), `friendships/${FID}/expenses/exp1`),
+        validExpenseDoc({note: "x".repeat(501)}),
+      ),
+    );
+  });
+
   // ── Invariant 1 — sum check (the load-bearing FR-EX-04 enforcement) ──
 
   it("rejects creation when splits sum > amountPaise", async () => {

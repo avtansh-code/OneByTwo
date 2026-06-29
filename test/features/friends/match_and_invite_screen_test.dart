@@ -79,7 +79,7 @@ void main() {
   group('MatchAndInviteScreen', () {
     testWidgets('Loading state renders a loading indicator', (tester) async {
       final controller = FakeMatchAndInviteController(
-        const MatchAndInviteLoading(),
+        const MatchAndInviteLoading(phoneNumber: '+919876543210'),
       );
 
       await tester.pumpWidget(_buildTestApp(fakeController: controller));

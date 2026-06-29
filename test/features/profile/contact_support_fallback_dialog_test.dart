@@ -32,16 +32,16 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('No Mail App Found'), findsOneWidget);
+    expect(find.text('No mail app found'), findsOneWidget);
     expect(addressFinder(), findsOneWidget);
-    expect(find.text('Copy Address'), findsOneWidget);
+    expect(find.text('Copy email'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
 
     // Accessibility labels per wireframe 4.4.
     expect(
       find.byWidgetPredicate(
         (w) =>
-            w is AlertDialog && w.semanticLabel == 'Alert: No Mail App Found',
+            w is AlertDialog && w.semanticLabel == 'Alert: No mail app found',
       ),
       findsOneWidget,
     );
@@ -55,7 +55,7 @@ void main() {
     );
   });
 
-  testWidgets('Copy Address writes the address to the clipboard, '
+  testWidgets('Copy email writes the address to the clipboard, '
       'dismisses, and confirms with a snackbar', (tester) async {
     final clipboardCalls = <MethodCall>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -78,13 +78,13 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Copy Address'));
+    await tester.tap(find.text('Copy email'));
     await tester.pumpAndSettle();
 
     expect(clipboardCalls, hasLength(1));
     expect((clipboardCalls.single.arguments as Map)['text'], address);
     // Dialog dismissed and the confirmation snackbar shown.
-    expect(find.text('No Mail App Found'), findsNothing);
+    expect(find.text('No mail app found'), findsNothing);
     expect(
       find.text(ContactSupportFallbackDialog.copiedConfirmation),
       findsOneWidget,
@@ -118,7 +118,7 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('No Mail App Found'), findsNothing);
+    expect(find.text('No mail app found'), findsNothing);
     expect(clipboardCalls, isEmpty);
   });
 }

@@ -24,7 +24,12 @@ class MatchAndInviteInitial extends MatchAndInviteState {
 /// A phone lookup is in progress.
 class MatchAndInviteLoading extends MatchAndInviteState {
   /// Creates a [MatchAndInviteLoading].
-  const MatchAndInviteLoading();
+  const MatchAndInviteLoading({required this.phoneNumber});
+
+  /// The phone number being looked up (E.164 or local). Shown in the
+  /// disabled mobile-number input row of the looking-up view (Haldi 10a),
+  /// so the user can see which number is being checked.
+  final String phoneNumber;
 }
 
 /// A registered user was found matching the phone number.
@@ -161,7 +166,9 @@ class MatchAndInviteController extends StateNotifier<MatchAndInviteState> {
       return;
     }
 
-    state = const MatchAndInviteLoading();
+    state = MatchAndInviteLoading(
+      phoneNumber: resolvedContact.phoneNumbers.first,
+    );
 
     final MatchResult result =
         await _matchingRepository.lookupUser(resolvedContact.phoneNumbers.first)

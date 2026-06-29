@@ -58,7 +58,7 @@ FriendListItem _item({
   );
 }
 
-/// A representative populated composition (the hero + the "Top Balances"
+/// A representative populated composition (the hero + the "Top balances"
 /// header + two tiles) used for the labelling, tap-target and
 /// dynamic-type gates without wiring the full provider graph (the
 /// state-machine + breakdown coverage lives in the screen / card tests).
@@ -68,7 +68,7 @@ Widget _composedPopulated() {
       const NetBalanceHeaderCard(netBalancePaise: 150000),
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Text('Top Balances'),
+        child: Text('Top balances'),
       ),
       TopBalanceTile(
         item: _item(netBalancePaise: 150000),
@@ -120,8 +120,13 @@ void main() {
 
         expect(find.text('Overall, you are owed'), findsOneWidget);
         expect(find.text('₹1,500.00'), findsOneWidget);
-        final icon = tester.widget<Icon>(find.byIcon(Icons.arrow_upward));
-        expect(icon.color, obt.balancePositive);
+        // The direction arrow now sits inside a trio-filled circular badge
+        // (the glyph itself is a contrasting on-colour, not the trio hue).
+        expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+        final badge = tester.widget<Container>(
+          find.byKey(const ValueKey('net_balance_badge')),
+        );
+        expect((badge.decoration! as BoxDecoration).color, obt.balancePositive);
         final amount = tester.widget<Text>(find.text('₹1,500.00'));
         expect(amount.style?.color, obt.balancePositive);
       });
@@ -136,8 +141,11 @@ void main() {
 
         expect(find.text('Overall, you owe'), findsOneWidget);
         expect(find.text('₹250.00'), findsOneWidget);
-        final icon = tester.widget<Icon>(find.byIcon(Icons.arrow_downward));
-        expect(icon.color, obt.balanceNegative);
+        expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
+        final badge = tester.widget<Container>(
+          find.byKey(const ValueKey('net_balance_badge')),
+        );
+        expect((badge.decoration! as BoxDecoration).color, obt.balanceNegative);
         final amount = tester.widget<Text>(find.text('₹250.00'));
         expect(amount.style?.color, obt.balanceNegative);
       });
@@ -152,36 +160,56 @@ void main() {
         );
 
         expect(find.text("You're all settled up — high five!"), findsOneWidget);
-        final icon = tester.widget<Icon>(find.byIcon(Icons.check));
-        expect(icon.color, obt.balanceZero);
+        expect(find.byIcon(Icons.check), findsOneWidget);
+        final badge = tester.widget<Container>(
+          find.byKey(const ValueKey('net_balance_badge')),
+        );
+        expect((badge.decoration! as BoxDecoration).color, obt.balanceZero);
       });
     });
   }
 
-  // --- DC-11 (#123): the hero card KEEPS its shadow in dark (AC-1) ---
-  // net_balance_header_card is a heroShadow surface, not a row: heroShadow is
-  // non-empty in dark, so the card keeps its soft lift and is NOT given an
-  // outline (03 §2.2 — only rowShadow collapses to a border in dark).
-  testWidgets('NetBalanceHeaderCard keeps heroShadow and has no outline in '
-      'dark', (tester) async {
+  // --- Haldi hero reskin (DC): in dark the hero drops the shadow for a 1px
+  // outline border; in light it keeps the marigold heroShadow and no border
+  // (matches the authoritative Home design). ---
+  testWidgets('NetBalanceHeaderCard: 1px outline border (no shadow) in dark, '
+      'heroShadow (no border) in light', (tester) async {
+    BoxDecoration heroDeco() {
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(NetBalanceHeaderCard),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      return container.decoration! as BoxDecoration;
+    }
+
     await pumpThemed(
       tester,
       const NetBalanceHeaderCard(netBalancePaise: 150000),
       brightness: Brightness.dark,
     );
-
-    final container = tester.widget<Container>(
-      find
-          .descendant(
-            of: find.byType(NetBalanceHeaderCard),
-            matching: find.byType(Container),
-          )
-          .first,
+    var deco = heroDeco();
+    expect(deco.boxShadow, isNull, reason: 'dark hero drops the shadow');
+    expect(
+      deco.border,
+      Border.all(color: AppTheme.dark.colorScheme.outline),
+      reason: 'dark hero uses a 1px outline border',
     );
-    final deco = container.decoration! as BoxDecoration;
-    expect(deco.boxShadow, isNotEmpty, reason: 'heroShadow is kept in dark');
-    expect(deco.boxShadow, OBTColors.dark.heroShadow);
-    expect(deco.border, isNull, reason: 'a heroShadow surface gets no outline');
+
+    await pumpThemed(
+      tester,
+      const NetBalanceHeaderCard(netBalancePaise: 150000),
+    );
+    deco = heroDeco();
+    expect(
+      deco.boxShadow,
+      OBTColors.light.heroShadow,
+      reason: 'light hero keeps the marigold heroShadow',
+    );
+    expect(deco.border, isNull, reason: 'light hero has no outline border');
   });
 
   // --- AC-1: the top-balance tile one-line pill + subtitle + Settle Up ---
