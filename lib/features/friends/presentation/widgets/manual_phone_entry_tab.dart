@@ -100,35 +100,35 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
         children: [
           const SizedBox(height: 24),
 
-          // Phone input row: locked +91 prefix + text field.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Locked +91 prefix container.
-              Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(AppTheme.radiusChipInput),
-                    bottomLeft: Radius.circular(AppTheme.radiusChipInput),
+          // Phone input row: locked +91 prefix + text field. IntrinsicHeight +
+          // CrossAxisAlignment.stretch make both halves share one height so the
+          // +91 prefix and the input align top and bottom (issue #150).
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Locked +91 prefix container.
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppTheme.radiusChipInput),
+                      bottomLeft: Radius.circular(AppTheme.radiusChipInput),
+                    ),
+                    border: Border.all(color: colorScheme.outline),
                   ),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '+91',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onSurface,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '+91',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ),
-              ),
 
-              // Phone number text field.
-              Expanded(
-                child: SizedBox(
-                  height: 56,
+                // Phone number text field.
+                Expanded(
                   child: TextField(
                     controller: _controller,
                     keyboardType: TextInputType.phone,
@@ -177,8 +177,8 @@ class _ManualPhoneEntryTabState extends State<ManualPhoneEntryTab> {
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // Validation error text.

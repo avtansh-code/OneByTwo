@@ -259,5 +259,42 @@ void main() {
 
       expect(find.text('98765 43210'), findsOneWidget);
     });
+
+    group('unified +91/input height (issue #150)', () {
+      testWidgets('phone input row is an IntrinsicHeight wrapping a '
+          'stretched Row', (tester) async {
+        await tester.pumpWidget(buildSubject());
+
+        final intrinsicFinder = find.ancestor(
+          of: find.byType(TextField),
+          matching: find.byType(IntrinsicHeight),
+        );
+        expect(intrinsicFinder, findsOneWidget);
+
+        final intrinsic = tester.widget<IntrinsicHeight>(intrinsicFinder);
+        expect(intrinsic.child, isA<Row>());
+        expect(
+          (intrinsic.child! as Row).crossAxisAlignment,
+          CrossAxisAlignment.stretch,
+        );
+      });
+
+      testWidgets('the +91 prefix and the input field render at equal '
+          'heights', (tester) async {
+        await tester.pumpWidget(buildSubject());
+
+        final prefixBox = find
+            .ancestor(
+              of: find.text('🇮🇳 +91'),
+              matching: find.byType(Container),
+            )
+            .first;
+        final prefixHeight = tester.getSize(prefixBox).height;
+        final fieldHeight = tester.getSize(find.byType(TextField)).height;
+
+        expect(prefixHeight, greaterThan(0));
+        expect(fieldHeight, moreOrLessEquals(prefixHeight, epsilon: 0.5));
+      });
+    });
   });
 }

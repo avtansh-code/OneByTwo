@@ -130,39 +130,41 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Phone input row.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Locked +91 prefix.
-                  Semantics(
-                    label: 'Country code, India, plus 91',
-                    excludeSemantics: true,
-                    child: Container(
-                      height: 56,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(AppTheme.radiusChipInput),
-                          bottomLeft: Radius.circular(AppTheme.radiusChipInput),
+              // Phone input row. IntrinsicHeight + CrossAxisAlignment.stretch
+              // make the +91 prefix and the input share one height so their top
+              // and bottom edges align as a single control (issue #150).
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Locked +91 prefix.
+                    Semantics(
+                      label: 'Country code, India, plus 91',
+                      excludeSemantics: true,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(AppTheme.radiusChipInput),
+                            bottomLeft: Radius.circular(
+                              AppTheme.radiusChipInput,
+                            ),
+                          ),
+                          border: Border.all(color: colorScheme.outline),
                         ),
-                        border: Border.all(color: colorScheme.outline),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '🇮🇳 +91',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colorScheme.onSurface,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '🇮🇳 +91',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // Phone number text field.
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
+                    // Phone number text field.
+                    Expanded(
                       child: TextField(
                         enabled: !state.isLoading,
                         decoration: InputDecoration(
@@ -217,8 +219,8 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                         style: theme.textTheme.titleMedium,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
               // Helper text, or the inline validation error when invalid.

@@ -419,35 +419,35 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Semantics(
-          label: 'Country code, India, plus 91',
-          excludeSemantics: true,
-          child: Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppTheme.radiusChipInput),
-                bottomLeft: Radius.circular(AppTheme.radiusChipInput),
+    // IntrinsicHeight + CrossAxisAlignment.stretch make the +91 prefix and the
+    // input share one height so their top and bottom edges align (issue #150).
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            label: 'Country code, India, plus 91',
+            excludeSemantics: true,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(AppTheme.radiusChipInput),
+                  bottomLeft: Radius.circular(AppTheme.radiusChipInput),
+                ),
+                border: Border.all(color: colorScheme.outline),
               ),
-              border: Border.all(color: colorScheme.outline),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '+91',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurface,
+              alignment: Alignment.center,
+              child: Text(
+                '+91',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
           ),
-        ),
-        Expanded(
-          child: SizedBox(
-            height: 56,
+          Expanded(
             child: TextField(
               enabled: !state.isLoading,
               decoration: const InputDecoration(
@@ -472,8 +472,8 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
               style: theme.textTheme.titleMedium,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
